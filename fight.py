@@ -48,6 +48,9 @@ CHARACTERS = [
     {"name": "Ares",    "color": ORANGE, "speed": 5,  "jump": -14,
      "punch_dmg": 21, "kick_dmg": 20, "max_hp": 90,
      "desc": "God of War",           "double_jump": False},
+     {"name": "Zephyr",  "color": BLUE,  "speed": 9,  "jump": -18,
+     "punch_dmg": 10, "kick_dmg": 14, "max_hp": 100,
+     "desc": "Swift and agile",      "double_jump": True}
 
 ]
 
