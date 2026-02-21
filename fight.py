@@ -50,8 +50,10 @@ CHARACTERS = [
      "desc": "God of War",           "double_jump": False},
      {"name": "Zephyr",  "color": BLUE,  "speed": 9,  "jump": -18,
      "punch_dmg": 10, "kick_dmg": 14, "max_hp": 100,
-     "desc": "Swift and agile",      "double_jump": True}
-
+     "desc": "Swift and agile",      "double_jump": True},
+     {"name": "Titan",  "color": YELLOW,  "speed": 3,  "jump": -7,
+     "punch_dmg": 18, "kick_dmg": 16, "max_hp": 155,
+     "desc": "Enormous Health",      "double_jump": False}
 ]
 
 HEAD_R   = 18
