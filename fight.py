@@ -45,9 +45,9 @@ CHARACTERS = [
     {"name": "Phantom", "color": PURPLE, "speed": 6, "jump": -15,
      "punch_dmg": 10, "kick_dmg": 14, "max_hp": 100,
      "desc": "Balanced & evasive",   "double_jump": True},
-     {"name": "Ares",  "color": ORANGE, "speed": 25, "jump": -14,
+    {"name": "Ares",    "color": ORANGE, "speed": 5,  "jump": -14,
      "punch_dmg": 21, "kick_dmg": 20, "max_hp": 90,
-     "desc": "God of War",      "double_jump": False}
+     "desc": "God of War",           "double_jump": False},
 
 ]
 
