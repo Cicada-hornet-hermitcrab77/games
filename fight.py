@@ -71,7 +71,19 @@ CHARACTERS = [
      "desc": "Dead",   "double_jump": False},
     {"name": "Unknown",   "color": (100, 160, 220),   "speed": 5,  "jump": -5,
      "punch_dmg":  3, "kick_dmg": 5, "max_hp":  300,
-     "desc": "Mysterious and powerful",   "double_jump": True}
+     "desc": "Mysterious and powerful",   "double_jump": True},
+    {"name": "Hardy", "color": (110, 120, 225), "speed": 3, "jump": -8,
+     "punch_dmg": 5, "kick_dmg": 6, "max_hp": 70,
+     "desc": "Pros should try him",   "double_jump": False},
+    {"name": "Rogue", "color": (220, 180, 60), "speed": 8, "jump": -17,
+     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 80,
+     "desc": "Stealthy and agile",   "double_jump": True},
+    {"name": "Gladiator", "color": (200, 80, 80), "speed": 4, "jump": -12,
+     "punch_dmg": 14, "kick_dmg": 18, "max_hp": 140,
+     "desc": "Arena Champion",   "double_jump": False},
+    {"name": "Oni", "color": (80, 220, 200), "speed": 2, "jump": -1,
+     "punch_dmg": 12, "kick_dmg": 14, "max_hp": 200,
+     "desc": "Fat Demon",   "double_jump": False},
 ]
 
 POWERUPS = [
