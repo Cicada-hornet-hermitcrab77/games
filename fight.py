@@ -99,6 +99,7 @@ POWERUPS = [
     {'name': 'Leech',     'type': 'leech',     'amount':  8, 'duration': 360, 'color': (200,  0, 200)},
     {'name': 'MegaHeal',  'type': 'heal',      'amount': 60, 'duration': 0,   'color': (0,   220,  80)},
     {'name': 'Bomb',      'type': 'heal',      'amount':-60, 'duration': 0,   'color': (255,  60,   0)},
+    {'name': 'Wither',      'type': 'speed',     'amount':  -2, 'duration': 420, 'color': (255,  0,  0)},
 ]
 
 
@@ -290,7 +291,11 @@ class Fighter:
         t    = spec['type']
         name = spec['name']
         if t == 'speed':
-            self.speed_boost = spec['mult']
+            # supports 'mult' (multiplier) or 'amount' (additive delta, e.g. Wither)
+            if 'mult' in spec:
+                self.speed_boost = spec['mult']
+            else:
+                self.speed_boost = max(0.1, 1.0 + spec.get('amount', 0) * 0.15)
             self.active_powerups[name] = spec['duration']
         elif t == 'punch_dmg':
             self.punch_boost += spec['amount']
