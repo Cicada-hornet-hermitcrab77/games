@@ -53,8 +53,35 @@ CHARACTERS = [
      "desc": "Swift and agile",      "double_jump": True},
      {"name": "Titan",  "color": YELLOW,  "speed": 3,  "jump": -7,
      "punch_dmg": 18, "kick_dmg": 16, "max_hp": 155,
-     "desc": "Enormous Health",      "double_jump": False}
+     "desc": "Enormous Health",      "double_jump": False},
+    {"name": "Dancing Man",    "color": (100, 100, 255), "speed": 10,  "jump": -20,
+     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100,
+     "desc": "evasive",    "double_jump": True},
+    {"name": "Tank",   "color": (30, 30, 30), "speed": 1,  "jump": -0,
+     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 190,
+     "desc": "Defensive",   "double_jump": False},
+    {"name": "Mighty Medieval Man",  "color": GRAY, "speed": 4,  "jump": -18,
+     "punch_dmg": 15, "kick_dmg": 15, "max_hp": 120,
+     "desc": "Lord of chivalry",   "double_jump": False},
+    {"name": "Samurai",   "color": BLACK, "speed": 6,  "jump": -15,
+     "punch_dmg": 12, "kick_dmg": 19, "max_hp": 170,
+     "desc": "Katana Master",   "double_jump": True},
+    {"name": "Skeleton",   "color": WHITE,   "speed": 3, "jump": -5,
+     "punch_dmg":  25, "kick_dmg": 20, "max_hp":  65,
+     "desc": "Dead",   "double_jump": False},
+    {"name": "Unknown",   "color": (100, 160, 220),   "speed": 5,  "jump": -5,
+     "punch_dmg":  3, "kick_dmg": 5, "max_hp":  300,
+     "desc": "Mysterious and powerful",   "double_jump": True}
 ]
+
+POWERUPS = [
+    {'name': 'Haste', 'type': 'speed', 'mult': 1.6, 'duration': 360, 'color': (80,200,250)},
+    {'name': 'Rage', 'type': 'kick_dmg', 'amount': 10, 'duration': 500, 'color': (240,120,40)},
+    {'name': 'Drugs', 'type': 'punch_dmg', 'amount': 10, 'duration': 540, 'color': (180,240,180)},
+    {'name': 'Heal', 'type': 'heal', 'amount': 30, 'duration': 0, 'color': (200,255,120)},
+    {'name': 'Poison', 'type': 'heal', 'amount': -30, 'duration': 0, 'color': (200,160,255)},
+]
+
 
 HEAD_R   = 18
 BODY_LEN = 50
@@ -233,8 +260,38 @@ class Fighter:
         self.flash_timer = 0
         self.walk_t = 0.0
         self.knockback = 0.0
+        self.active_powerups = {}   # name -> frames remaining
+        self.speed_boost  = 1.0
+        self.punch_boost  = 0
+        self.kick_boost   = 0
+
+    def apply_powerup(self, spec):
+        t    = spec['type']
+        name = spec['name']
+        if t == 'speed':
+            self.speed_boost = spec['mult']
+            self.active_powerups[name] = spec['duration']
+        elif t == 'punch_dmg':
+            self.punch_boost += spec['amount']
+            self.active_powerups[name] = spec['duration']
+        elif t == 'kick_dmg':
+            self.kick_boost += spec['amount']
+            self.active_powerups[name] = spec['duration']
+        elif t == 'heal':
+            self.hp = max(0, min(self.max_hp, self.hp + spec['amount']))
+
+    def tick_powerups(self):
+        done = [n for n, t in self.active_powerups.items() if t <= 1]
+        for name in done:
+            if name == 'Haste':  self.speed_boost  = 1.0
+            if name == 'Rage':   self.kick_boost   = max(0, self.kick_boost  - 10)
+            if name == 'Drugs':  self.punch_boost  = max(0, self.punch_boost - 10)
+            del self.active_powerups[name]
+        for name in self.active_powerups:
+            self.active_powerups[name] -= 1
 
     def update(self, keys, other):
+        self.tick_powerups()
         if self.flash_timer > 0:
             self.flash_timer -= 1
         if self.hurt_timer > 0:
@@ -258,6 +315,8 @@ class Fighter:
         self.x = max(50.0, min(float(WIDTH - 50), self.x))
         self.facing = 1 if other.x > self.x else -1
 
+        spd = self.char["speed"] * self.speed_boost
+
         if self.hurt_timer == 0:
             ctrl = self.controls
             can_atk = not self.attacking or self.action in ('idle', 'walk', 'jump')
@@ -274,13 +333,13 @@ class Fighter:
                     self.action = 'jump'
                     self.attacking = False
             elif keys[ctrl['left']]:
-                self.x -= self.char["speed"]
+                self.x -= spd
                 if self.on_ground and not self.attacking:
                     self.action = 'walk'
                     self.walk_t = (self.walk_t + 0.12) % 1.0
                     self.action_t = self.walk_t
             elif keys[ctrl['right']]:
-                self.x += self.char["speed"]
+                self.x += spd
                 if self.on_ground and not self.attacking:
                     self.action = 'walk'
                     self.walk_t = (self.walk_t + 0.12) % 1.0
@@ -308,7 +367,10 @@ class Fighter:
             return
         dist = math.hypot(hit_pos[0] - other.x, hit_pos[1] - (other.y - 70))
         if dist < 58:
-            dmg = self.char["punch_dmg"] if self.action == 'punch' else self.char["kick_dmg"]
+            if self.action == 'punch':
+                dmg = self.char["punch_dmg"] + self.punch_boost
+            else:
+                dmg = self.char["kick_dmg"] + self.kick_boost
             other.hp = max(0, other.hp - dmg)
             other.action = 'hurt'
             other.hurt_timer = 22
@@ -351,6 +413,7 @@ class AIFighter(Fighter):
 
     def update(self, keys, other):
         # --- Physics (same as parent, no key input) ---
+        self.tick_powerups()
         if self.flash_timer > 0:
             self.flash_timer -= 1
         if self.hurt_timer > 0:
@@ -399,7 +462,7 @@ class AIFighter(Fighter):
             self._start(self.ai_attack, 0.07 if self.ai_attack == 'punch' else 0.06)
             self.ai_attack = None
         elif self.ai_move != 0:
-            self.x += self.ai_move * self.char["speed"]
+            self.x += self.ai_move * self.char["speed"] * self.speed_boost
             if self.on_ground and not self.attacking:
                 self.action = 'walk'
                 self.walk_t = (self.walk_t + 0.12) % 1.0
@@ -445,6 +508,72 @@ class AIFighter(Fighter):
             self.jumps_left -= 1
             self.action = 'jump'
             self.attacking = False
+
+
+# ---------------------------------------------------------------------------
+# Powerup pickup
+# ---------------------------------------------------------------------------
+
+PICKUP_RADIUS = 28
+
+class Powerup:
+    def __init__(self):
+        spec = random.choice(POWERUPS)
+        self.spec  = spec
+        self.name  = spec['name']
+        self.color = spec['color']
+        self.x     = float(random.randint(80, WIDTH - 80))
+        self.y     = float(GROUND_Y - 14)
+        self.age   = 0           # for bobbing animation
+        self.picked_up = False
+
+    def update(self):
+        self.age += 1
+
+    def draw(self, surface):
+        bob = math.sin(self.age * 0.08) * 6
+        cx, cy = int(self.x), int(self.y + bob)
+
+        # Glow ring (pulsing)
+        glow_r = PICKUP_RADIUS + 4 + int(math.sin(self.age * 0.12) * 3)
+        glow_col = tuple(min(255, c + 60) for c in self.color)
+        pygame.draw.circle(surface, glow_col, (cx, cy), glow_r, 3)
+
+        # Main circle
+        pygame.draw.circle(surface, self.color, (cx, cy), PICKUP_RADIUS)
+        pygame.draw.circle(surface, WHITE,      (cx, cy), PICKUP_RADIUS, 2)
+
+        # Label
+        lbl = font_tiny.render(self.name[0], True, WHITE)   # first letter
+        surface.blit(lbl, (cx - lbl.get_width()//2, cy - lbl.get_height()//2))
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < PICKUP_RADIUS + 22
+
+
+def draw_active_powerups(surface, fighter, side):
+    """Draw small powerup icons above the fighter's health bar area."""
+    if not fighter.active_powerups:
+        return
+    x_start = 20 if side == 'left' else WIDTH - 20
+    dx = 44 if side == 'left' else -44
+    for i, (name, frames) in enumerate(fighter.active_powerups.items()):
+        spec = next((p for p in POWERUPS if p['name'] == name), None)
+        if not spec:
+            continue
+        cx = x_start + dx * i + (22 if side == 'left' else -22)
+        cy = 90
+        ratio = frames / spec['duration']
+        # background
+        pygame.draw.circle(surface, (60, 60, 60), (cx, cy), 18)
+        # arc showing time left
+        if ratio > 0:
+            pygame.draw.arc(surface, spec['color'],
+                            (cx-18, cy-18, 36, 36),
+                            math.pi/2 - ratio*2*math.pi, math.pi/2, 4)
+        pygame.draw.circle(surface, WHITE, (cx, cy), 18, 2)
+        lbl = font_tiny.render(name[0], True, WHITE)
+        surface.blit(lbl, (cx - lbl.get_width()//2, cy - lbl.get_height()//2))
 
 
 # ---------------------------------------------------------------------------
@@ -653,9 +782,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium'):
     else:
         p2 = Fighter(700, CHARACTERS[p2_idx], -1, P2_CTRL)
 
-    game_over = False
-    winner    = None
-    timer     = 90 * FPS
+    game_over    = False
+    winner       = None
+    timer        = 90 * FPS
+    powerups     = []
+    spawn_timer  = 300   # first spawn after 5 seconds
 
     while True:
         clock.tick(FPS)
@@ -682,7 +813,24 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium'):
                 game_over = True
                 winner = p1 if p1.hp >= p2.hp else p2
 
+            # Spawn powerups
+            spawn_timer -= 1
+            if spawn_timer <= 0 and len(powerups) < 3:
+                powerups.append(Powerup())
+                spawn_timer = random.randint(480, 720)   # 8-12 seconds
+
+            # Update & pickup
+            for pu in powerups:
+                pu.update()
+                for fighter in (p1, p2):
+                    if not pu.picked_up and pu.collides(fighter):
+                        fighter.apply_powerup(pu.spec)
+                        pu.picked_up = True
+            powerups = [pu for pu in powerups if not pu.picked_up]
+
         draw_bg(screen)
+        for pu in powerups:
+            pu.draw(screen)
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen)
 
@@ -703,6 +851,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium'):
 
         p2_label = f"CPU — {p2.char['name']}" if vs_ai else f"P2 — {p2.char['name']}"
         draw_health_bars_labeled(screen, p1, p2, p2_label)
+        draw_active_powerups(screen, p1, 'left')
+        draw_active_powerups(screen, p2, 'right')
 
         secs = max(0, timer // FPS)
         t_surf = font_medium.render(str(secs), True, RED if secs <= 10 else WHITE)
