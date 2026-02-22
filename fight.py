@@ -88,14 +88,14 @@ CHARACTERS = [
 
 POWERUPS = [
     # --- existing ---
-    {'name': 'Haste',     'type': 'speed',     'mult': 1.6,  'duration': 360, 'color': (80, 200, 250)},
+    {'name': 'Swiftness',     'type': 'speed',     'mult': 1.6,  'duration': 360, 'color': (80, 200, 250)},
     {'name': 'Rage',      'type': 'kick_dmg',  'amount': 10, 'duration': 500, 'color': (240,120,  40)},
     {'name': 'Drugs',     'type': 'punch_dmg', 'amount': 10, 'duration': 540, 'color': (180,240, 180)},
     {'name': 'Heal',      'type': 'heal',       'amount': 30, 'duration': 0,   'color': (200,255, 120)},
     {'name': 'Poison',    'type': 'heal',       'amount':-30, 'duration': 0,   'color': (200,160, 255)},
     # --- new ---
     {'name': 'Turbo',     'type': 'speed',     'mult': 2.4,  'duration': 180, 'color': (255,230,   0)},
-    {'name': 'Shield',    'type': 'shield',    'reduction': 0.5, 'duration': 300, 'color': (100,150, 255)},
+    {'name': 'Forcefield',    'type': 'shield',    'reduction': 0.5, 'duration': 300, 'color': (100,150, 255)},
     {'name': 'Leech',     'type': 'leech',     'amount':  8, 'duration': 360, 'color': (200,  0, 200)},
     {'name': 'MegaHeal',  'type': 'heal',      'amount': 60, 'duration': 0,   'color': (0,   220,  80)},
     {'name': 'Bomb',      'type': 'heal',      'amount':-60, 'duration': 0,   'color': (255,  60,   0)},
