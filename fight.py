@@ -95,7 +95,7 @@ POWERUPS = [
     {'name': 'Poison',    'type': 'heal',       'amount':-30, 'duration': 0,   'color': (200,160, 255)},
     # --- new ---
     {'name': 'Turbo',     'type': 'speed',     'mult': 2.4,  'duration': 180, 'color': (255,230,   0)},
-    {'name': 'Forcefield',    'type': 'shield',    'reduction': 0.5, 'duration': 300, 'color': (100,150, 255)},
+    {'name': 'Forcefield',    'type': 'shield',    'reduction': 0.5, 'duration': 360, 'color': (100,150, 255)},
     {'name': 'Leech',     'type': 'leech',     'amount':  8, 'duration': 360, 'color': (200,  0, 200)},
     {'name': 'MegaHeal',  'type': 'heal',      'amount': 60, 'duration': 0,   'color': (0,   220,  80)},
     {'name': 'Bomb',      'type': 'heal',      'amount':-60, 'duration': 0,   'color': (255,  60,   0)},
