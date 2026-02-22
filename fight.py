@@ -75,11 +75,18 @@ CHARACTERS = [
 ]
 
 POWERUPS = [
-    {'name': 'Haste', 'type': 'speed', 'mult': 1.6, 'duration': 360, 'color': (80,200,250)},
-    {'name': 'Rage', 'type': 'kick_dmg', 'amount': 10, 'duration': 500, 'color': (240,120,40)},
-    {'name': 'Drugs', 'type': 'punch_dmg', 'amount': 10, 'duration': 540, 'color': (180,240,180)},
-    {'name': 'Heal', 'type': 'heal', 'amount': 30, 'duration': 0, 'color': (200,255,120)},
-    {'name': 'Poison', 'type': 'heal', 'amount': -30, 'duration': 0, 'color': (200,160,255)},
+    # --- existing ---
+    {'name': 'Haste',     'type': 'speed',     'mult': 1.6,  'duration': 360, 'color': (80, 200, 250)},
+    {'name': 'Rage',      'type': 'kick_dmg',  'amount': 10, 'duration': 500, 'color': (240,120,  40)},
+    {'name': 'Drugs',     'type': 'punch_dmg', 'amount': 10, 'duration': 540, 'color': (180,240, 180)},
+    {'name': 'Heal',      'type': 'heal',       'amount': 30, 'duration': 0,   'color': (200,255, 120)},
+    {'name': 'Poison',    'type': 'heal',       'amount':-30, 'duration': 0,   'color': (200,160, 255)},
+    # --- new ---
+    {'name': 'Turbo',     'type': 'speed',     'mult': 2.4,  'duration': 180, 'color': (255,230,   0)},
+    {'name': 'Shield',    'type': 'shield',    'reduction': 0.5, 'duration': 300, 'color': (100,150, 255)},
+    {'name': 'Leech',     'type': 'leech',     'amount':  8, 'duration': 360, 'color': (200,  0, 200)},
+    {'name': 'MegaHeal',  'type': 'heal',      'amount': 60, 'duration': 0,   'color': (0,   220,  80)},
+    {'name': 'Bomb',      'type': 'heal',      'amount':-60, 'duration': 0,   'color': (255,  60,   0)},
 ]
 
 
@@ -264,6 +271,8 @@ class Fighter:
         self.speed_boost  = 1.0
         self.punch_boost  = 0
         self.kick_boost   = 0
+        self.shield       = False
+        self.leech        = False
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -279,15 +288,26 @@ class Fighter:
             self.active_powerups[name] = spec['duration']
         elif t == 'heal':
             self.hp = max(0, min(self.max_hp, self.hp + spec['amount']))
+        elif t == 'shield':
+            self.shield = True
+            self.active_powerups[name] = spec['duration']
+        elif t == 'leech':
+            self.leech = True
+            self.active_powerups[name] = spec['duration']
 
     def tick_powerups(self):
         done = [n for n, t in self.active_powerups.items() if t <= 1]
         for name in done:
-            if name == 'Haste':  self.speed_boost  = 1.0
-            if name == 'Rage':   self.kick_boost   = max(0, self.kick_boost  - 10)
-            if name == 'Drugs':  self.punch_boost  = max(0, self.punch_boost - 10)
+            spec = next((p for p in POWERUPS if p['name'] == name), None)
+            if spec:
+                t = spec['type']
+                if t == 'speed':     self.speed_boost  = 1.0
+                elif t == 'punch_dmg': self.punch_boost = max(0, self.punch_boost - spec['amount'])
+                elif t == 'kick_dmg':  self.kick_boost  = max(0, self.kick_boost  - spec['amount'])
+                elif t == 'shield':    self.shield = False
+                elif t == 'leech':     self.leech  = False
             del self.active_powerups[name]
-        for name in self.active_powerups:
+        for name in list(self.active_powerups):
             self.active_powerups[name] -= 1
 
     def update(self, keys, other):
@@ -371,7 +391,11 @@ class Fighter:
                 dmg = self.char["punch_dmg"] + self.punch_boost
             else:
                 dmg = self.char["kick_dmg"] + self.kick_boost
+            if other.shield:
+                dmg = max(1, int(dmg * 0.5))
             other.hp = max(0, other.hp - dmg)
+            if self.leech:
+                self.hp = min(self.max_hp, self.hp + 8)
             other.action = 'hurt'
             other.hurt_timer = 22
             other.flash_timer = 10
