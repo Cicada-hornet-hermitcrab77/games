@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import pygame
 import sys
 import math
@@ -336,6 +337,7 @@ class Fighter:
         self.kick_boost   = 0
         self.shield       = False
         self.leech        = False
+        self.color        = char_data["color"]
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -469,12 +471,14 @@ class Fighter:
             other.attacking = False
             other.knockback = self.facing * 6
             self.attack_hit = True
+            if other.char["name"] == "Shapeshifter":
+                other.color = (random.randint(60,255), random.randint(60,255), random.randint(60,255))
 
     def draw(self, surface):
         pygame.draw.ellipse(surface, (0,0,0),
                             (int(self.x)-25, int(self.y)-6, 50, 12))
         flash = (self.flash_timer % 4) < 2 and self.flash_timer > 0
-        return draw_stickman(surface, self.x, self.y, self.char["color"],
+        return draw_stickman(surface, self.x, self.y, self.color,
                               self.facing, self.action, self.action_t, flash=flash)
 
 
