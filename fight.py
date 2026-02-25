@@ -84,9 +84,15 @@ CHARACTERS = [
     {"name": "Oni", "color": (80, 220, 200), "speed": 2, "jump": -1,
      "punch_dmg": 12, "kick_dmg": 14, "max_hp": 200,
      "desc": "Fat Demon",   "double_jump": False},
-    {"name": "Cecalia", "color": (50, 255, 255), "speed": 8, "jump": -8,
-     "punch_dmg": 8, "kick_dmg": 8, "max_hp": 300,
-     "desc": "Octo hard",   "double_jump": False},
+    {"name": "Cecalia",     "color": (50, 255, 255), "speed": 8,  "jump": -8,
+     "punch_dmg": 8,  "kick_dmg": 8,  "max_hp": 300,
+     "desc": "Octo hard",        "double_jump": False},
+    {"name": "Acrobat",     "color": (255, 180, 80), "speed": 8,  "jump": -20,
+     "punch_dmg": 8,  "kick_dmg": 12, "max_hp": 85,
+     "desc": "Aerial specialist", "double_jump": True},
+    {"name": "Shapeshifter", "color": (180, 80, 255), "speed": 6, "jump": -15,
+     "punch_dmg": 14, "kick_dmg": 14, "max_hp": 105,
+     "desc": "Unpredictable",    "double_jump": True},
 ]
 
 POWERUPS = [
