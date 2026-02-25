@@ -199,18 +199,137 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False):
     return None
 
 
-def draw_bg(surface):
-    surface.fill((100, 160, 220))
-    for hx, hw, hh, hc in [(0, 300, 120, (70,120,70)),
-                             (220, 280, 100, (60,110,60)),
-                             (440, 340, 130, (75,125,75))]:
-        pygame.draw.ellipse(surface, hc, (hx, GROUND_Y - hh + 10, hw, hh * 2))
-    pygame.draw.rect(surface, (60,140, 60), (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
-    pygame.draw.rect(surface, (80, 60, 40), (0, GROUND_Y+24, WIDTH, HEIGHT-GROUND_Y))
-    pygame.draw.line(surface, (40,100,40), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
-    for i in range(0, WIDTH, 28):
-        bh = 28 + (i * 7 % 22)
-        pygame.draw.ellipse(surface, (50,50,80), (i, GROUND_Y+26-bh, 22, bh))
+STAGES = [
+    {"name": "Grasslands",   "desc": "A peaceful meadow"},
+    {"name": "Volcano",      "desc": "Scorching lava fields"},
+    {"name": "Dojo",         "desc": "Ancient training hall"},
+    {"name": "City Rooftop", "desc": "Urban nightscape"},
+    {"name": "Tundra",       "desc": "Frozen wasteland"},
+    {"name": "Desert",       "desc": "Scorching sands"},
+]
+
+
+def draw_bg(surface, stage_idx=0, frame=0):
+    s = stage_idx % len(STAGES)
+
+    if s == 0:  # --- Grasslands ---
+        surface.fill((100, 160, 220))
+        for hx, hw, hh, hc in [(0,300,120,(70,120,70)),(220,280,100,(60,110,60)),(440,340,130,(75,125,75))]:
+            pygame.draw.ellipse(surface, hc, (hx, GROUND_Y-hh+10, hw, hh*2))
+        pygame.draw.rect(surface, (60,140,60),  (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface, (80, 60,40),  (0, GROUND_Y+24, WIDTH, HEIGHT-GROUND_Y))
+        pygame.draw.line(surface, (40,100,40), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+        for i in range(0, WIDTH, 28):
+            bh = 28 + (i*7%22)
+            pygame.draw.ellipse(surface, (50,50,80), (i, GROUND_Y+26-bh, 22, bh))
+
+    elif s == 1:  # --- Volcano ---
+        surface.fill((60, 20, 10))
+        # glowing sky gradient bands
+        for band, col in enumerate([(90,30,10),(70,20,8),(50,15,5)]):
+            pygame.draw.rect(surface, col, (0, band*60, WIDTH, 60))
+        # volcano silhouette
+        pygame.draw.polygon(surface, (30,15,5), [(300,GROUND_Y+2),(420,180),(540,GROUND_Y+2)])
+        pygame.draw.polygon(surface, (30,15,5), [(60,GROUND_Y+2),(140,240),(220,GROUND_Y+2)])
+        # lava glow at crater
+        glow = 40 + int(math.sin(frame*0.05)*15)
+        pygame.draw.circle(surface, (255,120+glow,0), (420,182), 18)
+        pygame.draw.circle(surface, (255,200,50),     (420,182), 8)
+        # lava river (animated)
+        lava_x = int(math.sin(frame*0.03)*30)
+        pygame.draw.ellipse(surface, (220,80,0), (350+lava_x, GROUND_Y-8, 100, 20))
+        # ground
+        pygame.draw.rect(surface, (40,20,10),  (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface, (60,25,5),   (0, GROUND_Y+20, WIDTH, HEIGHT-GROUND_Y))
+        pygame.draw.line(surface, (180,60,0),  (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+
+    elif s == 2:  # --- Dojo ---
+        surface.fill((15, 10, 30))
+        # stars
+        for sx, sy in [(80,40),(180,80),(300,30),(450,60),(600,20),(750,70),(850,45)]:
+            pygame.draw.circle(surface, WHITE, (sx, sy), 2)
+        # moon
+        pygame.draw.circle(surface, (240,240,200), (750, 80), 40)
+        pygame.draw.circle(surface, (15,10,30),    (770, 70), 35)   # crescent
+        # torii gate
+        for tx in [120, 680]:
+            pygame.draw.rect(surface, (160,30,30), (tx-5,  GROUND_Y-160, 10, 160))
+            pygame.draw.rect(surface, (160,30,30), (tx+45, GROUND_Y-160, 10, 160))
+            pygame.draw.rect(surface, (160,30,30), (tx-15, GROUND_Y-160, 80, 12))
+            pygame.draw.rect(surface, (160,30,30), (tx-10, GROUND_Y-145, 70,  8))
+        # wooden floor
+        pygame.draw.rect(surface, (100,65,30),  (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface, (80, 50,20),  (0, GROUND_Y+20, WIDTH, HEIGHT-GROUND_Y))
+        for fx in range(0, WIDTH, 60):
+            pygame.draw.line(surface, (60,38,15), (fx, GROUND_Y+2), (fx, HEIGHT), 2)
+        pygame.draw.line(surface, (60,38,15), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+
+    elif s == 3:  # --- City Rooftop ---
+        surface.fill((8, 8, 25))
+        # stars
+        for sx, sy in [(50,30),(150,60),(270,20),(400,50),(520,35),(680,55),(820,25),(880,70)]:
+            pygame.draw.circle(surface, (200,200,255), (sx,sy), 1)
+        # city skyline
+        buildings = [(0,180,80),(100,220,60),(180,150,90),(300,200,70),(400,170,80),
+                     (500,240,60),(600,190,75),(700,160,85),(800,210,65),(860,180,40)]
+        for bx, bh, bw in buildings:
+            pygame.draw.rect(surface, (30,30,50), (bx, GROUND_Y-bh, bw, bh))
+            # lit windows
+            for wy in range(GROUND_Y-bh+10, GROUND_Y-10, 18):
+                for wx in range(bx+8, bx+bw-8, 16):
+                    if (wx+wy) % 3 != 0:
+                        pygame.draw.rect(surface, (255,240,150), (wx, wy, 8, 10))
+        # rooftop floor
+        pygame.draw.rect(surface, (70,70,80),  (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface, (50,50,60),  (0, GROUND_Y+20, WIDTH, HEIGHT-GROUND_Y))
+        pygame.draw.line(surface, (100,100,120),(0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+        # AC units / vents
+        for vx in [80, 250, 500, 720]:
+            pygame.draw.rect(surface, (60,60,70), (vx, GROUND_Y-18, 40, 20))
+
+    elif s == 4:  # --- Tundra ---
+        surface.fill((170, 210, 230))
+        # aurora bands
+        for ai, ac in enumerate([(100,220,180,60),(80,180,220,40),(120,200,160,30)]):
+            r,g,b,a = ac
+            asurf = pygame.Surface((WIDTH, 40), pygame.SRCALPHA)
+            asurf.fill((r,g,b,a))
+            surface.blit(asurf, (0, 40+ai*40))
+        # snow hills
+        for hx, hw, hh, hc in [(0,350,80,(200,220,235)),(250,320,60,(210,228,240)),(550,380,90,(195,215,230))]:
+            pygame.draw.ellipse(surface, hc, (hx, GROUND_Y-hh+10, hw, hh*2))
+        # frozen ground
+        pygame.draw.rect(surface, (210,228,240), (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface, (190,210,225), (0, GROUND_Y+20, WIDTH, HEIGHT-GROUND_Y))
+        pygame.draw.line(surface, (150,190,220), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+        # snowflakes (static based on position)
+        for i in range(20):
+            fx = (i*137 + frame//2) % WIDTH
+            fy = (i*97  + frame//3) % (GROUND_Y - 20)
+            pygame.draw.circle(surface, WHITE, (int(fx), int(fy)), 3)
+
+    elif s == 5:  # --- Desert ---
+        surface.fill((220, 150, 60))
+        # sun
+        pygame.draw.circle(surface, (255,230,80), (120, 80), 50)
+        pygame.draw.circle(surface, (255,245,150),(120, 80), 38)
+        # heat shimmer bands
+        for bi in range(3):
+            pygame.draw.rect(surface, (225,155,65), (0, 160+bi*30, WIDTH, 15))
+        # dunes
+        for hx, hw, hh, hc in [(0,400,70,(210,165,80)),(280,380,55,(200,158,75)),(580,400,80,(215,168,82))]:
+            pygame.draw.ellipse(surface, hc, (hx, GROUND_Y-hh+10, hw, hh*2))
+        # cacti
+        for cx in [150, 400, 680]:
+            pygame.draw.rect(surface, (40,110,40),  (cx-6,  GROUND_Y-80, 12, 82))
+            pygame.draw.rect(surface, (40,110,40),  (cx-22, GROUND_Y-55, 16, 10))
+            pygame.draw.rect(surface, (40,110,40),  (cx-22, GROUND_Y-65, 10, 20))
+            pygame.draw.rect(surface, (40,110,40),  (cx+6,  GROUND_Y-50, 16, 10))
+            pygame.draw.rect(surface, (40,110,40),  (cx+6,  GROUND_Y-60, 10, 20))
+        # sandy ground
+        pygame.draw.rect(surface, (210,175,90),  (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface, (190,155,70),  (0, GROUND_Y+20, WIDTH, HEIGHT-GROUND_Y))
+        pygame.draw.line(surface, (170,135,55), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
 
 
 def draw_health_bars(surface, p1, p2):
@@ -618,6 +737,58 @@ def draw_active_powerups(surface, fighter, side):
 
 
 # ---------------------------------------------------------------------------
+# Stage select screen
+# ---------------------------------------------------------------------------
+
+def stage_select():
+    idx   = 0
+    frame = 0
+    while True:
+        clock.tick(FPS)
+        frame += 1
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_LEFT,  pygame.K_a): idx = (idx - 1) % len(STAGES)
+                if event.key in (pygame.K_RIGHT, pygame.K_d): idx = (idx + 1) % len(STAGES)
+                if event.key in (pygame.K_RETURN, pygame.K_SPACE): return idx
+                if event.key in (pygame.K_q, pygame.K_ESCAPE): return idx  # skip with current
+
+        # Draw preview of stage in top portion
+        preview = pygame.Surface((WIDTH, HEIGHT))
+        draw_bg(preview, idx, frame)
+        # Darken preview
+        dark = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        dark.fill((0, 0, 0, 100))
+        preview.blit(dark, (0, 0))
+        screen.blit(preview, (0, 0))
+
+        # Title
+        title = font_large.render("SELECT STAGE", True, YELLOW)
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, 20))
+
+        # Stage name + desc
+        stage = STAGES[idx]
+        nm = font_medium.render(stage["name"], True, WHITE)
+        screen.blit(nm, (WIDTH//2 - nm.get_width()//2, HEIGHT//2 - 20))
+        ds = font_small.render(stage["desc"], True, (200,200,200))
+        screen.blit(ds, (WIDTH//2 - ds.get_width()//2, HEIGHT//2 + 30))
+
+        # Navigation dots
+        dot_y = HEIGHT//2 + 80
+        for di in range(len(STAGES)):
+            col = WHITE if di == idx else GRAY
+            pygame.draw.circle(screen, col, (WIDTH//2 + (di - len(STAGES)//2)*28, dot_y), 6)
+
+        nav = font_small.render("◄ ►  to browse   ENTER to confirm", True, (180,180,180))
+        screen.blit(nav, (WIDTH//2 - nav.get_width()//2, HEIGHT - 40))
+
+        pygame.display.flip()
+
+
+# ---------------------------------------------------------------------------
 # Mode select screen
 # ---------------------------------------------------------------------------
 
@@ -811,7 +982,7 @@ def character_select(vs_ai=False):
 # Fight loop
 # ---------------------------------------------------------------------------
 
-def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium'):
+def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
                    punch=pygame.K_f, kick=pygame.K_g)
     P2_CTRL = dict(left=pygame.K_LEFT, right=pygame.K_RIGHT, jump=pygame.K_UP,
@@ -828,6 +999,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium'):
     timer        = 90 * FPS
     powerups     = []
     spawn_timer  = 300   # first spawn after 5 seconds
+    frame        = 0
 
     while True:
         clock.tick(FPS)
@@ -869,7 +1041,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium'):
                         pu.picked_up = True
             powerups = [pu for pu in powerups if not pu.picked_up]
 
-        draw_bg(screen)
+        frame += 1
+        draw_bg(screen, stage_idx, frame)
         for pu in powerups:
             pu.draw(screen)
         p1_hit = p1.draw(screen)
@@ -929,8 +1102,10 @@ def main():
         if p1_idx is None:
             continue   # ESC back to mode select
 
+        s_idx = stage_select()
+
         while True:
-            result = run_fight(p1_idx, p2_idx, vs_ai=vs_ai, ai_difficulty=difficulty)
+            result = run_fight(p1_idx, p2_idx, vs_ai=vs_ai, ai_difficulty=difficulty, stage_idx=s_idx)
             if result == 'rematch':
                 continue
             break   # 'select' — go back to mode select
