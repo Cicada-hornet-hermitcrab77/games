@@ -208,18 +208,59 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False):
     return None
 
 
-def draw_bg(surface):
-    surface.fill((100, 160, 220))
-    for hx, hw, hh, hc in [(0, 300, 120, (70,120,70)),
-                             (220, 280, 100, (60,110,60)),
-                             (440, 340, 130, (75,125,75))]:
-        pygame.draw.ellipse(surface, hc, (hx, GROUND_Y - hh + 10, hw, hh * 2))
-    pygame.draw.rect(surface, (60,140, 60), (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
-    pygame.draw.rect(surface, (80, 60, 40), (0, GROUND_Y+24, WIDTH, HEIGHT-GROUND_Y))
-    pygame.draw.line(surface, (40,100,40), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
-    for i in range(0, WIDTH, 28):
-        bh = 28 + (i * 7 % 22)
-        pygame.draw.ellipse(surface, (50,50,80), (i, GROUND_Y+26-bh, 22, bh))
+STAGES = [
+    {"name": "Grasslands"},
+    {"name": "Volcano"},
+    {"name": "Dojo"},
+    {"name": "Desert"},
+]
+
+
+def draw_bg(surface, stage_idx=0):
+    s = stage_idx % len(STAGES)
+
+    if s == 0:  # Grasslands
+        surface.fill((100, 160, 220))
+        for hx, hw, hh, hc in [(0,300,120,(70,120,70)),(220,280,100,(60,110,60)),(440,340,130,(75,125,75))]:
+            pygame.draw.ellipse(surface, hc, (hx, GROUND_Y-hh+10, hw, hh*2))
+        pygame.draw.rect(surface, (60,140,60), (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface, (80, 60,40), (0, GROUND_Y+24, WIDTH, HEIGHT-GROUND_Y))
+        pygame.draw.line(surface, (40,100,40), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+
+    elif s == 1:  # Volcano
+        surface.fill((60, 20, 10))
+        pygame.draw.polygon(surface, (30,15,5), [(310,GROUND_Y+2),(420,170),(530,GROUND_Y+2)])
+        pygame.draw.polygon(surface, (30,15,5), [(60,GROUND_Y+2),(140,240),(220,GROUND_Y+2)])
+        pygame.draw.circle(surface, (255,120,0), (420, 172), 18)
+        pygame.draw.circle(surface, (255,200,50), (420, 172), 8)
+        pygame.draw.rect(surface, (40,20,10), (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.line(surface, (180,60,0), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+
+    elif s == 2:  # Dojo
+        surface.fill((15, 10, 30))
+        for sx, sy in [(80,40),(180,80),(300,30),(450,60),(600,20),(750,70),(850,45)]:
+            pygame.draw.circle(surface, WHITE, (sx, sy), 2)
+        pygame.draw.circle(surface, (240,240,200), (750, 80), 40)
+        pygame.draw.circle(surface, (15,10,30), (770, 70), 35)
+        for tx in [120, 680]:
+            pygame.draw.rect(surface, (160,30,30), (tx-5,  GROUND_Y-160, 10, 160))
+            pygame.draw.rect(surface, (160,30,30), (tx+45, GROUND_Y-160, 10, 160))
+            pygame.draw.rect(surface, (160,30,30), (tx-15, GROUND_Y-160, 80, 12))
+        pygame.draw.rect(surface, (100,65,30), (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.line(surface, (60,38,15), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+
+    elif s == 3:  # Desert
+        surface.fill((220, 150, 60))
+        pygame.draw.circle(surface, (255,230,80), (120, 80), 50)
+        pygame.draw.circle(surface, (255,245,150), (120, 80), 38)
+        for hx, hw, hh, hc in [(0,400,70,(210,165,80)),(280,380,55,(200,158,75)),(580,400,80,(215,168,82))]:
+            pygame.draw.ellipse(surface, hc, (hx, GROUND_Y-hh+10, hw, hh*2))
+        for cx in [150, 400, 680]:
+            pygame.draw.rect(surface, (40,110,40), (cx-6,  GROUND_Y-80, 12, 82))
+            pygame.draw.rect(surface, (40,110,40), (cx-22, GROUND_Y-60, 16, 10))
+            pygame.draw.rect(surface, (40,110,40), (cx+6,  GROUND_Y-55, 16, 10))
+        pygame.draw.rect(surface, (210,175,90), (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.line(surface, (170,135,55), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
 
 
 def draw_health_bars(surface, p1, p2):
@@ -627,6 +668,42 @@ def draw_active_powerups(surface, fighter, side):
 
 
 # ---------------------------------------------------------------------------
+# Stage select screen
+# ---------------------------------------------------------------------------
+
+def stage_select():
+    idx = 0
+    while True:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_LEFT,  pygame.K_a): idx = (idx - 1) % len(STAGES)
+                if event.key in (pygame.K_RIGHT, pygame.K_d): idx = (idx + 1) % len(STAGES)
+                if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_ESCAPE): return idx
+
+        draw_bg(screen, idx)
+        ov = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        ov.fill((0, 0, 0, 120))
+        screen.blit(ov, (0, 0))
+
+        title = font_large.render("SELECT STAGE", True, YELLOW)
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, 30))
+
+        nm = font_medium.render(STAGES[idx]["name"], True, WHITE)
+        screen.blit(nm, (WIDTH//2 - nm.get_width()//2, HEIGHT//2 - 20))
+
+        for di in range(len(STAGES)):
+            col = WHITE if di == idx else GRAY
+            pygame.draw.circle(screen, col, (WIDTH//2 + (di - len(STAGES)//2)*30, HEIGHT//2 + 40), 6)
+
+        hint = font_small.render("◄ ► to browse   ENTER to confirm", True, (180, 180, 180))
+        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 40))
+        pygame.display.flip()
+
+
+# ---------------------------------------------------------------------------
 # Mode select screen
 # ---------------------------------------------------------------------------
 
@@ -820,7 +897,7 @@ def character_select(vs_ai=False):
 # Fight loop
 # ---------------------------------------------------------------------------
 
-def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium'):
+def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
                    punch=pygame.K_f, kick=pygame.K_g)
     P2_CTRL = dict(left=pygame.K_LEFT, right=pygame.K_RIGHT, jump=pygame.K_UP,
@@ -878,7 +955,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium'):
                         pu.picked_up = True
             powerups = [pu for pu in powerups if not pu.picked_up]
 
-        draw_bg(screen)
+        draw_bg(screen, stage_idx)
         for pu in powerups:
             pu.draw(screen)
         p1_hit = p1.draw(screen)
@@ -938,8 +1015,10 @@ def main():
         if p1_idx is None:
             continue   # ESC back to mode select
 
+        s_idx = stage_select()
+
         while True:
-            result = run_fight(p1_idx, p2_idx, vs_ai=vs_ai, ai_difficulty=difficulty)
+            result = run_fight(p1_idx, p2_idx, vs_ai=vs_ai, ai_difficulty=difficulty, stage_idx=s_idx)
             if result == 'rematch':
                 continue
             break   # 'select' — go back to mode select
