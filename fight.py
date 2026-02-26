@@ -876,6 +876,8 @@ def mode_select():
     difficulty_idx = 1   # 0=easy, 1=medium, 2=hard, 3=super_hard, 4=super_super_hard
     difficulties = ['easy', 'medium', 'hard', 'super_hard', 'super_super_hard']
     diff_colors  = [GREEN, YELLOW, RED, PURPLE, CYAN]
+    scroll_offset = 0   # index of first visible difficulty in the scrollable list
+    VISIBLE = 3         # how many difficulties show at once
     preview_t = 0.0
 
     while True:
@@ -892,9 +894,14 @@ def mode_select():
                     selected = 1 - selected
                 if selected == 0:
                     if event.key in (pygame.K_UP, pygame.K_w):
-                        difficulty_idx = (difficulty_idx - 1) % 5
+                        difficulty_idx = (difficulty_idx - 1) % len(difficulties)
                     if event.key in (pygame.K_DOWN, pygame.K_s):
-                        difficulty_idx = (difficulty_idx + 1) % 5
+                        difficulty_idx = (difficulty_idx + 1) % len(difficulties)
+                    # keep selection inside the visible window
+                    if difficulty_idx < scroll_offset:
+                        scroll_offset = difficulty_idx
+                    elif difficulty_idx >= scroll_offset + VISIBLE:
+                        scroll_offset = difficulty_idx - VISIBLE + 1
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     if selected == 0:
                         return ('1p', difficulties[difficulty_idx])
@@ -934,13 +941,33 @@ def mode_select():
         if selected == 0:
             diff_lbl = font_small.render("Difficulty:", True, WHITE)
             screen.blit(diff_lbl, (WIDTH//2 - 240, 400))
-            for di, (dname, dcol) in enumerate(zip(difficulties, diff_colors)):
+
+            list_x = WIDTH//2 - 230
+            list_y = 428
+            row_h  = 30
+
+            # scroll-up arrow
+            if scroll_offset > 0:
+                up = font_small.render("▲", True, GRAY)
+                screen.blit(up, (list_x, list_y - 22))
+
+            # visible rows
+            for row, di in enumerate(range(scroll_offset, scroll_offset + VISIBLE)):
+                if di >= len(difficulties):
+                    break
+                dname, dcol = difficulties[di], diff_colors[di]
                 marker = "► " if di == difficulty_idx else "  "
-                dt = font_small.render(f"{marker}{dname.capitalize()}", True,
+                dt = font_small.render(f"{marker}{dname.replace('_', ' ').capitalize()}", True,
                                        dcol if di == difficulty_idx else GRAY)
-                screen.blit(dt, (WIDTH//2 - 230, 428 + di * 28))
-            hint = font_tiny.render("↑/↓ or W/S to change", True, GRAY)
-            screen.blit(hint, (WIDTH//2 - 240, 516))
+                screen.blit(dt, (list_x, list_y + row * row_h))
+
+            # scroll-down arrow
+            if scroll_offset + VISIBLE < len(difficulties):
+                dn = font_small.render("▼", True, GRAY)
+                screen.blit(dn, (list_x, list_y + VISIBLE * row_h + 2))
+
+            hint = font_tiny.render("↑/↓ or W/S to scroll", True, GRAY)
+            screen.blit(hint, (WIDTH//2 - 240, list_y + VISIBLE * row_h + 22))
 
         nav = font_tiny.render("◄ ► to switch mode", True, GRAY)
         screen.blit(nav, (WIDTH//2 - nav.get_width()//2, HEIGHT - 24))
