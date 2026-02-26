@@ -29,7 +29,7 @@ clock = pygame.time.Clock()
 font_large  = pygame.font.SysFont("Arial", 72, bold=True)
 font_medium = pygame.font.SysFont("Arial", 36, bold=True)
 font_small  = pygame.font.SysFont("Arial", 24)
-font_tiny   = pygame.font.SysFont("Arial", 18)
+font_tiny   = pygame.font.SysFont("Arial", 13)
 
 GRAVITY = 0.55
 
@@ -539,9 +539,11 @@ class AIFighter(Fighter):
     """Fighter driven by a simple state-machine AI instead of keyboard input."""
 
     SETTINGS = {
-        'easy':   dict(decision_delay=38, aggression=0.35, jump_chance=0.005, dodge_chance=0.0),
-        'medium': dict(decision_delay=22, aggression=0.62, jump_chance=0.015, dodge_chance=0.1),
-        'hard':   dict(decision_delay=10, aggression=0.88, jump_chance=0.030, dodge_chance=0.3),
+        'easy':       dict(decision_delay=38, aggression=0.35, jump_chance=0.005, dodge_chance=0.0),
+        'medium':     dict(decision_delay=22, aggression=0.62, jump_chance=0.015, dodge_chance=0.1),
+        'hard':       dict(decision_delay=10, aggression=0.88, jump_chance=0.030, dodge_chance=0.3),
+        'super_hard':       dict(decision_delay=2,  aggression=0.98, jump_chance=0.060, dodge_chance=0.7),
+        'super_super_hard': dict(decision_delay=1,  aggression=1.00, jump_chance=0.100, dodge_chance=0.95),
     }
 
     def __init__(self, x, char_data, facing, difficulty='medium'):
@@ -871,9 +873,9 @@ def stage_select():
 def mode_select():
     """Returns ('1p', difficulty) or '2p'."""
     selected = 0   # 0 = 1P, 1 = 2P
-    difficulty_idx = 1   # 0=easy, 1=medium, 2=hard
-    difficulties = ['easy', 'medium', 'hard']
-    diff_colors  = [GREEN, YELLOW, RED]
+    difficulty_idx = 1   # 0=easy, 1=medium, 2=hard, 3=super_hard, 4=super_super_hard
+    difficulties = ['easy', 'medium', 'hard', 'super_hard', 'super_super_hard']
+    diff_colors  = [GREEN, YELLOW, RED, PURPLE, CYAN]
     preview_t = 0.0
 
     while True:
@@ -890,9 +892,9 @@ def mode_select():
                     selected = 1 - selected
                 if selected == 0:
                     if event.key in (pygame.K_UP, pygame.K_w):
-                        difficulty_idx = (difficulty_idx - 1) % 3
+                        difficulty_idx = (difficulty_idx - 1) % 5
                     if event.key in (pygame.K_DOWN, pygame.K_s):
-                        difficulty_idx = (difficulty_idx + 1) % 3
+                        difficulty_idx = (difficulty_idx + 1) % 5
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     if selected == 0:
                         return ('1p', difficulties[difficulty_idx])
@@ -1145,7 +1147,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
         # Draw AI tag above CPU fighter
         if vs_ai:
             diff_col = {
-                'easy': GREEN, 'medium': YELLOW, 'hard': RED
+                'easy': GREEN, 'medium': YELLOW, 'hard': RED,
+                'super_hard': PURPLE, 'super_super_hard': CYAN
             }[ai_difficulty]
             cpu_tag = font_tiny.render(f"CPU [{ai_difficulty.upper()}]", True, diff_col)
             screen.blit(cpu_tag, (int(p2.x) - cpu_tag.get_width()//2,
