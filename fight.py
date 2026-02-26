@@ -73,8 +73,8 @@ CHARACTERS = [
     {"name": "Unknown",   "color": (100, 160, 220),   "speed": 5,  "jump": -5,
      "punch_dmg":  3, "kick_dmg": 5, "max_hp":  300,
      "desc": "Mysterious and powerful",   "double_jump": True},
-    {"name": "Hardy", "color": (110, 120, 225), "speed": 3, "jump": -8,
-     "punch_dmg": 5, "kick_dmg": 6, "max_hp": 70,
+    {"name": "Hardy", "color": (110, 120, 225), "speed": 3, "jump": -5,
+     "punch_dmg": 3, "kick_dmg": 4, "max_hp": 65,
      "desc": "Pros should try him",   "double_jump": False},
     {"name": "Rogue", "color": (220, 180, 60), "speed": 8, "jump": -17,
      "punch_dmg": 10, "kick_dmg": 12, "max_hp": 80,
@@ -94,6 +94,12 @@ CHARACTERS = [
     {"name": "Shapeshifter", "color": (180, 80, 255), "speed": 6, "jump": -15,
      "punch_dmg": 14, "kick_dmg": 14, "max_hp": 105,
      "desc": "Unpredictable",    "double_jump": True},
+    {"name": "Spring",   "color": (255, 100, 100), "speed": 10, "jump": -45,
+     "punch_dmg": 1, "kick_dmg": 1, "max_hp": 400,
+     "desc": "Bouncy",   "double_jump": True},
+    {"name": "Harpy",   "color": (150, 0, 150), "speed": 9, "jump": -19,
+     "punch_dmg": 20, "kick_dmg": 20, "max_hp": 40,
+     "desc": "Blood-eater",   "double_jump": True}
 ]
 
 POWERUPS = [
@@ -210,10 +216,38 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False):
 
 
 STAGES = [
-    {"name": "Grasslands"},
-    {"name": "Volcano"},
-    {"name": "Dojo"},
-    {"name": "Desert"},
+    # Grasslands: stepped hillside — wide low left, medium right, wide slow mover up top
+    {"name": "Grasslands", "platforms": [
+        (60,  GROUND_Y-90,  200, 0,   0),
+        (640, GROUND_Y-140, 140, 0,   0),
+        (310, GROUND_Y-215, 210, 1.5, 140),
+    ], "springs": [
+        (310, -22), (620, -22),   # two normal springs
+    ]},
+    # Volcano: all platforms move, narrow center pillar is static and high
+    {"name": "Volcano", "platforms": [
+        (70,  GROUND_Y-120, 130, 2,   80),
+        (630, GROUND_Y-150, 120, -2,  70),
+        (395, GROUND_Y-240, 100, 0,   0),
+    ], "springs": [
+        (450, -30),   # one super-launch spring (blast off like lava)
+    ]},
+    # Dojo: symmetric sides at the same height, fast mover in center
+    {"name": "Dojo", "platforms": [
+        (50,  GROUND_Y-115, 155, 0,   0),
+        (695, GROUND_Y-115, 155, 0,   0),
+        (355, GROUND_Y-205, 145, 2.5, 100),
+    ], "springs": [
+        (230, -22), (670, -22),   # symmetric springs matching dojo layout
+    ]},
+    # Desert: two wide low dunes (static), one slow wide drifter
+    {"name": "Desert", "platforms": [
+        (80,  GROUND_Y-75,  220, 0,   0),
+        (590, GROUND_Y-110, 190, 0,   0),
+        (330, GROUND_Y-185, 180, 1,   160),
+    ], "springs": [
+        (180, -20), (450, -20), (720, -20),   # three weak springs spread across open desert
+    ]},
 ]
 
 
@@ -379,7 +413,7 @@ class Fighter:
         for name in list(self.active_powerups):
             self.active_powerups[name] -= 1
 
-    def update(self, keys, other):
+    def update(self, keys, other, platforms=()):
         self.tick_powerups()
         if self.flash_timer > 0:
             self.flash_timer -= 1
@@ -393,13 +427,28 @@ class Fighter:
             self.x += self.knockback
             self.knockback *= 0.65
 
+        prev_y = self.y
         self.vy += GRAVITY
         self.y  += self.vy
+        landed = False
         if self.y >= GROUND_Y:
             self.y = GROUND_Y
             self.vy = 0
+            landed = True
+        else:
+            for plat in platforms:
+                if (self.vy >= 0 and prev_y <= plat.y and self.y >= plat.y
+                        and plat.x - 25 <= self.x <= plat.x + plat.w + 25):
+                    self.y = plat.y
+                    self.vy = 0
+                    self.x += plat.vx
+                    landed = True
+                    break
+        if landed:
             self.on_ground = True
             self.jumps_left = 2 if self.char["double_jump"] else 1
+        else:
+            self.on_ground = False
 
         self.x = max(50.0, min(float(WIDTH - 50), self.x))
         self.facing = 1 if other.x > self.x else -1
@@ -506,7 +555,7 @@ class AIFighter(Fighter):
         self.ai_move         = 0   # -1 left, 0 still, 1 right
         self.ai_attack       = None  # 'punch' or 'kick' or None
 
-    def update(self, keys, other):
+    def update(self, keys, other, platforms=()):
         # --- Physics (same as parent, no key input) ---
         self.tick_powerups()
         if self.flash_timer > 0:
@@ -521,13 +570,28 @@ class AIFighter(Fighter):
             self.x += self.knockback
             self.knockback *= 0.65
 
+        prev_y = self.y
         self.vy += GRAVITY
         self.y  += self.vy
+        landed = False
         if self.y >= GROUND_Y:
             self.y = GROUND_Y
             self.vy = 0
+            landed = True
+        else:
+            for plat in platforms:
+                if (self.vy >= 0 and prev_y <= plat.y and self.y >= plat.y
+                        and plat.x - 25 <= self.x <= plat.x + plat.w + 25):
+                    self.y = plat.y
+                    self.vy = 0
+                    self.x += plat.vx
+                    landed = True
+                    break
+        if landed:
             self.on_ground = True
             self.jumps_left = 2 if self.char["double_jump"] else 1
+        else:
+            self.on_ground = False
 
         self.x = max(50.0, min(float(WIDTH - 50), self.x))
         self.facing = 1 if other.x > self.x else -1
@@ -669,6 +733,99 @@ def draw_active_powerups(surface, fighter, side):
         pygame.draw.circle(surface, WHITE, (cx, cy), 18, 2)
         lbl = font_tiny.render(name[0], True, WHITE)
         surface.blit(lbl, (cx - lbl.get_width()//2, cy - lbl.get_height()//2))
+
+
+# ---------------------------------------------------------------------------
+# Platform
+# ---------------------------------------------------------------------------
+
+class Platform:
+    H = 16
+
+    def __init__(self, x, y, w, vx=0, move_range=0):
+        self.x = float(x)
+        self.y = float(y)
+        self.w = w
+        self.vx = float(vx)
+        self.move_range = move_range
+        self.start_x = float(x)
+
+    def update(self):
+        if self.vx:
+            self.x += self.vx
+            if abs(self.x - self.start_x) >= self.move_range:
+                self.vx = -self.vx
+
+    def draw(self, surface, stage_idx):
+        styles = [
+            ((139, 90, 43),  (80,  50, 15)),   # Grasslands: wood
+            ((70,  45, 35),  (200, 80,  0)),   # Volcano: rock + lava edge
+            ((90,  60, 25),  (150, 30, 30)),   # Dojo: wood + red trim
+            ((190, 160, 90), (140, 110, 50)),  # Desert: sandstone
+        ]
+        fill, border = styles[stage_idx % 4]
+        rx, ry = int(self.x), int(self.y)
+        pygame.draw.rect(surface, fill,   (rx, ry, self.w, self.H), border_radius=4)
+        pygame.draw.rect(surface, border, (rx, ry, self.w, self.H), 2, border_radius=4)
+        if self.vx:  # moving platform: dashed top stripe
+            for dx in range(4, self.w - 4, 12):
+                pygame.draw.rect(surface, WHITE, (rx + dx, ry + 2, 6, 3))
+
+
+class Spring:
+    W        = 22
+    H_IDLE   = 22
+    H_COMP   = 8
+    COOLDOWN = 28
+
+    def __init__(self, x, bounce_vy=-22):
+        self.x         = float(x)
+        self.bounce_vy = bounce_vy
+        self.anim      = 0   # counts down after trigger; > 12 = compressed
+        self.cooldown  = 0
+
+    def update(self):
+        if self.anim     > 0: self.anim     -= 1
+        if self.cooldown > 0: self.cooldown -= 1
+
+    def trigger(self, fighter):
+        if self.cooldown > 0:
+            return
+        if fighter.on_ground and abs(fighter.x - self.x) < self.W + 14:
+            fighter.vy        = self.bounce_vy
+            fighter.on_ground = False
+            fighter.jumps_left = 2 if fighter.char["double_jump"] else 1
+            fighter.action    = 'jump'
+            fighter.attacking = False
+            self.anim     = 25
+            self.cooldown = self.COOLDOWN
+
+    def draw(self, surface):
+        compressed = self.anim > 12
+        h  = self.H_COMP if compressed else self.H_IDLE
+        cx = int(self.x)
+        by = GROUND_Y   # base sits on ground line
+
+        col  = (255, 240, 0) if self.anim > 0 else (180, 200, 40)
+        dark = (120, 140, 20)
+
+        # base plate
+        pygame.draw.rect(surface, (110, 110, 110), (cx - 14, by - 5, 28, 6), border_radius=2)
+
+        # coil: zigzag lines
+        segs = 4
+        for i in range(segs):
+            y1 = by - 5 - int((i / segs) * h)
+            y2 = by - 5 - int(((i + 1) / segs) * h)
+            x1 = cx - 9 if i % 2 == 0 else cx + 9
+            x2 = cx + 9 if i % 2 == 0 else cx - 9
+            pygame.draw.line(surface, dark, (x1, y1), (x2, y2), 4)
+            pygame.draw.line(surface, col,  (x1, y1), (x2, y2), 2)
+
+        # top pad
+        top_y = by - 5 - h
+        pygame.draw.rect(surface, (220, 220, 220), (cx - 12, top_y - 5, 24, 6), border_radius=3)
+        pygame.draw.rect(surface, WHITE,            (cx - 12, top_y - 5, 24, 6), 1, border_radius=3)
 
 
 # ---------------------------------------------------------------------------
@@ -913,6 +1070,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     else:
         p2 = Fighter(700, CHARACTERS[p2_idx], -1, P2_CTRL)
 
+    stage_data = STAGES[stage_idx % len(STAGES)]
+    platforms  = [Platform(*p) for p in stage_data["platforms"]]
+    springs    = [Spring(*s)   for s in stage_data["springs"]]
+
     game_over    = False
     winner       = None
     timer        = 90 * FPS
@@ -936,9 +1097,15 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         return 'select'
 
         if not game_over:
+            for plat in platforms:
+                plat.update()
+            for sp in springs:
+                sp.update()
+                sp.trigger(p1)
+                sp.trigger(p2)
             keys = pygame.key.get_pressed()
-            p1.update(keys, p2)
-            p2.update(keys, p1)
+            p1.update(keys, p2, platforms)
+            p2.update(keys, p1, platforms)
             timer -= 1
             if timer <= 0 or p1.hp <= 0 or p2.hp <= 0:
                 game_over = True
@@ -960,6 +1127,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             powerups = [pu for pu in powerups if not pu.picked_up]
 
         draw_bg(screen, stage_idx)
+        for plat in platforms:
+            plat.draw(screen, stage_idx)
+        for sp in springs:
+            sp.draw(screen)
         for pu in powerups:
             pu.draw(screen)
         p1_hit = p1.draw(screen)
