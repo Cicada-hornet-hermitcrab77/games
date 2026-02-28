@@ -691,6 +691,7 @@ class AIFighter(Fighter):
         'hard':       dict(decision_delay=10, aggression=0.88, jump_chance=0.030, dodge_chance=0.3),
         'super_hard':       dict(decision_delay=2,  aggression=0.98, jump_chance=0.060, dodge_chance=0.7),
         'super_super_hard': dict(decision_delay=1,  aggression=1.00, jump_chance=0.100, dodge_chance=0.95),
+        'mega_hard':        dict(decision_delay=0,  aggression=1.00, jump_chance=0.150, dodge_chance=1.0),
     }
 
     def __init__(self, x, char_data, facing, difficulty='medium'):
@@ -1036,8 +1037,8 @@ def mode_select():
     """Returns ('1p', difficulty) or '2p'."""
     selected = 0   # 0 = 1P, 1 = 2P
     difficulty_idx = 1   # 0=easy, 1=medium, 2=hard, 3=super_hard, 4=super_super_hard
-    difficulties = ['easy', 'medium', 'hard', 'super_hard', 'super_super_hard']
-    diff_colors  = [GREEN, YELLOW, RED, PURPLE, CYAN]
+    difficulties = ['easy', 'medium', 'hard', 'super_hard', 'super_super_hard', 'mega_hard']
+    diff_colors  = [GREEN, YELLOW, RED, PURPLE, CYAN, ORANGE]
     scroll_offset = 0   # index of first visible difficulty in the scrollable list
     VISIBLE = 3         # how many difficulties show at once
     preview_t = 0.0
@@ -1412,7 +1413,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
         if vs_ai:
             diff_col = {
                 'easy': GREEN, 'medium': YELLOW, 'hard': RED,
-                'super_hard': PURPLE, 'super_super_hard': CYAN
+                'super_hard': PURPLE, 'super_super_hard': CYAN, 'mega_hard': ORANGE
             }[ai_difficulty]
             cpu_tag = font_tiny.render(f"CPU [{ai_difficulty.upper()}]", True, diff_col)
             screen.blit(cpu_tag, (int(p2.x) - cpu_tag.get_width()//2,
