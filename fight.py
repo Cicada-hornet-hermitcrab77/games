@@ -91,7 +91,7 @@ CHARACTERS = [
     {"name": "Acrobat",     "color": (255, 180, 80), "speed": 8,  "jump": -20,
      "punch_dmg": 8,  "kick_dmg": 12, "max_hp": 85,
      "desc": "Aerial specialist", "double_jump": True},
-    {"name": "Shapeshifter", "color": (180, 80, 255), "seed": 6, "jump": -15,
+    {"name": "Shapeshifter", "color": (180, 80, 255), "speed": 6, "jump": -15,
      "punch_dmg": 14, "kick_dmg": 14, "max_hp": 105,
      "desc": "Unpredictable",    "double_jump": True},
     {"name": "Spring",   "color": (255, 100, 100), "speed": 10, "jump": -45,
@@ -118,6 +118,15 @@ CHARACTERS = [
     {"name": "Magician", "color": (180, 80, 255), "speed": 5, "jump": -13,
      "punch_dmg": 8, "kick_dmg": 10, "max_hp": 105,
      "desc": "Powerups drift toward him", "double_jump": True, "magnet": True},
+    {"name": "Charger", "color": (255, 220, 0), "speed": 5, "jump": -13,
+     "punch_dmg": 7, "kick_dmg": 9, "max_hp": 115,
+     "desc": "Punches shock: halves speed for 8 sec", "double_jump": False, "shock_punch": True},
+    {"name": "Psychopath", "color": (180, 0, 180), "speed": 6, "jump": -14,
+     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 100,
+     "desc": "Kick teleports to random spot", "double_jump": False, "teleport_kick": True},
+    {"name": "Ran-Doom", "color": (128, 128, 128), "speed": 5, "jump": -13,
+     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 110,
+     "desc": "All stats randomized each match", "double_jump": False, "random_stats": True},
 ]
 
 POWERUPS = [
@@ -435,6 +444,15 @@ def draw_win_screen(surface, winner, p1, p2, vs_ai=False):
 
 class Fighter:
     def __init__(self, x, char_data, facing, controls):
+        if char_data.get("random_stats"):
+            char_data = dict(char_data)   # copy so CHARACTERS list is unchanged
+            char_data["speed"]       = random.randint(3, 9)
+            char_data["jump"]        = random.randint(-17, -10)
+            char_data["punch_dmg"]   = random.randint(4, 22)
+            char_data["kick_dmg"]    = random.randint(4, 22)
+            char_data["max_hp"]      = random.randint(75, 160)
+            char_data["double_jump"] = random.choice([True, False])
+            char_data["color"]       = (random.randint(80,255), random.randint(80,255), random.randint(80,255))
         self.x = float(x)
         self.y = float(GROUND_Y)
         self.vy = 0.0
@@ -470,6 +488,7 @@ class Fighter:
         self.fire_frames      = 0   # frames of fire remaining
         self.fire_tick        = 0   # frames until next fire damage
         self.freeze_frames    = 0   # frames of freeze remaining
+        self.shock_frames     = 0   # frames of speed-halving shock remaining
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -534,6 +553,8 @@ class Fighter:
                 self.fire_tick = 480   # 3 dmg every 8 seconds
         if self.freeze_frames > 0:
             self.freeze_frames -= 1
+        if self.shock_frames > 0:
+            self.shock_frames -= 1
 
     def update(self, keys, other, platforms=()):
         self.tick_powerups()
@@ -576,7 +597,7 @@ class Fighter:
         self.x = max(50.0, min(float(WIDTH - 50), self.x))
         self.facing = 1 if other.x > self.x else -1
 
-        spd = self.char["speed"] * self.speed_boost
+        spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
 
         if self.hurt_timer == 0 and self.freeze_frames == 0:
             ctrl = self.controls
@@ -588,6 +609,9 @@ class Fighter:
             elif can_atk and keys[ctrl['kick']] and self.kick_cooldown == 0:
                 self._start('kick', 0.06)
                 self.kick_cooldown = FPS * 2     # 2 seconds
+                if self.char.get("teleport_kick"):
+                    self.x = float(random.randint(80, WIDTH - 80))
+                    self.flash_timer = 12
             elif keys[ctrl['jump']]:
                 if self.jumps_left > 0:
                     self.vy = self.char["jump"]
@@ -653,6 +677,8 @@ class Fighter:
                 other.fire_frames = max(other.fire_frames, 960)  # 16 sec burn
             if self.char.get("freeze_kick") and self.action == 'kick':
                 other.freeze_frames = 180  # 3 seconds
+            if self.char.get("shock_punch") and self.action == 'punch':
+                other.shock_frames = 480   # 8 seconds
 
     def draw(self, surface):
         pygame.draw.ellipse(surface, (0,0,0),
@@ -677,6 +703,12 @@ class Fighter:
             for i, dx in enumerate((-10, 0, 10)):
                 pulse = (self.freeze_frames // 6 + i) % 2 == 0
                 col = (180, 230, 255) if pulse else (80, 160, 240)
+                pygame.draw.circle(surface, col, (int(self.x) + dx, top_y), 4)
+        if self.shock_frames > 0:
+            top_y = int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 50
+            for i, dx in enumerate((-10, 0, 10)):
+                pulse = (self.shock_frames // 4 + i) % 2 == 0
+                col = (255, 240, 0) if pulse else (200, 160, 0)
                 pygame.draw.circle(surface, col, (int(self.x) + dx, top_y), 4)
         return result
 
@@ -779,9 +811,12 @@ class AIFighter(Fighter):
                     self.punch_cooldown = FPS
                 else:
                     self.kick_cooldown = FPS * 2
+                    if self.char.get("teleport_kick"):
+                        self.x = float(random.randint(80, WIDTH - 80))
+                        self.flash_timer = 12
             self.ai_attack = None
         elif self.ai_move != 0:
-            self.x += self.ai_move * self.char["speed"] * self.speed_boost
+            self.x += self.ai_move * self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
             if self.on_ground and not self.attacking:
                 self.action = 'walk'
                 self.walk_t = (self.walk_t + 0.12) % 1.0
