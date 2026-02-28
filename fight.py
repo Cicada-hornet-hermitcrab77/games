@@ -147,6 +147,7 @@ POWERUPS = [
     {'name': 'Bomb',      'type': 'heal',      'amount':-60, 'duration': 0,   'color': (255,  60,   0)},
     {'name': 'Wither',      'type': 'speed',     'amount':  -2, 'duration': 420, 'color': (255,  0,  0)},
     {'name': '2x Trouble',  'type': 'clone',     'duration': 0,                  'color': (255, 80, 200)},
+    {'name': 'Cleanse',     'type': 'cleanse',   'duration': 0,                  'color': (255, 255, 255)},
 ]
 
 
@@ -555,6 +556,12 @@ class Fighter:
         elif t == 'leech':
             self.leech = True
             self.active_powerups[name] = spec['duration']
+        elif t == 'cleanse':
+            self.poison_frames = 0
+            self.poison_tick   = 0
+            self.fire_frames   = 0
+            self.fire_tick     = 0
+            self.shock_frames  = 0
 
     def tick_powerups(self):
         done = [n for n, t in self.active_powerups.items() if t <= 1]
