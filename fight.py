@@ -272,6 +272,16 @@ STAGES = [
     ], "springs": [
         (250, -24), (640, -24),
     ]},
+    # Dream Land: 4 static cloud platforms, 6 springs everywhere
+    {"name": "Dream Land", "platforms": [
+        (55,  GROUND_Y-95,  175, 0,   0),
+        (670, GROUND_Y-95,  175, 0,   0),
+        (195, GROUND_Y-190, 155, 0,   0),
+        (550, GROUND_Y-190, 155, 0,   0),
+    ], "springs": [
+        (80,  -22), (235, -22), (390, -22),
+        (530, -22), (680, -22), (820, -22),
+    ]},
 ]
 
 # Stage-specific character advantages and disadvantages.
@@ -282,6 +292,7 @@ STAGE_MATCHUPS = {
     "Dojo":       {"adv": "Ninja",       "dis": "Oni"},
     "Desert":     {"adv": "Cactus",      "dis": "Tank"},
     "Arena":      {"adv": "Gladiator",   "dis": "Rogue"},
+    "Dream Land": {"adv": "Spring",      "dis": "Brawler"},
 }
 
 
@@ -352,6 +363,25 @@ def draw_bg(surface, stage_idx=0):
         for lx in [200, 450, 700]:
             pygame.draw.polygon(surface, (40, 40, 60),
                                 [(lx, 0), (lx-60, GROUND_Y), (lx+60, GROUND_Y)])
+
+    elif s == 5:  # Dream Land
+        surface.fill((210, 180, 255))   # lavender sky
+        # pastel gradient band near horizon
+        pygame.draw.rect(surface, (255, 210, 240), (0, GROUND_Y - 120, WIDTH, 120))
+        # fluffy clouds
+        for cx, cy, cr in [(130,80,38),(200,70,28),(160,82,24),
+                           (420,55,42),(500,50,30),(455,65,26),
+                           (700,90,36),(775,80,26),(730,95,22)]:
+            pygame.draw.circle(surface, WHITE, (cx, cy), cr)
+        # sparkle stars
+        for sx, sy in [(60,30),(250,15),(370,40),(540,22),(660,35),(820,18),(850,60)]:
+            pygame.draw.circle(surface, (255, 240, 80), (sx, sy), 3)
+            pygame.draw.line(surface, (255, 240, 80), (sx-6, sy), (sx+6, sy), 1)
+            pygame.draw.line(surface, (255, 240, 80), (sx, sy-6), (sx, sy+6), 1)
+        # cotton-candy ground
+        pygame.draw.rect(surface, (255, 182, 220), (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface, (240, 150, 200), (0, GROUND_Y+22, WIDTH, HEIGHT-GROUND_Y))
+        pygame.draw.line(surface, (255, 140, 200), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
 
 
 def draw_health_bars(surface, p1, p2):
