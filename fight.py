@@ -115,6 +115,9 @@ CHARACTERS = [
     {"name": "Cryogenisist", "color": (150, 220, 255), "speed": 5, "jump": -13,
      "punch_dmg": 9, "kick_dmg": 0, "max_hp": 110,
      "desc": "Kicks freeze opponents for 3s", "double_jump": False, "freeze_kick": True},
+    {"name": "Magician", "color": (180, 80, 255), "speed": 5, "jump": -13,
+     "punch_dmg": 8, "kick_dmg": 10, "max_hp": 105,
+     "desc": "Powerups drift toward him", "double_jump": True, "magnet": True},
 ]
 
 POWERUPS = [
@@ -1356,6 +1359,18 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 powerups.append(Powerup())
                 spawn_timer = random.randint(480, 720)   # 8-12 seconds
 
+            # Magician attraction: pull all powerups slowly toward Magician fighters
+            for f in (p1, p2):
+                if f.char.get("magnet"):
+                    for pu in powerups:
+                        if not pu.picked_up:
+                            dx = f.x - pu.x
+                            dy = (f.y - 60) - pu.y
+                            dist = math.hypot(dx, dy) or 1
+                            speed = min(2.5, 300 / dist)   # faster when closer
+                            pu.x += (dx / dist) * speed
+                            pu.y += (dy / dist) * speed
+
             # Update & pickup
             for pu in powerups:
                 pu.update()
@@ -1380,6 +1395,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             sp.draw(screen)
         for pu in powerups:
             pu.draw(screen)
+        # Draw magnet beams from powerups to any Magician fighter
+        for f in (p1, p2):
+            if f.char.get("magnet"):
+                for pu in powerups:
+                    if not pu.picked_up:
+                        pygame.draw.line(screen, (140, 60, 220),
+                                         (int(pu.x), int(pu.y)),
+                                         (int(f.x), int(f.y - 60)), 1)
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen)
         clone_draws = [(cd, cd['fighter'].draw(screen)) for cd in clones]
