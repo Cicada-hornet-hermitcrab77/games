@@ -127,6 +127,9 @@ CHARACTERS = [
     {"name": "Ran-Doom", "color": (128, 128, 128), "speed": 5, "jump": -13,
      "punch_dmg": 10, "kick_dmg": 10, "max_hp": 110,
      "desc": "All stats randomized each match", "double_jump": False, "random_stats": True},
+    {"name": "Outbacker", "color": (200, 130, 50), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 7, "max_hp": 115,
+     "desc": "Kick throws orbiting boomerang", "double_jump": False, "boomerang_kick": True},
 ]
 
 POWERUPS = [
@@ -523,6 +526,10 @@ class Fighter:
         self.fire_tick        = 0   # frames until next fire damage
         self.freeze_frames    = 0   # frames of freeze remaining
         self.shock_frames     = 0   # frames of speed-halving shock remaining
+        self.boomerang_timer    = 0   # frames boomerang is active
+        self.boomerang_cooldown = 0   # frames until can throw again
+        self.boomerang_angle    = 0.0 # current orbit angle in radians
+        self.boomerang_hit_cd   = 0   # per-hit cooldown to avoid rapid damage
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -589,6 +596,14 @@ class Fighter:
             self.freeze_frames -= 1
         if self.shock_frames > 0:
             self.shock_frames -= 1
+        if self.boomerang_timer > 0:
+            self.boomerang_timer -= 1
+            self.boomerang_angle = (self.boomerang_angle + 0.09) % (2 * math.pi)
+            if self.boomerang_hit_cd > 0: self.boomerang_hit_cd -= 1
+            if self.boomerang_timer == 0:
+                self.boomerang_cooldown = 240   # 4s cooldown after expiry
+        elif self.boomerang_cooldown > 0:
+            self.boomerang_cooldown -= 1
 
     def update(self, keys, other, platforms=()):
         self.tick_powerups()
@@ -646,6 +661,9 @@ class Fighter:
                 if self.char.get("teleport_kick"):
                     self.x = float(random.randint(80, WIDTH - 80))
                     self.flash_timer = 12
+                if self.char.get("boomerang_kick") and self.boomerang_timer == 0 and self.boomerang_cooldown == 0:
+                    self.boomerang_timer = 240   # 4 seconds
+                    self.boomerang_angle = 0.0
             elif keys[ctrl['jump']]:
                 if self.jumps_left > 0:
                     self.vy = self.char["jump"]
@@ -744,6 +762,12 @@ class Fighter:
                 pulse = (self.shock_frames // 4 + i) % 2 == 0
                 col = (255, 240, 0) if pulse else (200, 160, 0)
                 pygame.draw.circle(surface, col, (int(self.x) + dx, top_y), 4)
+        if self.boomerang_timer > 0:
+            bx = int(self.x + math.cos(self.boomerang_angle) * 85)
+            by = int(self.y - 60 + math.sin(self.boomerang_angle) * 55)
+            pygame.draw.circle(surface, (180, 100, 20), (bx, by), 9)
+            pygame.draw.circle(surface, (230, 160, 60), (bx, by), 6)
+            pygame.draw.circle(surface, (255, 200, 100), (bx, by), 3)
         return result
 
 
@@ -848,6 +872,9 @@ class AIFighter(Fighter):
                     if self.char.get("teleport_kick"):
                         self.x = float(random.randint(80, WIDTH - 80))
                         self.flash_timer = 12
+                    if self.char.get("boomerang_kick") and self.boomerang_timer == 0 and self.boomerang_cooldown == 0:
+                        self.boomerang_timer = 240
+                        self.boomerang_angle = 0.0
             self.ai_attack = None
         elif self.ai_move != 0:
             self.x += self.ai_move * self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
@@ -1413,6 +1440,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     if victim.poison_frames == 0:
                         victim.poison_tick = 180
                     victim.poison_frames = max(victim.poison_frames, 600)  # 10 sec
+
+            # Boomerang collision
+            for thrower, victim in [(p1, p2), (p2, p1)]:
+                if thrower.boomerang_timer > 0 and thrower.boomerang_hit_cd == 0:
+                    bx = thrower.x + math.cos(thrower.boomerang_angle) * 85
+                    by = (thrower.y - 60) + math.sin(thrower.boomerang_angle) * 55
+                    if math.hypot(bx - victim.x, by - (victim.y - 60)) < 48:
+                        victim.hp = max(0, victim.hp - 8)
+                        victim.flash_timer = 6
+                        thrower.boomerang_hit_cd = 30   # 0.5s between hits
 
             keys = pygame.key.get_pressed()
             p1.update(keys, p2, platforms)
