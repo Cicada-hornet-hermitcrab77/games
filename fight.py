@@ -91,7 +91,7 @@ CHARACTERS = [
     {"name": "Acrobat",     "color": (255, 180, 80), "speed": 8,  "jump": -20,
      "punch_dmg": 8,  "kick_dmg": 12, "max_hp": 85,
      "desc": "Aerial specialist", "double_jump": True},
-    {"name": "Shapeshifter", "color": (180, 80, 255), "speed": 6, "jump": -15,
+    {"name": "Shapeshifter", "color": (180, 80, 255), "seed": 6, "jump": -15,
      "punch_dmg": 14, "kick_dmg": 14, "max_hp": 105,
      "desc": "Unpredictable",    "double_jump": True},
     {"name": "Spring",   "color": (255, 100, 100), "speed": 10, "jump": -45,
@@ -99,7 +99,22 @@ CHARACTERS = [
      "desc": "Bouncy",   "double_jump": True},
     {"name": "Harpy",   "color": (150, 0, 150), "speed": 9, "jump": -19,
      "punch_dmg": 20, "kick_dmg": 20, "max_hp": 40,
-     "desc": "Blood-eater",   "double_jump": True}
+     "desc": "Blood-eater",   "double_jump": True},
+    {"name": "Scarecrow",   "color": (50, 0, 50), "speed": 1, "jump": -0,
+     "punch_dmg": 100, "kick_dmg": 100, "max_hp": 60,
+     "desc": "Strong and Weak",   "double_jump": False},
+    {"name": "Cactus", "color": (40, 180, 60), "speed": 4, "jump": -11,
+     "punch_dmg": 4, "kick_dmg": 4, "max_hp": 135,
+     "desc": "Poisons on contact", "double_jump": False, "contact_dmg": 8},
+    {"name": "Medic", "color": (200, 255, 200), "speed": 5, "jump": -13,
+     "punch_dmg": 7, "kick_dmg": 9, "max_hp": 120,
+     "desc": "+2 HP every 5 seconds", "double_jump": False, "regen": True},
+    {"name": "Arsonist", "color": (255, 80, 20), "speed": 6, "jump": -14,
+     "punch_dmg": 10, "kick_dmg": 8, "max_hp": 100,
+     "desc": "Punches set targets on fire", "double_jump": False, "fire_punch": True},
+    {"name": "Cryogenisist", "color": (150, 220, 255), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 0, "max_hp": 110,
+     "desc": "Kicks freeze opponents for 3s", "double_jump": False, "freeze_kick": True},
 ]
 
 POWERUPS = [
@@ -116,6 +131,7 @@ POWERUPS = [
     {'name': 'MegaHeal',  'type': 'heal',      'amount': 60, 'duration': 0,   'color': (0,   220,  80)},
     {'name': 'Bomb',      'type': 'heal',      'amount':-60, 'duration': 0,   'color': (255,  60,   0)},
     {'name': 'Wither',      'type': 'speed',     'amount':  -2, 'duration': 420, 'color': (255,  0,  0)},
+    {'name': '2x Trouble',  'type': 'clone',     'duration': 0,                  'color': (255, 80, 200)},
 ]
 
 
@@ -248,7 +264,25 @@ STAGES = [
     ], "springs": [
         (180, -20), (450, -20), (720, -20),   # three weak springs spread across open desert
     ]},
+    # Arena: all three platforms move, two springs for chaos
+    {"name": "Arena", "platforms": [
+        (80,  GROUND_Y-110, 140, 2,   120),
+        (620, GROUND_Y-110, 140, -2,  120),
+        (350, GROUND_Y-210, 160, 3,   160),
+    ], "springs": [
+        (250, -24), (640, -24),
+    ]},
 ]
+
+# Stage-specific character advantages and disadvantages.
+# adv gets +25% speed & +25% damage; dis gets -20% speed & -20% damage.
+STAGE_MATCHUPS = {
+    "Grasslands": {"adv": "Scarecrow",   "dis": "Titan"},
+    "Volcano":    {"adv": "Arsonist",    "dis": "Cryogenisist"},
+    "Dojo":       {"adv": "Ninja",       "dis": "Oni"},
+    "Desert":     {"adv": "Cactus",      "dis": "Tank"},
+    "Arena":      {"adv": "Gladiator",   "dis": "Rogue"},
+}
 
 
 def draw_bg(surface, stage_idx=0):
@@ -296,6 +330,28 @@ def draw_bg(surface, stage_idx=0):
             pygame.draw.rect(surface, (40,110,40), (cx+6,  GROUND_Y-55, 16, 10))
         pygame.draw.rect(surface, (210,175,90), (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
         pygame.draw.line(surface, (170,135,55), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+
+    elif s == 4:  # Arena
+        surface.fill((10, 10, 20))
+        # crowd stands on both sides
+        for bx, bw in [(0, 160), (740, 160)]:
+            pygame.draw.rect(surface, (30, 30, 50), (bx, 80, bw, GROUND_Y - 80))
+            for row in range(4):
+                for col in range(bw // 22):
+                    hx = bx + col * 22 + 4
+                    hy = 100 + row * 40
+                    hcol = [(200,60,60),(60,60,200),(60,200,60),(200,200,60)][((hx+hy)//22) % 4]
+                    pygame.draw.circle(surface, hcol, (hx, hy), 7)
+        # arena floor
+        pygame.draw.rect(surface, (50, 50, 70),  (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface, (35, 35, 55),  (0, GROUND_Y+20, WIDTH, HEIGHT-GROUND_Y))
+        pygame.draw.line(surface, (80, 80, 120), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+        for tx in range(0, WIDTH, 60):
+            pygame.draw.line(surface, (60, 60, 85), (tx, GROUND_Y+2), (tx, HEIGHT), 1)
+        # spotlight beams
+        for lx in [200, 450, 700]:
+            pygame.draw.polygon(surface, (40, 40, 60),
+                                [(lx, 0), (lx-60, GROUND_Y), (lx+60, GROUND_Y)])
 
 
 def draw_health_bars(surface, p1, p2):
@@ -372,6 +428,15 @@ class Fighter:
         self.shield       = False
         self.leech        = False
         self.color        = char_data["color"]
+        self.poison_frames    = 0   # frames of poison remaining
+        self.poison_tick      = 0   # frames until next poison damage
+        self.contact_cooldown = 0   # frames before can take contact damage again
+        self.punch_cooldown   = 0   # 1 second cooldown between punches
+        self.kick_cooldown    = 0   # 2 second cooldown between kicks
+        self.regen_tick       = 300 if char_data.get("regen") else 0
+        self.fire_frames      = 0   # frames of fire remaining
+        self.fire_tick        = 0   # frames until next fire damage
+        self.freeze_frames    = 0   # frames of freeze remaining
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -413,8 +478,33 @@ class Fighter:
         for name in list(self.active_powerups):
             self.active_powerups[name] -= 1
 
+    def tick_status(self):
+        if self.poison_frames > 0:
+            self.poison_frames -= 1
+            self.poison_tick   -= 1
+            if self.poison_tick <= 0:
+                self.hp          = max(0, self.hp - 1)
+                self.poison_tick = 180   # 1 dmg every 3 seconds
+        if self.contact_cooldown > 0: self.contact_cooldown -= 1
+        if self.punch_cooldown   > 0: self.punch_cooldown   -= 1
+        if self.kick_cooldown    > 0: self.kick_cooldown    -= 1
+        if self.regen_tick > 0:
+            self.regen_tick -= 1
+            if self.regen_tick == 0:
+                self.hp = min(self.max_hp, self.hp + 2)
+                self.regen_tick = 300   # reset for next tick
+        if self.fire_frames > 0:
+            self.fire_frames -= 1
+            self.fire_tick   -= 1
+            if self.fire_tick <= 0:
+                self.hp        = max(0, self.hp - 3)
+                self.fire_tick = 480   # 3 dmg every 8 seconds
+        if self.freeze_frames > 0:
+            self.freeze_frames -= 1
+
     def update(self, keys, other, platforms=()):
         self.tick_powerups()
+        self.tick_status()
         if self.flash_timer > 0:
             self.flash_timer -= 1
         if self.hurt_timer > 0:
@@ -455,14 +545,16 @@ class Fighter:
 
         spd = self.char["speed"] * self.speed_boost
 
-        if self.hurt_timer == 0:
+        if self.hurt_timer == 0 and self.freeze_frames == 0:
             ctrl = self.controls
             can_atk = not self.attacking or self.action in ('idle', 'walk', 'jump')
 
-            if can_atk and keys[ctrl['punch']]:
+            if can_atk and keys[ctrl['punch']] and self.punch_cooldown == 0:
                 self._start('punch', 0.07)
-            elif can_atk and keys[ctrl['kick']]:
+                self.punch_cooldown = FPS        # 1 second
+            elif can_atk and keys[ctrl['kick']] and self.kick_cooldown == 0:
                 self._start('kick', 0.06)
+                self.kick_cooldown = FPS * 2     # 2 seconds
             elif keys[ctrl['jump']]:
                 if self.jumps_left > 0:
                     self.vy = self.char["jump"]
@@ -522,13 +614,38 @@ class Fighter:
             self.attack_hit = True
             if other.char["name"] == "Shapeshifter":
                 other.color = (random.randint(60,255), random.randint(60,255), random.randint(60,255))
+            if self.char.get("fire_punch") and self.action == 'punch':
+                if other.fire_frames == 0:
+                    other.fire_tick = 480
+                other.fire_frames = max(other.fire_frames, 960)  # 16 sec burn
+            if self.char.get("freeze_kick") and self.action == 'kick':
+                other.freeze_frames = 180  # 3 seconds
 
     def draw(self, surface):
         pygame.draw.ellipse(surface, (0,0,0),
                             (int(self.x)-25, int(self.y)-6, 50, 12))
         flash = (self.flash_timer % 4) < 2 and self.flash_timer > 0
-        return draw_stickman(surface, self.x, self.y, self.color,
-                              self.facing, self.action, self.action_t, flash=flash)
+        result = draw_stickman(surface, self.x, self.y, self.color,
+                               self.facing, self.action, self.action_t, flash=flash)
+        if self.poison_frames > 0:
+            top_y = int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 14
+            for i, dx in enumerate((-10, 0, 10)):
+                pulse = (self.poison_frames // 10 + i) % 2 == 0
+                col = (60, 240, 80) if pulse else (30, 160, 50)
+                pygame.draw.circle(surface, col, (int(self.x) + dx, top_y), 4)
+        if self.fire_frames > 0:
+            top_y = int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 26
+            for i, dx in enumerate((-10, 0, 10)):
+                pulse = (self.fire_frames // 8 + i) % 2 == 0
+                col = (255, 140, 0) if pulse else (220, 50, 0)
+                pygame.draw.circle(surface, col, (int(self.x) + dx, top_y), 4)
+        if self.freeze_frames > 0:
+            top_y = int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 38
+            for i, dx in enumerate((-10, 0, 10)):
+                pulse = (self.freeze_frames // 6 + i) % 2 == 0
+                col = (180, 230, 255) if pulse else (80, 160, 240)
+                pygame.draw.circle(surface, col, (int(self.x) + dx, top_y), 4)
+        return result
 
 
 # ---------------------------------------------------------------------------
@@ -560,6 +677,7 @@ class AIFighter(Fighter):
     def update(self, keys, other, platforms=()):
         # --- Physics (same as parent, no key input) ---
         self.tick_powerups()
+        self.tick_status()
         if self.flash_timer > 0:
             self.flash_timer -= 1
         if self.hurt_timer > 0:
@@ -606,8 +724,8 @@ class AIFighter(Fighter):
                 self.action_t = 0.0
                 self.attacking = False
 
-        if self.hurt_timer > 0:
-            return  # don't make decisions while staggered
+        if self.hurt_timer > 0 or self.freeze_frames > 0:
+            return  # don't make decisions while staggered or frozen
 
         # --- AI decision tick ---
         self.react_timer -= 1
@@ -620,7 +738,13 @@ class AIFighter(Fighter):
         can_atk = not self.attacking or self.action in ('idle', 'walk', 'jump')
 
         if self.ai_attack and can_atk:
-            self._start(self.ai_attack, 0.07 if self.ai_attack == 'punch' else 0.06)
+            cd = self.punch_cooldown if self.ai_attack == 'punch' else self.kick_cooldown
+            if cd == 0:
+                self._start(self.ai_attack, 0.07 if self.ai_attack == 'punch' else 0.06)
+                if self.ai_attack == 'punch':
+                    self.punch_cooldown = FPS
+                else:
+                    self.kick_cooldown = FPS * 2
             self.ai_attack = None
         elif self.ai_move != 0:
             self.x += self.ai_move * self.char["speed"] * self.speed_boost
@@ -764,8 +888,9 @@ class Platform:
             ((70,  45, 35),  (200, 80,  0)),   # Volcano: rock + lava edge
             ((90,  60, 25),  (150, 30, 30)),   # Dojo: wood + red trim
             ((190, 160, 90), (140, 110, 50)),  # Desert: sandstone
+            ((60,  60, 100), (120, 120, 220)), # Arena: stone + blue glow
         ]
-        fill, border = styles[stage_idx % 4]
+        fill, border = styles[stage_idx % len(styles)]
         rx, ry = int(self.x), int(self.y)
         pygame.draw.rect(surface, fill,   (rx, ry, self.w, self.H), border_radius=4)
         pygame.draw.rect(surface, border, (rx, ry, self.w, self.H), 2, border_radius=4)
@@ -855,7 +980,14 @@ def stage_select():
         screen.blit(title, (WIDTH//2 - title.get_width()//2, 30))
 
         nm = font_medium.render(STAGES[idx]["name"], True, WHITE)
-        screen.blit(nm, (WIDTH//2 - nm.get_width()//2, HEIGHT//2 - 20))
+        screen.blit(nm, (WIDTH//2 - nm.get_width()//2, HEIGHT//2 - 30))
+
+        match = STAGE_MATCHUPS.get(STAGES[idx]["name"], {})
+        if match:
+            adv_s = font_small.render(f"★ ADV: {match['adv']}", True, (100, 255, 100))
+            dis_s = font_small.render(f"✗ DIS: {match['dis']}", True, (255, 100, 100))
+            screen.blit(adv_s, (WIDTH//2 - adv_s.get_width() - 12, HEIGHT//2 + 12))
+            screen.blit(dis_s, (WIDTH//2 + 12, HEIGHT//2 + 12))
 
         for di in range(len(STAGES)):
             col = WHITE if di == idx else GRAY
@@ -1103,10 +1235,33 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     platforms  = [Platform(*p) for p in stage_data["platforms"]]
     springs    = [Spring(*s)   for s in stage_data["springs"]]
 
+    # Apply stage advantage / disadvantage stat modifiers
+    matchup = STAGE_MATCHUPS.get(stage_data["name"], {})
+    for f in (p1, p2):
+        if f.char["name"] == matchup.get("adv"):
+            f.speed_boost *= 1.25
+            f.punch_boost += f.char["punch_dmg"] // 4
+            f.kick_boost  += f.char["kick_dmg"]  // 4
+        elif f.char["name"] == matchup.get("dis"):
+            f.speed_boost *= 0.8
+            f.punch_boost -= f.char["punch_dmg"] // 5
+            f.kick_boost  -= f.char["kick_dmg"]  // 5
+
+    def _stage_tag(fighter):
+        name = fighter.char["name"]
+        if name == matchup.get("adv"): return ("★ ADVANTAGE", (100, 255, 100))
+        if name == matchup.get("dis"): return ("✗ DISADVANTAGE", (255, 100, 100))
+        return (None, None)
+
+    p1_stag, p1_stag_col = _stage_tag(p1)
+    p2_stag, p2_stag_col = _stage_tag(p2)
+    announce_timer = 180   # 3 seconds
+
     game_over    = False
     winner       = None
     timer        = 90 * FPS
     powerups     = []
+    clones       = []   # list of {'fighter': AIFighter, 'timer': int, 'target': Fighter}
     spawn_timer  = 300   # first spawn after 5 seconds
 
     while True:
@@ -1132,6 +1287,30 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 sp.update()
                 sp.trigger(p1)
                 sp.trigger(p2)
+                for cd in clones:
+                    sp.trigger(cd['fighter'])
+
+            # Update clones
+            new_clones = []
+            for cd in clones:
+                cd['timer'] -= 1
+                if cd['timer'] > 0 and cd['fighter'].hp > 0:
+                    cd['fighter'].update(None, cd['target'], platforms)
+                    new_clones.append(cd)
+            clones = new_clones
+
+            # Cactus contact damage + poison
+            for cactus, victim in [(p1, p2), (p2, p1)]:
+                if (cactus.char.get("contact_dmg") and
+                        victim.contact_cooldown == 0 and
+                        abs(cactus.x - victim.x) < 55):
+                    victim.hp = max(0, victim.hp - cactus.char["contact_dmg"])
+                    victim.contact_cooldown = 60
+                    victim.flash_timer = 8
+                    if victim.poison_frames == 0:
+                        victim.poison_tick = 180
+                    victim.poison_frames = max(victim.poison_frames, 600)  # 10 sec
+
             keys = pygame.key.get_pressed()
             p1.update(keys, p2, platforms)
             p2.update(keys, p1, platforms)
@@ -1149,10 +1328,18 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             # Update & pickup
             for pu in powerups:
                 pu.update()
-                for fighter in (p1, p2):
+                for fighter, foe in [(p1, p2), (p2, p1)]:
                     if not pu.picked_up and pu.collides(fighter):
-                        fighter.apply_powerup(pu.spec)
+                        if pu.spec['type'] == 'clone':
+                            cf = AIFighter(fighter.x + 60 * fighter.facing,
+                                           fighter.char, fighter.facing, 'hard')
+                            cf.hp    = 80
+                            cf.color = fighter.color
+                            clones.append({'fighter': cf, 'timer': 30 * FPS, 'target': foe})
+                        else:
+                            fighter.apply_powerup(pu.spec)
                         pu.picked_up = True
+                        break
             powerups = [pu for pu in powerups if not pu.picked_up]
 
         draw_bg(screen, stage_idx)
@@ -1164,12 +1351,32 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             pu.draw(screen)
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen)
+        clone_draws = [(cd, cd['fighter'].draw(screen)) for cd in clones]
 
         if not game_over:
             if p1.attacking and not p1.attack_hit:
                 p1.check_hit(p1_hit, p2)
             if p2.attacking and not p2.attack_hit:
                 p2.check_hit(p2_hit, p1)
+            for cd, cf_hit in clone_draws:
+                cf = cd['fighter']
+                # clone attacks its target
+                if cf.attacking and not cf.attack_hit:
+                    cf.check_hit(cf_hit, cd['target'])
+                # opponent can hit the clone
+                if cd['target'] is p2:
+                    if p2.attacking and not p2.attack_hit:
+                        p2.check_hit(p2_hit, cf)
+                else:
+                    if p1.attacking and not p1.attack_hit:
+                        p1.check_hit(p1_hit, cf)
+            # draw clone timer above each clone
+            for cd in clones:
+                cf = cd['fighter']
+                secs = cd['timer'] // FPS
+                tag = font_tiny.render(f"2x [{secs}s]", True, (255, 80, 200))
+                screen.blit(tag, (int(cf.x) - tag.get_width()//2,
+                                  int(cf.y) - HEAD_R*2 - NECK_LEN - BODY_LEN - LEG_LEN - 22))
 
         # Draw AI tag above CPU fighter
         if vs_ai:
@@ -1197,6 +1404,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 "P1: WASD + F punch  G kick        P2: Arrows + K punch  L kick",
                 True, (140, 140, 140))
         screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 22))
+
+        # Stage advantage / disadvantage announcement (first 3 seconds)
+        if announce_timer > 0 and not game_over:
+            announce_timer -= 1
+            if p1_stag:
+                s = font_small.render(p1_stag, True, p1_stag_col)
+                screen.blit(s, (10, 80))
+            if p2_stag:
+                s = font_small.render(p2_stag, True, p2_stag_col)
+                screen.blit(s, (WIDTH - s.get_width() - 10, 80))
 
         if game_over:
             draw_win_screen(screen, winner, p1, p2, vs_ai=vs_ai)
