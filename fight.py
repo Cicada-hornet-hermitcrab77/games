@@ -294,6 +294,15 @@ STAGES = [
         (80,  -22), (235, -22), (390, -22),
         (530, -22), (680, -22), (820, -22),
     ]},
+    # Underworld: 2 static stone ledges + 2 slow drifters, 3 springs
+    {"name": "Underworld", "platforms": [
+        (55,  GROUND_Y-105, 165, 0,   0),
+        (680, GROUND_Y-105, 165, 0,   0),
+        (270, GROUND_Y-175, 135, 1.5, 110),
+        (495, GROUND_Y-175, 135, -1.5,110),
+    ], "springs": [
+        (200, -22), (450, -22), (700, -22),
+    ]},
 ]
 
 # Stage-specific character advantages and disadvantages.
@@ -305,6 +314,7 @@ STAGE_MATCHUPS = {
     "Desert":     {"adv": "Cactus",      "dis": "Tank"},
     "Arena":      {"adv": "Gladiator",   "dis": "Rogue"},
     "Dream Land": {"adv": "Spring",      "dis": "Brawler"},
+    "Underworld": {"adv": "Skeleton",    "dis": "Boxer"},
 }
 
 
@@ -394,6 +404,30 @@ def draw_bg(surface, stage_idx=0):
         pygame.draw.rect(surface, (255, 182, 220), (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
         pygame.draw.rect(surface, (240, 150, 200), (0, GROUND_Y+22, WIDTH, HEIGHT-GROUND_Y))
         pygame.draw.line(surface, (255, 140, 200), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+
+    elif s == 6:  # Underworld
+        surface.fill((8, 0, 12))   # near-black void
+        # glowing lava horizon band
+        pygame.draw.rect(surface, (80, 10, 0),  (0, GROUND_Y - 60, WIDTH, 60))
+        pygame.draw.rect(surface, (130, 30, 0), (0, GROUND_Y - 20, WIDTH, 20))
+        # lava cracks in ground
+        for cx in [120, 260, 420, 580, 740, 860]:
+            pygame.draw.line(surface, (220, 80, 0), (cx, GROUND_Y+2), (cx+30, GROUND_Y+30), 2)
+            pygame.draw.line(surface, (255, 140, 0), (cx+10, GROUND_Y+2), (cx+10, GROUND_Y+18), 1)
+        # stalactites hanging from top
+        for sx, sw, sh in [(60,22,70),(160,18,55),(290,24,90),(430,20,65),(560,26,80),(700,18,50),(820,22,75)]:
+            pygame.draw.polygon(surface, (25, 5, 35), [(sx, 0), (sx+sw, 0), (sx+sw//2, sh)])
+            pygame.draw.polygon(surface, (50, 10, 60), [(sx+4, 0), (sx+sw-4, 0), (sx+sw//2, sh-12)])
+        # floating skulls (decorative)
+        for skx, sky in [(180, 180), (500, 140), (760, 200)]:
+            pygame.draw.circle(surface, (200, 200, 190), (skx, sky), 10)
+            pygame.draw.circle(surface, (8, 0, 12), (skx-4, sky-2), 3)
+            pygame.draw.circle(surface, (8, 0, 12), (skx+4, sky-2), 3)
+            pygame.draw.line(surface, (8, 0, 12), (skx-3, sky+4), (skx+3, sky+4), 2)
+        # dark stone ground
+        pygame.draw.rect(surface, (20, 5, 25),  (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface, (10, 2, 15),  (0, GROUND_Y+22, WIDTH, HEIGHT-GROUND_Y))
+        pygame.draw.line(surface, (160, 40, 0), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
 
 
 def draw_health_bars(surface, p1, p2):
