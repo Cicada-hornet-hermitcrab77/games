@@ -1,0 +1,1 @@
+# Complete content of fight.py should go here (restored).
