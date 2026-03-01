@@ -147,7 +147,7 @@ POWERUPS = [
     {'name': 'Bomb',      'type': 'heal',      'amount':-60, 'duration': 0,   'color': (255,  60,   0)},
     {'name': 'Wither',      'type': 'speed',     'amount':  -2, 'duration': 420, 'color': (255,  0,  0)},
     {'name': '2x Trouble',  'type': 'clone',     'duration': 0,                  'color': (255, 80, 200)},
-    {'name': 'Cleanse',     'type': 'cleanse',   'duration': 0,                  'color': (255, 255, 255)},
+    {'name': 'Cleanse',     'type': 'cleanse',   'duration': 0,                  'color': (205, 205, 155)},
 ]
 
 
@@ -183,6 +183,8 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False):
         ls, rs = 0, -facing * action_t * 60
     elif action == 'jump':
         ls, rs = 15, -15
+    elif action == 'duck':
+        ls, rs = -28, 28   # feet spread wide for squat
     else:
         ls, rs = 5, -5
 
@@ -217,6 +219,11 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False):
         lh = (la[0] - 15, la[1] - 15)
         ra = (shoulder[0] + facing * 20, shoulder[1] - 10)
         rh = (ra[0] + 15, ra[1] - 15)
+    elif action == 'duck':
+        la = (shoulder[0] - 14, shoulder[1] + 22)  # arms low, guarding
+        lh = (la[0] - 6,  la[1] + 16)
+        ra = (shoulder[0] + 14, shoulder[1] + 22)
+        rh = (ra[0] + 6,  ra[1] + 16)
     else:
         la = (shoulder[0] - 10, shoulder[1] + 10)
         lh = (la[0] - 5,  la[1] + ARM_LEN * 0.8)
@@ -526,6 +533,10 @@ class Fighter:
         self.fire_frames      = 0   # frames of fire remaining
         self.fire_tick        = 0   # frames until next fire damage
         self.freeze_frames    = 0   # frames of freeze remaining
+        self.is_crit          = False  # current punch is a critical hit
+        self.crit_display_timer = 0   # frames to show CRIT! popup
+        self.ducking          = False  # currently ducking (immune to punches)
+        self.blocking         = False  # currently holding block
         self.shock_frames     = 0   # frames of speed-halving shock remaining
         self.boomerang_timer    = 0   # frames boomerang is active
         self.boomerang_cooldown = 0   # frames until can throw again
@@ -655,13 +666,25 @@ class Fighter:
 
         spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
 
-        if self.hurt_timer == 0 and self.freeze_frames == 0:
+        duck_key  = self.controls.get('duck')
+        block_key = self.controls.get('block')
+        self.ducking  = (bool(duck_key  and keys[duck_key])  and
+                         self.on_ground and self.hurt_timer == 0 and not self.attacking)
+        self.blocking = (bool(block_key and keys[block_key]) and
+                         self.on_ground and self.hurt_timer == 0 and not self.attacking and not self.ducking)
+        if self.ducking:
+            self.action = 'duck'
+
+        if self.hurt_timer == 0 and self.freeze_frames == 0 and not self.ducking and not self.blocking:
             ctrl = self.controls
             can_atk = not self.attacking or self.action in ('idle', 'walk', 'jump')
 
             if can_atk and keys[ctrl['punch']] and self.punch_cooldown == 0:
+                moving_toward = ((keys[ctrl['right']] and self.facing == 1) or
+                                 (keys[ctrl['left']]  and self.facing == -1))
                 self._start('punch', 0.07)
                 self.punch_cooldown = FPS        # 1 second
+                self.is_crit = moving_toward
             elif can_atk and keys[ctrl['kick']] and self.kick_cooldown == 0:
                 self._start('kick', 0.06)
                 self.kick_cooldown = FPS * 2     # 2 seconds
@@ -700,6 +723,7 @@ class Fighter:
                 self.action = 'idle'
                 self.action_t = 0.0
                 self.attacking = False
+                self.is_crit = False
 
     def _start(self, act, spd):
         self.action = act
@@ -711,14 +735,24 @@ class Fighter:
     def check_hit(self, hit_pos, other):
         if hit_pos is None or self.attack_hit:
             return
+        if other.ducking and self.action == 'punch':
+            return  # punches miss ducking opponents
         dist = math.hypot(hit_pos[0] - other.x, hit_pos[1] - (other.y - 70))
         if dist < 58:
             if self.action == 'punch':
                 dmg = self.char["punch_dmg"] + self.punch_boost
+                if self.is_crit:
+                    dmg += 10
+                    other.crit_display_timer = 70
             else:
                 dmg = self.char["kick_dmg"] + self.kick_boost
             if other.shield:
                 dmg = max(1, int(dmg * 0.5))
+            if other.blocking:
+                r = random.random()
+                if r < 0.10:       dmg = 0              # 10% perfect block
+                elif r < 0.40:     dmg = max(1, dmg // 2)  # 30% partial block
+                # else 60%: block does nothing
             other.hp = max(0, other.hp - dmg)
             if self.leech:
                 self.hp = min(self.max_hp, self.hp + 8)
@@ -775,6 +809,23 @@ class Fighter:
             pygame.draw.circle(surface, (180, 100, 20), (bx, by), 9)
             pygame.draw.circle(surface, (230, 160, 60), (bx, by), 6)
             pygame.draw.circle(surface, (255, 200, 100), (bx, by), 3)
+        if self.blocking:
+            sx = int(self.x) + self.facing * 22
+            sy = int(self.y) - LEG_LEN - BODY_LEN // 2
+            pygame.draw.polygon(surface, (60, 120, 220),
+                                [(sx, sy - 28), (sx + self.facing * 18, sy - 14),
+                                 (sx + self.facing * 18, sy + 14), (sx, sy + 28),
+                                 (sx - self.facing * 4, sy + 22), (sx - self.facing * 4, sy - 22)])
+            pygame.draw.polygon(surface, (140, 190, 255),
+                                [(sx, sy - 28), (sx + self.facing * 18, sy - 14),
+                                 (sx + self.facing * 18, sy + 14), (sx, sy + 28),
+                                 (sx - self.facing * 4, sy + 22), (sx - self.facing * 4, sy - 22)], 2)
+        if self.crit_display_timer > 0:
+            self.crit_display_timer -= 1
+            rise = (70 - self.crit_display_timer) // 2
+            top_y = int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 20 - rise
+            crit_surf = font_medium.render("CRIT!", True, (255, 60, 60))
+            surface.blit(crit_surf, (int(self.x) - crit_surf.get_width() // 2, top_y))
         return result
 
 
@@ -874,6 +925,7 @@ class AIFighter(Fighter):
                 self._start(self.ai_attack, 0.07 if self.ai_attack == 'punch' else 0.06)
                 if self.ai_attack == 'punch':
                     self.punch_cooldown = FPS
+                    self.is_crit = (self.ai_move == self.facing)  # running toward enemy
                 else:
                     self.kick_cooldown = FPS * 2
                     if self.char.get("teleport_kick"):
@@ -1358,9 +1410,9 @@ def character_select(vs_ai=False):
 
 def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
-                   punch=pygame.K_f, kick=pygame.K_g)
+                   punch=pygame.K_f, kick=pygame.K_g, duck=pygame.K_s, block=pygame.K_r)
     P2_CTRL = dict(left=pygame.K_LEFT, right=pygame.K_RIGHT, jump=pygame.K_UP,
-                   punch=pygame.K_k, kick=pygame.K_l)
+                   punch=pygame.K_k, kick=pygame.K_l, duck=pygame.K_DOWN, block=pygame.K_o)
 
     p1 = Fighter(200, CHARACTERS[p1_idx],  1, P1_CTRL)
     if vs_ai:
