@@ -130,6 +130,9 @@ CHARACTERS = [
     {"name": "Outbacker", "color": (200, 130, 50), "speed": 5, "jump": -13,
      "punch_dmg": 9, "kick_dmg": 7, "max_hp": 115,
      "desc": "Kick throws orbiting boomerang", "double_jump": False, "boomerang_kick": True},
+    {"name": "Gunner", "color": (60, 180, 80), "speed": 5, "jump": -13,
+     "punch_dmg": 8, "kick_dmg": 0, "max_hp": 110,
+     "desc": "Kicks shoot a ball (10 dmg)", "double_jump": False, "shoot_kick": True},
 ]
 
 POWERUPS = [
@@ -484,6 +487,36 @@ def draw_win_screen(surface, winner, p1, p2, vs_ai=False):
 
 
 # ---------------------------------------------------------------------------
+# Projectile
+# ---------------------------------------------------------------------------
+
+class Projectile:
+    RADIUS = 9
+    SPEED  = 9
+
+    def __init__(self, x, y, facing, owner):
+        self.x      = float(x)
+        self.y      = float(y)
+        self.vx     = self.SPEED * facing
+        self.owner  = owner
+        self.alive  = True
+
+    def update(self):
+        self.x += self.vx
+        if self.x < 0 or self.x > WIDTH:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pygame.draw.circle(surface, (30, 120, 50),  (cx, cy), self.RADIUS)
+        pygame.draw.circle(surface, (80, 220, 120), (cx, cy), self.RADIUS - 3)
+        pygame.draw.circle(surface, (180, 255, 200),(cx, cy), self.RADIUS - 6)
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
 # Fighter
 # ---------------------------------------------------------------------------
 
@@ -542,6 +575,7 @@ class Fighter:
         self.boomerang_cooldown = 0   # frames until can throw again
         self.boomerang_angle    = 0.0 # current orbit angle in radians
         self.boomerang_hit_cd   = 0   # per-hit cooldown to avoid rapid damage
+        self.pending_ball       = False  # shoot_kick: spawn a ball this frame
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -694,6 +728,8 @@ class Fighter:
                 if self.char.get("boomerang_kick") and self.boomerang_timer == 0 and self.boomerang_cooldown == 0:
                     self.boomerang_timer = 240   # 4 seconds
                     self.boomerang_angle = 0.0
+                if self.char.get("shoot_kick"):
+                    self.pending_ball = True
             elif keys[ctrl['jump']]:
                 if self.jumps_left > 0:
                     self.vy = self.char["jump"]
@@ -934,6 +970,8 @@ class AIFighter(Fighter):
                     if self.char.get("boomerang_kick") and self.boomerang_timer == 0 and self.boomerang_cooldown == 0:
                         self.boomerang_timer = 240
                         self.boomerang_angle = 0.0
+                    if self.char.get("shoot_kick"):
+                        self.pending_ball = True
             self.ai_attack = None
         elif self.ai_move != 0:
             self.x += self.ai_move * self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
@@ -1451,6 +1489,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     timer        = 90 * FPS
     powerups     = []
     clones       = []   # list of {'fighter': AIFighter, 'timer': int, 'target': Fighter}
+    balls        = []   # active Projectile objects
     spawn_timer  = 300   # first spawn after 5 seconds
 
     while True:
@@ -1513,6 +1552,24 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             keys = pygame.key.get_pressed()
             p1.update(keys, p2, platforms)
             p2.update(keys, p1, platforms)
+
+            # Spawn balls from shoot_kick
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_ball:
+                    shooter.pending_ball = False
+                    balls.append(Projectile(shooter.x + shooter.facing * 30,
+                                            shooter.y - 60, shooter.facing, shooter))
+
+            # Update balls and check collisions
+            for b in balls:
+                b.update()
+                if b.alive:
+                    victim = p2 if b.owner is p1 else p1
+                    if b.collides(victim):
+                        victim.hp = max(0, victim.hp - 10)
+                        victim.flash_timer = 8
+                        b.alive = False
+            balls = [b for b in balls if b.alive]
             timer -= 1
             if timer <= 0 or p1.hp <= 0 or p2.hp <= 0:
                 game_over = True
@@ -1560,6 +1617,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             sp.draw(screen)
         for pu in powerups:
             pu.draw(screen)
+        for b in balls:
+            b.draw(screen)
         # Draw magnet beams from powerups to any Magician fighter
         for f in (p1, p2):
             if f.char.get("magnet"):
