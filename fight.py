@@ -1676,10 +1676,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
         screen.blit(t_surf, (WIDTH//2 - t_surf.get_width()//2, 40))
 
         if vs_ai:
-            hint = font_tiny.render("WASD + F punch  G kick", True, (140, 140, 140))
+            hint  = font_tiny.render("WASD + F punch  G kick  S duck  R block", True, (140, 140, 140))
         else:
-            hint = font_tiny.render(
-                "P1: WASD + F punch  G kick        P2: Arrows + K punch  L kick",
+            hint  = font_tiny.render(
+                "P1: WASD F punch G kick S duck R block        P2: Arrows K punch L kick ↓ duck O block",
                 True, (140, 140, 140))
         screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 22))
 
