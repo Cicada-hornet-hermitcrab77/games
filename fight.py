@@ -148,6 +148,9 @@ CHARACTERS = [
     {"name": "Ghost", "color": (210, 210, 255), "speed": 5, "jump": -15,
      "punch_dmg": 8, "kick_dmg": 9, "max_hp": 105,
      "desc": "Phases through platforms", "double_jump": True, "phase": True},
+    {"name": "Vampire", "color": (120, 0, 40), "speed": 6, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 90,
+     "desc": "Heals 8 HP on every hit", "double_jump": False, "vampire": True},
 ]
 
 POWERUPS = [
@@ -733,7 +736,7 @@ class Fighter:
         self.punch_boost  = 0
         self.kick_boost   = 0
         self.shield       = False
-        self.leech        = False
+        self.leech        = bool(char_data.get("vampire"))
         self.color        = char_data["color"]
         self.poison_frames    = 0   # frames of poison remaining
         self.poison_tick      = 0   # frames until next poison damage
