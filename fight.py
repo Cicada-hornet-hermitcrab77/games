@@ -139,6 +139,9 @@ CHARACTERS = [
     {"name": "Pinball", "color": (255, 80, 200), "speed": 5, "jump": -13,
      "punch_dmg": 8, "kick_dmg": 0, "max_hp": 110,
      "desc": "Kick shoots a bouncing ball (10 dmg)", "double_jump": False, "bounce_kick": True},
+    {"name": "Giant", "color": (100, 160, 100), "speed": 2, "jump": -8,
+     "punch_dmg": 20, "kick_dmg": 18, "max_hp": 260,
+     "desc": "Very big and very strong", "double_jump": False, "giant": True},
 ]
 
 POWERUPS = [
@@ -171,95 +174,105 @@ NECK_LEN = 5
 # Drawing helpers
 # ---------------------------------------------------------------------------
 
-def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False):
+def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0):
     col = WHITE if flash else color
+    s = scale
+
+    hd = int(HEAD_R   * s)
+    bl = int(BODY_LEN * s)
+    al = int(ARM_LEN  * s)
+    ll = int(LEG_LEN  * s)
+    nl = int(NECK_LEN * s)
 
     def ln(p1, p2, w=3):
-        pygame.draw.line(surface, col, (int(p1[0]), int(p1[1])), (int(p2[0]), int(p2[1])), w)
+        pygame.draw.line(surface, col, (int(p1[0]), int(p1[1])), (int(p2[0]), int(p2[1])), max(1, int(w * s)))
 
     def circ(cx, cy, r):
         pygame.draw.circle(surface, col, (int(cx), int(cy)), r)
 
-    waist    = (x, y - LEG_LEN)
-    shoulder = (waist[0], waist[1] - BODY_LEN)
-    head_c   = (shoulder[0], shoulder[1] - NECK_LEN - HEAD_R)
+    waist    = (x, y - ll)
+    shoulder = (waist[0], waist[1] - bl)
+    head_c   = (shoulder[0], shoulder[1] - nl - hd)
 
-    # Legs
+    # Legs — lx/rx are absolute foot offsets from waist centre
     if action == 'walk':
         t = action_t * math.pi * 2
-        ls, rs = math.sin(t) * 25, -math.sin(t) * 25
+        lx = -math.sin(t) * 22 * s
+        rx =  math.sin(t) * 22 * s
     elif action == 'kick':
-        ls, rs = 0, -facing * action_t * 60
+        lx = -8 * s
+        rx = facing * action_t * 60 * s
     elif action == 'jump':
-        ls, rs = 15, -15
+        lx, rx = -16 * s, 16 * s
     elif action == 'duck':
-        ls, rs = -28, 28   # feet spread wide for squat
+        lx, rx = -28 * s, 28 * s
     else:
-        ls, rs = 5, -5
+        lx, rx = -10 * s, 10 * s
 
-    lf = (waist[0] - ls * facing, y)
-    rf = (waist[0] + rs * facing, y)
-    lk = ((waist[0] + lf[0]) / 2, waist[1] + 10)
-    rk = ((waist[0] + rf[0]) / 2, waist[1] + 10)
+    lf = (waist[0] + lx, y)
+    rf = (waist[0] + rx, y)
+    lk = (waist[0] + lx * 0.5, waist[1] + 20 * s)
+    rk = (waist[0] + rx * 0.5, waist[1] + 20 * s)
     ln(waist, lk); ln(lk, lf)
     ln(waist, rk); ln(rk, rf)
 
     # Arms
     if action == 'punch':
-        ext = int(action_t * ARM_LEN)
-        la  = (shoulder[0] - facing * 10, shoulder[1] + 10)
-        lh  = (la[0] - facing * 12, la[1] + 18)
+        ext = int(action_t * al)
+        la  = (shoulder[0] - facing * 10 * s, shoulder[1] + 10 * s)
+        lh  = (la[0] - facing * 12 * s, la[1] + 18 * s)
         ra  = (shoulder[0] + facing * ext, shoulder[1])
-        rh  = (ra[0] + facing * (ARM_LEN - ext) * 0.3, ra[1] + 5)
+        rh  = (ra[0] + facing * (al - ext) * 0.3, ra[1] + 5 * s)
     elif action == 'kick':
-        la = (shoulder[0] - facing * 10, shoulder[1] + 14)
-        lh = (la[0], la[1] + 22)
-        ra = (shoulder[0] + facing * 15, shoulder[1] + 5)
-        rh = (ra[0] + facing * 10, ra[1] + 15)
+        la = (shoulder[0] - facing * 10 * s, shoulder[1] + 14 * s)
+        lh = (la[0], la[1] + 22 * s)
+        ra = (shoulder[0] + facing * 15 * s, shoulder[1] + 5 * s)
+        rh = (ra[0] + facing * 10 * s, ra[1] + 15 * s)
     elif action == 'walk':
         t  = action_t * math.pi * 2
-        sw = math.sin(t) * 20
-        la = (shoulder[0] - sw * facing * 0.5, shoulder[1] + 10)
-        lh = (la[0] - 10, la[1] + ARM_LEN * 0.7)
-        ra = (shoulder[0] + sw * facing * 0.5, shoulder[1] + 10)
-        rh = (ra[0] + 10,  ra[1] + ARM_LEN * 0.7)
+        sw = math.sin(t) * 20 * s
+        la = (shoulder[0] - sw * facing * 0.5, shoulder[1] + 10 * s)
+        lh = (la[0] - 10 * s, la[1] + al * 0.7)
+        ra = (shoulder[0] + sw * facing * 0.5, shoulder[1] + 10 * s)
+        rh = (ra[0] + 10 * s, ra[1] + al * 0.7)
     elif action == 'hurt':
-        la = (shoulder[0] - facing * 20, shoulder[1] - 10)
-        lh = (la[0] - 15, la[1] - 15)
-        ra = (shoulder[0] + facing * 20, shoulder[1] - 10)
-        rh = (ra[0] + 15, ra[1] - 15)
+        la = (shoulder[0] - facing * 20 * s, shoulder[1] - 10 * s)
+        lh = (la[0] - 15 * s, la[1] - 15 * s)
+        ra = (shoulder[0] + facing * 20 * s, shoulder[1] - 10 * s)
+        rh = (ra[0] + 15 * s, ra[1] - 15 * s)
     elif action == 'duck':
-        la = (shoulder[0] - 14, shoulder[1] + 22)  # arms low, guarding
-        lh = (la[0] - 6,  la[1] + 16)
-        ra = (shoulder[0] + 14, shoulder[1] + 22)
-        rh = (ra[0] + 6,  ra[1] + 16)
+        la = (shoulder[0] - 14 * s, shoulder[1] + 22 * s)
+        lh = (la[0] - 6 * s,  la[1] + 16 * s)
+        ra = (shoulder[0] + 14 * s, shoulder[1] + 22 * s)
+        rh = (ra[0] + 6 * s,  ra[1] + 16 * s)
     else:
-        la = (shoulder[0] - 10, shoulder[1] + 10)
-        lh = (la[0] - 5,  la[1] + ARM_LEN * 0.8)
-        ra = (shoulder[0] + 10, shoulder[1] + 10)
-        rh = (ra[0] + 5,  ra[1] + ARM_LEN * 0.8)
+        la = (shoulder[0] - 10 * s, shoulder[1] + 10 * s)
+        lh = (la[0] - 5 * s,  la[1] + al * 0.8)
+        ra = (shoulder[0] + 10 * s, shoulder[1] + 10 * s)
+        rh = (ra[0] + 5 * s,  ra[1] + al * 0.8)
 
     ln(shoulder, la); ln(la, lh)
     ln(shoulder, ra); ln(ra, rh)
     ln(waist, shoulder, 4)
-    circ(head_c[0], head_c[1], HEAD_R)
+    circ(head_c[0], head_c[1], hd)
 
     if not flash:
-        ex, ey = head_c[0] + facing * 6, head_c[1] - 3
-        pygame.draw.circle(surface, WHITE, (int(ex), int(ey)), 5)
-        pygame.draw.circle(surface, BLACK, (int(ex + facing * 2), int(ey)), 3)
+        ex, ey = head_c[0] + facing * 6 * s, head_c[1] - 3 * s
+        pygame.draw.circle(surface, WHITE, (int(ex), int(ey)), max(1, int(5 * s)))
+        pygame.draw.circle(surface, BLACK, (int(ex + facing * 2 * s), int(ey)), max(1, int(3 * s)))
         if action == 'hurt':
             pygame.draw.arc(surface, BLACK,
-                            (int(head_c[0]-8), int(head_c[1]+2), 16, 10), 0, math.pi, 2)
+                            (int(head_c[0] - 8*s), int(head_c[1] + 2*s), int(16*s), int(10*s)),
+                            0, math.pi, 2)
         else:
             pygame.draw.arc(surface, BLACK,
-                            (int(head_c[0]-8), int(head_c[1]+4), 16, 8),
+                            (int(head_c[0] - 8*s), int(head_c[1] + 4*s), int(16*s), int(8*s)),
                             math.pi, math.pi * 2, 2)
 
     if action == 'punch':
-        return (int(ra[0] + facing * 10), int(ra[1]))
+        return (int(ra[0] + facing * 10 * s), int(ra[1]))
     if action == 'kick':
-        return (int(waist[0] + facing * int(action_t * 80)), int(y - 20))
+        return (int(waist[0] + facing * int(action_t * 80 * s)), int(y - 20 * s))
     return None
 
 
@@ -898,8 +911,10 @@ class Fighter:
             return
         if other.ducking and self.action == 'punch':
             return  # punches miss ducking opponents
-        dist = math.hypot(hit_pos[0] - other.x, hit_pos[1] - (other.y - 70))
-        if dist < 58:
+        hit_cy = other.y - (140 if other.char.get("giant") else 70)
+        hit_r  = 90 if other.char.get("giant") else 58
+        dist = math.hypot(hit_pos[0] - other.x, hit_pos[1] - hit_cy)
+        if dist < hit_r:
             if self.action == 'punch':
                 dmg = self.char["punch_dmg"] + self.punch_boost
                 if self.is_crit:
@@ -935,11 +950,14 @@ class Fighter:
                 other.shock_frames = 480   # 8 seconds
 
     def draw(self, surface):
-        pygame.draw.ellipse(surface, (0,0,0),
-                            (int(self.x)-25, int(self.y)-6, 50, 12))
+        _scale = 2.0 if self.char.get("giant") else 1.0
+        _sw = int(50 * _scale)
+        _sh = int(12 * _scale)
+        pygame.draw.ellipse(surface, (0, 0, 0),
+                            (int(self.x) - _sw//2, int(self.y) - _sh//2, _sw, _sh))
         flash = (self.flash_timer % 4) < 2 and self.flash_timer > 0
         result = draw_stickman(surface, self.x, self.y, self.color,
-                               self.facing, self.action, self.action_t, flash=flash)
+                               self.facing, self.action, self.action_t, flash=flash, scale=_scale)
         if self.poison_frames > 0:
             top_y = int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 14
             for i, dx in enumerate((-10, 0, 10)):
