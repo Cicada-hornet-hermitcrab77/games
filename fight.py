@@ -142,6 +142,12 @@ CHARACTERS = [
     {"name": "Giant", "color": (100, 160, 100), "speed": 2, "jump": -8,
      "punch_dmg": 20, "kick_dmg": 18, "max_hp": 260,
      "desc": "Very big and very strong", "double_jump": False, "giant": True},
+    {"name": "Morph", "color": (80, 200, 220), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 110,
+     "desc": "Kick cycles size: normal → big → small", "double_jump": False, "size_kick": True},
+    {"name": "Ghost", "color": (210, 210, 255), "speed": 5, "jump": -15,
+     "punch_dmg": 8, "kick_dmg": 9, "max_hp": 105,
+     "desc": "Phases through platforms", "double_jump": True, "phase": True},
 ]
 
 POWERUPS = [
@@ -707,6 +713,8 @@ class Fighter:
         self.pending_orb        = False  # bazooka_kick: spawn an orb this frame
         self.bazooka_cooldown   = 0      # 5-second cooldown between orb shots
         self.pending_bounce     = False  # bounce_kick: spawn a bouncing ball this frame
+        self.draw_scale         = 2.0 if char_data.get("giant") else 1.0  # visual + hitbox scale
+        self._size_state        = 0    # for size_kick: 0=normal, 1=big, 2=small
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -813,7 +821,7 @@ class Fighter:
             self.y = GROUND_Y
             self.vy = 0
             landed = True
-        else:
+        elif not self.char.get("phase"):
             for plat in platforms:
                 if (self.vy >= 0 and prev_y <= plat.y and self.y >= plat.y
                         and plat.x - 25 <= self.x <= plat.x + plat.w + 25):
@@ -868,6 +876,9 @@ class Fighter:
                     self.bazooka_cooldown = FPS * 5   # 5 second cooldown
                 if self.char.get("bounce_kick"):
                     self.pending_bounce = True
+                if self.char.get("size_kick"):
+                    self._size_state = (self._size_state + 1) % 3
+                    self.draw_scale = (1.0, 2.0, 0.55)[self._size_state]
             elif keys[ctrl['jump']]:
                 if self.jumps_left > 0:
                     self.vy = self.char["jump"]
@@ -911,8 +922,8 @@ class Fighter:
             return
         if other.ducking and self.action == 'punch':
             return  # punches miss ducking opponents
-        hit_cy = other.y - (140 if other.char.get("giant") else 70)
-        hit_r  = 90 if other.char.get("giant") else 58
+        hit_cy = other.y - 70 * other.draw_scale
+        hit_r  = 58 * other.draw_scale
         dist = math.hypot(hit_pos[0] - other.x, hit_pos[1] - hit_cy)
         if dist < hit_r:
             if self.action == 'punch':
@@ -950,7 +961,7 @@ class Fighter:
                 other.shock_frames = 480   # 8 seconds
 
     def draw(self, surface):
-        _scale = 2.0 if self.char.get("giant") else 1.0
+        _scale = self.draw_scale
         _sw = int(50 * _scale)
         _sh = int(12 * _scale)
         pygame.draw.ellipse(surface, (0, 0, 0),
@@ -1059,7 +1070,7 @@ class AIFighter(Fighter):
             self.y = GROUND_Y
             self.vy = 0
             landed = True
-        else:
+        elif not self.char.get("phase"):
             for plat in platforms:
                 if (self.vy >= 0 and prev_y <= plat.y and self.y >= plat.y
                         and plat.x - 25 <= self.x <= plat.x + plat.w + 25):
@@ -1120,6 +1131,9 @@ class AIFighter(Fighter):
                         self.bazooka_cooldown = FPS * 5
                     if self.char.get("bounce_kick"):
                         self.pending_bounce = True
+                    if self.char.get("size_kick"):
+                        self._size_state = (self._size_state + 1) % 3
+                        self.draw_scale = (1.0, 2.0, 0.55)[self._size_state]
             self.ai_attack = None
         elif self.ai_move != 0:
             self.x += self.ai_move * self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
