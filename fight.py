@@ -133,6 +133,12 @@ CHARACTERS = [
     {"name": "Gunner", "color": (60, 180, 80), "speed": 5, "jump": -13,
      "punch_dmg": 8, "kick_dmg": 0, "max_hp": 110,
      "desc": "Kicks shoot a ball (10 dmg)", "double_jump": False, "shoot_kick": True},
+    {"name": "Bazooka Man", "color": (180, 60, 60), "speed": 1, "jump": -0,
+     "punch_dmg": 8, "kick_dmg": 0, "max_hp": 75,
+     "desc": "Kick fires exploding orb (35 dmg)", "double_jump": False, "bazooka_kick": True},
+    {"name": "Pinball", "color": (255, 80, 200), "speed": 5, "jump": -13,
+     "punch_dmg": 8, "kick_dmg": 0, "max_hp": 110,
+     "desc": "Kick shoots a bouncing ball (10 dmg)", "double_jump": False, "bounce_kick": True},
 ]
 
 POWERUPS = [
@@ -517,6 +523,115 @@ class Projectile:
 
 
 # ---------------------------------------------------------------------------
+# Orb (bazooka — explodes after 2 seconds)
+# ---------------------------------------------------------------------------
+
+class Orb:
+    SPEED          = 5
+    FUSE           = 120   # 2 seconds
+    EXPLODE_RADIUS = 90
+    EXPLODE_DMG    = 35
+    EXPLODE_DUR    = 24   # frames explosion visual lasts
+
+    def __init__(self, x, y, facing, owner):
+        self.x            = float(x)
+        self.y            = float(y)
+        self.vx           = self.SPEED * facing
+        self.owner        = owner
+        self.fuse         = self.FUSE
+        self.exploding    = False
+        self.explode_timer = 0
+        self.damaged      = False   # damage applied flag
+        self.alive        = True
+
+    def update(self):
+        if not self.exploding:
+            self.x    += self.vx
+            self.fuse -= 1
+            if self.fuse <= 0 or self.x < 0 or self.x > WIDTH:
+                self.exploding     = True
+                self.explode_timer = self.EXPLODE_DUR
+        else:
+            self.explode_timer -= 1
+            if self.explode_timer <= 0:
+                self.alive = False
+
+    def draw(self, surface):
+        if not self.exploding:
+            cx, cy = int(self.x), int(self.y)
+            pulse = (self.fuse // 8) % 2 == 0
+            pygame.draw.circle(surface, (200, 60, 20) if pulse else (240, 100, 30), (cx, cy), 11)
+            pygame.draw.circle(surface, (255, 180, 60), (cx, cy), 6)
+            pygame.draw.circle(surface, (255, 240, 120), (cx, cy), 3)
+        else:
+            prog = 1.0 - self.explode_timer / self.EXPLODE_DUR
+            r    = int(self.EXPLODE_RADIUS * prog)
+            w    = max(1, int(8 * (1 - prog)))
+            pygame.draw.circle(surface, (255, 160, 0),  (int(self.x), int(self.y)), r, w)
+            if r > 12:
+                pygame.draw.circle(surface, (255, 80, 0), (int(self.x), int(self.y)), r - 10, max(1, w-2))
+
+
+# ---------------------------------------------------------------------------
+# BouncingBall (Pinball character)
+# ---------------------------------------------------------------------------
+
+class BouncingBall:
+    RADIUS   = 9
+    SPEED    = 8
+    LIFETIME = 300   # 5 seconds at 60fps
+    HIT_CD   = 30   # 0.5s cooldown between hits on the same target
+
+    def __init__(self, x, y, facing, owner):
+        self.x       = float(x)
+        self.y       = float(y)
+        self.vx      = self.SPEED * facing
+        self.vy      = -4.0          # slight upward angle on launch
+        self.owner   = owner
+        self.alive   = True
+        self.frames  = 0
+        self.hit_cd  = 0             # cooldown before can damage again
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+
+        # Bounce off left/right walls
+        if self.x - self.RADIUS < 0:
+            self.x  = float(self.RADIUS)
+            self.vx = abs(self.vx)
+        elif self.x + self.RADIUS > WIDTH:
+            self.x  = float(WIDTH - self.RADIUS)
+            self.vx = -abs(self.vx)
+
+        # Bounce off ground
+        if self.y + self.RADIUS >= GROUND_Y:
+            self.y  = float(GROUND_Y - self.RADIUS)
+            self.vy = -abs(self.vy)
+
+        # Bounce off ceiling
+        if self.y - self.RADIUS < 0:
+            self.y  = float(self.RADIUS)
+            self.vy = abs(self.vy)
+
+        if self.hit_cd > 0:
+            self.hit_cd -= 1
+
+        self.frames += 1
+        if self.frames >= self.LIFETIME:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pygame.draw.circle(surface, (160, 0, 100),   (cx, cy), self.RADIUS)
+        pygame.draw.circle(surface, (255, 80, 200),  (cx, cy), self.RADIUS - 3)
+        pygame.draw.circle(surface, (255, 200, 240), (cx, cy), self.RADIUS - 6)
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
 # Fighter
 # ---------------------------------------------------------------------------
 
@@ -576,6 +691,9 @@ class Fighter:
         self.boomerang_angle    = 0.0 # current orbit angle in radians
         self.boomerang_hit_cd   = 0   # per-hit cooldown to avoid rapid damage
         self.pending_ball       = False  # shoot_kick: spawn a ball this frame
+        self.pending_orb        = False  # bazooka_kick: spawn an orb this frame
+        self.bazooka_cooldown   = 0      # 5-second cooldown between orb shots
+        self.pending_bounce     = False  # bounce_kick: spawn a bouncing ball this frame
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -648,6 +766,8 @@ class Fighter:
             self.freeze_frames -= 1
         if self.shock_frames > 0:
             self.shock_frames -= 1
+        if self.bazooka_cooldown > 0:
+            self.bazooka_cooldown -= 1
         if self.boomerang_timer > 0:
             self.boomerang_timer -= 1
             self.boomerang_angle = (self.boomerang_angle + 0.09) % (2 * math.pi)
@@ -730,6 +850,11 @@ class Fighter:
                     self.boomerang_angle = 0.0
                 if self.char.get("shoot_kick"):
                     self.pending_ball = True
+                if self.char.get("bazooka_kick") and self.bazooka_cooldown == 0:
+                    self.pending_orb      = True
+                    self.bazooka_cooldown = FPS * 5   # 5 second cooldown
+                if self.char.get("bounce_kick"):
+                    self.pending_bounce = True
             elif keys[ctrl['jump']]:
                 if self.jumps_left > 0:
                     self.vy = self.char["jump"]
@@ -972,6 +1097,11 @@ class AIFighter(Fighter):
                         self.boomerang_angle = 0.0
                     if self.char.get("shoot_kick"):
                         self.pending_ball = True
+                    if self.char.get("bazooka_kick") and self.bazooka_cooldown == 0:
+                        self.pending_orb      = True
+                        self.bazooka_cooldown = FPS * 5
+                    if self.char.get("bounce_kick"):
+                        self.pending_bounce = True
             self.ai_attack = None
         elif self.ai_move != 0:
             self.x += self.ai_move * self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
@@ -1490,6 +1620,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     powerups     = []
     clones       = []   # list of {'fighter': AIFighter, 'timer': int, 'target': Fighter}
     balls        = []   # active Projectile objects
+    orbs         = []   # active Orb objects (bazooka)
+    bounce_balls = []   # active BouncingBall objects (Pinball)
     spawn_timer  = 300   # first spawn after 5 seconds
 
     while True:
@@ -1570,6 +1702,43 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         victim.flash_timer = 8
                         b.alive = False
             balls = [b for b in balls if b.alive]
+
+            # Spawn orbs from bazooka_kick
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_orb:
+                    shooter.pending_orb = False
+                    orbs.append(Orb(shooter.x + shooter.facing * 30,
+                                    shooter.y - 60, shooter.facing, shooter))
+
+            # Update orbs and apply explosion damage
+            for o in orbs:
+                o.update()
+                if o.exploding and not o.damaged:
+                    o.damaged = True
+                    victim = p2 if o.owner is p1 else p1
+                    if math.hypot(o.x - victim.x, o.y - (victim.y - 60)) < o.EXPLODE_RADIUS:
+                        victim.hp = max(0, victim.hp - o.EXPLODE_DMG)
+                        victim.flash_timer = 14
+            orbs = [o for o in orbs if o.alive]
+
+            # Spawn bouncing balls from bounce_kick
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_bounce:
+                    shooter.pending_bounce = False
+                    bounce_balls.append(BouncingBall(shooter.x + shooter.facing * 30,
+                                                     shooter.y - 60, shooter.facing, shooter))
+
+            # Update bouncing balls and check collisions
+            for bb in bounce_balls:
+                bb.update()
+                if bb.alive and bb.hit_cd == 0:
+                    victim = p2 if bb.owner is p1 else p1
+                    if bb.collides(victim):
+                        victim.hp = max(0, victim.hp - 10)
+                        victim.flash_timer = 8
+                        bb.hit_cd = BouncingBall.HIT_CD
+            bounce_balls = [bb for bb in bounce_balls if bb.alive]
+
             timer -= 1
             if timer <= 0 or p1.hp <= 0 or p2.hp <= 0:
                 game_over = True
@@ -1619,6 +1788,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             pu.draw(screen)
         for b in balls:
             b.draw(screen)
+        for o in orbs:
+            o.draw(screen)
+        for bb in bounce_balls:
+            bb.draw(screen)
         # Draw magnet beams from powerups to any Magician fighter
         for f in (p1, p2):
             if f.char.get("magnet"):
