@@ -342,6 +342,14 @@ STAGES = [
     ], "springs": [
         (200, -22), (450, -22), (700, -22),
     ]},
+    # Space: 3 drifting asteroid platforms, 2 launch pads
+    {"name": "Space", "platforms": [
+        (80,  GROUND_Y-120, 150, 1.5, 110),
+        (630, GROUND_Y-120, 150, -1.5,110),
+        (355, GROUND_Y-230, 130, 2.5, 100),
+    ], "springs": [
+        (280, -26), (620, -26),
+    ]},
 ]
 
 # Stage-specific character advantages and disadvantages.
@@ -354,6 +362,7 @@ STAGE_MATCHUPS = {
     "Arena":      {"adv": "Gladiator",   "dis": "Rogue"},
     "Dream Land": {"adv": "Spring",      "dis": "Brawler"},
     "Underworld": {"adv": "Skeleton",    "dis": "Boxer"},
+    "Space":      {"adv": "Ghost",       "dis": "Giant"},
 }
 
 
@@ -467,6 +476,41 @@ def draw_bg(surface, stage_idx=0):
         pygame.draw.rect(surface, (20, 5, 25),  (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
         pygame.draw.rect(surface, (10, 2, 15),  (0, GROUND_Y+22, WIDTH, HEIGHT-GROUND_Y))
         pygame.draw.line(surface, (160, 40, 0), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+
+    elif s == 7:  # Space
+        surface.fill((2, 2, 18))   # deep space black
+        # stars
+        for sx, sy in [(45,15),(100,60),(175,28),(240,80),(310,12),(380,55),(460,30),
+                       (530,72),(610,18),(680,50),(755,35),(820,75),(870,20),(50,200),
+                       (150,160),(290,190),(440,145),(590,175),(730,155),(850,200),
+                       (20,320),(200,300),(370,330),(520,310),(700,290),(880,325)]:
+            r = 2 if (sx + sy) % 5 == 0 else 1
+            pygame.draw.circle(surface, WHITE, (sx, sy), r)
+        # large planet (orange/red gas giant) top-right
+        pygame.draw.circle(surface, (210, 100, 40), (760, 90), 72)
+        pygame.draw.circle(surface, (230, 130, 60), (760, 90), 60)
+        for band_y, band_h, band_c in [
+            (50, 8,  (190, 80, 30)),
+            (72, 6,  (240, 150, 70)),
+            (96, 10, (185, 75, 25)),
+            (116, 5, (220, 120, 55)),
+        ]:
+            pygame.draw.ellipse(surface, band_c, (700, band_y, 120, band_h))
+        # planet ring
+        pygame.draw.ellipse(surface, (180, 130, 60), (698, 80, 124, 22), 3)
+        # small distant moon
+        pygame.draw.circle(surface, (170, 170, 160), (140, 70), 20)
+        pygame.draw.circle(surface, (130, 130, 120), (148, 64), 5)
+        pygame.draw.circle(surface, (130, 130, 120), (136, 78), 3)
+        # nebula glow (soft blobs)
+        for nx, ny, nr, nc in [(300, 200, 80, (30, 0, 60)), (600, 250, 65, (0, 20, 55))]:
+            pygame.draw.circle(surface, nc, (nx, ny), nr)
+        # space station metal floor
+        pygame.draw.rect(surface, (30, 35, 50),  (0, GROUND_Y+2,  WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface, (20, 24, 38),  (0, GROUND_Y+20, WIDTH, HEIGHT-GROUND_Y))
+        for gx in range(0, WIDTH, 40):
+            pygame.draw.line(surface, (40, 48, 65), (gx, GROUND_Y+2), (gx, HEIGHT), 1)
+        pygame.draw.line(surface, (80, 120, 180), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 2)
 
 
 def draw_health_bars(surface, p1, p2):
@@ -715,6 +759,9 @@ class Fighter:
         self.pending_bounce     = False  # bounce_kick: spawn a bouncing ball this frame
         self.draw_scale         = 2.0 if char_data.get("giant") else 1.0  # visual + hitbox scale
         self._size_state        = 0    # for size_kick: 0=normal, 1=big, 2=small
+        self.angle              = 0.0  # visual rotation angle (degrees)
+        self.angle_vel          = 0.0  # degrees per frame
+        self.float_timer        = random.randint(20, 50)  # frames until next drift impulse
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -839,6 +886,18 @@ class Fighter:
         self.x = max(50.0, min(float(WIDTH - 50), self.x))
         self.facing = 1 if other.x > self.x else -1
 
+        # Space stage: random floating drift + rotation
+        if GRAVITY < 0.3:
+            self.angle += self.angle_vel
+            self.float_timer -= 1
+            if self.float_timer <= 0:
+                self.vy       = random.uniform(-5.0, 2.5)
+                self.angle_vel = random.uniform(-4.0, 4.0)
+                self.float_timer = random.randint(35, 85)
+        else:
+            self.angle     = 0.0
+            self.angle_vel = 0.0
+
         spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
 
         duck_key  = self.controls.get('duck')
@@ -962,13 +1021,29 @@ class Fighter:
 
     def draw(self, surface):
         _scale = self.draw_scale
-        _sw = int(50 * _scale)
-        _sh = int(12 * _scale)
-        pygame.draw.ellipse(surface, (0, 0, 0),
-                            (int(self.x) - _sw//2, int(self.y) - _sh//2, _sw, _sh))
         flash = (self.flash_timer % 4) < 2 and self.flash_timer > 0
-        result = draw_stickman(surface, self.x, self.y, self.color,
-                               self.facing, self.action, self.action_t, flash=flash, scale=_scale)
+
+        if self.angle != 0.0:
+            # Draw stickman onto a temp surface, rotate it, blit to screen
+            tmp_w = int(320 * _scale)
+            tmp_h = int(340 * _scale)
+            tmp = pygame.Surface((tmp_w, tmp_h), pygame.SRCALPHA)
+            cx = tmp_w // 2
+            cy = int(tmp_h * 0.72)
+            draw_stickman(tmp, cx, cy, self.color, self.facing, self.action, self.action_t,
+                          flash=flash, scale=_scale)
+            rotated = pygame.transform.rotate(tmp, self.angle)
+            bx = int(self.x) - rotated.get_width()  // 2
+            by = int(self.y) - int(tmp_h * 0.72)    - (rotated.get_height() - tmp_h) // 2
+            surface.blit(rotated, (bx, by))
+            result = (int(self.x + self.facing * 40 * _scale), int(self.y - 70 * _scale))
+        else:
+            _sw = int(50 * _scale)
+            _sh = int(12 * _scale)
+            pygame.draw.ellipse(surface, (0, 0, 0),
+                                (int(self.x) - _sw//2, int(self.y) - _sh//2, _sw, _sh))
+            result = draw_stickman(surface, self.x, self.y, self.color,
+                                   self.facing, self.action, self.action_t, flash=flash, scale=_scale)
         if self.poison_frames > 0:
             top_y = int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 14
             for i, dx in enumerate((-10, 0, 10)):
@@ -1087,6 +1162,18 @@ class AIFighter(Fighter):
 
         self.x = max(50.0, min(float(WIDTH - 50), self.x))
         self.facing = 1 if other.x > self.x else -1
+
+        # Space stage: random floating drift + rotation
+        if GRAVITY < 0.3:
+            self.angle += self.angle_vel
+            self.float_timer -= 1
+            if self.float_timer <= 0:
+                self.vy        = random.uniform(-5.0, 2.5)
+                self.angle_vel = random.uniform(-4.0, 4.0)
+                self.float_timer = random.randint(35, 85)
+        else:
+            self.angle     = 0.0
+            self.angle_vel = 0.0
 
         # --- Advance attack animation ---
         if self.attacking and self.action in ('punch', 'kick'):
@@ -1609,6 +1696,12 @@ def character_select(vs_ai=False):
 # ---------------------------------------------------------------------------
 
 def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
+    global GRAVITY
+    _stage_name = STAGES[stage_idx % len(STAGES)]["name"]
+    _orig_gravity = GRAVITY
+    if _stage_name == "Space":
+        GRAVITY = 0.13   # floaty anti-gravity
+
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
                    punch=pygame.K_f, kick=pygame.K_g, duck=pygame.K_s, block=pygame.K_r)
     P2_CTRL = dict(left=pygame.K_LEFT, right=pygame.K_RIGHT, jump=pygame.K_UP,
@@ -1664,13 +1757,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
                 if game_over:
-                    if event.key == pygame.K_r: return 'rematch'
-                    if event.key == pygame.K_c: return 'select'
+                    if event.key == pygame.K_r:
+                        GRAVITY = _orig_gravity; return 'rematch'
+                    if event.key == pygame.K_c:
+                        GRAVITY = _orig_gravity; return 'select'
                     if event.key in (pygame.K_q, pygame.K_ESCAPE):
+                        GRAVITY = _orig_gravity
                         pygame.quit(); sys.exit()
                 else:
                     if event.key in (pygame.K_q, pygame.K_ESCAPE):
-                        return 'select'
+                        GRAVITY = _orig_gravity; return 'select'
 
         if not game_over:
             for plat in platforms:
