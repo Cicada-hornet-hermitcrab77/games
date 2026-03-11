@@ -151,6 +151,15 @@ CHARACTERS = [
     {"name": "Vampire", "color": (120, 0, 40), "speed": 6, "jump": -13,
      "punch_dmg": 9, "kick_dmg": 10, "max_hp": 90,
      "desc": "Heals 8 HP on every hit", "double_jump": False, "vampire": True},
+    {"name": "Astronaut", "color": (220, 230, 255), "speed": 5, "jump": -10,
+     "punch_dmg": 8, "kick_dmg": 9, "max_hp": 105,
+     "desc": "Anti-gravity on every map", "double_jump": True, "anti_gravity": True},
+    {"name": "Spooderman", "color": (180, 20, 20), "speed": 7, "jump": -16,
+     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 100,
+     "desc": "Clings to walls, wall-jumps", "double_jump": True, "wall_cling": True},
+    {"name": "Hooker", "color": (40, 160, 60), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 0, "max_hp": 110,
+     "desc": "Kick fires a snake grappling hook", "double_jump": False, "grapple_kick": True},
 ]
 
 POWERUPS = [
@@ -265,19 +274,6 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
     ln(waist, shoulder, 4)
     circ(head_c[0], head_c[1], hd)
 
-    if not flash:
-        ex, ey = head_c[0] + facing * 6 * s, head_c[1] - 3 * s
-        pygame.draw.circle(surface, WHITE, (int(ex), int(ey)), max(1, int(5 * s)))
-        pygame.draw.circle(surface, BLACK, (int(ex + facing * 2 * s), int(ey)), max(1, int(3 * s)))
-        if action == 'hurt':
-            pygame.draw.arc(surface, BLACK,
-                            (int(head_c[0] - 8*s), int(head_c[1] + 2*s), int(16*s), int(10*s)),
-                            0, math.pi, 2)
-        else:
-            pygame.draw.arc(surface, BLACK,
-                            (int(head_c[0] - 8*s), int(head_c[1] + 4*s), int(16*s), int(8*s)),
-                            math.pi, math.pi * 2, 2)
-
     if action == 'punch':
         return (int(ra[0] + facing * 10 * s), int(ra[1]))
     if action == 'kick':
@@ -353,6 +349,14 @@ STAGES = [
     ], "springs": [
         (280, -26), (620, -26),
     ]},
+    # Jungle: tangled canopy, two tree-trunk platforms and a vine bridge
+    {"name": "Jungle", "platforms": [
+        (55,  GROUND_Y-110, 175, 0,   0),
+        (670, GROUND_Y-110, 175, 0,   0),
+        (340, GROUND_Y-210, 150, 1.2, 120),
+    ], "springs": [
+        (450, -22),
+    ]},
 ]
 
 # Stage-specific character advantages and disadvantages.
@@ -365,7 +369,8 @@ STAGE_MATCHUPS = {
     "Arena":      {"adv": "Gladiator",   "dis": "Rogue"},
     "Dream Land": {"adv": "Spring",      "dis": "Brawler"},
     "Underworld": {"adv": "Skeleton",    "dis": "Boxer"},
-    "Space":      {"adv": "Ghost",       "dis": "Giant"},
+    "Space":      {"adv": "Astronaut",    "dis": "Giant"},
+    "Jungle":     {"adv": "Hooker",       "dis": "Gunner"},
 }
 
 
@@ -514,6 +519,36 @@ def draw_bg(surface, stage_idx=0):
         for gx in range(0, WIDTH, 40):
             pygame.draw.line(surface, (40, 48, 65), (gx, GROUND_Y+2), (gx, HEIGHT), 1)
         pygame.draw.line(surface, (80, 120, 180), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 2)
+
+    elif s == 8:  # Jungle
+        surface.fill((30, 70, 20))   # dark canopy sky
+        # background foliage blobs
+        for bx, by, br, bc in [
+            (0,   200, 140, (20, 80, 15)), (180, 160, 120, (25, 95, 18)),
+            (360, 180, 130, (18, 75, 12)), (540, 170, 125, (22, 88, 16)),
+            (720, 190, 135, (20, 82, 14)), (860, 160, 110, (24, 90, 17)),
+            (100, 100,  90, (15, 65, 10)), (450,  90,  85, (17, 70, 12)),
+            (750, 110,  95, (16, 68, 11)),
+        ]:
+            pygame.draw.circle(surface, bc, (bx, by), br)
+        # tree trunks
+        for tx in [60, 200, 420, 650, 830]:
+            pygame.draw.rect(surface, (60, 35, 10), (tx - 10, GROUND_Y - 180, 20, 182))
+            pygame.draw.rect(surface, (80, 50, 15), (tx - 7,  GROUND_Y - 180, 7,  182))
+        # hanging vines
+        for vx in [130, 280, 390, 520, 700, 810]:
+            for seg in range(10):
+                vy1 = seg * 30
+                vy2 = vy1 + 28
+                pygame.draw.line(surface, (40, 120, 20), (vx + int(math.sin(seg * 0.9) * 6), vy1),
+                                 (vx + int(math.sin((seg + 1) * 0.9) * 6), vy2), 2)
+        # foreground bush silhouettes
+        for bx, bw in [(0, 220), (180, 180), (430, 200), (650, 170), (790, 200)]:
+            pygame.draw.ellipse(surface, (15, 55, 8), (bx, GROUND_Y - 35, bw, 55))
+        # jungle floor
+        pygame.draw.rect(surface, (35, 85, 15), (0, GROUND_Y + 2,  WIDTH, HEIGHT - GROUND_Y - 2))
+        pygame.draw.rect(surface, (25, 60, 10), (0, GROUND_Y + 22, WIDTH, HEIGHT - GROUND_Y))
+        pygame.draw.line(surface, (50, 130, 20), (0, GROUND_Y + 2), (WIDTH, GROUND_Y + 2), 3)
 
 
 def draw_health_bars(surface, p1, p2):
@@ -765,6 +800,16 @@ class Fighter:
         self.angle              = 0.0  # visual rotation angle (degrees)
         self.angle_vel          = 0.0  # degrees per frame
         self.float_timer        = random.randint(20, 50)  # frames until next drift impulse
+        self.wall_cling_active  = False  # Spooderman: currently clinging to a wall
+        self.wall_dir           = 0      # -1 = left wall, 1 = right wall
+        self.pending_hook       = False  # Hooker: spawn a snake hook this frame
+        self.dash_tap_left      = 0     # frames remaining in double-tap window (left)
+        self.dash_tap_right     = 0     # frames remaining in double-tap window (right)
+        self.dash_cd            = 0     # cooldown between dashes
+        self.dash_frames        = 0     # frames of active dash remaining
+        self.dash_dir           = 0     # direction of current dash
+        self._prev_left         = False # was left key held last frame
+        self._prev_right        = False # was right key held last frame
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -864,7 +909,8 @@ class Fighter:
             self.knockback *= 0.65
 
         prev_y = self.y
-        self.vy += GRAVITY
+        eff_grav = 0.13 if self.char.get("anti_gravity") else GRAVITY
+        self.vy += eff_grav
         self.y  += self.vy
         landed = False
         if self.y >= GROUND_Y:
@@ -883,18 +929,33 @@ class Fighter:
         if landed:
             self.on_ground = True
             self.jumps_left = 2 if self.char["double_jump"] else 1
+            self.wall_cling_active = False
         else:
             self.on_ground = False
+
+        # Wall cling (Spooderman)
+        self.wall_cling_active = False
+        if self.char.get("wall_cling") and not self.on_ground:
+            if self.x <= 52:
+                self.wall_cling_active = True
+                self.wall_dir = -1
+                self.vy = min(self.vy, 1.2)   # slow wall-slide
+            elif self.x >= WIDTH - 52:
+                self.wall_cling_active = True
+                self.wall_dir = 1
+                self.vy = min(self.vy, 1.2)
+        if not self.wall_cling_active:
+            self.wall_dir = 0
 
         self.x = max(50.0, min(float(WIDTH - 50), self.x))
         self.facing = 1 if other.x > self.x else -1
 
-        # Space stage: random floating drift + rotation
-        if GRAVITY < 0.3:
+        # Floating drift + rotation (Space stage or Astronaut)
+        if GRAVITY < 0.3 or self.char.get("anti_gravity"):
             self.angle += self.angle_vel
             self.float_timer -= 1
             if self.float_timer <= 0:
-                self.vy       = random.uniform(-5.0, 2.5)
+                self.vy        = random.uniform(-5.0, 2.5)
                 self.angle_vel = random.uniform(-4.0, 4.0)
                 self.float_timer = random.randint(35, 85)
         else:
@@ -911,6 +972,16 @@ class Fighter:
                          self.on_ground and self.hurt_timer == 0 and not self.attacking and not self.ducking)
         if self.ducking:
             self.action = 'duck'
+
+        # Dash timers
+        if self.dash_cd        > 0: self.dash_cd        -= 1
+        if self.dash_tap_left  > 0: self.dash_tap_left  -= 1
+        if self.dash_tap_right > 0: self.dash_tap_right -= 1
+        if self.dash_frames    > 0:
+            self.dash_frames -= 1
+            self.x += self.dash_dir * 9
+        else:
+            self.dash_dir = 0
 
         if self.hurt_timer == 0 and self.freeze_frames == 0 and not self.ducking and not self.blocking:
             ctrl = self.controls
@@ -941,20 +1012,50 @@ class Fighter:
                 if self.char.get("size_kick"):
                     self._size_state = (self._size_state + 1) % 3
                     self.draw_scale = (1.0, 2.0, 0.55)[self._size_state]
+                if self.char.get("grapple_kick"):
+                    self.pending_hook = True
             elif keys[ctrl['jump']]:
-                if self.jumps_left > 0:
+                if self.wall_cling_active:
+                    # wall jump: push away from wall and launch upward
+                    self.vy = self.char["jump"]
+                    self.x += -self.wall_dir * 30
+                    self.wall_cling_active = False
+                    self.jumps_left = 2 if self.char["double_jump"] else 1
+                    self.action = 'jump'
+                    self.attacking = False
+                elif self.jumps_left > 0:
                     self.vy = self.char["jump"]
                     self.on_ground = False
                     self.jumps_left -= 1
                     self.action = 'jump'
                     self.attacking = False
             elif keys[ctrl['left']]:
+                # Double-tap left = dash left
+                if not self._prev_left and self.dash_cd == 0 and self.dash_frames == 0:
+                    if self.dash_tap_left > 0:
+                        self.dash_frames    = 8
+                        self.dash_dir       = -1
+                        self.dash_cd        = 40
+                        self.dash_tap_left  = 0
+                        self.action = 'jump'
+                    else:
+                        self.dash_tap_left = 18
                 self.x -= spd
                 if self.on_ground and not self.attacking:
                     self.action = 'walk'
                     self.walk_t = (self.walk_t + 0.12) % 1.0
                     self.action_t = self.walk_t
             elif keys[ctrl['right']]:
+                # Double-tap right = dash right
+                if not self._prev_right and self.dash_cd == 0 and self.dash_frames == 0:
+                    if self.dash_tap_right > 0:
+                        self.dash_frames    = 8
+                        self.dash_dir       = 1
+                        self.dash_cd        = 40
+                        self.dash_tap_right = 0
+                        self.action = 'jump'
+                    else:
+                        self.dash_tap_right = 18
                 self.x += spd
                 if self.on_ground and not self.attacking:
                     self.action = 'walk'
@@ -963,6 +1064,9 @@ class Fighter:
             else:
                 if self.on_ground and not self.attacking:
                     self.action = 'idle'
+
+        self._prev_left  = bool(self.controls and keys[self.controls.get('left',  0)])
+        self._prev_right = bool(self.controls and keys[self.controls.get('right', 0)])
 
         if self.attacking and self.action in ('punch', 'kick'):
             self.action_t = min(1.0, self.action_t + self._attack_speed)
@@ -1141,7 +1245,8 @@ class AIFighter(Fighter):
             self.knockback *= 0.65
 
         prev_y = self.y
-        self.vy += GRAVITY
+        eff_grav = 0.13 if self.char.get("anti_gravity") else GRAVITY
+        self.vy += eff_grav
         self.y  += self.vy
         landed = False
         if self.y >= GROUND_Y:
@@ -1166,8 +1271,8 @@ class AIFighter(Fighter):
         self.x = max(50.0, min(float(WIDTH - 50), self.x))
         self.facing = 1 if other.x > self.x else -1
 
-        # Space stage: random floating drift + rotation
-        if GRAVITY < 0.3:
+        # Floating drift + rotation (Space stage or Astronaut)
+        if GRAVITY < 0.3 or self.char.get("anti_gravity"):
             self.angle += self.angle_vel
             self.float_timer -= 1
             if self.float_timer <= 0:
@@ -1397,7 +1502,7 @@ class Spring:
     def trigger(self, fighter):
         if self.cooldown > 0:
             return
-        if fighter.on_ground and abs(fighter.x - self.x) < self.W + 14:
+        if fighter.on_ground and fighter.y >= GROUND_Y - 2 and abs(fighter.x - self.x) < self.W:
             fighter.vy        = self.bounce_vy
             fighter.on_ground = False
             fighter.jumps_left = 2 if fighter.char["double_jump"] else 1
@@ -1432,6 +1537,149 @@ class Spring:
         top_y = by - 5 - h
         pygame.draw.rect(surface, (220, 220, 220), (cx - 12, top_y - 5, 24, 6), border_radius=3)
         pygame.draw.rect(surface, WHITE,            (cx - 12, top_y - 5, 24, 6), 1, border_radius=3)
+
+
+# ---------------------------------------------------------------------------
+# Snake grappling hook (Hooker character)
+# ---------------------------------------------------------------------------
+
+class SnakeHook:
+    SPEED     = 11
+    MAX_RANGE = 400
+
+    def __init__(self, ox, oy, tx, ty, owner):
+        self.ox    = float(ox)
+        self.oy    = float(oy)
+        self.x     = float(ox)
+        self.y     = float(oy)
+        dx, dy     = tx - ox, ty - oy
+        dist       = math.hypot(dx, dy) or 1
+        self.vx    = dx / dist * self.SPEED
+        self.vy    = dy / dist * self.SPEED
+        self.owner = owner
+        self.alive = True
+        self.t     = 0
+
+    def update(self):
+        self.t += 1
+        if not self.alive:
+            return
+        self.x += self.vx
+        self.y += self.vy
+        if math.hypot(self.x - self.ox, self.y - self.oy) > self.MAX_RANGE:
+            self.alive = False
+        if self.x < 0 or self.x > WIDTH or self.y < 0 or self.y > HEIGHT:
+            self.alive = False
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < 35
+
+    def draw(self, surface):
+        hx, hy = int(self.x), int(self.y)
+        ox, oy = int(self.ox), int(self.oy)
+        num_segs = 14
+        pts = []
+        for i in range(num_segs + 1):
+            ti = i / num_segs
+            sx = ox + (hx - ox) * ti
+            sy = oy + (hy - oy) * ti
+            dx = hx - ox
+            dy = hy - oy
+            length = math.hypot(dx, dy) or 1
+            perp_x = -dy / length
+            perp_y =  dx / length
+            wave = math.sin(ti * math.pi * 4 + self.t * 0.35) * 9 * math.sin(ti * math.pi)
+            pts.append((int(sx + perp_x * wave), int(sy + perp_y * wave)))
+        for i in range(len(pts) - 1):
+            col = (20, 150, 25) if i % 2 == 0 else (55, 200, 50)
+            pygame.draw.line(surface, col, pts[i], pts[i + 1], 5)
+        # snake head
+        pygame.draw.circle(surface, (10, 170, 20), (hx, hy), 8)
+        # forked tongue
+        tx2 = hx + int(self.vx / self.SPEED * 13)
+        ty2 = hy + int(self.vy / self.SPEED * 13)
+        pygame.draw.line(surface, (220, 30, 30), (hx, hy), (tx2 - 3, ty2 + 3), 2)
+        pygame.draw.line(surface, (220, 30, 30), (hx, hy), (tx2 + 3, ty2 - 3), 2)
+
+
+# ---------------------------------------------------------------------------
+# Jungle snake NPC
+# ---------------------------------------------------------------------------
+
+class JungleSnake:
+    SPEED        = 2.5
+    MAX_HP       = 20
+    BITE_DMG     = 3
+    BITE_COOLDOWN = 120   # 2 seconds at 60 fps
+    BITE_RANGE   = 45
+
+    def __init__(self):
+        self.x       = float(random.choice([80, WIDTH - 80]))
+        self.y       = float(GROUND_Y)
+        self.facing  = 1
+        self.bite_cd = 0
+        self.hp      = self.MAX_HP
+        self.alive   = True
+        self.t       = 0
+
+    def update(self, p1, p2):
+        if not self.alive:
+            return
+        self.t += 1
+        if self.bite_cd > 0:
+            self.bite_cd -= 1
+
+        # Chase closest living player
+        d1 = abs(self.x - p1.x) if p1.hp > 0 else 99999
+        d2 = abs(self.x - p2.x) if p2.hp > 0 else 99999
+        target = p1 if d1 <= d2 else p2
+
+        dx = target.x - self.x
+        self.facing = 1 if dx > 0 else -1
+        if abs(dx) > self.BITE_RANGE - 5:
+            self.x += self.facing * self.SPEED
+        self.x = max(30.0, min(float(WIDTH - 30), self.x))
+
+        # Bite when in range
+        if (abs(self.x - target.x) < self.BITE_RANGE and
+                abs(self.y - target.y) < 70 and self.bite_cd == 0):
+            target.hp = max(0, target.hp - self.BITE_DMG)
+            target.flash_timer = 6
+            self.bite_cd = self.BITE_COOLDOWN
+
+    def take_damage(self, dmg):
+        self.hp -= dmg
+        if self.hp <= 0:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y) - 8
+        # Body segments
+        for i in range(7):
+            t = i / 6
+            bx = cx - self.facing * int(t * 38)
+            by = cy + int(math.sin(self.t * 0.14 + t * math.pi) * 5)
+            r  = max(3, 9 - i)
+            col = (20, 140, 25) if i % 2 == 0 else (35, 170, 35)
+            pygame.draw.circle(surface, col, (bx, by), r)
+        # Head
+        hx = cx + self.facing * 9
+        pygame.draw.circle(surface, (10, 160, 20), (hx, cy), 9)
+        # Eye
+        ex = hx + self.facing * 5
+        pygame.draw.circle(surface, (255, 210, 0), (ex, cy - 3), 3)
+        pygame.draw.circle(surface, BLACK, (ex + self.facing, cy - 3), 1)
+        # Tongue (flickers)
+        if self.t % 18 < 11:
+            tip = hx + self.facing * 18
+            pygame.draw.line(surface, (220, 30, 30), (hx + self.facing * 9, cy), (tip - 2, cy - 3), 2)
+            pygame.draw.line(surface, (220, 30, 30), (hx + self.facing * 9, cy), (tip + 2, cy + 3), 2)
+        # HP bar
+        bw   = 32
+        bx_l = cx - bw // 2
+        by_t = cy - 22
+        pygame.draw.rect(surface, (160, 0, 0),   (bx_l, by_t, bw, 4))
+        pygame.draw.rect(surface, (60, 220, 60),  (bx_l, by_t, int(bw * self.hp / self.MAX_HP), 4))
 
 
 # ---------------------------------------------------------------------------
@@ -1482,13 +1730,14 @@ def stage_select():
 # ---------------------------------------------------------------------------
 
 def mode_select():
-    """Returns ('1p', difficulty) or '2p'."""
-    selected = 0   # 0 = 1P, 1 = 2P
-    difficulty_idx = 1   # 0=easy, 1=medium, 2=hard, 3=super_hard, 4=super_super_hard
+    """Returns ('1p', difficulty), '2p', 'survival_1p', or 'survival_2p'."""
+    selected = 0   # 0=1P, 1=2P, 2=SURVIVAL
+    difficulty_idx = 1
     difficulties = ['easy', 'medium', 'hard', 'super_hard', 'super_super_hard', 'mega_hard']
     diff_colors  = [GREEN, YELLOW, RED, PURPLE, CYAN, ORANGE]
-    scroll_offset = 0   # index of first visible difficulty in the scrollable list
-    VISIBLE = 3         # how many difficulties show at once
+    scroll_offset = 0
+    VISIBLE = 3
+    survival_players = 0   # 0=1P survival, 1=2P survival
     preview_t = 0.0
 
     while True:
@@ -1501,88 +1750,84 @@ def mode_select():
             if event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_q, pygame.K_ESCAPE):
                     pygame.quit(); sys.exit()
-                if event.key in (pygame.K_LEFT, pygame.K_RIGHT, pygame.K_a, pygame.K_d):
-                    selected = 1 - selected
-                if selected == 0:
+                if event.key in (pygame.K_LEFT, pygame.K_a):
+                    selected = (selected - 1) % 3
+                if event.key in (pygame.K_RIGHT, pygame.K_d):
+                    selected = (selected + 1) % 3
+                if selected == 0:   # 1P: difficulty picker
                     if event.key in (pygame.K_UP, pygame.K_w):
                         difficulty_idx = (difficulty_idx - 1) % len(difficulties)
                     if event.key in (pygame.K_DOWN, pygame.K_s):
                         difficulty_idx = (difficulty_idx + 1) % len(difficulties)
-                    # keep selection inside the visible window
                     if difficulty_idx < scroll_offset:
                         scroll_offset = difficulty_idx
                     elif difficulty_idx >= scroll_offset + VISIBLE:
                         scroll_offset = difficulty_idx - VISIBLE + 1
+                if selected == 2:   # Survival: toggle 1P/2P
+                    if event.key in (pygame.K_UP, pygame.K_w, pygame.K_DOWN, pygame.K_s):
+                        survival_players = 1 - survival_players
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     if selected == 0:
                         return ('1p', difficulties[difficulty_idx])
-                    else:
+                    elif selected == 1:
                         return '2p'
+                    else:
+                        return 'survival_2p' if survival_players else 'survival_1p'
 
         screen.fill(DARK)
         title = font_large.render("STICKMAN FIGHTER", True, YELLOW)
         screen.blit(title, (WIDTH//2 - title.get_width()//2, 30))
 
-        card_w, card_h = 200, 240
+        card_w, card_h = 170, 240
         cards = [
-            (WIDTH//2 - 240, "1 PLAYER",  "vs CPU", BLUE),
-            (WIDTH//2 +  40, "2 PLAYERS", "local",  ORANGE),
+            (WIDTH//2 - 285, "1 PLAYER",  "vs CPU",    BLUE),
+            (WIDTH//2 -  85, "2 PLAYERS", "local",     ORANGE),
+            (WIDTH//2 + 115, "SURVIVAL",  "endless",   GREEN),
         ]
         for ci, (cx, top, sub, col) in enumerate(cards):
             border = WHITE if ci == selected else GRAY
             pygame.draw.rect(screen, (50,50,50), (cx, 140, card_w, card_h), border_radius=12)
             pygame.draw.rect(screen, border,     (cx, 140, card_w, card_h), 3, border_radius=12)
-
             lbl = font_medium.render(top, True, col)
             screen.blit(lbl, (cx + card_w//2 - lbl.get_width()//2, 150))
             sl = font_small.render(sub, True, GRAY)
             screen.blit(sl, (cx + card_w//2 - sl.get_width()//2, 190))
-
-            # preview stickmen
-            draw_stickman(screen, cx + card_w//2 - 30, 140 + card_h - 30,
-                          BLUE, 1, 'walk', preview_t)
-            draw_stickman(screen, cx + card_w//2 + 30, 140 + card_h - 30,
-                          RED, -1, 'idle', 0.0)
-
+            draw_stickman(screen, cx + card_w//2 - 25, 140 + card_h - 30, BLUE, 1, 'walk', preview_t)
+            draw_stickman(screen, cx + card_w//2 + 25, 140 + card_h - 30, RED, -1, 'idle', 0.0)
             if ci == selected:
                 sel_txt = font_tiny.render("ENTER / SPACE to select", True, WHITE)
                 screen.blit(sel_txt, (cx + card_w//2 - sel_txt.get_width()//2, 390))
 
-        # Difficulty picker (only visible when 1P selected)
+        # Difficulty picker (1P mode)
         if selected == 0:
             diff_lbl = font_small.render("Difficulty:", True, WHITE)
-            screen.blit(diff_lbl, (WIDTH//2 - 240, 400))
-
-            list_x = WIDTH//2 - 230
-            list_y = 428
-            row_h  = 30
-
-            # scroll-up arrow
+            screen.blit(diff_lbl, (WIDTH//2 - 285, 400))
+            list_x, list_y, row_h = WIDTH//2 - 275, 428, 30
             if scroll_offset > 0:
-                up = font_small.render("▲", True, GRAY)
-                screen.blit(up, (list_x, list_y - 22))
-
-            # visible rows
+                screen.blit(font_small.render("▲", True, GRAY), (list_x, list_y - 22))
             for row, di in enumerate(range(scroll_offset, scroll_offset + VISIBLE)):
-                if di >= len(difficulties):
-                    break
+                if di >= len(difficulties): break
                 dname, dcol = difficulties[di], diff_colors[di]
                 marker = "► " if di == difficulty_idx else "  "
                 dt = font_small.render(f"{marker}{dname.replace('_', ' ').capitalize()}", True,
                                        dcol if di == difficulty_idx else GRAY)
                 screen.blit(dt, (list_x, list_y + row * row_h))
-
-            # scroll-down arrow
             if scroll_offset + VISIBLE < len(difficulties):
-                dn = font_small.render("▼", True, GRAY)
-                screen.blit(dn, (list_x, list_y + VISIBLE * row_h + 2))
+                screen.blit(font_small.render("▼", True, GRAY), (list_x, list_y + VISIBLE * row_h + 2))
+            screen.blit(font_tiny.render("↑/↓ or W/S to scroll", True, GRAY),
+                        (list_x, list_y + VISIBLE * row_h + 22))
 
-            hint = font_tiny.render("↑/↓ or W/S to scroll", True, GRAY)
-            screen.blit(hint, (WIDTH//2 - 240, list_y + VISIBLE * row_h + 22))
+        # Survival 1P/2P toggle
+        if selected == 2:
+            opts = ["1 PLAYER", "2 PLAYERS"]
+            for oi, opt in enumerate(opts):
+                col = WHITE if oi == survival_players else GRAY
+                ot = font_small.render(("► " if oi == survival_players else "  ") + opt, True, col)
+                screen.blit(ot, (WIDTH//2 + 125, 405 + oi * 30))
+            screen.blit(font_tiny.render("W/S to switch", True, GRAY), (WIDTH//2 + 125, 468))
 
         nav = font_tiny.render("◄ ► to switch mode", True, GRAY)
         screen.blit(nav, (WIDTH//2 - nav.get_width()//2, HEIGHT - 24))
-
         pygame.display.flip()
 
 
@@ -1591,105 +1836,238 @@ def mode_select():
 # ---------------------------------------------------------------------------
 
 def character_select(vs_ai=False):
-    """
-    Returns (p1_idx, p2_idx).
-    In vs_ai mode only P1 picks; P2 is chosen randomly after P1 confirms.
-    """
+    """Returns (p1_idx, p2_idx). P2 is random if vs_ai."""
+    n     = len(CHARACTERS)
+    COLS  = 7
+    ROWS  = (n + COLS - 1) // COLS
+
+    # Grid occupies left ~60% of screen
+    GX, GY   = 8,  68
+    GW, GH   = 540, HEIGHT - GY - 28
+    CW       = GW // COLS
+    CH       = GH // ROWS
+
+    # Detail panel on the right
+    PX       = GX + GW + 10
+    PW       = WIDTH - PX - 8
+    PY, PH   = GY, GH
+
+    def move(idx, dr, dc):
+        r, c = divmod(idx, COLS)
+        if dc:
+            c = (c + dc) % COLS
+            ni = r * COLS + c
+            return min(ni, n - 1)
+        else:
+            r = (r + dr) % ROWS
+            ni = r * COLS + c
+            return min(ni, n - 1)
+
     p1_idx, p2_idx = 0, 1
     p1_ready = False
-    p2_ready = vs_ai   # AI doesn't need to pick
+    p2_ready = vs_ai
     preview_t = 0.0
+    flash_t   = 0   # for ready flash
 
     while True:
         clock.tick(FPS)
         preview_t = (preview_t + 0.02) % 1.0
+        flash_t   = (flash_t + 1) % 40
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_q, pygame.K_ESCAPE):
-                    return None, None   # back to mode select
+                    return None, None
+                # P1 navigation (WASD or arrows while P1 not ready)
                 if not p1_ready:
-                    if event.key == pygame.K_a:     p1_idx = (p1_idx - 1) % len(CHARACTERS)
-                    if event.key == pygame.K_d:     p1_idx = (p1_idx + 1) % len(CHARACTERS)
-                    if event.key == pygame.K_LEFT:  p1_idx = (p1_idx - 1) % len(CHARACTERS)
-                    if event.key == pygame.K_RIGHT: p1_idx = (p1_idx + 1) % len(CHARACTERS)
-                    if event.key in (pygame.K_s, pygame.K_DOWN, pygame.K_RETURN, pygame.K_SPACE):
+                    if event.key in (pygame.K_a, pygame.K_LEFT):  p1_idx = move(p1_idx, 0, -1)
+                    if event.key in (pygame.K_d, pygame.K_RIGHT): p1_idx = move(p1_idx, 0,  1)
+                    if event.key in (pygame.K_w, pygame.K_UP):    p1_idx = move(p1_idx, -1, 0)
+                    if event.key in (pygame.K_s, pygame.K_DOWN):  p1_idx = move(p1_idx,  1, 0)
+                    if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_f):
                         p1_ready = True
                         if vs_ai:
-                            p2_idx = random.randint(0, len(CHARACTERS) - 1)
-                if not vs_ai and p1_ready and not p2_ready:
-                    if event.key == pygame.K_LEFT:  p2_idx = (p2_idx - 1) % len(CHARACTERS)
-                    if event.key == pygame.K_RIGHT: p2_idx = (p2_idx + 1) % len(CHARACTERS)
-                    if event.key == pygame.K_DOWN:  p2_ready = True
+                            p2_idx = random.randint(0, n - 1)
+                # P2 navigation (arrows only, after P1 locked in)
+                elif not vs_ai and not p2_ready:
+                    if event.key == pygame.K_LEFT:  p2_idx = move(p2_idx, 0, -1)
+                    if event.key == pygame.K_RIGHT: p2_idx = move(p2_idx, 0,  1)
+                    if event.key == pygame.K_UP:    p2_idx = move(p2_idx, -1, 0)
+                    if event.key == pygame.K_DOWN:  p2_idx = move(p2_idx,  1, 0)
+                    if event.key in (pygame.K_RETURN, pygame.K_k):
+                        p2_ready = True
 
         if p1_ready and p2_ready:
             return p1_idx, p2_idx
 
-        screen.fill(DARK)
-        title = font_large.render("SELECT FIGHTER", True, YELLOW)
-        screen.blit(title, (WIDTH//2 - title.get_width()//2, 18))
+        # Whose detail to show: the active picker
+        detail_idx = p2_idx if (p1_ready and not p2_ready) else p1_idx
+        detail_ch  = CHARACTERS[detail_idx]
+        active_col = ORANGE if (p1_ready and not p2_ready) else BLUE
 
-        if vs_ai:
-            positions  = [WIDTH//2 - 95]
-            idxs       = [p1_idx]
-            readys     = [p1_ready]
-            p_colors   = [BLUE]
-            hints      = ["A/D or ←/→ browse   ENTER confirm"]
-            labels     = ["YOU"]
+        # ── Background ──────────────────────────────────────────────────────
+        screen.fill((18, 18, 28))
+
+        # Title bar
+        pygame.draw.rect(screen, (30, 30, 48), (0, 0, WIDTH, GY - 2))
+        title = font_medium.render("SELECT YOUR FIGHTER", True, YELLOW)
+        screen.blit(title, (GX, 10))
+        if not vs_ai:
+            phase = "P1 choosing" if not p1_ready else "P2 choosing"
+            phase_col = BLUE if not p1_ready else ORANGE
+            ps = font_small.render(phase, True, phase_col)
+            screen.blit(ps, (WIDTH - ps.get_width() - 10, 12))
+
+        # ── Character grid ───────────────────────────────────────────────────
+        for i, ch in enumerate(CHARACTERS):
+            r, c  = divmod(i, COLS)
+            cx    = GX + c * CW
+            cy    = GY + r * CH
+            color = ch["color"]
+
+            # Tinted background from character color
+            bg_col = (max(10, color[0]//5), max(10, color[1]//5), max(10, color[2]//5))
+            pygame.draw.rect(screen, bg_col, (cx+2, cy+2, CW-4, CH-4), border_radius=6)
+
+            # Selection highlights
+            is_p1 = (i == p1_idx)
+            is_p2 = (i == p2_idx) and not vs_ai
+
+            if is_p1 and is_p2:
+                bord, bw = (180, 100, 255), 3
+            elif is_p1:
+                bord, bw = BLUE,   3
+            elif is_p2:
+                bord, bw = ORANGE, 3
+            else:
+                bord, bw = (55, 55, 70), 1
+            pygame.draw.rect(screen, bord, (cx+2, cy+2, CW-4, CH-4), bw, border_radius=6)
+
+            # Character name (truncate if needed)
+            name_str = ch["name"] if len(ch["name"]) <= 10 else ch["name"][:9] + "."
+            nm = font_tiny.render(name_str, True, color if (is_p1 or is_p2) else (160, 160, 160))
+            screen.blit(nm, (cx + CW//2 - nm.get_width()//2, cy + CH//2 - 6))
+
+            # Ready badge
+            if is_p1 and p1_ready:
+                pygame.draw.circle(screen, GREEN, (cx + CW - 8, cy + 8), 5)
+            if is_p2 and p2_ready:
+                pygame.draw.circle(screen, GREEN, (cx + 8, cy + 8), 5)
+
+            # Player cursor dot(s)
+            if is_p1 and not p1_ready:
+                pygame.draw.circle(screen, BLUE, (cx + CW - 8, cy + 8), 4)
+            if is_p2 and not p2_ready:
+                pygame.draw.circle(screen, ORANGE, (cx + 8, cy + 8), 4)
+
+        # Grid border
+        pygame.draw.rect(screen, (60, 60, 90), (GX, GY, GW, GH), 1, border_radius=4)
+
+        # ── Detail panel ─────────────────────────────────────────────────────
+        pygame.draw.rect(screen, (25, 25, 40),    (PX, PY, PW, PH), border_radius=10)
+        pygame.draw.rect(screen, active_col,      (PX, PY, PW, PH), 2, border_radius=10)
+
+        # Large animated stickman
+        sm_y = PY + 155
+        draw_stickman(screen, PX + PW//2, sm_y, detail_ch["color"], 1, 'walk', preview_t, scale=1.15)
+
+        # Character name
+        nm_big = font_medium.render(detail_ch["name"], True, detail_ch["color"])
+        screen.blit(nm_big, (PX + PW//2 - nm_big.get_width()//2, PY + 8))
+
+        # Description (word-wrap)
+        words, line, desc_lines = detail_ch["desc"].split(), "", []
+        for w in words:
+            test = (line + " " + w).strip()
+            if font_tiny.size(test)[0] > PW - 16:
+                desc_lines.append(line); line = w
+            else:
+                line = test
+        if line: desc_lines.append(line)
+        for li, dl in enumerate(desc_lines):
+            ds = font_tiny.render(dl, True, YELLOW)
+            screen.blit(ds, (PX + PW//2 - ds.get_width()//2, PY + 34 + li * 15))
+
+        # Stat bars
+        bar_x  = PX + 10
+        bar_y  = PY + 172
+        bar_bw = PW - 20
+        bar_h  = 14
+        bar_gap = 23
+        for si, (lbl, val, mx, col) in enumerate([
+            ("HP",    detail_ch["max_hp"],    400, (60,  210,  80)),
+            ("SPD",   detail_ch["speed"],      10, (80,  170, 255)),
+            ("PUNCH", detail_ch["punch_dmg"],  30, (255, 120,  50)),
+            ("KICK",  detail_ch["kick_dmg"],   30, (255,  60, 180)),
+        ]):
+            by  = bar_y + si * bar_gap
+            lbs = font_tiny.render(lbl, True, (180, 180, 180))
+            screen.blit(lbs, (bar_x, by))
+            bx2 = bar_x + 48
+            bw2 = bar_bw - 48
+            pygame.draw.rect(screen, (50, 50, 65), (bx2, by, bw2, bar_h), border_radius=3)
+            fw  = int(bw2 * min(1.0, val / mx))
+            if fw > 0:
+                pygame.draw.rect(screen, col, (bx2, by, fw, bar_h), border_radius=3)
+            pygame.draw.rect(screen, (90, 90, 110), (bx2, by, bw2, bar_h), 1, border_radius=3)
+            vs2 = font_tiny.render(str(val), True, WHITE)
+            screen.blit(vs2, (bx2 + bw2 + 5, by))
+
+        # Badges row
+        badge_y = bar_y + 4 * bar_gap + 6
+        badges  = []
+        if detail_ch.get("double_jump"):    badges.append(("2x JUMP",      CYAN))
+        if detail_ch.get("giant"):          badges.append(("GIANT",         GREEN))
+        if detail_ch.get("phase"):          badges.append(("PHASES WALLS",  (200, 200, 255)))
+        if detail_ch.get("vampire"):        badges.append(("VAMPIRE",       (200, 0, 80)))
+        if detail_ch.get("anti_gravity"):   badges.append(("ANTI-GRAVITY",  (180, 220, 255)))
+        if detail_ch.get("wall_cling"):     badges.append(("WALL CLING",    ORANGE))
+        if detail_ch.get("regen"):          badges.append(("REGEN",         (120, 255, 120)))
+        if detail_ch.get("fire_punch"):     badges.append(("FIRE PUNCH",    (255, 100, 20)))
+        if detail_ch.get("freeze_kick"):    badges.append(("FREEZE KICK",   (120, 200, 255)))
+        if detail_ch.get("shock_punch"):    badges.append(("SHOCK PUNCH",   YELLOW))
+        if detail_ch.get("magnet"):         badges.append(("MAGNET",        PURPLE))
+        if detail_ch.get("teleport_kick"):  badges.append(("TELEPORT KICK", (220, 80, 255)))
+        if detail_ch.get("random_stats"):   badges.append(("RANDOM STATS",  GRAY))
+        if detail_ch.get("boomerang_kick"): badges.append(("BOOMERANG",     (200, 130, 50)))
+        if detail_ch.get("shoot_kick"):     badges.append(("SHOOTS BALLS",  (60, 200, 80)))
+        if detail_ch.get("bazooka_kick"):   badges.append(("BAZOOKA",       (220, 60, 60)))
+        if detail_ch.get("bounce_kick"):    badges.append(("BOUNCE BALL",   (255, 80, 200)))
+        if detail_ch.get("size_kick"):      badges.append(("SIZE SHIFT",    (80, 200, 220)))
+        if detail_ch.get("grapple_kick"):   badges.append(("SNAKE HOOK",    (40, 200, 60)))
+        if detail_ch.get("contact_dmg"):    badges.append(("POISON TOUCH",  (100, 220, 60)))
+        bx_off = PX + 8
+        for btxt, bcol in badges:
+            bs = font_tiny.render(btxt, True, bcol)
+            if bx_off + bs.get_width() + 10 > PX + PW - 4:
+                bx_off  = PX + 8
+                badge_y += 18
+            pygame.draw.rect(screen, (40, 40, 60), (bx_off - 2, badge_y - 1, bs.get_width() + 8, 16), border_radius=3)
+            screen.blit(bs, (bx_off + 2, badge_y))
+            bx_off += bs.get_width() + 14
+
+        # Controls hint at bottom of panel
+        if not p1_ready:
+            hint = "WASD / Arrows  move       F / ENTER  confirm"
+            hcol = BLUE
+        elif not vs_ai and not p2_ready:
+            hint = "Arrows  move       K / ENTER  confirm"
+            hcol = ORANGE
         else:
-            positions  = [WIDTH//2 - 260, WIDTH//2 + 70]
-            idxs       = [p1_idx, p2_idx]
-            readys     = [p1_ready, p2_ready]
-            p_colors   = [BLUE, ORANGE]
-            hints      = ["A/D browse  S confirm", "←/→ browse  ↓ confirm"]
-            labels     = ["P1", "P2"]
+            hint, hcol = "", WHITE
+        if hint:
+            hs = font_tiny.render(hint, True, hcol)
+            screen.blit(hs, (PX + PW//2 - hs.get_width()//2, PY + PH - 18))
 
-        for pi, (cx, ch_idx, ready) in enumerate(zip(positions, idxs, readys)):
-            ch = CHARACTERS[ch_idx]
-            bc = GREEN if ready else p_colors[pi]
-            cw, ch_h = 190, 290
+        # Ready flash on panel border
+        if p1_ready and p2_ready:
+            if flash_t < 20:
+                pygame.draw.rect(screen, GREEN, (PX, PY, PW, PH), 3, border_radius=10)
 
-            pygame.draw.rect(screen, (50,50,50), (cx, 110, cw, ch_h), border_radius=12)
-            pygame.draw.rect(screen, bc,          (cx, 110, cw, ch_h), 3, border_radius=12)
-
-            draw_stickman(screen, cx + cw//2, 110 + ch_h - 28,
-                          ch["color"], 1, 'walk', preview_t)
-
-            nm = font_medium.render(ch["name"], True, ch["color"])
-            screen.blit(nm, (cx + cw//2 - nm.get_width()//2, 116))
-
-            for si, (lbl, val) in enumerate([
-                ("HP",      ch["max_hp"]),
-                ("Speed",   ch["speed"]),
-                ("Punch",   ch["punch_dmg"]),
-                ("Kick",    ch["kick_dmg"]),
-                ("2x Jump", "Yes" if ch["double_jump"] else "No"),
-            ]):
-                row = font_tiny.render(f"{lbl:<8}{val}", True, WHITE)
-                screen.blit(row, (cx + 14, 160 + si * 22))
-
-            desc = font_tiny.render(ch["desc"], True, YELLOW)
-            screen.blit(desc, (cx + cw//2 - desc.get_width()//2, 278))
-
-            ph = font_small.render(labels[pi], True, p_colors[pi])
-            screen.blit(ph, (cx + cw//2 - ph.get_width()//2, 310))
-
-            ht = font_tiny.render(hints[pi], True, GRAY)
-            screen.blit(ht, (cx + cw//2 - ht.get_width()//2, 334))
-
-            if ready:
-                rdy = font_medium.render("READY!", True, GREEN)
-                screen.blit(rdy, (cx + cw//2 - rdy.get_width()//2, 360))
-
-        if vs_ai:
-            cpu_lbl = font_medium.render("VS  CPU", True, RED)
-            screen.blit(cpu_lbl, (WIDTH//2 + 60, 230))
-            draw_stickman(screen, WIDTH//2 + 160, 380, RED, -1, 'idle', 0.0)
-
-        esc_hint = font_tiny.render("ESC — back to menu", True, GRAY)
-        screen.blit(esc_hint, (WIDTH//2 - esc_hint.get_width()//2, HEIGHT - 22))
+        esc = font_tiny.render("ESC — back to menu", True, GRAY)
+        screen.blit(esc, (GX + 4, HEIGHT - 22))
 
         pygame.display.flip()
 
@@ -1750,7 +2128,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     balls        = []   # active Projectile objects
     orbs         = []   # active Orb objects (bazooka)
     bounce_balls = []   # active BouncingBall objects (Pinball)
+    hooks        = []   # active SnakeHook objects (Hooker)
     spawn_timer  = 300   # first spawn after 5 seconds
+    is_jungle    = stage_data["name"] == "Jungle"
+    jungle_snakes      = []
+    snake_spawn_timer  = 180   # first snake after 3 seconds
 
     while True:
         clock.tick(FPS)
@@ -1870,6 +2252,37 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         bb.hit_cd = BouncingBall.HIT_CD
             bounce_balls = [bb for bb in bounce_balls if bb.alive]
 
+            # Spawn snake hooks from grapple_kick (Hooker)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_hook:
+                    shooter.pending_hook = False
+                    hooks.append(SnakeHook(
+                        shooter.x + shooter.facing * 20, shooter.y - 60,
+                        victim.x, victim.y - 60, shooter))
+
+            # Update snake hooks and pull on hit
+            for h in hooks:
+                h.update()
+                if h.alive:
+                    victim = p2 if h.owner is p1 else p1
+                    if h.collides(victim):
+                        pull_dir = 1 if h.owner.x > victim.x else -1
+                        victim.knockback = pull_dir * 22
+                        victim.hp = max(0, victim.hp - 6)
+                        victim.flash_timer = 8
+                        h.alive = False
+            hooks = [h for h in hooks if h.alive]
+
+            # Jungle snakes
+            if is_jungle:
+                snake_spawn_timer -= 1
+                if snake_spawn_timer <= 0 and len(jungle_snakes) < 4:
+                    jungle_snakes.append(JungleSnake())
+                    snake_spawn_timer = random.randint(300, 480)
+                for sn in jungle_snakes:
+                    sn.update(p1, p2)
+                jungle_snakes = [sn for sn in jungle_snakes if sn.alive]
+
             timer -= 1
             if timer <= 0 or p1.hp <= 0 or p2.hp <= 0:
                 game_over = True
@@ -1923,6 +2336,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             o.draw(screen)
         for bb in bounce_balls:
             bb.draw(screen)
+        for h in hooks:
+            h.draw(screen)
+        for sn in jungle_snakes:
+            sn.draw(screen)
         # Draw magnet beams from powerups to any Magician fighter
         for f in (p1, p2):
             if f.char.get("magnet"):
@@ -1940,6 +2357,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 p1.check_hit(p1_hit, p2)
             if p2.attacking and not p2.attack_hit:
                 p2.check_hit(p2_hit, p1)
+            # Fighter attacks hit jungle snakes
+            for attacker, hit_pos in [(p1, p1_hit), (p2, p2_hit)]:
+                if attacker.attacking and hit_pos:
+                    for sn in jungle_snakes:
+                        if math.hypot(hit_pos[0] - sn.x, hit_pos[1] - (sn.y - 8)) < 44:
+                            dmg = (attacker.char["punch_dmg"] if attacker.action == 'punch'
+                                   else attacker.char["kick_dmg"])
+                            sn.take_damage(dmg)
             for cd, cf_hit in clone_draws:
                 cf = cd['fighter']
                 # clone attacks its target
@@ -2004,12 +2429,416 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
 
 
 # ---------------------------------------------------------------------------
+# Survival mode
+# ---------------------------------------------------------------------------
+
+def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
+    global GRAVITY
+    _stage_name   = STAGES[stage_idx % len(STAGES)]["name"]
+    _orig_gravity = GRAVITY
+    if _stage_name == "Space":
+        GRAVITY = 0.13
+
+    P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
+                   punch=pygame.K_f, kick=pygame.K_g, duck=pygame.K_s, block=pygame.K_r)
+    P2_CTRL = dict(left=pygame.K_LEFT, right=pygame.K_RIGHT, jump=pygame.K_UP,
+                   punch=pygame.K_k, kick=pygame.K_l, duck=pygame.K_DOWN, block=pygame.K_o)
+
+    p1      = Fighter(250, CHARACTERS[p1_idx],  1, P1_CTRL)
+    p2      = Fighter(650, CHARACTERS[p2_idx], -1, P2_CTRL) if two_player else None
+    players = [p1, p2] if two_player else [p1]
+
+    stage_data  = STAGES[stage_idx % len(STAGES)]
+    platforms   = [Platform(*p) for p in stage_data["platforms"]]
+    springs     = [Spring(*s)   for s in stage_data["springs"]]
+    is_jungle   = stage_data["name"] == "Jungle"
+
+    enemies           = []
+    death_pops        = []   # [{x,y,color,t}] death burst particles
+    balls             = []   # Projectile (shoot_kick)
+    orbs              = []   # Orb (bazooka_kick)
+    bounce_balls      = []   # BouncingBall (bounce_kick)
+    hooks             = []   # SnakeHook (grapple_kick)
+    en_balls          = []
+    en_orbs           = []
+    en_bounce_balls   = []
+    powerups          = []
+    jungle_snakes     = []
+    survival_timer    = 0
+    enemies_killed    = 0
+    enemy_spawn_timer = 180
+    snake_spawn_timer = 180
+    powerup_timer     = 480
+    game_over         = False
+
+    def wave_info():
+        s = survival_timer // FPS
+        if   s <  30: return 1, 'easy'
+        elif s <  60: return 2, 'easy'
+        elif s <  90: return 2, 'medium'
+        elif s < 120: return 3, 'medium'
+        elif s < 180: return 3, 'hard'
+        elif s < 240: return 4, 'hard'
+        else:         return 4, 'super_hard'
+
+    def _draw_survival_hud():
+        # HP bars for players
+        bw = 240
+        pygame.draw.rect(screen, (60,60,60), (10, 10, bw, 20), border_radius=4)
+        fw = int(bw * max(0, p1.hp / p1.max_hp))
+        pygame.draw.rect(screen, p1.char["color"], (10, 10, fw, 20), border_radius=4)
+        pygame.draw.rect(screen, WHITE, (10, 10, bw, 20), 2, border_radius=4)
+        ht = font_tiny.render(f"P1 {p1.char['name']}  {max(0,p1.hp)}/{p1.max_hp}", True, WHITE)
+        screen.blit(ht, (14, 13))
+        if two_player:
+            pygame.draw.rect(screen, (60,60,60), (WIDTH-bw-10, 10, bw, 20), border_radius=4)
+            fw2 = int(bw * max(0, p2.hp / p2.max_hp))
+            pygame.draw.rect(screen, p2.char["color"], (WIDTH-bw-10+bw-fw2, 10, fw2, 20), border_radius=4)
+            pygame.draw.rect(screen, WHITE, (WIDTH-bw-10, 10, bw, 20), 2, border_radius=4)
+            ht2 = font_tiny.render(f"{max(0,p2.hp)}/{p2.max_hp}  P2 {p2.char['name']}", True, WHITE)
+            screen.blit(ht2, (WIDTH-bw-10 + bw - ht2.get_width() - 4, 13))
+        # Timer (counting up)
+        elapsed = survival_timer // FPS
+        mins, secs = divmod(elapsed, 60)
+        t_surf = font_medium.render(f"{mins}:{secs:02d}", True, YELLOW)
+        screen.blit(t_surf, (WIDTH//2 - t_surf.get_width()//2, 6))
+        # Kills
+        k_surf = font_tiny.render(f"Kills: {enemies_killed}", True, (200, 200, 200))
+        screen.blit(k_surf, (WIDTH//2 - k_surf.get_width()//2, 38))
+        # Wave
+        max_en, diff = wave_info()
+        w_surf = font_tiny.render(f"Wave difficulty: {diff.replace('_',' ')}  |  Max enemies: {max_en}", True, GRAY)
+        screen.blit(w_surf, (WIDTH//2 - w_surf.get_width()//2, HEIGHT - 22))
+
+    def _draw_game_over():
+        ov = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        ov.fill((0, 0, 0, 170))
+        screen.blit(ov, (0, 0))
+        go = font_large.render("GAME OVER", True, RED)
+        screen.blit(go, (WIDTH//2 - go.get_width()//2, HEIGHT//3 - 40))
+        elapsed = survival_timer // FPS
+        mins, secs = divmod(elapsed, 60)
+        ts = font_medium.render(f"Survived: {mins}:{secs:02d}", True, WHITE)
+        screen.blit(ts, (WIDTH//2 - ts.get_width()//2, HEIGHT//3 + 40))
+        ks = font_medium.render(f"Kills: {enemies_killed}", True, YELLOW)
+        screen.blit(ks, (WIDTH//2 - ks.get_width()//2, HEIGHT//3 + 90))
+        hint = font_small.render("R — restart     C — menu     Q — quit", True, (200,200,200))
+        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT*2//3 + 30))
+
+    while True:
+        clock.tick(FPS)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if game_over:
+                    if event.key == pygame.K_r:
+                        GRAVITY = _orig_gravity; return 'rematch'
+                    if event.key == pygame.K_c:
+                        GRAVITY = _orig_gravity; return 'select'
+                    if event.key in (pygame.K_q, pygame.K_ESCAPE):
+                        GRAVITY = _orig_gravity; pygame.quit(); sys.exit()
+                else:
+                    if event.key in (pygame.K_q, pygame.K_ESCAPE):
+                        GRAVITY = _orig_gravity; return 'select'
+
+        if not game_over:
+            survival_timer += 1
+            max_en, diff = wave_info()
+
+            # Platforms & springs
+            for plat in platforms:
+                plat.update()
+            for sp in springs:
+                sp.update()
+                sp.trigger(p1)
+                if two_player: sp.trigger(p2)
+                for en in enemies: sp.trigger(en)
+
+            # Spawn enemies
+            enemy_spawn_timer -= 1
+            if enemy_spawn_timer <= 0 and len(enemies) < max_en:
+                ci    = random.randint(0, len(CHARACTERS) - 1)
+                sx    = float(random.choice([60, WIDTH - 60]))
+                en    = AIFighter(sx, CHARACTERS[ci], -1 if sx > WIDTH // 2 else 1, diff)
+                en.hp = en.char["max_hp"]
+                enemies.append(en)
+                interval          = max(60, 300 - survival_timer // (2 * FPS))
+                enemy_spawn_timer = random.randint(max(30, interval // 2), interval)
+
+            # Update enemies — each targets nearest living player
+            living = [p for p in players if p.hp > 0]
+            for en in enemies:
+                if living:
+                    target = min(living, key=lambda p: abs(p.x - en.x))
+                    en.update(None, target, platforms)
+                    if en.pending_ball:
+                        en.pending_ball = False
+                        en_balls.append(Projectile(en.x + en.facing*30, en.y-60, en.facing, en))
+                    if en.pending_orb and en.bazooka_cooldown == 0:
+                        en.pending_orb = False
+                        en_orbs.append(Orb(en.x + en.facing*30, en.y-60, en.facing, en))
+                    if en.pending_bounce:
+                        en.pending_bounce = False
+                        en_bounce_balls.append(BouncingBall(en.x + en.facing*30, en.y-60, en.facing, en))
+
+            # Update players
+            keys     = pygame.key.get_pressed()
+            other_p1 = p2 if two_player else (enemies[0] if enemies else p1)
+            p1.update(keys, other_p1, platforms)
+            if two_player:
+                p2.update(keys, p1, platforms)
+
+            # Spawn player projectiles
+            for shooter in players:
+                if shooter.pending_ball:
+                    shooter.pending_ball = False
+                    balls.append(Projectile(shooter.x + shooter.facing*30, shooter.y-60,
+                                            shooter.facing, shooter))
+                if shooter.pending_orb:
+                    shooter.pending_orb = False
+                    orbs.append(Orb(shooter.x + shooter.facing*30, shooter.y-60,
+                                    shooter.facing, shooter))
+                if shooter.pending_bounce:
+                    shooter.pending_bounce = False
+                    bounce_balls.append(BouncingBall(shooter.x + shooter.facing*30, shooter.y-60,
+                                                     shooter.facing, shooter))
+                if shooter.pending_hook and enemies:
+                    shooter.pending_hook = False
+                    tgt = min(enemies, key=lambda e: abs(e.x - shooter.x))
+                    hooks.append(SnakeHook(shooter.x + shooter.facing*20, shooter.y-60,
+                                           tgt.x, tgt.y-60, shooter))
+                else:
+                    shooter.pending_hook = False
+
+            # Boomerang damage: player boomerangs hit enemies, enemy boomerangs hit players
+            for thrower in players:
+                if thrower.boomerang_timer > 0 and thrower.boomerang_hit_cd == 0:
+                    bx = thrower.x + math.cos(thrower.boomerang_angle) * 85
+                    by = (thrower.y - 60) + math.sin(thrower.boomerang_angle) * 55
+                    for en in enemies:
+                        if math.hypot(bx - en.x, by - (en.y - 60)) < 48:
+                            en.hp = max(0, en.hp - 8)
+                            en.flash_timer = 6
+                            thrower.boomerang_hit_cd = 30
+                            break
+            for en in enemies:
+                if en.boomerang_timer > 0 and en.boomerang_hit_cd == 0:
+                    bx = en.x + math.cos(en.boomerang_angle) * 85
+                    by = (en.y - 60) + math.sin(en.boomerang_angle) * 55
+                    for p in living:
+                        if math.hypot(bx - p.x, by - (p.y - 60)) < 48:
+                            p.hp = max(0, p.hp - 8)
+                            p.flash_timer = 6
+                            en.boomerang_hit_cd = 30
+                            break
+
+            # Player balls → enemies
+            for b in balls:
+                b.update()
+                if b.alive:
+                    for en in enemies:
+                        if b.collides(en):
+                            en.hp = max(0, en.hp - 10); en.flash_timer = 8
+                            b.alive = False; break
+            balls = [b for b in balls if b.alive]
+
+            # Player orbs → enemies
+            for o in orbs:
+                o.update()
+                if o.exploding and not o.damaged:
+                    o.damaged = True
+                    for en in enemies:
+                        if math.hypot(o.x - en.x, o.y - (en.y - 60)) < o.EXPLODE_RADIUS:
+                            en.hp = max(0, en.hp - o.EXPLODE_DMG); en.flash_timer = 14
+            orbs = [o for o in orbs if o.alive]
+
+            # Player bouncing balls → enemies
+            for bb in bounce_balls:
+                bb.update()
+                if bb.alive and bb.hit_cd == 0:
+                    for en in enemies:
+                        if bb.collides(en):
+                            en.hp = max(0, en.hp - 10); en.flash_timer = 8
+                            bb.hit_cd = BouncingBall.HIT_CD; break
+            bounce_balls = [bb for bb in bounce_balls if bb.alive]
+
+            # Player hooks → enemies
+            for h in hooks:
+                h.update()
+                if h.alive:
+                    for en in enemies:
+                        if h.collides(en):
+                            pull = 1 if h.owner.x > en.x else -1
+                            en.knockback = pull * 22
+                            en.hp = max(0, en.hp - 6); en.flash_timer = 8
+                            h.alive = False; break
+            hooks = [h for h in hooks if h.alive]
+
+            # Enemy balls → players
+            for b in en_balls:
+                b.update()
+                if b.alive:
+                    for p in living:
+                        if b.collides(p):
+                            p.hp = max(0, p.hp - 10); p.flash_timer = 8
+                            b.alive = False; break
+            en_balls = [b for b in en_balls if b.alive]
+
+            # Enemy orbs → players
+            for o in en_orbs:
+                o.update()
+                if o.exploding and not o.damaged:
+                    o.damaged = True
+                    for p in living:
+                        if math.hypot(o.x - p.x, o.y - (p.y - 60)) < o.EXPLODE_RADIUS:
+                            p.hp = max(0, p.hp - o.EXPLODE_DMG); p.flash_timer = 14
+            en_orbs = [o for o in en_orbs if o.alive]
+
+            # Enemy bouncing balls → players
+            for bb in en_bounce_balls:
+                bb.update()
+                if bb.alive and bb.hit_cd == 0:
+                    for p in living:
+                        if bb.collides(p):
+                            p.hp = max(0, p.hp - 10); p.flash_timer = 8
+                            bb.hit_cd = BouncingBall.HIT_CD; break
+            en_bounce_balls = [bb for bb in en_bounce_balls if bb.alive]
+
+            # Death pops: spawn burst when enemy hp hits 0, then remove enemy
+            for en in enemies:
+                if en.hp <= 0:
+                    death_pops.append({'x': en.x, 'y': en.y - 60,
+                                       'color': en.char["color"], 't': 22})
+            for dp in death_pops:
+                dp['t'] -= 1
+            death_pops = [dp for dp in death_pops if dp['t'] > 0]
+
+            # Count kills, remove dead enemies
+            before         = len(enemies)
+            enemies        = [en for en in enemies if en.hp > 0]
+            enemies_killed += before - len(enemies)
+
+            # Jungle snakes
+            if is_jungle:
+                snake_spawn_timer -= 1
+                if snake_spawn_timer <= 0 and len(jungle_snakes) < 4:
+                    jungle_snakes.append(JungleSnake())
+                    snake_spawn_timer = random.randint(300, 480)
+                for sn in jungle_snakes:
+                    all_targets = players + enemies
+                    living_targets = [t for t in all_targets if t.hp > 0]
+                    if living_targets:
+                        closest = min(living_targets, key=lambda t: abs(t.x - sn.x))
+                        sn.update(closest, closest)
+                jungle_snakes = [sn for sn in jungle_snakes if sn.alive]
+
+            # Powerups
+            powerup_timer -= 1
+            if powerup_timer <= 0 and len(powerups) < 3:
+                powerups.append(Powerup())
+                powerup_timer = random.randint(480, 720)
+            for pu in powerups:
+                pu.update()
+                for p in players:
+                    if not pu.picked_up and pu.collides(p) and pu.spec['type'] != 'clone':
+                        p.apply_powerup(pu.spec)
+                        pu.picked_up = True; break
+            powerups = [pu for pu in powerups if not pu.picked_up]
+
+            # Game over when all players dead
+            if all(p.hp <= 0 for p in players):
+                game_over = True
+
+        # --- Draw ---
+        draw_bg(screen, stage_idx)
+        for plat in platforms:     plat.draw(screen, stage_idx)
+        for sp   in springs:       sp.draw(screen)
+        for pu   in powerups:      pu.draw(screen)
+        for b    in balls:         b.draw(screen)
+        for b    in en_balls:      b.draw(screen)
+        for o    in orbs:          o.draw(screen)
+        for o    in en_orbs:       o.draw(screen)
+        for bb   in bounce_balls:  bb.draw(screen)
+        for bb   in en_bounce_balls: bb.draw(screen)
+        for h    in hooks:         h.draw(screen)
+        for sn   in jungle_snakes: sn.draw(screen)
+
+        # Death burst particles
+        for dp in death_pops:
+            prog  = 1.0 - dp['t'] / 22
+            r     = int(4 + prog * 28)
+            col   = dp['color']
+            for angle in range(0, 360, 45):
+                rad = math.radians(angle)
+                px  = int(dp['x'] + math.cos(rad) * r * 1.4)
+                py  = int(dp['y'] + math.sin(rad) * r)
+                cr  = max(1, int(6 * (1.0 - prog)))
+                pygame.draw.circle(screen, col, (px, py), cr)
+            pygame.draw.circle(screen, WHITE, (int(dp['x']), int(dp['y'])), max(1, int(10 * (1.0 - prog))))
+
+        p1_hit = p1.draw(screen)
+        p2_hit = p2.draw(screen) if two_player else None
+        en_hits = [(en, en.draw(screen)) for en in enemies]
+
+        if not game_over:
+            # Player attacks hit enemies
+            for attacker, hit_pos in ([(p1, p1_hit)] + ([(p2, p2_hit)] if two_player else [])):
+                if attacker.attacking and not attacker.attack_hit and hit_pos:
+                    for en in enemies:
+                        attacker.check_hit(hit_pos, en)
+            # Enemy attacks hit players — 2P players can't hurt each other
+            for en, en_hit in en_hits:
+                if en.attacking and not en.attack_hit and en_hit:
+                    for p in players:
+                        en.check_hit(en_hit, p)
+            # Fighter attacks on jungle snakes
+            for attacker, hit_pos in ([(p1, p1_hit)] + ([(p2, p2_hit)] if two_player else [])):
+                if attacker.attacking and hit_pos:
+                    for sn in jungle_snakes:
+                        if math.hypot(hit_pos[0]-sn.x, hit_pos[1]-(sn.y-8)) < 44:
+                            dmg = (attacker.char["punch_dmg"] if attacker.action=='punch'
+                                   else attacker.char["kick_dmg"])
+                            sn.take_damage(dmg)
+
+        # Enemy name tags
+        for en in enemies:
+            tag = font_tiny.render(en.char["name"], True, en.char["color"])
+            screen.blit(tag, (int(en.x) - tag.get_width()//2,
+                               int(en.y) - HEAD_R*2 - NECK_LEN - BODY_LEN - LEG_LEN - 22))
+
+        _draw_survival_hud()
+        if game_over:
+            _draw_game_over()
+
+        pygame.display.flip()
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
 def main():
     while True:
         mode = mode_select()
+
+        # --- Survival path ---
+        if mode in ('survival_1p', 'survival_2p'):
+            two_player = (mode == 'survival_2p')
+            p1_idx, p2_idx = character_select(vs_ai=not two_player)
+            if p1_idx is None:
+                continue
+            s_idx = stage_select()
+            while True:
+                result = run_survival(p1_idx, p2_idx if two_player else None,
+                                      two_player=two_player, stage_idx=s_idx)
+                if result == 'rematch':
+                    continue
+                break
+            continue
+
+        # --- Normal fight path ---
         if mode == '2p':
             vs_ai, difficulty = False, 'medium'
         else:
@@ -2017,15 +2846,14 @@ def main():
 
         p1_idx, p2_idx = character_select(vs_ai=vs_ai)
         if p1_idx is None:
-            continue   # ESC back to mode select
+            continue
 
         s_idx = stage_select()
-
         while True:
             result = run_fight(p1_idx, p2_idx, vs_ai=vs_ai, ai_difficulty=difficulty, stage_idx=s_idx)
             if result == 'rematch':
                 continue
-            break   # 'select' — go back to mode select
+            break
 
 if __name__ == "__main__":
     main()
