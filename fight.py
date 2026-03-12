@@ -35,131 +35,140 @@ GRAVITY = 0.55
 
 CHARACTERS = [
     {"name": "Brawler", "color": RED,    "speed": 4, "jump": -14,
-     "punch_dmg": 12, "kick_dmg": 18, "max_hp": 130,
+     "punch_dmg": 12, "kick_dmg": 18, "max_hp": 130, "block": 6,
      "desc": "Tanky heavy hitter",   "double_jump": False},
     {"name": "Ninja",   "color": CYAN,   "speed": 7, "jump": -16,
-     "punch_dmg":  7, "kick_dmg": 10, "max_hp":  90,
+     "punch_dmg":  7, "kick_dmg": 10, "max_hp":  90, "block": 8,
      "desc": "Fast & double jump",   "double_jump": True},
     {"name": "Boxer",   "color": GREEN,  "speed": 5, "jump": -13,
-     "punch_dmg": 16, "kick_dmg":  8, "max_hp": 110,
+     "punch_dmg": 16, "kick_dmg":  8, "max_hp": 110, "block": 9,
      "desc": "Devastating punches",  "double_jump": False},
     {"name": "Phantom", "color": PURPLE, "speed": 6, "jump": -15,
-     "punch_dmg": 10, "kick_dmg": 14, "max_hp": 100,
+     "punch_dmg": 10, "kick_dmg": 14, "max_hp": 100, "block": 7,
      "desc": "Balanced & evasive",   "double_jump": True},
     {"name": "Ares",    "color": ORANGE, "speed": 5,  "jump": -14,
-     "punch_dmg": 21, "kick_dmg": 20, "max_hp": 90,
+     "punch_dmg": 21, "kick_dmg": 20, "max_hp": 90, "block": 3,
      "desc": "God of War",           "double_jump": False},
-     {"name": "Zephyr",  "color": BLUE,  "speed": 9,  "jump": -18,
-     "punch_dmg": 10, "kick_dmg": 14, "max_hp": 100,
+    {"name": "Zephyr",  "color": BLUE,  "speed": 9,  "jump": -18,
+     "punch_dmg": 10, "kick_dmg": 14, "max_hp": 100, "block": 7,
      "desc": "Swift and agile",      "double_jump": True},
-     {"name": "Titan",  "color": YELLOW,  "speed": 3,  "jump": -7,
-     "punch_dmg": 18, "kick_dmg": 16, "max_hp": 155,
+    {"name": "Titan",  "color": YELLOW,  "speed": 3,  "jump": -7,
+     "punch_dmg": 18, "kick_dmg": 16, "max_hp": 155, "block": 3,
      "desc": "Enormous Health",      "double_jump": False},
     {"name": "Dancing Man",    "color": (100, 100, 255), "speed": 10,  "jump": -20,
-     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100,
+     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100, "block": 6,
      "desc": "evasive",    "double_jump": True},
     {"name": "Tank",   "color": (30, 30, 30), "speed": 1,  "jump": -0,
-     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 190,
+     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 190, "block": 9,
      "desc": "Defensive",   "double_jump": False},
     {"name": "Mighty Medieval Man",  "color": GRAY, "speed": 4,  "jump": -18,
-     "punch_dmg": 15, "kick_dmg": 15, "max_hp": 120,
+     "punch_dmg": 15, "kick_dmg": 15, "max_hp": 120, "block": 8,
      "desc": "Lord of chivalry",   "double_jump": False},
     {"name": "Samurai",   "color": BLACK, "speed": 6,  "jump": -15,
-     "punch_dmg": 12, "kick_dmg": 19, "max_hp": 170,
+     "punch_dmg": 12, "kick_dmg": 19, "max_hp": 170, "block": 7,
      "desc": "Katana Master",   "double_jump": True},
     {"name": "Skeleton",   "color": WHITE,   "speed": 3, "jump": -5,
-     "punch_dmg":  25, "kick_dmg": 20, "max_hp":  65,
+     "punch_dmg":  25, "kick_dmg": 20, "max_hp":  65, "block": 2,
      "desc": "Dead",   "double_jump": False},
     {"name": "Unknown",   "color": (100, 160, 220),   "speed": 5,  "jump": -5,
-     "punch_dmg":  3, "kick_dmg": 5, "max_hp":  300,
+     "punch_dmg":  3, "kick_dmg": 5, "max_hp":  300, "block": 5,
      "desc": "Mysterious and powerful",   "double_jump": True},
     {"name": "Hardy", "color": (110, 120, 225), "speed": 3, "jump": -5,
-     "punch_dmg": 3, "kick_dmg": 4, "max_hp": 65,
+     "punch_dmg": 3, "kick_dmg": 4, "max_hp": 65, "block": 2,
      "desc": "Pros should try him",   "double_jump": False},
     {"name": "Rogue", "color": (220, 180, 60), "speed": 8, "jump": -17,
-     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 80,
+     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 80, "block": 6,
      "desc": "Stealthy and agile",   "double_jump": True},
     {"name": "Gladiator", "color": (200, 80, 80), "speed": 4, "jump": -12,
-     "punch_dmg": 14, "kick_dmg": 18, "max_hp": 140,
+     "punch_dmg": 14, "kick_dmg": 18, "max_hp": 140, "block": 7,
      "desc": "Arena Champion",   "double_jump": False},
     {"name": "Oni", "color": (80, 220, 200), "speed": 2, "jump": -1,
-     "punch_dmg": 12, "kick_dmg": 14, "max_hp": 200,
+     "punch_dmg": 12, "kick_dmg": 14, "max_hp": 200, "block": 3,
      "desc": "Fat Demon",   "double_jump": False},
     {"name": "Cecalia",     "color": (50, 255, 255), "speed": 8,  "jump": -8,
-     "punch_dmg": 8,  "kick_dmg": 8,  "max_hp": 300,
+     "punch_dmg": 8,  "kick_dmg": 8,  "max_hp": 300, "block": 4,
      "desc": "Octo hard",        "double_jump": False},
     {"name": "Acrobat",     "color": (255, 180, 80), "speed": 8,  "jump": -20,
-     "punch_dmg": 8,  "kick_dmg": 12, "max_hp": 85,
+     "punch_dmg": 8,  "kick_dmg": 12, "max_hp": 85, "block": 6,
      "desc": "Aerial specialist", "double_jump": True},
     {"name": "Shapeshifter", "color": (180, 80, 255), "speed": 6, "jump": -15,
-     "punch_dmg": 14, "kick_dmg": 14, "max_hp": 105,
+     "punch_dmg": 14, "kick_dmg": 14, "max_hp": 105, "block": 5,
      "desc": "Unpredictable",    "double_jump": True},
     {"name": "Spring",   "color": (255, 100, 100), "speed": 10, "jump": -45,
-     "punch_dmg": 1, "kick_dmg": 1, "max_hp": 400,
+     "punch_dmg": 1, "kick_dmg": 1, "max_hp": 400, "block": 1,
      "desc": "Bouncy",   "double_jump": True},
     {"name": "Harpy",   "color": (150, 0, 150), "speed": 9, "jump": -19,
-     "punch_dmg": 20, "kick_dmg": 20, "max_hp": 40,
+     "punch_dmg": 20, "kick_dmg": 20, "max_hp": 40, "block": 3,
      "desc": "Blood-eater",   "double_jump": True},
     {"name": "Scarecrow",   "color": (50, 0, 50), "speed": 1, "jump": -0,
-     "punch_dmg": 100, "kick_dmg": 100, "max_hp": 60,
+     "punch_dmg": 100, "kick_dmg": 100, "max_hp": 60, "block": 1,
      "desc": "Strong and Weak",   "double_jump": False},
     {"name": "Cactus", "color": (40, 180, 60), "speed": 4, "jump": -11,
-     "punch_dmg": 4, "kick_dmg": 4, "max_hp": 135,
+     "punch_dmg": 4, "kick_dmg": 4, "max_hp": 135, "block": 4,
      "desc": "Poisons on contact", "double_jump": False, "contact_dmg": 8},
     {"name": "Medic", "color": (200, 255, 200), "speed": 5, "jump": -13,
-     "punch_dmg": 7, "kick_dmg": 9, "max_hp": 120,
+     "punch_dmg": 7, "kick_dmg": 9, "max_hp": 120, "block": 6,
      "desc": "+2 HP every 5 seconds", "double_jump": False, "regen": True},
     {"name": "Arsonist", "color": (255, 80, 20), "speed": 6, "jump": -14,
-     "punch_dmg": 10, "kick_dmg": 8, "max_hp": 100,
+     "punch_dmg": 10, "kick_dmg": 8, "max_hp": 100, "block": 4,
      "desc": "Punches set targets on fire", "double_jump": False, "fire_punch": True},
     {"name": "Cryogenisist", "color": (150, 220, 255), "speed": 5, "jump": -13,
-     "punch_dmg": 9, "kick_dmg": 0, "max_hp": 110,
+     "punch_dmg": 9, "kick_dmg": 0, "max_hp": 110, "block": 6,
      "desc": "Kicks freeze opponents for 3s", "double_jump": False, "freeze_kick": True},
     {"name": "Magician", "color": (180, 80, 255), "speed": 5, "jump": -13,
-     "punch_dmg": 8, "kick_dmg": 10, "max_hp": 105,
+     "punch_dmg": 8, "kick_dmg": 10, "max_hp": 105, "block": 7,
      "desc": "Powerups drift toward him", "double_jump": True, "magnet": True},
     {"name": "Charger", "color": (255, 220, 0), "speed": 5, "jump": -13,
-     "punch_dmg": 7, "kick_dmg": 9, "max_hp": 115,
+     "punch_dmg": 7, "kick_dmg": 9, "max_hp": 115, "block": 5,
      "desc": "Punches shock: halves speed for 8 sec", "double_jump": False, "shock_punch": True},
     {"name": "Psychopath", "color": (180, 0, 180), "speed": 6, "jump": -14,
-     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 100,
+     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 100, "block": 2,
      "desc": "Kick teleports to random spot", "double_jump": False, "teleport_kick": True},
     {"name": "Ran-Doom", "color": (128, 128, 128), "speed": 5, "jump": -13,
-     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 110,
+     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 110, "block": 5,
      "desc": "All stats randomized each match", "double_jump": False, "random_stats": True},
     {"name": "Outbacker", "color": (200, 130, 50), "speed": 5, "jump": -13,
-     "punch_dmg": 9, "kick_dmg": 7, "max_hp": 115,
+     "punch_dmg": 9, "kick_dmg": 7, "max_hp": 115, "block": 5,
      "desc": "Kick throws orbiting boomerang", "double_jump": False, "boomerang_kick": True},
     {"name": "Gunner", "color": (60, 180, 80), "speed": 5, "jump": -13,
-     "punch_dmg": 8, "kick_dmg": 0, "max_hp": 110,
+     "punch_dmg": 8, "kick_dmg": 0, "max_hp": 110, "block": 4,
      "desc": "Kicks shoot a ball (10 dmg)", "double_jump": False, "shoot_kick": True},
     {"name": "Bazooka Man", "color": (180, 60, 60), "speed": 1, "jump": -0,
-     "punch_dmg": 8, "kick_dmg": 0, "max_hp": 75,
+     "punch_dmg": 8, "kick_dmg": 0, "max_hp": 75, "block": 1,
      "desc": "Kick fires exploding orb (35 dmg)", "double_jump": False, "bazooka_kick": True},
     {"name": "Pinball", "color": (255, 80, 200), "speed": 5, "jump": -13,
-     "punch_dmg": 8, "kick_dmg": 0, "max_hp": 110,
+     "punch_dmg": 8, "kick_dmg": 0, "max_hp": 110, "block": 5,
      "desc": "Kick shoots a bouncing ball (10 dmg)", "double_jump": False, "bounce_kick": True},
     {"name": "Giant", "color": (100, 160, 100), "speed": 2, "jump": -8,
-     "punch_dmg": 20, "kick_dmg": 18, "max_hp": 260,
+     "punch_dmg": 20, "kick_dmg": 18, "max_hp": 260, "block": 4,
      "desc": "Very big and very strong", "double_jump": False, "giant": True},
     {"name": "Morph", "color": (80, 200, 220), "speed": 5, "jump": -13,
-     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 110,
+     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 110, "block": 5,
      "desc": "Kick cycles size: normal → big → small", "double_jump": False, "size_kick": True},
     {"name": "Ghost", "color": (210, 210, 255), "speed": 5, "jump": -15,
-     "punch_dmg": 8, "kick_dmg": 9, "max_hp": 105,
+     "punch_dmg": 8, "kick_dmg": 9, "max_hp": 105, "block": 8,
      "desc": "Phases through platforms", "double_jump": True, "phase": True},
     {"name": "Vampire", "color": (120, 0, 40), "speed": 6, "jump": -13,
-     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 90,
+     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 90, "block": 5,
      "desc": "Heals 8 HP on every hit", "double_jump": False, "vampire": True},
     {"name": "Astronaut", "color": (220, 230, 255), "speed": 5, "jump": -10,
-     "punch_dmg": 8, "kick_dmg": 9, "max_hp": 105,
+     "punch_dmg": 8, "kick_dmg": 9, "max_hp": 105, "block": 5,
      "desc": "Anti-gravity on every map", "double_jump": True, "anti_gravity": True},
     {"name": "Spooderman", "color": (180, 20, 20), "speed": 7, "jump": -16,
-     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 100,
+     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 100, "block": 7,
      "desc": "Clings to walls, wall-jumps", "double_jump": True, "wall_cling": True},
     {"name": "Hooker", "color": (40, 160, 60), "speed": 5, "jump": -13,
-     "punch_dmg": 9, "kick_dmg": 0, "max_hp": 110,
+     "punch_dmg": 9, "kick_dmg": 0, "max_hp": 110, "block": 5,
      "desc": "Kick fires a snake grappling hook", "double_jump": False, "grapple_kick": True},
+    {"name": "Mouse", "color": (200, 180, 160), "speed": 9, "jump": -17,
+     "punch_dmg": 6, "kick_dmg": 8, "max_hp": 65, "block": 8,
+     "desc": "Tiny and very hard to hit", "double_jump": True, "tiny": True},
+    {"name": "Sumo", "color": (255, 200, 100), "speed": 1, "jump": -2,
+     "punch_dmg": 1, "kick_dmg": 1, "max_hp": 600, "block": 10,
+     "desc": "Enormous health, barely moves", "double_jump": False},
+    {"name": "Headless Horseman", "color": (80, 40, 15), "speed": 7, "jump": -11,
+     "punch_dmg": 13, "kick_dmg": 0, "max_hp": 145, "block": 5,
+     "desc": "Kicks throw a physics pumpkin that explodes", "double_jump": False, "pumpkin_kick": True},
 ]
 
 POWERUPS = [
@@ -192,7 +201,529 @@ NECK_LEN = 5
 # Drawing helpers
 # ---------------------------------------------------------------------------
 
-def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0):
+def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing, s, col):
+    """Draw character-specific hat / mask / weapon on top of the base stickman."""
+    hx, hy = int(head_c[0]), int(head_c[1])
+    sx, sy = int(shoulder[0]), int(shoulder[1])
+    wx, wy = int(waist[0]), int(waist[1])
+    lhx, lhy = int(lh[0]), int(lh[1])
+    rhx, rhy = int(rh[0]), int(rh[1])
+
+    def ln(p1, p2, w=2):
+        pygame.draw.line(surface, col, (int(p1[0]), int(p1[1])), (int(p2[0]), int(p2[1])), max(1, int(w * s)))
+
+    if char_name == "Brawler":
+        # Red headband across forehead
+        band_y = hy + int(hd * 0.2)
+        pygame.draw.line(surface, (210, 0, 0), (hx - hd, band_y), (hx + hd, band_y), max(2, int(4*s)))
+
+    elif char_name == "Ninja":
+        # Dark mask over lower face + white headband
+        mask_y = hy + int(hd * 0.05)
+        pygame.draw.rect(surface, (25, 25, 25), (hx - hd + 3, mask_y, hd*2 - 6, int(hd * 0.85)))
+        band_y = hy - int(hd * 0.25)
+        pygame.draw.line(surface, WHITE, (hx - hd, band_y), (hx + hd, band_y), max(2, int(3*s)))
+
+    elif char_name == "Boxer":
+        # Big boxing gloves at both hands
+        for gx, gy in [(lhx, lhy), (rhx, rhy)]:
+            pygame.draw.circle(surface, (0, 180, 0), (gx, gy), max(5, int(9*s)))
+            pygame.draw.circle(surface, (0, 120, 0), (gx, gy), max(5, int(9*s)), 2)
+
+    elif char_name == "Phantom":
+        # Purple eye-mask over upper face
+        pygame.draw.ellipse(surface, (90, 0, 180), (hx - hd + 2, hy - hd + 2, hd*2 - 4, int(hd * 0.9)))
+        pygame.draw.ellipse(surface, (160, 60, 255), (hx - hd + 2, hy - hd + 2, hd*2 - 4, int(hd * 0.9)), 2)
+
+    elif char_name == "Ares":
+        # Greek war helmet + red horsehair crest
+        pts = [(hx - hd, hy), (hx - int(hd*.8), hy - int(hd*1.3)),
+               (hx, hy - int(hd*1.6)), (hx + int(hd*.8), hy - int(hd*1.3)),
+               (hx + hd, hy)]
+        pygame.draw.polygon(surface, (190, 95, 0), pts)
+        pygame.draw.polygon(surface, (255, 140, 0), pts, 2)
+        pygame.draw.line(surface, RED, (hx, hy - int(hd*1.6)), (hx, hy - int(hd*2.3)), max(2, int(4*s)))
+
+    elif char_name == "Zephyr":
+        # Goggles
+        gy = hy - int(hd * 0.1)
+        for gx_off in [-int(hd*.38), int(hd*.38)]:
+            pygame.draw.circle(surface, (0, 70, 180), (hx + gx_off, gy), int(hd*.33))
+            pygame.draw.circle(surface, CYAN, (hx + gx_off, gy), int(hd*.33), 2)
+        pygame.draw.line(surface, (80, 140, 255), (hx - int(hd*.72), gy), (hx + int(hd*.72), gy), 2)
+
+    elif char_name == "Titan":
+        # Gold crown
+        cb = hy - hd
+        ct = hy - int(hd * 1.8)
+        pygame.draw.polygon(surface, YELLOW, [
+            (hx - hd, cb), (hx - hd, ct + int(hd*.5)),
+            (hx - int(hd*.5), ct + int(hd*.8)), (hx, ct),
+            (hx + int(hd*.5), ct + int(hd*.8)), (hx + hd, ct + int(hd*.5)),
+            (hx + hd, cb)])
+        pygame.draw.polygon(surface, (200, 155, 0), [
+            (hx - hd, cb), (hx - hd, ct + int(hd*.5)),
+            (hx - int(hd*.5), ct + int(hd*.8)), (hx, ct),
+            (hx + int(hd*.5), ct + int(hd*.8)), (hx + hd, ct + int(hd*.5)),
+            (hx + hd, cb)], 2)
+
+    elif char_name == "Dancing Man":
+        # Top hat
+        brim_y = hy - hd
+        hw = int(hd * 1.5)
+        hh = int(hd * 1.2)
+        pygame.draw.rect(surface, (20, 20, 20), (hx - int(hw*.6), brim_y - hh, int(hw*1.2), hh))
+        pygame.draw.line(surface, (20, 20, 20), (hx - hw, brim_y), (hx + hw, brim_y), max(3, int(5*s)))
+        pygame.draw.rect(surface, (60, 60, 60), (hx - int(hw*.6), brim_y - hh, int(hw*1.2), hh), 2)
+
+    elif char_name == "Tank":
+        # Military helmet dome over head
+        pygame.draw.circle(surface, (35, 75, 35), (hx, hy), int(hd * 1.28))
+        pygame.draw.circle(surface, (20, 50, 20), (hx, hy), int(hd * 1.28), 2)
+        pygame.draw.line(surface, (15, 40, 15), (hx - int(hd*.7), hy + int(hd*.1)), (hx + int(hd*.7), hy + int(hd*.1)), max(2, int(3*s)))
+
+    elif char_name == "Mighty Medieval Man":
+        # Knight helmet with visor slit
+        pygame.draw.rect(surface, GRAY, (hx - hd, hy - int(hd*1.25), hd*2, int(hd*2.3)), border_radius=3)
+        pygame.draw.rect(surface, (40, 40, 40), (hx - int(hd*.6), hy - int(hd*.1), int(hd*1.2), int(hd*.28)))
+        pygame.draw.rect(surface, (90, 90, 90), (hx - hd, hy - int(hd*1.25), hd*2, int(hd*2.3)), 2, border_radius=3)
+        # Sword in forward hand (blade up, crossguard at hand)
+        sword_tip = (rhx + facing * int(6*s), rhy - int(58*s))
+        pygame.draw.line(surface, (185, 185, 200), (rhx, rhy), sword_tip, max(2, int(3*s)))
+        pygame.draw.line(surface, (115, 78, 28), (rhx, rhy), (rhx - facing*int(5*s), rhy + int(13*s)), max(3, int(5*s)))
+        pygame.draw.line(surface, (155, 125, 48), (rhx - int(10*s), rhy - int(4*s)), (rhx + int(10*s), rhy - int(4*s)), max(2, int(3*s)))
+        # Kite shield in back hand
+        sh_pts = [
+            (lhx - facing*int(5*s),  lhy - int(24*s)),
+            (lhx - facing*int(22*s), lhy - int(8*s)),
+            (lhx - facing*int(22*s), lhy + int(14*s)),
+            (lhx - facing*int(8*s),  lhy + int(26*s)),
+            (lhx + facing*int(4*s),  lhy + int(14*s)),
+            (lhx + facing*int(4*s),  lhy - int(8*s)),
+        ]
+        pygame.draw.polygon(surface, (85, 88, 98), sh_pts)
+        pygame.draw.polygon(surface, (175, 178, 192), sh_pts, 2)
+        sh_cx = lhx - facing*int(9*s)
+        pygame.draw.line(surface, RED, (sh_cx, lhy - int(20*s)), (sh_cx, lhy + int(20*s)), max(2, int(3*s)))
+        pygame.draw.line(surface, RED, (lhx - facing*int(20*s), lhy + int(2*s)), (lhx + facing*int(2*s), lhy + int(2*s)), max(2, int(3*s)))
+
+    elif char_name == "Samurai":
+        # Kabuto helmet
+        pts = [(hx - int(hd*1.1), hy), (hx - int(hd*1.1), hy - int(hd*.8)),
+               (hx - int(hd*.7), hy - int(hd*1.65)), (hx, hy - int(hd*1.85)),
+               (hx + int(hd*.7), hy - int(hd*1.65)), (hx + int(hd*1.1), hy - int(hd*.8)),
+               (hx + int(hd*1.1), hy)]
+        pygame.draw.polygon(surface, (28, 28, 28), pts)
+        pygame.draw.polygon(surface, (80, 80, 80), pts, 2)
+        pygame.draw.ellipse(surface, BLACK, (hx - int(hd*.7), hy - int(hd*.95), int(hd*1.4), int(hd*1.1)))
+        # Katana
+        k_end = (lhx - facing * int(48*s), lhy - int(28*s))
+        pygame.draw.line(surface, (200, 200, 210), (lhx, lhy), k_end, max(2, int(3*s)))
+        pygame.draw.line(surface, (100, 65, 20), (lhx, lhy), (lhx + facing*int(10*s), lhy + int(5*s)), max(3, int(5*s)))
+
+    elif char_name == "Skeleton":
+        # Dark eye sockets + teeth
+        ey = hy - int(hd * .2)
+        for ex_off in [-int(hd*.4), int(hd*.4)]:
+            pygame.draw.circle(surface, BLACK, (hx + ex_off, ey), int(hd*.28))
+        ty = hy + int(hd * .48)
+        for i in range(-2, 3):
+            tx = hx + i * int(hd * .26)
+            pygame.draw.line(surface, BLACK, (tx, ty - int(hd*.1)), (tx, ty + int(hd*.22)), max(2, int(3*s)))
+
+    elif char_name == "Unknown":
+        # Dark hood
+        pygame.draw.polygon(surface, (25, 50, 90), [
+            (hx - int(hd*1.35), hy + int(hd*.25)), (hx - int(hd*1.1), hy - int(hd*1.55)),
+            (hx, hy - int(hd*2.1)), (hx + int(hd*1.1), hy - int(hd*1.55)),
+            (hx + int(hd*1.35), hy + int(hd*.25))])
+        pygame.draw.ellipse(surface, (10, 18, 45), (hx - int(hd*.75), hy - int(hd*.55), int(hd*1.5), int(hd*1.2)))
+        pygame.draw.polygon(surface, (55, 90, 160), [
+            (hx - int(hd*1.35), hy + int(hd*.25)), (hx - int(hd*1.1), hy - int(hd*1.55)),
+            (hx, hy - int(hd*2.1)), (hx + int(hd*1.1), hy - int(hd*1.55)),
+            (hx + int(hd*1.35), hy + int(hd*.25))], 2)
+
+    elif char_name == "Hardy":
+        # Yellow hard hat
+        pygame.draw.ellipse(surface, (220, 200, 0), (hx - hd, hy - int(hd*1.85), hd*2, int(hd*1.4)))
+        pygame.draw.line(surface, (180, 160, 0), (hx - int(hd*1.35), hy - int(hd*.5)), (hx + int(hd*1.35), hy - int(hd*.5)), max(3, int(5*s)))
+
+    elif char_name == "Rogue":
+        # Tan hood
+        pygame.draw.polygon(surface, (145, 115, 28), [
+            (hx - int(hd*1.25), hy + int(hd*.3)), (hx, hy - int(hd*2.05)),
+            (hx + int(hd*1.25), hy + int(hd*.3))])
+        pygame.draw.polygon(surface, (200, 160, 50), [
+            (hx - int(hd*1.25), hy + int(hd*.3)), (hx, hy - int(hd*2.05)),
+            (hx + int(hd*1.25), hy + int(hd*.3))], 2)
+        for ex_off in [-int(hd*.3), int(hd*.3)]:
+            pygame.draw.circle(surface, (70, 55, 10), (hx + ex_off, hy), int(hd*.15))
+
+    elif char_name == "Gladiator":
+        # Crested Roman helmet
+        pts = [(hx - int(hd*1.05), hy + int(hd*.2)), (hx - int(hd*1.05), hy - int(hd*.7)),
+               (hx - int(hd*.8), hy - int(hd*1.25)), (hx + int(hd*.8), hy - int(hd*1.25)),
+               (hx + int(hd*1.05), hy - int(hd*.7)), (hx + int(hd*1.05), hy + int(hd*.2))]
+        pygame.draw.polygon(surface, (155, 45, 45), pts)
+        pygame.draw.polygon(surface, (220, 75, 75), pts, 2)
+        # Horsehair crest
+        for i in range(max(1, int(hd*.8))):
+            cx = hx - int(hd*.4) + i
+            pygame.draw.line(surface, RED, (cx, hy - int(hd*1.25)), (cx, hy - int(hd*2.1)), max(1, int(3*s)))
+        pygame.draw.rect(surface, (40, 18, 18), (hx - int(hd*.72), hy - int(hd*.08), int(hd*1.44), int(hd*.28)))
+
+    elif char_name == "Oni":
+        # Red demon horns + angry brows
+        for hd_off, curve in [(-int(hd*.7), -1), (int(hd*.7), 1)]:
+            pygame.draw.polygon(surface, (200, 15, 15), [
+                (hx + hd_off, hy - hd),
+                (hx + hd_off + curve * int(hd*.35), hy - int(hd*2.05)),
+                (hx + hd_off + curve * int(hd*.12), hy - int(hd*1.5))])
+        brow_y = hy - int(hd * .35)
+        pygame.draw.line(surface, (100, 0, 0), (hx - int(hd*.62), brow_y - int(hd*.2)), (hx - int(hd*.1), brow_y), max(2, int(3*s)))
+        pygame.draw.line(surface, (100, 0, 0), (hx + int(hd*.1), brow_y), (hx + int(hd*.62), brow_y - int(hd*.2)), max(2, int(3*s)))
+
+    elif char_name == "Cecalia":
+        # Tentacles hanging from waist
+        for i in range(4):
+            tx = wx + int((i - 1.5) * 18 * s)
+            for seg in range(4):
+                t1 = i / (coils := 4)
+                y1 = wy + seg * int(16*s)
+                y2 = wy + (seg+1) * int(16*s)
+                wave = int(math.sin(seg * 1.5 + i) * 8 * s)
+                pygame.draw.line(surface, (30, 200, 200), (tx + wave, y1), (tx - wave, y2), max(2, int(3*s)))
+
+    elif char_name == "Acrobat":
+        # Colorful top hat
+        brim_y = hy - hd
+        hw, hh = int(hd * 1.4), int(hd * 1.1)
+        pygame.draw.rect(surface, (190, 70, 190), (hx - int(hw*.55), brim_y - hh, int(hw*1.1), hh))
+        pygame.draw.line(surface, (210, 90, 210), (hx - hw, brim_y), (hx + hw, brim_y), max(3, int(5*s)))
+        pygame.draw.rect(surface, WHITE, (hx - int(hw*.55), brim_y - int(hh*.72), int(hw*1.1), int(hd*.28)))
+
+    elif char_name == "Shapeshifter":
+        # Dashed purple glow ring
+        for angle in range(0, 360, 30):
+            a1, a2 = math.radians(angle), math.radians(angle + 20)
+            r = (hd + int(5*s))
+            p1 = (hx + int(math.cos(a1)*r), hy + int(math.sin(a1)*r))
+            p2 = (hx + int(math.cos(a2)*r), hy + int(math.sin(a2)*r))
+            pygame.draw.line(surface, (175, 75, 255), p1, p2, max(2, int(3*s)))
+
+    elif char_name == "Spring":
+        # Coiled spring on head
+        sbot, stop = hy - hd, hy - int(hd * 2.2)
+        coils = 4
+        for i in range(coils * 4):
+            t1, t2 = i / (coils*4), (i+1) / (coils*4)
+            y1 = sbot + int((stop - sbot) * t1)
+            y2 = sbot + int((stop - sbot) * t2)
+            x1 = hx + int(math.sin(t1 * math.pi * 2 * coils) * hd * .5)
+            x2 = hx + int(math.sin(t2 * math.pi * 2 * coils) * hd * .5)
+            pygame.draw.line(surface, (255, 120, 120), (x1, y1), (x2, y2), max(2, int(3*s)))
+
+    elif char_name == "Harpy":
+        # Wings from shoulders
+        for side in [-1, 1]:
+            wing_pts = [
+                (sx, sy),
+                (sx + side*int(52*s), sy - int(18*s)),
+                (sx + side*int(62*s), sy + int(22*s)),
+                (sx + side*int(36*s), sy + int(36*s)),
+                (sx + side*int(15*s), sy + int(20*s))]
+            pygame.draw.polygon(surface, (115, 0, 115), wing_pts)
+            pygame.draw.polygon(surface, (175, 0, 175), wing_pts, 2)
+
+    elif char_name == "Scarecrow":
+        # Straw hat
+        hat_y = hy - hd
+        hw = int(hd * 2.0)
+        pygame.draw.polygon(surface, (75, 50, 8), [
+            (hx, hat_y - int(hd * 1.0)), (hx - hw, hat_y), (hx + hw, hat_y)])
+        # X eyes
+        for ex_off in [-int(hd*.38), int(hd*.38)]:
+            ex, ey = hx + ex_off, hy - int(hd*.2)
+            r = int(hd * .22)
+            pygame.draw.line(surface, (8, 0, 8), (ex-r, ey-r), (ex+r, ey+r), max(2, int(3*s)))
+            pygame.draw.line(surface, (8, 0, 8), (ex+r, ey-r), (ex-r, ey+r), max(2, int(3*s)))
+
+    elif char_name == "Cactus":
+        # Spines around head
+        for i in range(8):
+            angle = math.radians(-120 + i * 35)
+            spine_x = hx + int(math.cos(angle) * hd)
+            spine_y = hy + int(math.sin(angle) * hd)
+            tip_x = hx + int(math.cos(angle) * (hd + int(13*s)))
+            tip_y = hy + int(math.sin(angle) * (hd + int(13*s)))
+            pygame.draw.line(surface, (20, 140, 40), (spine_x, spine_y), (tip_x, tip_y), max(2, int(3*s)))
+
+    elif char_name == "Medic":
+        # White hat with red cross
+        brim_y = hy - hd
+        hw, hh = int(hd * 1.1), int(hd * 1.1)
+        pygame.draw.rect(surface, WHITE, (hx - hw, brim_y - hh, hw*2, hh), border_radius=3)
+        pygame.draw.line(surface, WHITE, (hx - int(hw*1.3), brim_y), (hx + int(hw*1.3), brim_y), max(3, int(5*s)))
+        cs = int(hd * .35)
+        pygame.draw.line(surface, RED, (hx, brim_y - hh + int(hd*.18)), (hx, brim_y - int(hd*.2)), max(3, int(4*s)))
+        pygame.draw.line(surface, RED, (hx - cs, brim_y - hh//2 - int(hd*.08)), (hx + cs, brim_y - hh//2 - int(hd*.08)), max(3, int(4*s)))
+
+    elif char_name == "Arsonist":
+        # Flames on head
+        for i in range(5):
+            fx = hx + int((i - 2) * hd * .33)
+            fh = int(hd * (.58 + (i % 2) * .5))
+            fc = (255, 50, 0) if i % 2 == 0 else YELLOW
+            pygame.draw.ellipse(surface, fc, (fx - int(hd*.17), hy - hd - fh, int(hd*.34), fh))
+
+    elif char_name == "Cryogenisist":
+        # Ice spike crown
+        for i in range(5):
+            angle = math.radians(-90 + (i - 2) * 32)
+            bx = hx + int(math.cos(angle) * hd * .85)
+            by = hy + int(math.sin(angle) * hd * .85)
+            tx = hx + int(math.cos(angle) * (hd + int(17*s)))
+            ty = hy + int(math.sin(angle) * (hd + int(17*s)))
+            pygame.draw.line(surface, (175, 225, 255), (bx, by), (tx, ty), max(2, int(4*s)))
+
+    elif char_name == "Magician":
+        # Tall wizard hat
+        brim_y = hy - hd
+        hw, hh = int(hd * 1.1), int(hd * 2.0)
+        pygame.draw.polygon(surface, (95, 0, 195), [
+            (hx, brim_y - hh), (hx - hw, brim_y), (hx + hw, brim_y)])
+        pygame.draw.line(surface, (95, 0, 195), (hx - int(hw*1.4), brim_y), (hx + int(hw*1.4), brim_y), max(3, int(5*s)))
+        pygame.draw.circle(surface, YELLOW, (hx, brim_y - int(hh*.55)), int(hd*.22))
+
+    elif char_name == "Charger":
+        # Lightning bolt on chest
+        mid_x = sx + int(facing * 6 * s)
+        mid_y = (sy + wy) // 2
+        pygame.draw.lines(surface, YELLOW, False, [
+            (mid_x + int(6*s), sy + int(5*s)), (mid_x - int(4*s), mid_y),
+            (mid_x + int(3*s), mid_y), (mid_x - int(6*s), wy - int(5*s))
+        ], max(2, int(3*s)))
+
+    elif char_name == "Psychopath":
+        # Knife at forward hand
+        pygame.draw.line(surface, (195, 195, 215), (rhx, rhy), (rhx + facing*int(22*s), rhy - int(10*s)), max(2, int(3*s)))
+        pygame.draw.line(surface, (95, 55, 15), (rhx, rhy), (rhx - facing*int(8*s), rhy + int(5*s)), max(3, int(5*s)))
+
+    elif char_name == "Ran-Doom":
+        # Dice on head: draw dots
+        die_size = int(hd * .85)
+        die_x = hx - die_size // 2
+        die_y = hy - hd - die_size - int(4*s)
+        pygame.draw.rect(surface, (220, 220, 220), (die_x, die_y, die_size, die_size), border_radius=3)
+        pygame.draw.rect(surface, (80, 80, 80), (die_x, die_y, die_size, die_size), 1, border_radius=3)
+        for dx, dy in [(die_size//4, die_size//4), (die_size*3//4, die_size//4),
+                       (die_size//2, die_size//2),
+                       (die_size//4, die_size*3//4), (die_size*3//4, die_size*3//4)]:
+            pygame.draw.circle(surface, (20, 20, 20), (die_x + dx, die_y + dy), max(2, int(3*s)))
+
+    elif char_name == "Outbacker":
+        # Wide bush hat
+        brim_y = hy - hd
+        hw, hh = int(hd * 1.8), int(hd * .9)
+        pygame.draw.ellipse(surface, (155, 95, 25), (hx - int(hw*.6), brim_y - hh, int(hw*1.2), hh))
+        pygame.draw.arc(surface, (130, 75, 15), (hx - hw, brim_y - int(hd*.4), hw*2, int(hd*.6)),
+                        math.radians(200), math.radians(340), max(3, int(5*s)))
+
+    elif char_name == "Gunner":
+        # Pistol at forward hand
+        gx1, gy1 = rhx, rhy
+        bx = gx1 + facing * int(22*s)
+        pygame.draw.rect(surface, (45, 45, 45), (min(gx1, bx) - 2, gy1 - int(4*s), int(26*s), int(8*s)))
+        pygame.draw.rect(surface, (65, 45, 25), (gx1 - facing*int(4*s), gy1, int(8*s), int(12*s)))
+
+    elif char_name == "Bazooka Man":
+        # Bazooka on shoulder
+        baz_x1 = sx - facing * int(5*s)
+        baz_x2 = baz_x1 + facing * int(58*s)
+        baz_y = sy + int(5*s)
+        pygame.draw.line(surface, (75, 75, 75), (baz_x1, baz_y), (baz_x2, baz_y), max(5, int(9*s)))
+        pygame.draw.circle(surface, (45, 45, 45), (baz_x2, baz_y), max(4, int(6*s)))
+        pygame.draw.line(surface, (95, 55, 15), (baz_x1 + facing*int(14*s), baz_y),
+                         (baz_x1 + facing*int(14*s), baz_y + int(12*s)), max(3, int(5*s)))
+
+    elif char_name == "Pinball":
+        # Pinball logo on chest
+        mid_y = (sy + wy) // 2
+        pygame.draw.circle(surface, (255, 80, 200), (sx, mid_y), int(hd * .32))
+        pygame.draw.circle(surface, WHITE, (sx, mid_y), int(hd * .32), 2)
+
+    elif char_name == "Giant":
+        # Crown
+        cb, ct = hy - hd, hy - int(hd * 1.85)
+        pygame.draw.polygon(surface, YELLOW, [
+            (hx - hd, cb), (hx - hd, ct + int(hd*.52)),
+            (hx - int(hd*.5), ct + int(hd*.82)), (hx, ct),
+            (hx + int(hd*.5), ct + int(hd*.82)), (hx + hd, ct + int(hd*.52)),
+            (hx + hd, cb)])
+        pygame.draw.polygon(surface, (195, 155, 0), [
+            (hx - hd, cb), (hx - hd, ct + int(hd*.52)),
+            (hx - int(hd*.5), ct + int(hd*.82)), (hx, ct),
+            (hx + int(hd*.5), ct + int(hd*.82)), (hx + hd, ct + int(hd*.52)),
+            (hx + hd, cb)], 2)
+
+    elif char_name == "Morph":
+        # Double-ended resize arrows on chest
+        mid_y = (sy + wy) // 2
+        arr = int(20 * s)
+        pygame.draw.line(surface, CYAN, (sx - arr, mid_y), (sx + arr, mid_y), max(2, int(3*s)))
+        for dx in [-arr, arr]:
+            sign = 1 if dx > 0 else -1
+            pygame.draw.line(surface, CYAN, (sx + dx, mid_y), (sx + dx - sign*int(6*s), mid_y - int(5*s)), max(2, int(3*s)))
+            pygame.draw.line(surface, CYAN, (sx + dx, mid_y), (sx + dx - sign*int(6*s), mid_y + int(5*s)), max(2, int(3*s)))
+
+    elif char_name == "Ghost":
+        # Sheet draped from shoulders
+        sheet_pts = [
+            (sx - int(hd*1.25), sy + int(5*s)), (sx - int(hd*1.45), wy + int(28*s)),
+            (sx - int(hd*.8), wy + int(18*s)), (sx, wy + int(33*s)),
+            (sx + int(hd*.8), wy + int(18*s)), (sx + int(hd*1.45), wy + int(28*s)),
+            (sx + int(hd*1.25), sy + int(5*s))]
+        pygame.draw.polygon(surface, (170, 170, 210), sheet_pts)
+        pygame.draw.polygon(surface, (205, 205, 250), sheet_pts, 2)
+        # Redraw head so it shows above the sheet
+        pygame.draw.circle(surface, col, (hx, hy), hd)
+
+    elif char_name == "Vampire":
+        # Cape
+        cape_pts = [
+            (sx - int(hd*.55), sy + int(8*s)), (sx - int(hd*1.85), wy + int(18*s)),
+            (sx - int(hd*.8), wy + int(8*s)), (sx, wy + int(28*s)),
+            (sx + int(hd*.8), wy + int(8*s)), (sx + int(hd*1.85), wy + int(18*s)),
+            (sx + int(hd*.55), sy + int(8*s))]
+        pygame.draw.polygon(surface, (75, 0, 18), cape_pts)
+        pygame.draw.polygon(surface, (115, 0, 38), cape_pts, 2)
+        # Fangs
+        for fx_off in [-int(hd*.3), int(hd*.3)]:
+            pygame.draw.polygon(surface, WHITE, [
+                (hx + fx_off - int(hd*.12), hy + int(hd*.42)),
+                (hx + fx_off + int(hd*.12), hy + int(hd*.42)),
+                (hx + fx_off, hy + int(hd*.72))])
+        # Redraw head
+        pygame.draw.circle(surface, col, (hx, hy), hd)
+
+    elif char_name == "Astronaut":
+        # Space helmet (dome around head)
+        pygame.draw.circle(surface, (175, 195, 235), (hx, hy), int(hd * 1.38))
+        pygame.draw.circle(surface, (95, 135, 195), (hx, hy), int(hd * 1.38), max(3, int(4*s)))
+        # Visor
+        pygame.draw.ellipse(surface, (55, 115, 195), (hx - int(hd*.88), hy - int(hd*.72), int(hd*1.76), int(hd*1.18)))
+        pygame.draw.ellipse(surface, (100, 160, 230), (hx - int(hd*.88), hy - int(hd*.72), int(hd*1.76), int(hd*1.18)), 2)
+        # Redraw head inside
+        pygame.draw.circle(surface, col, (hx, hy), hd)
+
+    elif char_name == "Spooderman":
+        # Web lines on face
+        for angle in range(0, 360, 45):
+            a = math.radians(angle)
+            pygame.draw.line(surface, (140, 8, 8), (hx, hy),
+                             (hx + int(math.cos(a)*hd), hy + int(math.sin(a)*hd)), 1)
+        for r in [int(hd*.34), int(hd*.65), hd]:
+            pygame.draw.circle(surface, (140, 8, 8), (hx, hy), r, 1)
+        # White eye lenses
+        for ex_off in [-int(hd*.38), int(hd*.38)]:
+            pygame.draw.ellipse(surface, WHITE, (hx + ex_off - int(hd*.22), hy - int(hd*.46), int(hd*.44), int(hd*.34)))
+
+    elif char_name == "Hooker":
+        # Rope + hook at forward hand
+        pygame.draw.line(surface, (130, 92, 42), (sx, sy + int(12*s)), (rhx, rhy), max(1, int(2*s)))
+        pygame.draw.arc(surface, (175, 175, 175),
+                        (rhx + facing*int(2*s), rhy - int(10*s), int(15*s), int(15*s)),
+                        math.radians(0), math.radians(270), max(2, int(3*s)))
+
+    elif char_name == "Mouse":
+        # Round mouse ears on top of head
+        for ex_off in [-int(hd*.72), int(hd*.72)]:
+            pygame.draw.circle(surface, col, (hx + ex_off, hy - int(hd*1.02)), int(hd*.56))
+            pygame.draw.circle(surface, (225, 165, 155), (hx + ex_off, hy - int(hd*1.02)), int(hd*.3))
+
+    elif char_name == "Sumo":
+        # Topknot
+        pygame.draw.ellipse(surface, (45, 25, 8), (hx - int(hd*.36), hy - int(hd*1.52), int(hd*.72), int(hd*.62)))
+        # Mawashi belt at waist
+        bh = max(4, int(8*s))
+        pygame.draw.rect(surface, (195, 148, 48), (wx - int(hd*.92), wy - bh//2, int(hd*1.84), bh))
+        pygame.draw.rect(surface, (175, 118, 18), (wx - int(hd*.92), wy - bh//2, int(hd*1.84), bh), 2)
+
+    elif char_name == "Headless Horseman":
+        ground_y = wy + int(LEG_LEN * s)
+        # ── Horse body ──────────────────────────────────────────────────────
+        hb_cx, hb_cy = wx, wy + int(18 * s)
+        hb_w, hb_h   = int(92 * s), int(34 * s)
+        pygame.draw.ellipse(surface, (98, 68, 36),  (hb_cx - hb_w//2, hb_cy - hb_h//2, hb_w, hb_h))
+        pygame.draw.ellipse(surface, (68, 44, 20),  (hb_cx - hb_w//2, hb_cy - hb_h//2, hb_w, hb_h), 2)
+        # Saddle blanket
+        pygame.draw.ellipse(surface, (55, 30, 60), (hb_cx - int(hb_w*.35), hb_cy - hb_h//2 - 2, int(hb_w*.7), int(hb_h*.7)))
+        # ── Horse legs (4) ──────────────────────────────────────────────────
+        for leg_off in [-int(28*s), -int(10*s), int(10*s), int(28*s)]:
+            ltop = (hb_cx + leg_off, hb_cy + hb_h//2)
+            lbot = (hb_cx + leg_off + facing * int(3*s), ground_y)
+            pygame.draw.line(surface, (78, 50, 26), ltop, lbot, max(3, int(5*s)))
+            pygame.draw.ellipse(surface, (38, 24, 12), (lbot[0] - int(7*s), lbot[1] - int(4*s), int(14*s), int(8*s)))
+        # ── Horse neck & head ────────────────────────────────────────────────
+        nk_base = (hb_cx + facing * int(hb_w//2 - int(4*s)), hb_cy - int(4*s))
+        nk_top  = (nk_base[0] + facing * int(20*s), hb_cy - int(42*s))
+        pygame.draw.line(surface, (98, 68, 36), nk_base, nk_top, max(6, int(11*s)))
+        horse_head_pts = [
+            nk_top,
+            (nk_top[0] + facing*int(30*s), nk_top[1] + int(6*s)),
+            (nk_top[0] + facing*int(32*s), nk_top[1] + int(20*s)),
+            (nk_top[0] + facing*int(16*s), nk_top[1] + int(24*s)),
+            (nk_top[0],                    nk_top[1] + int(16*s)),
+        ]
+        pygame.draw.polygon(surface, (108, 74, 42), horse_head_pts)
+        pygame.draw.polygon(surface, (68, 44, 20),  horse_head_pts, 2)
+        pygame.draw.circle(surface, (28, 18, 8), (nk_top[0] + facing*int(20*s), nk_top[1] + int(13*s)), max(2, int(4*s)))  # eye
+        pygame.draw.circle(surface, (68, 40, 14), (nk_top[0] + facing*int(28*s), nk_top[1] + int(20*s)), max(1, int(3*s)))  # nostril
+        # Mane
+        for mi in range(4):
+            mx = nk_base[0] + (nk_top[0] - nk_base[0]) * mi // 4
+            my = nk_base[1] + (nk_top[1] - nk_base[1]) * mi // 4
+            pygame.draw.line(surface, (42, 26, 8), (mx, my), (mx - facing*int(10*s), my + int(10*s)), max(2, int(3*s)))
+        # ── Horse tail ──────────────────────────────────────────────────────
+        tb = (hb_cx - facing*int(hb_w//2), hb_cy - int(8*s))
+        te = (tb[0] - facing*int(28*s), tb[1] - int(28*s))
+        pygame.draw.line(surface, (48, 28, 10), tb, te, max(3, int(5*s)))
+        for ts in [(te[0], te[1] + int(22*s)), (te[0] - facing*int(10*s), te[1] + int(14*s))]:
+            pygame.draw.line(surface, (48, 28, 10), te, ts, max(2, int(3*s)))
+        # ── Rider's dark cloak ───────────────────────────────────────────────
+        cloak_pts = [
+            (sx - int(hd*.5),  sy + int(6*s)),
+            (sx - int(hd*2.0), wy + int(12*s)),
+            (sx - int(hd*1.0), wy + int(4*s)),
+            (sx + int(hd*1.0), wy + int(4*s)),
+            (sx + int(hd*2.0), wy + int(12*s)),
+            (sx + int(hd*.5),  sy + int(6*s)),
+        ]
+        pygame.draw.polygon(surface, (28, 18, 28), cloak_pts)
+        pygame.draw.polygon(surface, (58, 38, 58), cloak_pts, 2)
+        # ── Pumpkin "head" carried in forward hand ───────────────────────────
+        pr = int(hd * 0.78)
+        pygame.draw.circle(surface, (215, 118, 0), (rhx, rhy), pr)
+        # Pumpkin ridges
+        for ridge in range(-1, 2):
+            pygame.draw.arc(surface, (190, 95, 0),
+                            (rhx + ridge*int(pr*.35) - int(pr*.22), rhy - pr, int(pr*.44), pr*2),
+                            math.radians(55), math.radians(125), max(1, int(2*s)))
+        # Carved face
+        eye_r = max(2, int(pr * .18))
+        for eye_off in [-int(pr*.3), int(pr*.3)]:
+            pygame.draw.polygon(surface, BLACK, [
+                (rhx + eye_off,        rhy - int(pr*.18)),
+                (rhx + eye_off - eye_r, rhy + eye_r//2),
+                (rhx + eye_off + eye_r, rhy + eye_r//2)])
+        mouth_pts = [(rhx - int(pr*.42) + i*int(pr*.21),
+                      rhy + int(pr*.35) + (int(pr*.14) if i % 2 == 0 else 0))
+                     for i in range(5)]
+        pygame.draw.lines(surface, BLACK, False, mouth_pts, max(1, int(2*s)))
+        pygame.draw.line(surface, (45, 95, 28), (rhx, rhy - pr), (rhx, rhy - pr - int(7*s)), max(2, int(3*s)))  # stem
+
+
+def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color
     s = scale
 
@@ -207,6 +738,26 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
 
     def circ(cx, cy, r):
         pygame.draw.circle(surface, col, (int(cx), int(cy)), r)
+
+    # ── Dead pose: stickman lying flat on the ground ────────────────────────
+    if action == 'dead':
+        # Head lies to the side (opposite of facing), body horizontal
+        hx_d = int(x) - facing * int((hd + bl + al // 2) * s)
+        hy_d = int(y) - hd              # head center just above ground
+        if char_name != "Headless Horseman":
+            circ(hx_d, hy_d, hd)       # head
+        neck  = (hx_d + facing * hd,   hy_d)
+        hip   = (int(x) + facing * int(20 * s), hy_d)
+        ln(neck, hip, 4)               # horizontal torso
+        mid   = ((neck[0] + hip[0]) // 2, hy_d)
+        ln(mid, (mid[0], mid[1] - int(al * 0.55)),     3)   # arm upward
+        ln(mid, (mid[0] + facing * int(al * 0.4), mid[1] + int(al * 0.3)), 3)  # arm drooping
+        ln(hip, (hip[0] + facing * int(25 * s), int(y)), 3)   # leg 1
+        ln(hip, (hip[0] + facing * int(40 * s), int(y - 10 * s)), 3)           # leg 2
+        if char_name:
+            draw_costume(surface, char_name, (hx_d, hy_d), hd,
+                         (neck[0], hy_d), hip, mid, mid, facing, s, col)
+        return None
 
     waist    = (x, y - ll)
     shoulder = (waist[0], waist[1] - bl)
@@ -272,7 +823,11 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
     ln(shoulder, la); ln(la, lh)
     ln(shoulder, ra); ln(ra, rh)
     ln(waist, shoulder, 4)
-    circ(head_c[0], head_c[1], hd)
+    if char_name != "Headless Horseman":
+        circ(head_c[0], head_c[1], hd)
+
+    if char_name:
+        draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing, s, col)
 
     if action == 'punch':
         return (int(ra[0] + facing * 10 * s), int(ra[1]))
@@ -795,7 +1350,7 @@ class Fighter:
         self.pending_orb        = False  # bazooka_kick: spawn an orb this frame
         self.bazooka_cooldown   = 0      # 5-second cooldown between orb shots
         self.pending_bounce     = False  # bounce_kick: spawn a bouncing ball this frame
-        self.draw_scale         = 2.0 if char_data.get("giant") else 1.0  # visual + hitbox scale
+        self.draw_scale         = 2.0 if char_data.get("giant") else (0.45 if char_data.get("tiny") else 1.0)
         self._size_state        = 0    # for size_kick: 0=normal, 1=big, 2=small
         self.angle              = 0.0  # visual rotation angle (degrees)
         self.angle_vel          = 0.0  # degrees per frame
@@ -803,6 +1358,8 @@ class Fighter:
         self.wall_cling_active  = False  # Spooderman: currently clinging to a wall
         self.wall_dir           = 0      # -1 = left wall, 1 = right wall
         self.pending_hook       = False  # Hooker: spawn a snake hook this frame
+        self.pending_pumpkin    = False  # Headless Horseman: throw pumpkin this frame
+        self.pumpkin_cooldown   = 0      # cooldown between throws
         self.dash_tap_left      = 0     # frames remaining in double-tap window (left)
         self.dash_tap_right     = 0     # frames remaining in double-tap window (right)
         self.dash_cd            = 0     # cooldown between dashes
@@ -884,6 +1441,8 @@ class Fighter:
             self.shock_frames -= 1
         if self.bazooka_cooldown > 0:
             self.bazooka_cooldown -= 1
+        if self.pumpkin_cooldown > 0:
+            self.pumpkin_cooldown -= 1
         if self.boomerang_timer > 0:
             self.boomerang_timer -= 1
             self.boomerang_angle = (self.boomerang_angle + 0.09) % (2 * math.pi)
@@ -1014,6 +1573,9 @@ class Fighter:
                     self.draw_scale = (1.0, 2.0, 0.55)[self._size_state]
                 if self.char.get("grapple_kick"):
                     self.pending_hook = True
+                if self.char.get("pumpkin_kick") and self.pumpkin_cooldown == 0:
+                    self.pending_pumpkin  = True
+                    self.pumpkin_cooldown = FPS * 3   # 3-second cooldown
             elif keys[ctrl['jump']]:
                 if self.wall_cling_active:
                     # wall jump: push away from wall and launch upward
@@ -1102,10 +1664,14 @@ class Fighter:
             if other.shield:
                 dmg = max(1, int(dmg * 0.5))
             if other.blocking:
+                bsk = other.char.get("block", 5)
+                perfect_p = bsk * 0.025   # block=10 → 25%, block=1 → 2.5%
+                partial_p = bsk * 0.05    # block=10 → 50%, block=1 → 5%
                 r = random.random()
-                if r < 0.10:       dmg = 0              # 10% perfect block
-                elif r < 0.40:     dmg = max(1, dmg // 2)  # 30% partial block
-                # else 60%: block does nothing
+                if r < perfect_p:
+                    dmg = 0
+                elif r < perfect_p + partial_p:
+                    dmg = max(1, dmg // 2)
             other.hp = max(0, other.hp - dmg)
             if self.leech:
                 self.hp = min(self.max_hp, self.hp + 8)
@@ -1138,7 +1704,7 @@ class Fighter:
             cx = tmp_w // 2
             cy = int(tmp_h * 0.72)
             draw_stickman(tmp, cx, cy, self.color, self.facing, self.action, self.action_t,
-                          flash=flash, scale=_scale)
+                          flash=flash, scale=_scale, char_name=self.char["name"])
             rotated = pygame.transform.rotate(tmp, self.angle)
             bx = int(self.x) - rotated.get_width()  // 2
             by = int(self.y) - int(tmp_h * 0.72)    - (rotated.get_height() - tmp_h) // 2
@@ -1150,7 +1716,8 @@ class Fighter:
             pygame.draw.ellipse(surface, (0, 0, 0),
                                 (int(self.x) - _sw//2, int(self.y) - _sh//2, _sw, _sh))
             result = draw_stickman(surface, self.x, self.y, self.color,
-                                   self.facing, self.action, self.action_t, flash=flash, scale=_scale)
+                                   self.facing, self.action, self.action_t, flash=flash, scale=_scale,
+                                   char_name=self.char["name"])
         if self.poison_frames > 0:
             top_y = int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 14
             for i, dx in enumerate((-10, 0, 10)):
@@ -1329,6 +1896,9 @@ class AIFighter(Fighter):
                     if self.char.get("size_kick"):
                         self._size_state = (self._size_state + 1) % 3
                         self.draw_scale = (1.0, 2.0, 0.55)[self._size_state]
+                    if self.char.get("pumpkin_kick") and self.pumpkin_cooldown == 0:
+                        self.pending_pumpkin  = True
+                        self.pumpkin_cooldown = FPS * 3
             self.ai_attack = None
         elif self.ai_move != 0:
             self.x += self.ai_move * self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
@@ -1600,6 +2170,91 @@ class SnakeHook:
         ty2 = hy + int(self.vy / self.SPEED * 13)
         pygame.draw.line(surface, (220, 30, 30), (hx, hy), (tx2 - 3, ty2 + 3), 2)
         pygame.draw.line(surface, (220, 30, 30), (hx, hy), (tx2 + 3, ty2 - 3), 2)
+
+
+# ---------------------------------------------------------------------------
+# Pumpkin projectile (Headless Horseman)
+# ---------------------------------------------------------------------------
+
+class Pumpkin:
+    RADIUS         = 14
+    SPEED_X        = 10
+    LAUNCH_VY      = -13.0
+    EXPLODE_RADIUS = 80
+    EXPLODE_DMG    = 30
+    EXPLODE_DUR    = 24
+
+    def __init__(self, x, y, facing, owner):
+        self.x             = float(x)
+        self.y             = float(y)
+        self.vx            = self.SPEED_X * facing
+        self.vy            = self.LAUNCH_VY
+        self.owner         = owner
+        self.exploding     = False
+        self.explode_timer = 0
+        self.damaged       = False
+        self.alive         = True
+
+    def update(self):
+        if not self.exploding:
+            self.vy += GRAVITY
+            self.x  += self.vx
+            self.y  += self.vy
+            if self.x - self.RADIUS < 0:
+                self.x  = float(self.RADIUS)
+                self.vx =  abs(self.vx) * 0.65
+            elif self.x + self.RADIUS > WIDTH:
+                self.x  = float(WIDTH - self.RADIUS)
+                self.vx = -abs(self.vx) * 0.65
+            if self.y + self.RADIUS >= GROUND_Y:
+                self.y = float(GROUND_Y - self.RADIUS)
+                self._explode()
+        else:
+            self.explode_timer -= 1
+            if self.explode_timer <= 0:
+                self.alive = False
+
+    def _explode(self):
+        self.exploding     = True
+        self.explode_timer = self.EXPLODE_DUR
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 22
+
+    def draw(self, surface):
+        if not self.exploding:
+            cx, cy = int(self.x), int(self.y)
+            r = self.RADIUS
+            pygame.draw.circle(surface, (215, 118, 0), (cx, cy), r)
+            for ridge in range(-1, 2):
+                pygame.draw.arc(surface, (188, 92, 0),
+                                (cx + ridge*int(r*.35) - int(r*.22), cy - r, int(r*.44), r*2),
+                                math.radians(55), math.radians(125), 1)
+            eye_r = max(2, int(r * .22))
+            for eye_off in [-int(r*.32), int(r*.32)]:
+                pygame.draw.polygon(surface, BLACK, [
+                    (cx + eye_off,           cy - int(r*.18)),
+                    (cx + eye_off - eye_r,   cy + eye_r // 2),
+                    (cx + eye_off + eye_r,   cy + eye_r // 2)])
+            mouth_pts = [(cx - int(r*.42) + i*int(r*.21),
+                          cy + int(r*.35) + (int(r*.14) if i % 2 == 0 else 0))
+                         for i in range(5)]
+            pygame.draw.lines(surface, BLACK, False, mouth_pts, max(1, 2))
+            pygame.draw.line(surface, (45, 95, 28), (cx, cy - r), (cx, cy - r - 6), 2)
+        else:
+            prog = 1.0 - self.explode_timer / self.EXPLODE_DUR
+            r_ex = int(self.EXPLODE_RADIUS * prog)
+            w    = max(1, int(8 * (1 - prog)))
+            cx, cy = int(self.x), int(self.y)
+            pygame.draw.circle(surface, (220, 120, 0), (cx, cy), r_ex, w)
+            if r_ex > 12:
+                pygame.draw.circle(surface, (255, 55, 0), (cx, cy), max(1, r_ex - 12), max(1, w - 2))
+            # Pumpkin chunk particles
+            for angle in range(0, 360, 60):
+                a  = math.radians(angle)
+                px = cx + int(math.cos(a) * r_ex * .7)
+                py = cy + int(math.sin(a) * r_ex * .7)
+                pygame.draw.circle(surface, (200, 100, 0), (px, py), max(2, int(4 * (1 - prog))))
 
 
 # ---------------------------------------------------------------------------
@@ -1971,7 +2626,8 @@ def character_select(vs_ai=False):
 
         # Large animated stickman
         sm_y = PY + 155
-        draw_stickman(screen, PX + PW//2, sm_y, detail_ch["color"], 1, 'walk', preview_t, scale=1.15)
+        draw_stickman(screen, PX + PW//2, sm_y, detail_ch["color"], 1, 'walk', preview_t, scale=1.15,
+                      char_name=detail_ch["name"])
 
         # Character name
         nm_big = font_medium.render(detail_ch["name"], True, detail_ch["color"])
@@ -1997,10 +2653,11 @@ def character_select(vs_ai=False):
         bar_h  = 14
         bar_gap = 23
         for si, (lbl, val, mx, col) in enumerate([
-            ("HP",    detail_ch["max_hp"],    400, (60,  210,  80)),
-            ("SPD",   detail_ch["speed"],      10, (80,  170, 255)),
-            ("PUNCH", detail_ch["punch_dmg"],  30, (255, 120,  50)),
-            ("KICK",  detail_ch["kick_dmg"],   30, (255,  60, 180)),
+            ("HP",    detail_ch["max_hp"],              400, (60,  210,  80)),
+            ("SPD",   detail_ch["speed"],                10, (80,  170, 255)),
+            ("PUNCH", detail_ch["punch_dmg"],            30, (255, 120,  50)),
+            ("KICK",  detail_ch["kick_dmg"],             30, (255,  60, 180)),
+            ("BLOCK", detail_ch.get("block", 5),         10, (200, 200,  60)),
         ]):
             by  = bar_y + si * bar_gap
             lbs = font_tiny.render(lbl, True, (180, 180, 180))
@@ -2016,10 +2673,11 @@ def character_select(vs_ai=False):
             screen.blit(vs2, (bx2 + bw2 + 5, by))
 
         # Badges row
-        badge_y = bar_y + 4 * bar_gap + 6
+        badge_y = bar_y + 5 * bar_gap + 6
         badges  = []
         if detail_ch.get("double_jump"):    badges.append(("2x JUMP",      CYAN))
         if detail_ch.get("giant"):          badges.append(("GIANT",         GREEN))
+        if detail_ch.get("tiny"):           badges.append(("TINY",          (220, 200, 180)))
         if detail_ch.get("phase"):          badges.append(("PHASES WALLS",  (200, 200, 255)))
         if detail_ch.get("vampire"):        badges.append(("VAMPIRE",       (200, 0, 80)))
         if detail_ch.get("anti_gravity"):   badges.append(("ANTI-GRAVITY",  (180, 220, 255)))
@@ -2037,6 +2695,7 @@ def character_select(vs_ai=False):
         if detail_ch.get("bounce_kick"):    badges.append(("BOUNCE BALL",   (255, 80, 200)))
         if detail_ch.get("size_kick"):      badges.append(("SIZE SHIFT",    (80, 200, 220)))
         if detail_ch.get("grapple_kick"):   badges.append(("SNAKE HOOK",    (40, 200, 60)))
+        if detail_ch.get("pumpkin_kick"):   badges.append(("PUMPKIN BOMB",  (215, 118, 0)))
         if detail_ch.get("contact_dmg"):    badges.append(("POISON TOUCH",  (100, 220, 60)))
         bx_off = PX + 8
         for btxt, bcol in badges:
@@ -2129,6 +2788,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     orbs         = []   # active Orb objects (bazooka)
     bounce_balls = []   # active BouncingBall objects (Pinball)
     hooks        = []   # active SnakeHook objects (Hooker)
+    pumpkins     = []   # active Pumpkin objects (Headless Horseman)
     spawn_timer  = 300   # first spawn after 5 seconds
     is_jungle    = stage_data["name"] == "Jungle"
     jungle_snakes      = []
@@ -2273,6 +2933,27 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         h.alive = False
             hooks = [h for h in hooks if h.alive]
 
+            # Pumpkins (Headless Horseman)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_pumpkin:
+                    shooter.pending_pumpkin = False
+                    pumpkins.append(Pumpkin(
+                        shooter.x + shooter.facing * 24, shooter.y - 80,
+                        shooter.facing, shooter))
+            for pk in pumpkins:
+                pk.update()
+                if pk.exploding and not pk.damaged:
+                    pk.damaged = True
+                    victim = p2 if pk.owner is p1 else p1
+                    if math.hypot(pk.x - victim.x, pk.y - (victim.y - 60)) < pk.EXPLODE_RADIUS:
+                        victim.hp = max(0, victim.hp - pk.EXPLODE_DMG)
+                        victim.flash_timer = 14
+                elif not pk.exploding and not pk.damaged:
+                    victim = p2 if pk.owner is p1 else p1
+                    if pk.collides(victim):
+                        pk._explode()
+            pumpkins = [pk for pk in pumpkins if pk.alive]
+
             # Jungle snakes
             if is_jungle:
                 snake_spawn_timer -= 1
@@ -2338,6 +3019,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             bb.draw(screen)
         for h in hooks:
             h.draw(screen)
+        for pk in pumpkins:
+            pk.draw(screen)
         for sn in jungle_snakes:
             sn.draw(screen)
         # Draw magnet beams from powerups to any Magician fighter
@@ -2459,9 +3142,11 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     orbs              = []   # Orb (bazooka_kick)
     bounce_balls      = []   # BouncingBall (bounce_kick)
     hooks             = []   # SnakeHook (grapple_kick)
+    pumpkins          = []   # Pumpkin (pumpkin_kick)
     en_balls          = []
     en_orbs           = []
     en_bounce_balls   = []
+    en_pumpkins       = []
     powerups          = []
     jungle_snakes     = []
     survival_timer    = 0
@@ -2583,11 +3268,21 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         en.pending_bounce = False
                         en_bounce_balls.append(BouncingBall(en.x + en.facing*30, en.y-60, en.facing, en))
 
-            # Update players
+            # Mark newly dead players and freeze them
+            for p in players:
+                if p.hp <= 0 and p.action != 'dead':
+                    p.action     = 'dead'
+                    p.action_t   = 0
+                    p.flash_timer = 0
+                    p.vx = 0
+                    p.vy = 0
+
+            # Update players (skip dead ones)
             keys     = pygame.key.get_pressed()
             other_p1 = p2 if two_player else (enemies[0] if enemies else p1)
-            p1.update(keys, other_p1, platforms)
-            if two_player:
+            if p1.hp > 0:
+                p1.update(keys, other_p1, platforms)
+            if two_player and p2.hp > 0:
                 p2.update(keys, p1, platforms)
 
             # Spawn player projectiles
@@ -2706,6 +3401,45 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             bb.hit_cd = BouncingBall.HIT_CD; break
             en_bounce_balls = [bb for bb in en_bounce_balls if bb.alive]
 
+            # Player pumpkins → enemies
+            for shooter in players:
+                if shooter.pending_pumpkin:
+                    shooter.pending_pumpkin = False
+                    pumpkins.append(Pumpkin(
+                        shooter.x + shooter.facing * 24, shooter.y - 80,
+                        shooter.facing, shooter))
+            for pk in pumpkins:
+                pk.update()
+                if pk.exploding and not pk.damaged:
+                    pk.damaged = True
+                    for en in enemies:
+                        if math.hypot(pk.x - en.x, pk.y - (en.y - 60)) < pk.EXPLODE_RADIUS:
+                            en.hp = max(0, en.hp - pk.EXPLODE_DMG); en.flash_timer = 14
+                elif not pk.exploding and not pk.damaged:
+                    for en in enemies:
+                        if pk.collides(en):
+                            pk._explode(); break
+            pumpkins = [pk for pk in pumpkins if pk.alive]
+
+            # Enemy pumpkins → players
+            for en in enemies:
+                if en.pending_pumpkin:
+                    en.pending_pumpkin = False
+                    en_pumpkins.append(Pumpkin(
+                        en.x + en.facing * 24, en.y - 80, en.facing, en))
+            for pk in en_pumpkins:
+                pk.update()
+                if pk.exploding and not pk.damaged:
+                    pk.damaged = True
+                    for p in living:
+                        if math.hypot(pk.x - p.x, pk.y - (p.y - 60)) < pk.EXPLODE_RADIUS:
+                            p.hp = max(0, p.hp - pk.EXPLODE_DMG); p.flash_timer = 14
+                elif not pk.exploding and not pk.damaged:
+                    for p in living:
+                        if pk.collides(p):
+                            pk._explode(); break
+            en_pumpkins = [pk for pk in en_pumpkins if pk.alive]
+
             # Death pops: spawn burst when enemy hp hits 0, then remove enemy
             for en in enemies:
                 if en.hp <= 0:
@@ -2734,17 +3468,31 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         sn.update(closest, closest)
                 jungle_snakes = [sn for sn in jungle_snakes if sn.alive]
 
-            # Powerups
+            # Powerups (no clone type in survival)
+            _survival_pool = [p for p in POWERUPS if p['type'] != 'clone']
             powerup_timer -= 1
             if powerup_timer <= 0 and len(powerups) < 3:
-                powerups.append(Powerup())
+                pu_new = Powerup.__new__(Powerup)
+                pu_new.spec = random.choice(_survival_pool)
+                pu_new.name = pu_new.spec['name']
+                pu_new.color = pu_new.spec['color']
+                pu_new.x = float(random.randint(80, WIDTH - 80))
+                pu_new.y = float(GROUND_Y - 14)
+                pu_new.age = 0
+                pu_new.picked_up = False
+                powerups.append(pu_new)
                 powerup_timer = random.randint(480, 720)
             for pu in powerups:
                 pu.update()
                 for p in players:
-                    if not pu.picked_up and pu.collides(p) and pu.spec['type'] != 'clone':
+                    if p.hp > 0 and not pu.picked_up and pu.collides(p):
                         p.apply_powerup(pu.spec)
                         pu.picked_up = True; break
+                if not pu.picked_up:
+                    for en in enemies:
+                        if pu.collides(en):
+                            en.apply_powerup(pu.spec)
+                            pu.picked_up = True; break
             powerups = [pu for pu in powerups if not pu.picked_up]
 
             # Game over when all players dead
@@ -2763,6 +3511,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for bb   in bounce_balls:  bb.draw(screen)
         for bb   in en_bounce_balls: bb.draw(screen)
         for h    in hooks:         h.draw(screen)
+        for pk   in pumpkins:      pk.draw(screen)
+        for pk   in en_pumpkins:   pk.draw(screen)
         for sn   in jungle_snakes: sn.draw(screen)
 
         # Death burst particles
@@ -2809,6 +3559,9 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                                int(en.y) - HEAD_R*2 - NECK_LEN - BODY_LEN - LEG_LEN - 22))
 
         _draw_survival_hud()
+        draw_active_powerups(screen, p1, 'left')
+        if two_player:
+            draw_active_powerups(screen, p2, 'right')
         if game_over:
             _draw_game_over()
 
