@@ -859,47 +859,62 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
 
 
 STAGES = [
-    # Grasslands: stepped hillside — wide low left, medium right, wide slow mover up top
+    # Grasslands
     {"name": "Grasslands", "platforms": [
         (60,  GROUND_Y-90,  200, 0,   0),
         (640, GROUND_Y-140, 140, 0,   0),
         (310, GROUND_Y-215, 210, 1.5, 140),
     ], "springs": [
-        (310, -22), (620, -22),   # two normal springs
+        (310, -22), (620, -22),
+    ], "conveyors": [
+        (50,  GROUND_Y, 180, 2.5),
+        (650, GROUND_Y, 180, -2.5),
     ]},
-    # Volcano: all platforms move, narrow center pillar is static and high
+    # Volcano
     {"name": "Volcano", "platforms": [
         (70,  GROUND_Y-120, 130, 2,   80),
         (630, GROUND_Y-150, 120, -2,  70),
         (395, GROUND_Y-240, 100, 0,   0),
     ], "springs": [
-        (450, -30),   # one super-launch spring (blast off like lava)
+        (450, -30),
+    ], "conveyors": [
+        (80,  GROUND_Y, 200, 3.5),
+        (600, GROUND_Y, 200, -3.5),
     ]},
-    # Dojo: symmetric sides at the same height, fast mover in center
+    # Dojo
     {"name": "Dojo", "platforms": [
         (50,  GROUND_Y-115, 155, 0,   0),
         (695, GROUND_Y-115, 155, 0,   0),
         (355, GROUND_Y-205, 145, 2.5, 100),
     ], "springs": [
-        (230, -22), (670, -22),   # symmetric springs matching dojo layout
+        (230, -22), (670, -22),
+    ], "conveyors": [
+        (200, GROUND_Y, 200, -2.0),
+        (500, GROUND_Y, 200,  2.0),
     ]},
-    # Desert: two wide low dunes (static), one slow wide drifter
+    # Desert
     {"name": "Desert", "platforms": [
         (80,  GROUND_Y-75,  220, 0,   0),
         (590, GROUND_Y-110, 190, 0,   0),
         (330, GROUND_Y-185, 180, 1,   160),
     ], "springs": [
-        (180, -20), (450, -20), (720, -20),   # three weak springs spread across open desert
+        (180, -20), (450, -20), (720, -20),
+    ], "conveyors": [
+        (50,  GROUND_Y, 260, 1.8),
+        (570, GROUND_Y, 260, -1.8),
     ]},
-    # Arena: all three platforms move, two springs for chaos
+    # Arena
     {"name": "Arena", "platforms": [
         (80,  GROUND_Y-110, 140, 2,   120),
         (620, GROUND_Y-110, 140, -2,  120),
         (350, GROUND_Y-210, 160, 3,   160),
     ], "springs": [
         (250, -24), (640, -24),
+    ], "conveyors": [
+        (50,  GROUND_Y, 350, 3.0),
+        (500, GROUND_Y, 350, -3.0),
     ]},
-    # Dream Land: 4 static cloud platforms, 6 springs everywhere
+    # Dream Land
     {"name": "Dream Land", "platforms": [
         (55,  GROUND_Y-95,  175, 0,   0),
         (670, GROUND_Y-95,  175, 0,   0),
@@ -908,8 +923,11 @@ STAGES = [
     ], "springs": [
         (80,  -22), (235, -22), (390, -22),
         (530, -22), (680, -22), (820, -22),
+    ], "conveyors": [
+        (60,  GROUND_Y, 160, 1.5),
+        (680, GROUND_Y, 160, -1.5),
     ]},
-    # Underworld: 2 static stone ledges + 2 slow drifters, 3 springs
+    # Underworld
     {"name": "Underworld", "platforms": [
         (55,  GROUND_Y-105, 165, 0,   0),
         (680, GROUND_Y-105, 165, 0,   0),
@@ -917,29 +935,41 @@ STAGES = [
         (495, GROUND_Y-175, 135, -1.5,110),
     ], "springs": [
         (200, -22), (450, -22), (700, -22),
+    ], "conveyors": [
+        (50,  GROUND_Y, 220, -2.5),
+        (620, GROUND_Y, 220,  2.5),
     ]},
-    # Space: 3 drifting asteroid platforms, 2 launch pads
+    # Space
     {"name": "Space", "platforms": [
         (80,  GROUND_Y-120, 150, 1.5, 110),
         (630, GROUND_Y-120, 150, -1.5,110),
         (355, GROUND_Y-230, 130, 2.5, 100),
     ], "springs": [
         (280, -26), (620, -26),
+    ], "conveyors": [
+        (60,  GROUND_Y, 200, 2.0),
+        (640, GROUND_Y, 200, -2.0),
     ]},
-    # Jungle: tangled canopy, two tree-trunk platforms and a vine bridge
+    # Jungle
     {"name": "Jungle", "platforms": [
         (55,  GROUND_Y-110, 175, 0,   0),
         (670, GROUND_Y-110, 175, 0,   0),
         (340, GROUND_Y-210, 150, 1.2, 120),
     ], "springs": [
         (450, -22),
+    ], "conveyors": [
+        (50,  GROUND_Y, 240, 2.2),
+        (600, GROUND_Y, 240, -2.2),
     ]},
-    # Computer: circuit-board ground, keyboard-key platforms, roaming mouse platform
+    # Computer
     {"name": "Computer", "platforms": [
         (60,  GROUND_Y-105, 160, 0,   0),
         (680, GROUND_Y-105, 160, 0,   0),
         (330, GROUND_Y-200, 140, 1.5, 120),
-    ], "springs": []},
+    ], "springs": [], "conveyors": [
+        (50,  GROUND_Y, 200, 2.8),
+        (640, GROUND_Y, 200, -2.8),
+    ]},
 ]
 
 # Stage-specific character advantages and disadvantages.
@@ -1560,6 +1590,8 @@ class Fighter:
                     self.y = plat.y
                     self.vy = 0
                     self.x += plat.vx
+                    if isinstance(plat, ConveyorBelt):
+                        self.x += plat.speed
                     landed = True
                     break
         if landed:
@@ -1907,6 +1939,8 @@ class AIFighter(Fighter):
                     self.y = plat.y
                     self.vy = 0
                     self.x += plat.vx
+                    if isinstance(plat, ConveyorBelt):
+                        self.x += plat.speed
                     landed = True
                     break
         if landed:
@@ -2289,6 +2323,43 @@ class DrawnPlatform:
         bright = int(220 * ratio)
         pygame.draw.line(surface, (bright, bright, 20),
                          (rx, ry), (int(rx + self.w * ratio), ry), 2)
+
+
+class ConveyorBelt:
+    H = 16
+
+    def __init__(self, x, y, w, speed):
+        self.x     = float(x)
+        self.y     = float(y)
+        self.w     = w
+        self.vx    = 0.0          # belt itself doesn't move
+        self.speed = speed        # push speed applied to players
+        self.anim  = 0
+
+    def update(self):
+        self.anim = (self.anim + 1) % 30
+
+    def draw(self, surface, stage_idx=0):
+        rx, ry = int(self.x), int(self.y)
+        # Dark body
+        pygame.draw.rect(surface, (40, 40, 40), (rx, ry, self.w, self.H), border_radius=3)
+        # Yellow-black hazard stripes underneath
+        stripe_w = 14
+        for sx in range(0, self.w, stripe_w * 2):
+            pygame.draw.rect(surface, (220, 180, 0),
+                             (rx + sx, ry + self.H - 5, stripe_w, 5))
+        # Scrolling arrows on top indicating direction
+        arrow_char = ">" if self.speed > 0 else "<"
+        spacing = 22
+        offset  = int(self.anim / 30 * spacing * (1 if self.speed > 0 else -1)) % spacing
+        for ax in range(-spacing, self.w + spacing, spacing):
+            draw_x = rx + ax + offset
+            if rx - 4 <= draw_x <= rx + self.w - 4:
+                col = (255, 220, 0) if abs(self.speed) > 2 else (200, 200, 60)
+                a = font_tiny.render(arrow_char, True, col)
+                surface.blit(a, (draw_x, ry + 1))
+        # Border
+        pygame.draw.rect(surface, (180, 140, 0), (rx, ry, self.w, self.H), 2, border_radius=3)
 
 
 class Spring:
@@ -3118,7 +3189,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
         p2 = Fighter(700, CHARACTERS[p2_idx], -1, P2_CTRL)
 
     stage_data = STAGES[stage_idx % len(STAGES)]
-    platforms  = [Platform(*p) for p in stage_data["platforms"]]
+    platforms  = [Platform(*p) for p in stage_data["platforms"]] + [ConveyorBelt(*c) for c in stage_data.get("conveyors", [])]
     springs    = [Spring(*s)   for s in stage_data["springs"]]
 
     # Apply stage advantage / disadvantage stat modifiers
