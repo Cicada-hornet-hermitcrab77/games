@@ -3042,6 +3042,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         GRAVITY = _orig_gravity; return 'select'
 
         if not game_over:
+            p1_hit = None
+            p2_hit = None
             for plat in platforms:
                 plat.update()
             for sp in springs:
@@ -3208,7 +3210,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if bug_spawn_timer <= 0 and len(computer_bugs) < 5:
                     computer_bugs.append(ComputerBug())
                     bug_spawn_timer = random.randint(200, 360)
-                near_p1 = min([p1, p2], key=lambda p: abs(p.x - b.x)) if computer_bugs else None
+                near_p1 = (min([p1, p2], key=lambda p: abs(p.x - computer_bugs[0].x))
+                           if computer_bugs else None)
                 for b in computer_bugs:
                     target = min([p1, p2], key=lambda p: abs(p.x - b.x))
                     b.update(target)
@@ -3296,6 +3299,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
         clone_draws = [(cd, cd['fighter'].draw(screen)) for cd in clones]
 
         if not game_over:
+            p1_hit = None
+            p2_hit = None
             if p1.attacking and not p1.attack_hit:
                 p1.check_hit(p1_hit, p2)
             if p2.attacking and not p2.attack_hit:
@@ -3497,6 +3502,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         GRAVITY = _orig_gravity; return 'select'
 
         if not game_over:
+            p1_hit = None
+            p2_hit = None
             survival_timer += 1
             max_en, diff = wave_info()
 
@@ -3834,6 +3841,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         en_hits = [(en, en.draw(screen)) for en in enemies]
 
         if not game_over:
+            p1_hit = None
+            p2_hit = None
             # Player attacks hit enemies
             for attacker, hit_pos in ([(p1, p1_hit)] + ([(p2, p2_hit)] if two_player else [])):
                 if attacker.attacking and not attacker.attack_hit and hit_pos:
