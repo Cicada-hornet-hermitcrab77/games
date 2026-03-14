@@ -1134,57 +1134,49 @@ def draw_bg(surface, stage_idx=0):
         pygame.draw.rect(surface, (25, 60, 10), (0, GROUND_Y + 22, WIDTH, HEIGHT - GROUND_Y))
         pygame.draw.line(surface, (50, 130, 20), (0, GROUND_Y + 2), (WIDTH, GROUND_Y + 2), 3)
 
-    elif s == 9:  # Computer
-        surface.fill((6, 8, 14))
-        # Circuit board grid
-        grid_col = (0, 38, 18)
-        for gx in range(0, WIDTH + 1, 48):
-            pygame.draw.line(surface, grid_col, (gx, 0), (gx, HEIGHT), 1)
-        for gy in range(0, HEIGHT + 1, 48):
-            pygame.draw.line(surface, grid_col, (0, gy), (WIDTH, gy), 1)
-        # Circuit traces (horizontal)
-        for tx, ty, tw in [(0, 80, 260), (320, 130, 180), (600, 80, 300),
-                           (50, 220, 200), (400, 260, 220), (700, 200, 180),
-                           (0, 320, 150), (500, 340, 280)]:
-            pygame.draw.line(surface, (0, 80, 40), (tx, ty), (tx + tw, ty), 2)
-            pygame.draw.circle(surface, (0, 120, 60), (tx, ty), 4)
-            pygame.draw.circle(surface, (0, 120, 60), (tx + tw, ty), 4)
-        # Circuit traces (vertical connectors)
-        for vx, vy1, vy2 in [(260, 80, 220), (520, 130, 260), (150, 220, 340), (700, 80, 200)]:
-            pygame.draw.line(surface, (0, 80, 40), (vx, vy1), (vx, vy2), 2)
-        # Component chips
-        for cx2, cy2, cw2, ch2 in [(100, 140, 60, 28), (440, 180, 80, 28),
-                                    (660, 260, 60, 24), (230, 290, 70, 24)]:
-            pygame.draw.rect(surface, (20, 40, 30), (cx2, cy2, cw2, ch2), border_radius=3)
-            pygame.draw.rect(surface, (0, 100, 50), (cx2, cy2, cw2, ch2), 1, border_radius=3)
-            for pi in range(4):
-                pygame.draw.line(surface, (0, 80, 40),
-                                 (cx2 + pi * (cw2 // 4) + 6, cy2),
-                                 (cx2 + pi * (cw2 // 4) + 6, cy2 - 6), 2)
-                pygame.draw.line(surface, (0, 80, 40),
-                                 (cx2 + pi * (cw2 // 4) + 6, cy2 + ch2),
-                                 (cx2 + pi * (cw2 // 4) + 6, cy2 + ch2 + 6), 2)
-        # Falling matrix rain (deterministic via step)
+    elif s == 9:  # Computer — desktop screen
+        # Wallpaper gradient (light blue sky)
+        for gy in range(HEIGHT):
+            t = gy / HEIGHT
+            r = int(30  + t * 80)
+            g = int(100 + t * 60)
+            b = int(180 + t * 40)
+            pygame.draw.line(surface, (r, g, b), (0, gy), (WIDTH, gy))
+        # Desktop icons (folder-style)
+        for ix, iy, ic in [(60, 60, (255, 200, 60)), (130, 60, (80, 160, 255)),
+                           (200, 60, (255, 100, 80)), (60, 130, (120, 220, 120)),
+                           (130, 130, (200, 80, 220))]:
+            pygame.draw.rect(surface, ic, (ix, iy, 36, 30), border_radius=3)
+            pygame.draw.rect(surface, (255, 255, 255), (ix, iy, 36, 30), 1, border_radius=3)
+            pygame.draw.rect(surface, ic, (ix, iy - 10, 18, 12), border_radius=2)  # folder tab
+            lbl = font_tiny.render("File", True, (240, 240, 240))
+            surface.blit(lbl, (ix + 18 - lbl.get_width()//2, iy + 32))
+        # Browser window in background
+        wx, wy, ww, wh = 280, 40, 360, 200
+        pygame.draw.rect(surface, (220, 220, 220), (wx, wy, ww, wh), border_radius=4)
+        pygame.draw.rect(surface, (180, 180, 180), (wx, wy, ww, wh), 2, border_radius=4)
+        pygame.draw.rect(surface, (60, 120, 200), (wx, wy, ww, 24), border_radius=4)  # title bar
+        for btn_x, btn_col in [(wx+ww-14, (255,80,80)), (wx+ww-32,(255,200,60)), (wx+ww-50,(80,200,80))]:
+            pygame.draw.circle(surface, btn_col, (btn_x, wy+12), 7)
+        pygame.draw.rect(surface, (245, 245, 250), (wx+4, wy+28, ww-8, wh-32))
+        pygame.draw.rect(surface, (200, 200, 200), (wx+4, wy+28, ww-8, 18))  # URL bar
+        for line_y in range(wy+56, wy+wh-8, 14):
+            lw = 280 if line_y % 28 == 0 else 180
+            pygame.draw.rect(surface, (200, 210, 220), (wx+8, line_y, lw, 8), border_radius=2)
+        # Taskbar
+        pygame.draw.rect(surface, (30, 30, 30), (0, GROUND_Y + 2, WIDTH, HEIGHT - GROUND_Y - 2))
+        pygame.draw.line(surface, (80, 80, 80), (0, GROUND_Y + 2), (WIDTH, GROUND_Y + 2), 2)
+        # Start button
+        pygame.draw.rect(surface, (0, 120, 212), (4, GROUND_Y + 6, 60, HEIGHT - GROUND_Y - 10), border_radius=3)
+        st = font_tiny.render("Start", True, WHITE)
+        surface.blit(st, (8, GROUND_Y + 8))
+        # Taskbar icons
+        for ti, tc in enumerate([(255,80,80),(80,180,255),(255,200,60)]):
+            pygame.draw.rect(surface, tc, (72 + ti*36, GROUND_Y + 7, 28, HEIGHT - GROUND_Y - 12), border_radius=2)
+        # Clock
         import time as _t
-        _step = int(_t.time() * 8) % 48
-        for col_i, col_x in enumerate(range(0, WIDTH, 24)):
-            seed = (col_i * 137 + _step * 31) % 400
-            if seed < 80:
-                drop_y = (seed * 5 + _step * 4) % GROUND_Y
-                bright = max(60, 220 - seed * 2)
-                char_surf = font_tiny.render(str(seed % 10), True, (0, bright, bright // 2))
-                surface.blit(char_surf, (col_x, drop_y))
-                trail_col = (0, bright // 3, bright // 6)
-                for ti in range(1, 4):
-                    ts = font_tiny.render(str((seed + ti) % 10), True, trail_col)
-                    surface.blit(ts, (col_x, drop_y - ti * 16))
-        # Screen monitor bezel border
-        pygame.draw.rect(surface, (0, 60, 30), (0, 0, WIDTH, HEIGHT), 6)
-        # Ground — circuit board floor
-        pygame.draw.rect(surface, (10, 30, 15), (0, GROUND_Y + 2, WIDTH, HEIGHT - GROUND_Y - 2))
-        for gfx in range(0, WIDTH, 32):
-            pygame.draw.line(surface, (0, 70, 35), (gfx, GROUND_Y + 2), (gfx, GROUND_Y + 2 + 8), 1)
-        pygame.draw.line(surface, (0, 200, 80), (0, GROUND_Y + 2), (WIDTH, GROUND_Y + 2), 2)
+        clk = font_tiny.render(_t.strftime("%H:%M"), True, (220, 220, 220))
+        surface.blit(clk, (WIDTH - clk.get_width() - 8, GROUND_Y + 8))
 
 
 def draw_health_bars(surface, p1, p2):
@@ -2686,27 +2678,23 @@ class MousePlatform:
 
     def draw(self, surface, _stage_idx=0):
         rx, ry = int(self.x), int(self.y)
-        mw, mh = self.W, 36
-        # Mouse body (rounded rectangle)
-        pygame.draw.rect(surface, (55, 55, 68), (rx, ry - mh + self.H, mw, mh), border_radius=12)
-        pygame.draw.rect(surface, (90, 90, 110), (rx, ry - mh + self.H, mw, mh), 2, border_radius=12)
-        # Left / right button divide
-        mid_x = rx + mw // 2
-        pygame.draw.line(surface, (90, 90, 110), (mid_x, ry - mh + self.H), (mid_x, ry - mh + self.H + 16), 1)
-        # Scroll wheel
-        wx2 = mid_x - 5
-        pygame.draw.rect(surface, (110, 110, 130), (wx2, ry - mh + self.H + 3, 10, 13), border_radius=3)
-        pygame.draw.rect(surface, (160, 160, 180), (wx2, ry - mh + self.H + 3, 10, 13), 1, border_radius=3)
-        # Cord trailing behind (wiggles with position)
-        cord_bx = rx + mw // 2
-        cord_by = ry - mh + self.H + mh
-        for i in range(5):
-            t1, t2 = i / 5, (i + 1) / 5
-            cx1 = cord_bx + int(math.sin(t1 * math.pi + self.x * 0.04) * 14)
-            cy1 = cord_by + int(t1 * 28)
-            cx2 = cord_bx + int(math.sin(t2 * math.pi + self.x * 0.04) * 14)
-            cy2 = cord_by + int(t2 * 28)
-            pygame.draw.line(surface, (70, 70, 80), (cx1, cy1), (cx2, cy2), 2)
+        # Draw as a large cursor arrow pointer (NW-pointing)
+        # Tip at top-left; flat base at ry (platform surface)
+        H = 52  # cursor height
+        tx, ty = rx + 8, ry - H   # tip position
+        # Classic cursor polygon: tip → left-edge down → inner notch → handle bottom → handle top → upper-right
+        pts = [
+            (tx,          ty),          # tip
+            (tx,          ry - 6),      # left edge bottom
+            (tx + 18,     ry - 22),     # inner notch
+            (tx + 24,     ry),          # handle bottom-left (platform surface)
+            (tx + 38,     ry),          # handle bottom-right
+            (tx + 32,     ry - 26),     # inner notch right
+            (tx + H - 4,  ty),          # upper-right
+        ]
+        pts = [(int(x), int(y)) for x, y in pts]
+        pygame.draw.polygon(surface, (248, 248, 248), pts)
+        pygame.draw.polygon(surface, (10, 10, 10), pts, 2)
 
 
 # ---------------------------------------------------------------------------
