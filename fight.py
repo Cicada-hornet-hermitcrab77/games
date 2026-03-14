@@ -3215,14 +3215,6 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 for b in computer_bugs:
                     target = min([p1, p2], key=lambda p: abs(p.x - b.x))
                     b.update(target)
-                # Fighter attacks kill bugs
-                for attacker, hit_pos in [(p1, p1_hit), (p2, p2_hit)]:
-                    if attacker.attacking and hit_pos:
-                        for b in computer_bugs:
-                            if math.hypot(hit_pos[0]-b.x, hit_pos[1]-(b.y-8)) < 40:
-                                dmg = (attacker.char["punch_dmg"] if attacker.action=='punch'
-                                       else attacker.char["kick_dmg"])
-                                b.take_damage(dmg)
                 computer_bugs = [b for b in computer_bugs if b.alive]
 
             timer -= 1
@@ -3313,6 +3305,15 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             dmg = (attacker.char["punch_dmg"] if attacker.action == 'punch'
                                    else attacker.char["kick_dmg"])
                             sn.take_damage(dmg)
+            # Fighter attacks hit computer bugs
+            if is_computer:
+                for attacker, hit_pos in [(p1, p1_hit), (p2, p2_hit)]:
+                    if attacker.attacking and hit_pos:
+                        for b in computer_bugs:
+                            if math.hypot(hit_pos[0]-b.x, hit_pos[1]-(b.y-8)) < 40:
+                                dmg = (attacker.char["punch_dmg"] if attacker.action=='punch'
+                                       else attacker.char["kick_dmg"])
+                                b.take_damage(dmg)
             for cd, cf_hit in clone_draws:
                 cf = cd['fighter']
                 # clone attacks its target (ink clones can't attack)
