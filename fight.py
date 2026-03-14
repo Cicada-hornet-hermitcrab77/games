@@ -172,6 +172,12 @@ CHARACTERS = [
     {"name": "Ink Brush", "color": (20, 20, 40), "speed": 6, "jump": -14,
      "punch_dmg": 10, "kick_dmg": 12, "max_hp": 110, "block": 6,
      "desc": "Kick spawns a moving clone that distracts enemies", "double_jump": True, "ink_kick": True},
+    {"name": "Pencil", "color": (245, 220, 50), "speed": 6, "jump": -14,
+     "punch_dmg": 9, "kick_dmg": 11, "max_hp": 105, "block": 5,
+     "desc": "Kick draws a temporary platform", "double_jump": True, "pencil_kick": True},
+    {"name": "Eraser", "color": (240, 160, 150), "speed": 5, "jump": -13,
+     "punch_dmg": 11, "kick_dmg": 13, "max_hp": 115, "block": 6,
+     "desc": "Kick erases nearby platforms", "double_jump": False, "eraser_kick": True},
 ]
 
 POWERUPS = [
@@ -724,6 +730,41 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                      for i in range(5)]
         pygame.draw.lines(surface, BLACK, False, mouth_pts, max(1, int(2*s)))
         pygame.draw.line(surface, (45, 95, 28), (rhx, rhy - pr), (rhx, rhy - pr - int(7*s)), max(2, int(3*s)))  # stem
+
+    elif char_name == "Pencil":
+        # Yellow hexagonal pencil body in forward hand, pointing downward
+        px, py = rhx, rhy
+        body_h = int(32 * s)
+        tip_h  = int(10 * s)
+        pw     = max(5, int(7 * s))
+        # Pencil body (yellow rectangle)
+        pygame.draw.rect(surface, (245, 220, 50), (px - pw, py - body_h, pw*2, body_h))
+        pygame.draw.rect(surface, (180, 140, 20), (px - pw, py - body_h, pw*2, body_h), 1)
+        # Pink eraser at top
+        pygame.draw.rect(surface, (240, 130, 130), (px - pw, py - body_h - int(7*s), pw*2, int(7*s)))
+        # Silver ferrule (band)
+        pygame.draw.rect(surface, (180, 180, 180), (px - pw, py - body_h, pw*2, int(4*s)))
+        # Wood cone tip
+        pygame.draw.polygon(surface, (210, 170, 100), [
+            (px - pw, py), (px + pw, py), (px, py + tip_h)])
+        # Graphite point
+        pygame.draw.polygon(surface, (50, 50, 50), [
+            (px - int(pw*.4), py + int(tip_h*.5)),
+            (px + int(pw*.4), py + int(tip_h*.5)),
+            (px, py + tip_h)])
+
+    elif char_name == "Eraser":
+        # Pink rectangular eraser block in forward hand
+        ew, eh = max(6, int(20*s)), max(4, int(12*s))
+        ex, ey = rhx - ew//2, rhy - eh
+        pygame.draw.rect(surface, (240, 160, 150), (ex, ey, ew, eh), border_radius=2)
+        pygame.draw.rect(surface, (180, 80, 80),   (ex, ey, ew, eh), 1, border_radius=2)
+        # Blue label stripe
+        stripe_h = max(2, int(4*s))
+        pygame.draw.rect(surface, (80, 120, 220), (ex, ey + (eh - stripe_h)//2, ew, stripe_h))
+        # Eraser dust specks below
+        for dx, dy in [(-int(6*s), int(4*s)), (int(2*s), int(7*s)), (int(5*s), int(3*s))]:
+            pygame.draw.circle(surface, (240, 160, 150), (rhx+dx, rhy+dy), max(1, int(2*s)))
 
     elif char_name == "Ink Brush":
         # Black beret
@@ -1433,8 +1474,12 @@ class Fighter:
         self.pending_hook       = False  # Hooker: spawn a snake hook this frame
         self.pending_pumpkin    = False  # Headless Horseman: throw pumpkin this frame
         self.pumpkin_cooldown   = 0      # cooldown between throws
-        self.pending_ink_clone  = False  # Ink Brush: spawn a clone this frame
-        self.ink_clone_cooldown = 0      # cooldown between clones
+        self.pending_ink_clone       = False  # Ink Brush: spawn a clone this frame
+        self.ink_clone_cooldown      = 0      # cooldown between clones
+        self.pending_draw_platform   = False  # Pencil: draw a platform this frame
+        self.draw_platform_cooldown  = 0      # cooldown between draws
+        self.pending_erase           = False  # Eraser: erase nearby platforms this frame
+        self.erase_cooldown          = 0      # cooldown between erases
         self.dash_tap_left      = 0     # frames remaining in double-tap window (left)
         self.dash_tap_right     = 0     # frames remaining in double-tap window (right)
         self.dash_cd            = 0     # cooldown between dashes
@@ -1520,6 +1565,10 @@ class Fighter:
             self.pumpkin_cooldown -= 1
         if self.ink_clone_cooldown > 0:
             self.ink_clone_cooldown -= 1
+        if self.draw_platform_cooldown > 0:
+            self.draw_platform_cooldown -= 1
+        if self.erase_cooldown > 0:
+            self.erase_cooldown -= 1
         if self.boomerang_timer > 0:
             self.boomerang_timer -= 1
             self.boomerang_angle = (self.boomerang_angle + 0.09) % (2 * math.pi)
@@ -1656,6 +1705,12 @@ class Fighter:
                 if self.char.get("ink_kick") and self.ink_clone_cooldown == 0:
                     self.pending_ink_clone  = True
                     self.ink_clone_cooldown = FPS * 5  # 5-second cooldown
+                if self.char.get("pencil_kick") and self.draw_platform_cooldown == 0:
+                    self.pending_draw_platform  = True
+                    self.draw_platform_cooldown = FPS * 4
+                if self.char.get("eraser_kick") and self.erase_cooldown == 0:
+                    self.pending_erase  = True
+                    self.erase_cooldown = FPS * 2
             elif keys[ctrl['jump']]:
                 if self.wall_cling_active:
                     # wall jump: push away from wall and launch upward
@@ -1984,6 +2039,12 @@ class AIFighter(Fighter):
                     if self.char.get("ink_kick") and self.ink_clone_cooldown == 0:
                         self.pending_ink_clone  = True
                         self.ink_clone_cooldown = FPS * 5
+                    if self.char.get("pencil_kick") and self.draw_platform_cooldown == 0:
+                        self.pending_draw_platform  = True
+                        self.draw_platform_cooldown = FPS * 4
+                    if self.char.get("eraser_kick") and self.erase_cooldown == 0:
+                        self.pending_erase  = True
+                        self.erase_cooldown = FPS * 2
             self.ai_attack = None
         elif self.ai_move != 0:
             self.x += self.ai_move * self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
@@ -2136,6 +2197,46 @@ class Platform:
         if self.vx:  # moving platform: dashed top stripe
             for dx in range(4, self.w - 4, 12):
                 pygame.draw.rect(surface, WHITE, (rx + dx, ry + 2, 6, 3))
+
+
+class DrawnPlatform:
+    """Temporary platform drawn by the Pencil character."""
+    H = 14
+
+    def __init__(self, x, y, w=120):
+        self.x      = float(x)
+        self.y      = float(y)
+        self.w      = w
+        self.vx     = 0.0
+        self.alive  = True
+        self.max_t  = FPS * 9
+        self.timer  = self.max_t
+
+    def update(self):
+        self.timer -= 1
+        if self.timer <= 0:
+            self.alive = False
+
+    def draw(self, surface, _stage_idx=0):
+        if not self.alive:
+            return
+        rx, ry = int(self.x), int(self.y)
+        ratio = self.timer / self.max_t
+        alpha = int(255 * ratio)
+        col   = (max(20, int(80 * ratio)), max(20, int(60 * ratio)), 10)
+        # Sketchy hand-drawn look: a few slightly wobbly lines
+        import random as _r; _seed = int(self.x + self.y)
+        for off in range(3):
+            y_off = off * 3
+            wobble = _r.Random(_seed + off).randint(-2, 2)
+            pygame.draw.line(surface, col,
+                             (rx + off,           ry + y_off + wobble),
+                             (rx + self.w - off,  ry + y_off),
+                             max(1, 3 - off))
+        # Fading timer indicator: thin bright top line
+        bright = int(220 * ratio)
+        pygame.draw.line(surface, (bright, bright, 20),
+                         (rx, ry), (int(rx + self.w * ratio), ry), 2)
 
 
 class Spring:
@@ -3180,6 +3281,23 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     cf.no_attack = True
                     clones.append({'fighter': cf, 'timer': FPS * 8, 'target': foe, 'ink': True})
 
+            # Pencil drawn platforms + Eraser
+            for fighter in (p1, p2):
+                if fighter.pending_draw_platform:
+                    fighter.pending_draw_platform = False
+                    platforms.append(DrawnPlatform(fighter.x - 60, fighter.y, w=120))
+                if fighter.pending_erase:
+                    fighter.pending_erase = False
+                    fighter.flash_timer = 8
+                    platforms = [p for p in platforms
+                                 if not (isinstance(p, DrawnPlatform)
+                                         and abs((p.x + p.w / 2) - fighter.x) < 220)]
+            # Update DrawnPlatforms and remove expired ones
+            for p in platforms:
+                if isinstance(p, DrawnPlatform):
+                    p.update()
+            platforms = [p for p in platforms if not (isinstance(p, DrawnPlatform) and not p.alive)]
+
             # Jungle snakes
             if is_jungle:
                 snake_spawn_timer -= 1
@@ -3715,6 +3833,22 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     ic['fighter'].update(None, ic['target'], platforms)
                     new_ink.append(ic)
             ink_clones = new_ink
+
+            # Pencil drawn platforms + Eraser (survival)
+            for fighter in players:
+                if fighter.pending_draw_platform:
+                    fighter.pending_draw_platform = False
+                    platforms.append(DrawnPlatform(fighter.x - 60, fighter.y, w=120))
+                if fighter.pending_erase:
+                    fighter.pending_erase = False
+                    fighter.flash_timer = 8
+                    platforms = [p for p in platforms
+                                 if not (isinstance(p, DrawnPlatform)
+                                         and abs((p.x + p.w / 2) - fighter.x) < 220)]
+            for p in platforms:
+                if isinstance(p, DrawnPlatform):
+                    p.update()
+            platforms = [p for p in platforms if not (isinstance(p, DrawnPlatform) and not p.alive)]
 
             # Death pops: spawn burst when enemy hp hits 0, then remove enemy
             for en in enemies:
