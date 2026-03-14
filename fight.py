@@ -2146,17 +2146,33 @@ class StagePencil:
 
     def __init__(self):
         self.x            = float(random.randint(120, WIDTH - 120))
-        self.y            = float(GROUND_Y - 160)
-        self.vx           = self.SPEED
+        self.y            = float(random.randint(60, GROUND_Y - 80))
+        angle             = random.uniform(0, 2 * math.pi)
+        self.vx           = math.cos(angle) * self.SPEED
+        self.vy           = math.sin(angle) * self.SPEED
+        self.dir_timer    = random.randint(90, 200)
         self.draw_timer   = self.DRAW_INTERVAL
         self.pending_plat = False
 
     def update(self):
         self.x += self.vx
+        self.y += self.vy
+        # Bounce off edges
         if self.x > WIDTH - 80:
-            self.x = WIDTH - 80; self.vx = -self.SPEED
+            self.x = WIDTH - 80; self.vx = -abs(self.vx)
         elif self.x < 80:
-            self.x = 80; self.vx = self.SPEED
+            self.x = 80; self.vx = abs(self.vx)
+        if self.y > GROUND_Y - 50:
+            self.y = GROUND_Y - 50; self.vy = -abs(self.vy)
+        elif self.y < 40:
+            self.y = 40; self.vy = abs(self.vy)
+        # Randomly change direction every so often
+        self.dir_timer -= 1
+        if self.dir_timer <= 0:
+            angle          = random.uniform(0, 2 * math.pi)
+            self.vx        = math.cos(angle) * self.SPEED
+            self.vy        = math.sin(angle) * self.SPEED
+            self.dir_timer = random.randint(90, 200)
         self.draw_timer -= 1
         if self.draw_timer <= 0:
             self.pending_plat = True
@@ -2188,16 +2204,30 @@ class StageEraser:
     SPEED = 1.8
 
     def __init__(self):
-        self.x  = float(WIDTH - 150)
-        self.y  = float(GROUND_Y - 28)
-        self.vx = -self.SPEED
+        self.x         = float(WIDTH - 150)
+        self.y         = float(random.randint(60, GROUND_Y - 30))
+        angle          = random.uniform(0, 2 * math.pi)
+        self.vx        = math.cos(angle) * self.SPEED
+        self.vy        = math.sin(angle) * self.SPEED
+        self.dir_timer = random.randint(70, 160)
 
     def update(self, platforms):
         self.x += self.vx
+        self.y += self.vy
         if self.x > WIDTH - 60:
-            self.x = WIDTH - 60; self.vx = -self.SPEED
+            self.x = WIDTH - 60; self.vx = -abs(self.vx)
         elif self.x < 60:
-            self.x = 60; self.vx = self.SPEED
+            self.x = 60; self.vx = abs(self.vx)
+        if self.y > GROUND_Y - 20:
+            self.y = GROUND_Y - 20; self.vy = -abs(self.vy)
+        elif self.y < 40:
+            self.y = 40; self.vy = abs(self.vy)
+        self.dir_timer -= 1
+        if self.dir_timer <= 0:
+            angle          = random.uniform(0, 2 * math.pi)
+            self.vx        = math.cos(angle) * self.SPEED
+            self.vy        = math.sin(angle) * self.SPEED
+            self.dir_timer = random.randint(70, 160)
         # Erase any DrawnPlatform whose centre is within 80 px
         return [p for p in platforms
                 if not (isinstance(p, DrawnPlatform)
@@ -3342,7 +3372,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 # Eraser contact damage
                 for pf in (p1, p2):
                     if pf.hp > 0 and pf.contact_cooldown == 0:
-                        if abs(pf.x - stage_eraser.x) < 40 and abs(pf.y - stage_eraser.y) < 35:
+                        if math.hypot(pf.x - stage_eraser.x, pf.y - stage_eraser.y) < 50:
                             pf.hp = max(0, pf.hp - 5)
                             pf.flash_timer = 8
                             pf.contact_cooldown = 60
@@ -3918,7 +3948,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 platforms = [p for p in platforms if not (isinstance(p, DrawnPlatform) and not p.alive)]
                 for pf in [p for p in players if p.hp > 0]:
                     if pf.contact_cooldown == 0:
-                        if abs(pf.x - stage_eraser.x) < 40 and abs(pf.y - stage_eraser.y) < 35:
+                        if math.hypot(pf.x - stage_eraser.x, pf.y - stage_eraser.y) < 50:
                             pf.hp = max(0, pf.hp - 5)
                             pf.flash_timer = 8
                             pf.contact_cooldown = 60
