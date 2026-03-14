@@ -1593,14 +1593,20 @@ class Fighter:
                     self.y = plat.y
                     self.vy = 0
                     self.x += plat.vx
-                    if isinstance(plat, ConveyorBelt):
-                        self.x += plat.speed
                     landed = True
                     break
         if landed:
             self.on_ground = True
             self.jumps_left = 2 if self.char["double_jump"] else 1
             self.wall_cling_active = False
+        # Conveyor belt push — runs every frame while standing on one
+        if self.on_ground:
+            for plat in platforms:
+                if (isinstance(plat, ConveyorBelt)
+                        and abs(self.y - plat.y) <= 2
+                        and plat.x - 20 <= self.x <= plat.x + plat.w + 20):
+                    self.x += plat.speed
+                    break
         else:
             self.on_ground = False
 
