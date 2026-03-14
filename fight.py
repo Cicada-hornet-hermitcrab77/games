@@ -1583,6 +1583,9 @@ class Fighter:
             self.y = GROUND_Y
             self.vy = 0
             landed = True
+        elif self.y <= 20:
+            self.y = 20
+            self.vy = abs(self.vy) * 0.4   # bounce back down
         elif not self.char.get("phase"):
             for plat in platforms:
                 if (self.vy >= 0 and prev_y <= plat.y and self.y >= plat.y
@@ -1932,6 +1935,9 @@ class AIFighter(Fighter):
             self.y = GROUND_Y
             self.vy = 0
             landed = True
+        elif self.y <= 20:
+            self.y = 20
+            self.vy = abs(self.vy) * 0.4   # bounce back down
         elif not self.char.get("phase"):
             for plat in platforms:
                 if (self.vy >= 0 and prev_y <= plat.y and self.y >= plat.y
@@ -3489,6 +3495,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             powerups = [pu for pu in powerups if not pu.picked_up]
 
         draw_bg(screen, stage_idx)
+        pygame.draw.rect(screen, (60, 60, 70), (0, 0, WIDTH, 20))
+        pygame.draw.line(screen, (180, 180, 200), (0, 20), (WIDTH, 20), 3)
         for plat in platforms:
             plat.draw(screen, stage_idx)
         for sp in springs:
@@ -4057,6 +4065,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
 
         # --- Draw ---
         draw_bg(screen, stage_idx)
+        pygame.draw.rect(screen, (60, 60, 70), (0, 0, WIDTH, 20))
+        pygame.draw.line(screen, (180, 180, 200), (0, 20), (WIDTH, 20), 3)
         for plat in platforms:     plat.draw(screen, stage_idx)
         for sp   in springs:       sp.draw(screen)
         for pu   in powerups:      pu.draw(screen)
