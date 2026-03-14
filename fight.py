@@ -169,6 +169,9 @@ CHARACTERS = [
     {"name": "Headless Horseman", "color": (80, 40, 15), "speed": 7, "jump": -11,
      "punch_dmg": 13, "kick_dmg": 0, "max_hp": 145, "block": 5,
      "desc": "Kicks throw a physics pumpkin that explodes", "double_jump": False, "pumpkin_kick": True},
+    {"name": "Ink Brush", "color": (20, 20, 40), "speed": 6, "jump": -14,
+     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 110, "block": 6,
+     "desc": "Kick spawns a moving clone that distracts enemies", "double_jump": True, "ink_kick": True},
 ]
 
 POWERUPS = [
@@ -722,6 +725,25 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.lines(surface, BLACK, False, mouth_pts, max(1, int(2*s)))
         pygame.draw.line(surface, (45, 95, 28), (rhx, rhy - pr), (rhx, rhy - pr - int(7*s)), max(2, int(3*s)))  # stem
 
+    elif char_name == "Ink Brush":
+        # Black beret
+        beret_r = int(hd * 1.1)
+        pygame.draw.ellipse(surface, (15, 15, 15),
+                            (hx - beret_r, hy - hd - int(7*s), beret_r*2, int(beret_r*0.7)))
+        pygame.draw.circle(surface, (15, 15, 15), (hx + facing*int(hd*.25), hy - hd - int(5*s)), int(hd*.55))
+        # Ink splatter on torso
+        for dx, dy, r in [(-int(6*s), int(12*s), int(4*s)), (int(5*s), int(18*s), int(3*s)), (int(2*s), int(6*s), int(2*s))]:
+            pygame.draw.circle(surface, (10, 10, 30), (sx+dx, sy+dy), max(1, r))
+        # Large ink brush in forward hand
+        bx, by = rhx + facing*int(4*s), rhy
+        tip_y = by + int(22*s)
+        pygame.draw.line(surface, (140, 100, 60), (bx, by), (bx, by + int(16*s)), max(2, int(3*s)))  # handle
+        pygame.draw.polygon(surface, (10, 10, 30), [
+            (bx - int(4*s), by + int(16*s)),
+            (bx + int(4*s), by + int(16*s)),
+            (bx, tip_y)])  # bristles
+        pygame.draw.circle(surface, (5, 5, 20), (bx, tip_y), max(2, int(3*s)))  # ink drop
+
 
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color
@@ -912,6 +934,12 @@ STAGES = [
     ], "springs": [
         (450, -22),
     ]},
+    # Computer: circuit-board ground, keyboard-key platforms, roaming mouse platform
+    {"name": "Computer", "platforms": [
+        (60,  GROUND_Y-105, 160, 0,   0),
+        (680, GROUND_Y-105, 160, 0,   0),
+        (330, GROUND_Y-200, 140, 1.5, 120),
+    ], "springs": []},
 ]
 
 # Stage-specific character advantages and disadvantages.
@@ -926,6 +954,7 @@ STAGE_MATCHUPS = {
     "Underworld": {"adv": "Skeleton",    "dis": "Boxer"},
     "Space":      {"adv": "Astronaut",    "dis": "Giant"},
     "Jungle":     {"adv": "Hooker",       "dis": "Gunner"},
+    "Computer":   {"adv": "Charger",      "dis": "Headless Horseman"},
 }
 
 
@@ -1104,6 +1133,58 @@ def draw_bg(surface, stage_idx=0):
         pygame.draw.rect(surface, (35, 85, 15), (0, GROUND_Y + 2,  WIDTH, HEIGHT - GROUND_Y - 2))
         pygame.draw.rect(surface, (25, 60, 10), (0, GROUND_Y + 22, WIDTH, HEIGHT - GROUND_Y))
         pygame.draw.line(surface, (50, 130, 20), (0, GROUND_Y + 2), (WIDTH, GROUND_Y + 2), 3)
+
+    elif s == 9:  # Computer
+        surface.fill((6, 8, 14))
+        # Circuit board grid
+        grid_col = (0, 38, 18)
+        for gx in range(0, WIDTH + 1, 48):
+            pygame.draw.line(surface, grid_col, (gx, 0), (gx, HEIGHT), 1)
+        for gy in range(0, HEIGHT + 1, 48):
+            pygame.draw.line(surface, grid_col, (0, gy), (WIDTH, gy), 1)
+        # Circuit traces (horizontal)
+        for tx, ty, tw in [(0, 80, 260), (320, 130, 180), (600, 80, 300),
+                           (50, 220, 200), (400, 260, 220), (700, 200, 180),
+                           (0, 320, 150), (500, 340, 280)]:
+            pygame.draw.line(surface, (0, 80, 40), (tx, ty), (tx + tw, ty), 2)
+            pygame.draw.circle(surface, (0, 120, 60), (tx, ty), 4)
+            pygame.draw.circle(surface, (0, 120, 60), (tx + tw, ty), 4)
+        # Circuit traces (vertical connectors)
+        for vx, vy1, vy2 in [(260, 80, 220), (520, 130, 260), (150, 220, 340), (700, 80, 200)]:
+            pygame.draw.line(surface, (0, 80, 40), (vx, vy1), (vx, vy2), 2)
+        # Component chips
+        for cx2, cy2, cw2, ch2 in [(100, 140, 60, 28), (440, 180, 80, 28),
+                                    (660, 260, 60, 24), (230, 290, 70, 24)]:
+            pygame.draw.rect(surface, (20, 40, 30), (cx2, cy2, cw2, ch2), border_radius=3)
+            pygame.draw.rect(surface, (0, 100, 50), (cx2, cy2, cw2, ch2), 1, border_radius=3)
+            for pi in range(4):
+                pygame.draw.line(surface, (0, 80, 40),
+                                 (cx2 + pi * (cw2 // 4) + 6, cy2),
+                                 (cx2 + pi * (cw2 // 4) + 6, cy2 - 6), 2)
+                pygame.draw.line(surface, (0, 80, 40),
+                                 (cx2 + pi * (cw2 // 4) + 6, cy2 + ch2),
+                                 (cx2 + pi * (cw2 // 4) + 6, cy2 + ch2 + 6), 2)
+        # Falling matrix rain (deterministic via step)
+        import time as _t
+        _step = int(_t.time() * 8) % 48
+        for col_i, col_x in enumerate(range(0, WIDTH, 24)):
+            seed = (col_i * 137 + _step * 31) % 400
+            if seed < 80:
+                drop_y = (seed * 5 + _step * 4) % GROUND_Y
+                bright = max(60, 220 - seed * 2)
+                char_surf = font_tiny.render(str(seed % 10), True, (0, bright, bright // 2))
+                surface.blit(char_surf, (col_x, drop_y))
+                trail_col = (0, bright // 3, bright // 6)
+                for ti in range(1, 4):
+                    ts = font_tiny.render(str((seed + ti) % 10), True, trail_col)
+                    surface.blit(ts, (col_x, drop_y - ti * 16))
+        # Screen monitor bezel border
+        pygame.draw.rect(surface, (0, 60, 30), (0, 0, WIDTH, HEIGHT), 6)
+        # Ground — circuit board floor
+        pygame.draw.rect(surface, (10, 30, 15), (0, GROUND_Y + 2, WIDTH, HEIGHT - GROUND_Y - 2))
+        for gfx in range(0, WIDTH, 32):
+            pygame.draw.line(surface, (0, 70, 35), (gfx, GROUND_Y + 2), (gfx, GROUND_Y + 2 + 8), 1)
+        pygame.draw.line(surface, (0, 200, 80), (0, GROUND_Y + 2), (WIDTH, GROUND_Y + 2), 2)
 
 
 def draw_health_bars(surface, p1, p2):
@@ -1360,6 +1441,8 @@ class Fighter:
         self.pending_hook       = False  # Hooker: spawn a snake hook this frame
         self.pending_pumpkin    = False  # Headless Horseman: throw pumpkin this frame
         self.pumpkin_cooldown   = 0      # cooldown between throws
+        self.pending_ink_clone  = False  # Ink Brush: spawn a clone this frame
+        self.ink_clone_cooldown = 0      # cooldown between clones
         self.dash_tap_left      = 0     # frames remaining in double-tap window (left)
         self.dash_tap_right     = 0     # frames remaining in double-tap window (right)
         self.dash_cd            = 0     # cooldown between dashes
@@ -1443,6 +1526,8 @@ class Fighter:
             self.bazooka_cooldown -= 1
         if self.pumpkin_cooldown > 0:
             self.pumpkin_cooldown -= 1
+        if self.ink_clone_cooldown > 0:
+            self.ink_clone_cooldown -= 1
         if self.boomerang_timer > 0:
             self.boomerang_timer -= 1
             self.boomerang_angle = (self.boomerang_angle + 0.09) % (2 * math.pi)
@@ -1576,6 +1661,9 @@ class Fighter:
                 if self.char.get("pumpkin_kick") and self.pumpkin_cooldown == 0:
                     self.pending_pumpkin  = True
                     self.pumpkin_cooldown = FPS * 3   # 3-second cooldown
+                if self.char.get("ink_kick") and self.ink_clone_cooldown == 0:
+                    self.pending_ink_clone  = True
+                    self.ink_clone_cooldown = FPS * 5  # 5-second cooldown
             elif keys[ctrl['jump']]:
                 if self.wall_cling_active:
                     # wall jump: push away from wall and launch upward
@@ -1871,6 +1959,8 @@ class AIFighter(Fighter):
         dist = abs(other.x - self.x)
         can_atk = not self.attacking or self.action in ('idle', 'walk', 'jump')
 
+        if getattr(self, 'no_attack', False):
+            self.ai_attack = None
         if self.ai_attack and can_atk:
             cd = self.punch_cooldown if self.ai_attack == 'punch' else self.kick_cooldown
             if cd == 0:
@@ -1899,6 +1989,9 @@ class AIFighter(Fighter):
                     if self.char.get("pumpkin_kick") and self.pumpkin_cooldown == 0:
                         self.pending_pumpkin  = True
                         self.pumpkin_cooldown = FPS * 3
+                    if self.char.get("ink_kick") and self.ink_clone_cooldown == 0:
+                        self.pending_ink_clone  = True
+                        self.ink_clone_cooldown = FPS * 5
             self.ai_attack = None
         elif self.ai_move != 0:
             self.x += self.ai_move * self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
@@ -2487,6 +2580,136 @@ def mode_select():
 
 
 # ---------------------------------------------------------------------------
+# Computer bug NPC
+# ---------------------------------------------------------------------------
+
+class ComputerBug:
+    SPEED        = 3.8
+    MAX_HP       = 15
+    BITE_DMG     = 4
+    BITE_COOLDOWN = 90   # 1.5 s
+    BITE_RANGE   = 42
+
+    def __init__(self):
+        self.x         = float(random.choice([80, WIDTH - 80]))
+        self.y         = float(GROUND_Y)
+        self.vx        = random.choice([-1, 1]) * self.SPEED
+        self.hp        = self.MAX_HP
+        self.bite_timer = 0
+        self.leg_t     = 0.0
+        self.alive     = True
+
+    def update(self, target):
+        if not self.alive:
+            return
+        self.leg_t += 0.2
+        if target:
+            self.vx = self.SPEED if target.x > self.x else -self.SPEED
+        self.x += self.vx
+        if self.x < 30:          self.x = 30;          self.vx =  abs(self.vx)
+        if self.x > WIDTH - 30:  self.x = WIDTH - 30;  self.vx = -abs(self.vx)
+        if self.bite_timer > 0:
+            self.bite_timer -= 1
+        if (target and self.bite_timer == 0
+                and abs(target.x - self.x) < self.BITE_RANGE
+                and abs(target.y - self.y) < 60):
+            target.hp = max(0, target.hp - self.BITE_DMG)
+            target.flash_timer = 8
+            self.bite_timer = self.BITE_COOLDOWN
+
+    def take_damage(self, dmg):
+        self.hp -= dmg
+        if self.hp <= 0:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y) - 9
+        facing_x = 1 if self.vx >= 0 else -1
+        # Abdomen (rear)
+        pygame.draw.ellipse(surface, (0, 180, 40),  (cx - 14, cy - 5, 20, 12))
+        pygame.draw.ellipse(surface, (0, 220, 60),  (cx - 14, cy - 5, 20, 12), 1)
+        # Thorax
+        pygame.draw.ellipse(surface, (0, 160, 35),  (cx - 6, cy - 6, 15, 13))
+        # Head
+        pygame.draw.circle(surface, (0, 200, 50),   (cx + facing_x * 12, cy), 6)
+        # Eyes (glowing red — bugs have red eyes)
+        pygame.draw.circle(surface, (255, 30, 30),  (cx + facing_x * 14, cy - 2), 2)
+        pygame.draw.circle(surface, (255, 30, 30),  (cx + facing_x * 14, cy + 2), 2)
+        # 6 legs with walk animation
+        for i in range(3):
+            wave = int(math.sin(self.leg_t + i * 1.1) * 6)
+            ly = cy - 3 + i * 4
+            pygame.draw.line(surface, (0, 140, 30),
+                             (cx - 3, ly), (cx - 16, ly + wave + 7), 1)
+            pygame.draw.line(surface, (0, 140, 30),
+                             (cx + 3, ly), (cx + 16, ly - wave + 7), 1)
+        # Antennae
+        hx = cx + facing_x * 17
+        pygame.draw.line(surface, (0, 180, 40), (hx, cy - 4),
+                         (hx + facing_x * 8,  cy - 13), 1)
+        pygame.draw.line(surface, (0, 180, 40), (hx, cy - 4),
+                         (hx + facing_x * 10, cy - 11), 1)
+        # HP bar
+        bw = 26
+        bxl = cx - bw // 2
+        byt = cy - 22
+        pygame.draw.rect(surface, (40, 40, 40),  (bxl, byt, bw, 3))
+        pygame.draw.rect(surface, (0, 220, 60),
+                         (bxl, byt, int(bw * self.hp / self.MAX_HP), 3))
+
+
+# ---------------------------------------------------------------------------
+# Mouse platform (Computer stage)
+# ---------------------------------------------------------------------------
+
+class MousePlatform:
+    W        = 115
+    H        = 16    # surface height (same as Platform.H)
+    SPEED    = 1.6
+
+    def __init__(self, x, y, travel=380):
+        self.x       = float(x)
+        self.y       = float(y)
+        self.w       = self.W
+        self.start_x = float(x)
+        self.travel  = travel
+        self.vx      = self.SPEED
+
+    def update(self):
+        self.x += self.vx
+        if self.x > self.start_x + self.travel:
+            self.x  = self.start_x + self.travel
+            self.vx = -self.SPEED
+        elif self.x < self.start_x:
+            self.x  = self.start_x
+            self.vx =  self.SPEED
+
+    def draw(self, surface, _stage_idx=0):
+        rx, ry = int(self.x), int(self.y)
+        mw, mh = self.W, 36
+        # Mouse body (rounded rectangle)
+        pygame.draw.rect(surface, (55, 55, 68), (rx, ry - mh + self.H, mw, mh), border_radius=12)
+        pygame.draw.rect(surface, (90, 90, 110), (rx, ry - mh + self.H, mw, mh), 2, border_radius=12)
+        # Left / right button divide
+        mid_x = rx + mw // 2
+        pygame.draw.line(surface, (90, 90, 110), (mid_x, ry - mh + self.H), (mid_x, ry - mh + self.H + 16), 1)
+        # Scroll wheel
+        wx2 = mid_x - 5
+        pygame.draw.rect(surface, (110, 110, 130), (wx2, ry - mh + self.H + 3, 10, 13), border_radius=3)
+        pygame.draw.rect(surface, (160, 160, 180), (wx2, ry - mh + self.H + 3, 10, 13), 1, border_radius=3)
+        # Cord trailing behind (wiggles with position)
+        cord_bx = rx + mw // 2
+        cord_by = ry - mh + self.H + mh
+        for i in range(5):
+            t1, t2 = i / 5, (i + 1) / 5
+            cx1 = cord_bx + int(math.sin(t1 * math.pi + self.x * 0.04) * 14)
+            cy1 = cord_by + int(t1 * 28)
+            cx2 = cord_bx + int(math.sin(t2 * math.pi + self.x * 0.04) * 14)
+            cy2 = cord_by + int(t2 * 28)
+            pygame.draw.line(surface, (70, 70, 80), (cx1, cy1), (cx2, cy2), 2)
+
+
+# ---------------------------------------------------------------------------
 # Character select screen
 # ---------------------------------------------------------------------------
 
@@ -2791,8 +3014,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     pumpkins     = []   # active Pumpkin objects (Headless Horseman)
     spawn_timer  = 300   # first spawn after 5 seconds
     is_jungle    = stage_data["name"] == "Jungle"
+    is_computer  = stage_data["name"] == "Computer"
     jungle_snakes      = []
     snake_spawn_timer  = 180   # first snake after 3 seconds
+    computer_bugs      = []
+    bug_spawn_timer    = 150
+    if is_computer:
+        platforms.append(MousePlatform(80, GROUND_Y - 62, travel=720))
 
     while True:
         clock.tick(FPS)
@@ -2954,6 +3182,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         pk._explode()
             pumpkins = [pk for pk in pumpkins if pk.alive]
 
+            # Ink Brush clones
+            for shooter, foe in [(p1, p2), (p2, p1)]:
+                if shooter.pending_ink_clone:
+                    shooter.pending_ink_clone = False
+                    cf = AIFighter(shooter.x + shooter.facing * 55, shooter.char, -shooter.facing, 'medium')
+                    cf.hp = max(1, shooter.hp)
+                    cf.color = shooter.color
+                    cf.no_attack = True
+                    clones.append({'fighter': cf, 'timer': FPS * 8, 'target': foe, 'ink': True})
+
             # Jungle snakes
             if is_jungle:
                 snake_spawn_timer -= 1
@@ -2963,6 +3201,26 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 for sn in jungle_snakes:
                     sn.update(p1, p2)
                 jungle_snakes = [sn for sn in jungle_snakes if sn.alive]
+
+            # Computer bugs
+            if is_computer:
+                bug_spawn_timer -= 1
+                if bug_spawn_timer <= 0 and len(computer_bugs) < 5:
+                    computer_bugs.append(ComputerBug())
+                    bug_spawn_timer = random.randint(200, 360)
+                near_p1 = min([p1, p2], key=lambda p: abs(p.x - b.x)) if computer_bugs else None
+                for b in computer_bugs:
+                    target = min([p1, p2], key=lambda p: abs(p.x - b.x))
+                    b.update(target)
+                # Fighter attacks kill bugs
+                for attacker, hit_pos in [(p1, p1_hit), (p2, p2_hit)]:
+                    if attacker.attacking and hit_pos:
+                        for b in computer_bugs:
+                            if math.hypot(hit_pos[0]-b.x, hit_pos[1]-(b.y-8)) < 40:
+                                dmg = (attacker.char["punch_dmg"] if attacker.action=='punch'
+                                       else attacker.char["kick_dmg"])
+                                b.take_damage(dmg)
+                computer_bugs = [b for b in computer_bugs if b.alive]
 
             timer -= 1
             if timer <= 0 or p1.hp <= 0 or p2.hp <= 0:
@@ -3023,6 +3281,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             pk.draw(screen)
         for sn in jungle_snakes:
             sn.draw(screen)
+        for b in computer_bugs:
+            b.draw(screen)
         # Draw magnet beams from powerups to any Magician fighter
         for f in (p1, p2):
             if f.char.get("magnet"):
@@ -3050,8 +3310,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             sn.take_damage(dmg)
             for cd, cf_hit in clone_draws:
                 cf = cd['fighter']
-                # clone attacks its target
-                if cf.attacking and not cf.attack_hit:
+                # clone attacks its target (ink clones can't attack)
+                if not cd.get('ink') and cf.attacking and not cf.attack_hit:
                     cf.check_hit(cf_hit, cd['target'])
                 # opponent can hit the clone
                 if cd['target'] is p2:
@@ -3060,8 +3320,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 else:
                     if p1.attacking and not p1.attack_hit:
                         p1.check_hit(p1_hit, cf)
-            # draw clone timer above each clone
+            # draw clone timer above each clone (ink clones get no label)
             for cd in clones:
+                if cd.get('ink'):
+                    continue
                 cf = cd['fighter']
                 secs = cd['timer'] // FPS
                 tag = font_tiny.render(f"2x [{secs}s]", True, (255, 80, 200))
@@ -3135,6 +3397,9 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     platforms   = [Platform(*p) for p in stage_data["platforms"]]
     springs     = [Spring(*s)   for s in stage_data["springs"]]
     is_jungle   = stage_data["name"] == "Jungle"
+    is_computer = stage_data["name"] == "Computer"
+    if is_computer:
+        platforms.append(MousePlatform(80, GROUND_Y - 62, travel=720))
 
     enemies           = []
     death_pops        = []   # [{x,y,color,t}] death burst particles
@@ -3143,12 +3408,15 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     bounce_balls      = []   # BouncingBall (bounce_kick)
     hooks             = []   # SnakeHook (grapple_kick)
     pumpkins          = []   # Pumpkin (pumpkin_kick)
+    ink_clones        = []   # Ink Brush clones
     en_balls          = []
     en_orbs           = []
     en_bounce_balls   = []
     en_pumpkins       = []
     powerups          = []
     jungle_snakes     = []
+    computer_bugs     = []
+    bug_spawn_timer   = 150
     survival_timer    = 0
     enemies_killed    = 0
     enemy_spawn_timer = 180
@@ -3440,6 +3708,26 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             pk._explode(); break
             en_pumpkins = [pk for pk in en_pumpkins if pk.alive]
 
+            # Ink Brush clones (survival)
+            for shooter in players:
+                if shooter.pending_ink_clone:
+                    shooter.pending_ink_clone = False
+                    # target nearest enemy
+                    tgt = min(enemies, key=lambda e: abs(e.x - shooter.x)) if enemies else None
+                    if tgt:
+                        cf = AIFighter(shooter.x + shooter.facing * 55, shooter.char, -shooter.facing, 'medium')
+                        cf.hp = max(1, shooter.hp)
+                        cf.color = shooter.color
+                        cf.no_attack = True
+                        ink_clones.append({'fighter': cf, 'timer': FPS * 8, 'target': tgt})
+            new_ink = []
+            for ic in ink_clones:
+                ic['timer'] -= 1
+                if ic['timer'] > 0 and ic['fighter'].hp > 0:
+                    ic['fighter'].update(None, ic['target'], platforms)
+                    new_ink.append(ic)
+            ink_clones = new_ink
+
             # Death pops: spawn burst when enemy hp hits 0, then remove enemy
             for en in enemies:
                 if en.hp <= 0:
@@ -3467,6 +3755,17 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         closest = min(living_targets, key=lambda t: abs(t.x - sn.x))
                         sn.update(closest, closest)
                 jungle_snakes = [sn for sn in jungle_snakes if sn.alive]
+
+            if is_computer:
+                bug_spawn_timer -= 1
+                if bug_spawn_timer <= 0 and len(computer_bugs) < 5:
+                    computer_bugs.append(ComputerBug())
+                    bug_spawn_timer = random.randint(200, 360)
+                for b in computer_bugs:
+                    all_targets = [p for p in players if p.hp > 0] + enemies
+                    target = min(all_targets, key=lambda t: abs(t.x - b.x)) if all_targets else None
+                    b.update(target)
+                computer_bugs = [b for b in computer_bugs if b.alive]
 
             # Powerups (no clone type in survival)
             _survival_pool = [p for p in POWERUPS if p['type'] != 'clone']
@@ -3514,6 +3813,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for pk   in pumpkins:      pk.draw(screen)
         for pk   in en_pumpkins:   pk.draw(screen)
         for sn   in jungle_snakes: sn.draw(screen)
+        for b    in computer_bugs: b.draw(screen)
+        for ic   in ink_clones:    ic['fighter'].draw(screen)
 
         # Death burst particles
         for dp in death_pops:
@@ -3551,6 +3852,15 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             dmg = (attacker.char["punch_dmg"] if attacker.action=='punch'
                                    else attacker.char["kick_dmg"])
                             sn.take_damage(dmg)
+            # Fighter attacks on computer bugs
+            if is_computer:
+                for attacker, hit_pos in ([(p1, p1_hit)] + ([(p2, p2_hit)] if two_player else [])):
+                    if attacker.attacking and hit_pos:
+                        for b in computer_bugs:
+                            if math.hypot(hit_pos[0]-b.x, hit_pos[1]-(b.y-8)) < 40:
+                                dmg = (attacker.char["punch_dmg"] if attacker.action=='punch'
+                                       else attacker.char["kick_dmg"])
+                                b.take_damage(dmg)
 
         # Enemy name tags
         for en in enemies:
