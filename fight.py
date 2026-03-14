@@ -172,12 +172,6 @@ CHARACTERS = [
     {"name": "Ink Brush", "color": (20, 20, 40), "speed": 6, "jump": -14,
      "punch_dmg": 10, "kick_dmg": 12, "max_hp": 110, "block": 6,
      "desc": "Kick spawns a moving clone that distracts enemies", "double_jump": True, "ink_kick": True},
-    {"name": "Pencil", "color": (245, 220, 50), "speed": 6, "jump": -14,
-     "punch_dmg": 9, "kick_dmg": 11, "max_hp": 105, "block": 5,
-     "desc": "Kick draws a temporary platform", "double_jump": True, "pencil_kick": True},
-    {"name": "Eraser", "color": (240, 160, 150), "speed": 5, "jump": -13,
-     "punch_dmg": 11, "kick_dmg": 13, "max_hp": 115, "block": 6,
-     "desc": "Kick erases nearby platforms", "double_jump": False, "eraser_kick": True},
 ]
 
 POWERUPS = [
@@ -730,41 +724,6 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                      for i in range(5)]
         pygame.draw.lines(surface, BLACK, False, mouth_pts, max(1, int(2*s)))
         pygame.draw.line(surface, (45, 95, 28), (rhx, rhy - pr), (rhx, rhy - pr - int(7*s)), max(2, int(3*s)))  # stem
-
-    elif char_name == "Pencil":
-        # Yellow hexagonal pencil body in forward hand, pointing downward
-        px, py = rhx, rhy
-        body_h = int(32 * s)
-        tip_h  = int(10 * s)
-        pw     = max(5, int(7 * s))
-        # Pencil body (yellow rectangle)
-        pygame.draw.rect(surface, (245, 220, 50), (px - pw, py - body_h, pw*2, body_h))
-        pygame.draw.rect(surface, (180, 140, 20), (px - pw, py - body_h, pw*2, body_h), 1)
-        # Pink eraser at top
-        pygame.draw.rect(surface, (240, 130, 130), (px - pw, py - body_h - int(7*s), pw*2, int(7*s)))
-        # Silver ferrule (band)
-        pygame.draw.rect(surface, (180, 180, 180), (px - pw, py - body_h, pw*2, int(4*s)))
-        # Wood cone tip
-        pygame.draw.polygon(surface, (210, 170, 100), [
-            (px - pw, py), (px + pw, py), (px, py + tip_h)])
-        # Graphite point
-        pygame.draw.polygon(surface, (50, 50, 50), [
-            (px - int(pw*.4), py + int(tip_h*.5)),
-            (px + int(pw*.4), py + int(tip_h*.5)),
-            (px, py + tip_h)])
-
-    elif char_name == "Eraser":
-        # Pink rectangular eraser block in forward hand
-        ew, eh = max(6, int(20*s)), max(4, int(12*s))
-        ex, ey = rhx - ew//2, rhy - eh
-        pygame.draw.rect(surface, (240, 160, 150), (ex, ey, ew, eh), border_radius=2)
-        pygame.draw.rect(surface, (180, 80, 80),   (ex, ey, ew, eh), 1, border_radius=2)
-        # Blue label stripe
-        stripe_h = max(2, int(4*s))
-        pygame.draw.rect(surface, (80, 120, 220), (ex, ey + (eh - stripe_h)//2, ew, stripe_h))
-        # Eraser dust specks below
-        for dx, dy in [(-int(6*s), int(4*s)), (int(2*s), int(7*s)), (int(5*s), int(3*s))]:
-            pygame.draw.circle(surface, (240, 160, 150), (rhx+dx, rhy+dy), max(1, int(2*s)))
 
     elif char_name == "Ink Brush":
         # Black beret
@@ -1476,10 +1435,6 @@ class Fighter:
         self.pumpkin_cooldown   = 0      # cooldown between throws
         self.pending_ink_clone       = False  # Ink Brush: spawn a clone this frame
         self.ink_clone_cooldown      = 0      # cooldown between clones
-        self.pending_draw_platform   = False  # Pencil: draw a platform this frame
-        self.draw_platform_cooldown  = 0      # cooldown between draws
-        self.pending_erase           = False  # Eraser: erase nearby platforms this frame
-        self.erase_cooldown          = 0      # cooldown between erases
         self.dash_tap_left      = 0     # frames remaining in double-tap window (left)
         self.dash_tap_right     = 0     # frames remaining in double-tap window (right)
         self.dash_cd            = 0     # cooldown between dashes
@@ -1565,10 +1520,6 @@ class Fighter:
             self.pumpkin_cooldown -= 1
         if self.ink_clone_cooldown > 0:
             self.ink_clone_cooldown -= 1
-        if self.draw_platform_cooldown > 0:
-            self.draw_platform_cooldown -= 1
-        if self.erase_cooldown > 0:
-            self.erase_cooldown -= 1
         if self.boomerang_timer > 0:
             self.boomerang_timer -= 1
             self.boomerang_angle = (self.boomerang_angle + 0.09) % (2 * math.pi)
@@ -1705,12 +1656,6 @@ class Fighter:
                 if self.char.get("ink_kick") and self.ink_clone_cooldown == 0:
                     self.pending_ink_clone  = True
                     self.ink_clone_cooldown = FPS * 5  # 5-second cooldown
-                if self.char.get("pencil_kick") and self.draw_platform_cooldown == 0:
-                    self.pending_draw_platform  = True
-                    self.draw_platform_cooldown = FPS * 4
-                if self.char.get("eraser_kick") and self.erase_cooldown == 0:
-                    self.pending_erase  = True
-                    self.erase_cooldown = FPS * 2
             elif keys[ctrl['jump']]:
                 if self.wall_cling_active:
                     # wall jump: push away from wall and launch upward
@@ -2039,12 +1984,6 @@ class AIFighter(Fighter):
                     if self.char.get("ink_kick") and self.ink_clone_cooldown == 0:
                         self.pending_ink_clone  = True
                         self.ink_clone_cooldown = FPS * 5
-                    if self.char.get("pencil_kick") and self.draw_platform_cooldown == 0:
-                        self.pending_draw_platform  = True
-                        self.draw_platform_cooldown = FPS * 4
-                    if self.char.get("eraser_kick") and self.erase_cooldown == 0:
-                        self.pending_erase  = True
-                        self.erase_cooldown = FPS * 2
             self.ai_attack = None
         elif self.ai_move != 0:
             self.x += self.ai_move * self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
@@ -2197,6 +2136,89 @@ class Platform:
         if self.vx:  # moving platform: dashed top stripe
             for dx in range(4, self.w - 4, 12):
                 pygame.draw.rect(surface, WHITE, (rx + dx, ry + 2, 6, 3))
+
+
+class StagePencil:
+    """Computer-map object: drifts around and periodically draws platforms."""
+    SPEED         = 1.1
+    DRAW_INTERVAL = FPS * 4   # new platform every 4 s
+    MAX_PLATS     = 6
+
+    def __init__(self):
+        self.x            = float(random.randint(120, WIDTH - 120))
+        self.y            = float(GROUND_Y - 160)
+        self.vx           = self.SPEED
+        self.draw_timer   = self.DRAW_INTERVAL
+        self.pending_plat = False
+
+    def update(self):
+        self.x += self.vx
+        if self.x > WIDTH - 80:
+            self.x = WIDTH - 80; self.vx = -self.SPEED
+        elif self.x < 80:
+            self.x = 80; self.vx = self.SPEED
+        self.draw_timer -= 1
+        if self.draw_timer <= 0:
+            self.pending_plat = True
+            self.draw_timer   = self.DRAW_INTERVAL
+
+    def draw(self, surface):
+        px, py = int(self.x), int(self.y)
+        # Pencil drawn at ~45-degree angle (tip pointing down-right)
+        import math as _m
+        angle = _m.radians(-40)
+        dx = int(_m.cos(angle) * 30); dy = int(_m.sin(angle) * 30)
+        # Body
+        pygame.draw.line(surface, (245, 220, 50), (px, py), (px + dx*2, py + dy*2), 8)
+        # Pink eraser end
+        pygame.draw.line(surface, (240, 130, 130), (px - dx//2, py - dy//2), (px, py), 8)
+        # Ferrule
+        pygame.draw.line(surface, (180, 180, 180), (px, py), (px + dx//3, py + dy//3), 8)
+        # Wood cone tip
+        tip_x = px + dx*2; tip_y = py + dy*2
+        pygame.draw.line(surface, (210, 170, 100), (px + dx + dx//2, py + dy + dy//2), (tip_x, tip_y), 6)
+        # Graphite point
+        pygame.draw.circle(surface, (40, 40, 40), (tip_x, tip_y), 3)
+        # Outline
+        pygame.draw.line(surface, (160, 130, 10), (px - dx//2, py - dy//2), (tip_x, tip_y), 2)
+
+
+class StageEraser:
+    """Computer-map object: moves along and wipes out drawn platforms."""
+    SPEED = 1.8
+
+    def __init__(self):
+        self.x  = float(WIDTH - 150)
+        self.y  = float(GROUND_Y - 28)
+        self.vx = -self.SPEED
+
+    def update(self, platforms):
+        self.x += self.vx
+        if self.x > WIDTH - 60:
+            self.x = WIDTH - 60; self.vx = -self.SPEED
+        elif self.x < 60:
+            self.x = 60; self.vx = self.SPEED
+        # Erase any DrawnPlatform whose centre is within 80 px
+        return [p for p in platforms
+                if not (isinstance(p, DrawnPlatform)
+                        and abs((p.x + p.w / 2) - self.x) < 80)]
+
+    def draw(self, surface):
+        ex, ey = int(self.x), int(self.y)
+        ew, eh = 60, 22
+        # Eraser body
+        pygame.draw.rect(surface, (240, 160, 150), (ex - ew//2, ey - eh, ew, eh), border_radius=3)
+        pygame.draw.rect(surface, (180, 80, 80),   (ex - ew//2, ey - eh, ew, eh), 2, border_radius=3)
+        # Blue label stripe
+        pygame.draw.rect(surface, (80, 120, 220), (ex - ew//2, ey - eh//2 - 3, ew, 7))
+        # Eraser dust trail (particles behind movement)
+        trail_dir = 1 if self.vx > 0 else -1
+        for i in range(1, 5):
+            dx = trail_dir * i * 14
+            alpha = 180 - i * 40
+            r = max(2, 6 - i)
+            c = (min(255, 240 - i*20), min(255, 160 - i*15), min(255, 150 - i*15))
+            pygame.draw.circle(surface, c, (ex - dx, ey - 6 + (i % 2)*4), r)
 
 
 class DrawnPlatform:
@@ -3108,8 +3130,12 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     snake_spawn_timer  = 180   # first snake after 3 seconds
     computer_bugs      = []
     bug_spawn_timer    = 150
+    stage_pencil = None
+    stage_eraser = None
     if is_computer:
         platforms.append(MousePlatform(80, GROUND_Y - 62, travel=720))
+        stage_pencil = StagePencil()
+        stage_eraser = StageEraser()
 
     while True:
         clock.tick(FPS)
@@ -3281,23 +3307,6 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     cf.no_attack = True
                     clones.append({'fighter': cf, 'timer': FPS * 8, 'target': foe, 'ink': True})
 
-            # Pencil drawn platforms + Eraser
-            for fighter in (p1, p2):
-                if fighter.pending_draw_platform:
-                    fighter.pending_draw_platform = False
-                    platforms.append(DrawnPlatform(fighter.x - 60, fighter.y, w=120))
-                if fighter.pending_erase:
-                    fighter.pending_erase = False
-                    fighter.flash_timer = 8
-                    platforms = [p for p in platforms
-                                 if not (isinstance(p, DrawnPlatform)
-                                         and abs((p.x + p.w / 2) - fighter.x) < 220)]
-            # Update DrawnPlatforms and remove expired ones
-            for p in platforms:
-                if isinstance(p, DrawnPlatform):
-                    p.update()
-            platforms = [p for p in platforms if not (isinstance(p, DrawnPlatform) and not p.alive)]
-
             # Jungle snakes
             if is_jungle:
                 snake_spawn_timer -= 1
@@ -3318,6 +3327,25 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     target = min([p1, p2], key=lambda p: abs(p.x - b.x))
                     b.update(target)
                 computer_bugs = [b for b in computer_bugs if b.alive]
+                # Pencil: draw new platforms
+                stage_pencil.update()
+                drawn_count = sum(1 for p in platforms if isinstance(p, DrawnPlatform))
+                if stage_pencil.pending_plat and drawn_count < StagePencil.MAX_PLATS:
+                    stage_pencil.pending_plat = False
+                    platforms.append(DrawnPlatform(int(stage_pencil.x) - 50, int(stage_pencil.y) + 20, w=100))
+                # Eraser: wipe platforms it passes
+                platforms = stage_eraser.update(platforms)
+                # Update / expire DrawnPlatforms
+                for p in platforms:
+                    if isinstance(p, DrawnPlatform): p.update()
+                platforms = [p for p in platforms if not (isinstance(p, DrawnPlatform) and not p.alive)]
+                # Eraser contact damage
+                for pf in (p1, p2):
+                    if pf.hp > 0 and pf.contact_cooldown == 0:
+                        if abs(pf.x - stage_eraser.x) < 40 and abs(pf.y - stage_eraser.y) < 35:
+                            pf.hp = max(0, pf.hp - 5)
+                            pf.flash_timer = 8
+                            pf.contact_cooldown = 60
 
             timer -= 1
             if timer <= 0 or p1.hp <= 0 or p2.hp <= 0:
@@ -3380,6 +3408,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             sn.draw(screen)
         for b in computer_bugs:
             b.draw(screen)
+        if is_computer and stage_pencil:
+            stage_pencil.draw(screen)
+            stage_eraser.draw(screen)
         # Draw magnet beams from powerups to any Magician fighter
         for f in (p1, p2):
             if f.char.get("magnet"):
@@ -3504,8 +3535,12 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     springs     = [Spring(*s)   for s in stage_data["springs"]]
     is_jungle   = stage_data["name"] == "Jungle"
     is_computer = stage_data["name"] == "Computer"
+    stage_pencil = None
+    stage_eraser = None
     if is_computer:
         platforms.append(MousePlatform(80, GROUND_Y - 62, travel=720))
+        stage_pencil = StagePencil()
+        stage_eraser = StageEraser()
 
     enemies           = []
     death_pops        = []   # [{x,y,color,t}] death burst particles
@@ -3834,22 +3869,6 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     new_ink.append(ic)
             ink_clones = new_ink
 
-            # Pencil drawn platforms + Eraser (survival)
-            for fighter in players:
-                if fighter.pending_draw_platform:
-                    fighter.pending_draw_platform = False
-                    platforms.append(DrawnPlatform(fighter.x - 60, fighter.y, w=120))
-                if fighter.pending_erase:
-                    fighter.pending_erase = False
-                    fighter.flash_timer = 8
-                    platforms = [p for p in platforms
-                                 if not (isinstance(p, DrawnPlatform)
-                                         and abs((p.x + p.w / 2) - fighter.x) < 220)]
-            for p in platforms:
-                if isinstance(p, DrawnPlatform):
-                    p.update()
-            platforms = [p for p in platforms if not (isinstance(p, DrawnPlatform) and not p.alive)]
-
             # Death pops: spawn burst when enemy hp hits 0, then remove enemy
             for en in enemies:
                 if en.hp <= 0:
@@ -3888,6 +3907,21 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     target = min(all_targets, key=lambda t: abs(t.x - b.x)) if all_targets else None
                     b.update(target)
                 computer_bugs = [b for b in computer_bugs if b.alive]
+                stage_pencil.update()
+                drawn_count = sum(1 for p in platforms if isinstance(p, DrawnPlatform))
+                if stage_pencil.pending_plat and drawn_count < StagePencil.MAX_PLATS:
+                    stage_pencil.pending_plat = False
+                    platforms.append(DrawnPlatform(int(stage_pencil.x) - 50, int(stage_pencil.y) + 20, w=100))
+                platforms = stage_eraser.update(platforms)
+                for p in platforms:
+                    if isinstance(p, DrawnPlatform): p.update()
+                platforms = [p for p in platforms if not (isinstance(p, DrawnPlatform) and not p.alive)]
+                for pf in [p for p in players if p.hp > 0]:
+                    if pf.contact_cooldown == 0:
+                        if abs(pf.x - stage_eraser.x) < 40 and abs(pf.y - stage_eraser.y) < 35:
+                            pf.hp = max(0, pf.hp - 5)
+                            pf.flash_timer = 8
+                            pf.contact_cooldown = 60
 
             # Powerups (no clone type in survival)
             _survival_pool = [p for p in POWERUPS if p['type'] != 'clone']
@@ -3936,6 +3970,9 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for pk   in en_pumpkins:   pk.draw(screen)
         for sn   in jungle_snakes: sn.draw(screen)
         for b    in computer_bugs: b.draw(screen)
+        if is_computer and stage_pencil:
+            stage_pencil.draw(screen)
+            stage_eraser.draw(screen)
         for ic   in ink_clones:    ic['fighter'].draw(screen)
 
         # Death burst particles
