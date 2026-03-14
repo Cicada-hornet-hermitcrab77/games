@@ -3208,7 +3208,6 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if bug_spawn_timer <= 0 and len(computer_bugs) < 5:
                     computer_bugs.append(ComputerBug())
                     bug_spawn_timer = random.randint(200, 360)
-                near_p1 = min([p1, p2], key=lambda p: abs(p.x - b.x)) if computer_bugs else None
                 for b in computer_bugs:
                     target = min([p1, p2], key=lambda p: abs(p.x - b.x))
                     b.update(target)
