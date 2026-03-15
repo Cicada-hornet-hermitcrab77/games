@@ -3450,11 +3450,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
         stage_eraser = StageEraser()
 
     _portal_cols = [(80, 100, 220), (220, 120, 20)]
-    _portal_pts  = stage_data.get("portals", [])
-    portals_obj  = [Portal(px, py, _portal_cols[i % 2]) for i, (px, py) in enumerate(_portal_pts)]
-    if len(portals_obj) >= 2:
-        portals_obj[0].partner = portals_obj[1]
-        portals_obj[1].partner = portals_obj[0]
+    _px1 = random.randint(80, WIDTH // 2 - 60)
+    _px2 = random.randint(WIDTH // 2 + 60, WIDTH - 80)
+    _py1 = random.randint(GROUND_Y - 280, GROUND_Y - 80)
+    _py2 = random.randint(GROUND_Y - 280, GROUND_Y - 80)
+    portals_obj  = [Portal(_px1, _py1, _portal_cols[0]), Portal(_px2, _py2, _portal_cols[1])]
+    portals_obj[0].partner = portals_obj[1]
+    portals_obj[1].partner = portals_obj[0]
 
     while True:
         clock.tick(FPS)
@@ -3902,11 +3904,13 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         stage_eraser = StageEraser()
 
     _portal_cols_s = [(80, 100, 220), (220, 120, 20)]
-    _portal_pts_s  = stage_data.get("portals", [])
-    portals_obj_s  = [Portal(px, py, _portal_cols_s[i % 2]) for i, (px, py) in enumerate(_portal_pts_s)]
-    if len(portals_obj_s) >= 2:
-        portals_obj_s[0].partner = portals_obj_s[1]
-        portals_obj_s[1].partner = portals_obj_s[0]
+    _px1s = random.randint(80, WIDTH // 2 - 60)
+    _px2s = random.randint(WIDTH // 2 + 60, WIDTH - 80)
+    _py1s = random.randint(GROUND_Y - 280, GROUND_Y - 80)
+    _py2s = random.randint(GROUND_Y - 280, GROUND_Y - 80)
+    portals_obj_s  = [Portal(_px1s, _py1s, _portal_cols_s[0]), Portal(_px2s, _py2s, _portal_cols_s[1])]
+    portals_obj_s[0].partner = portals_obj_s[1]
+    portals_obj_s[1].partner = portals_obj_s[0]
 
     enemies           = []
     death_pops        = []   # [{x,y,color,t}] death burst particles
