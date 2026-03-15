@@ -1166,6 +1166,74 @@ STAGES = [
         (50,  GROUND_Y, 200, 2.8),
         (640, GROUND_Y, 200, -2.8),
     ], "portals": [(160, GROUND_Y-170), (700, GROUND_Y-170)]},
+    # Ice Cave
+    {"name": "Ice Cave", "platforms": [
+        (50,  GROUND_Y-100, 180, 0,   0),
+        (670, GROUND_Y-130, 160, 0,   0),
+        (340, GROUND_Y-220, 160, 2.0, 130),
+    ], "springs": [
+        (200, -22), (700, -22),
+    ], "conveyors": [
+        (50,  GROUND_Y, 300, 4.5),
+        (550, GROUND_Y, 300, -4.5),
+    ], "portals": [(140, GROUND_Y-165), (720, GROUND_Y-165)]},
+    # Pirate Ship
+    {"name": "Pirate Ship", "platforms": [
+        (55,  GROUND_Y-90,  170, 1.0, 110),
+        (670, GROUND_Y-120, 155, -1.0,110),
+        (350, GROUND_Y-205, 140, 0,   0),
+    ], "springs": [
+        (430, -22),
+    ], "conveyors": [
+        (60,  GROUND_Y, 220, 2.0),
+        (610, GROUND_Y, 220, -2.0),
+    ], "portals": [(150, GROUND_Y-155), (710, GROUND_Y-155)]},
+    # City Rooftop
+    {"name": "City Rooftop", "platforms": [
+        (60,  GROUND_Y-130, 150, 0,   0),
+        (690, GROUND_Y-100, 140, 0,   0),
+        (365, GROUND_Y-215, 130, 1.8, 100),
+        (170, GROUND_Y-215, 120, 0,   0),
+    ], "springs": [
+        (250, -22), (650, -22),
+    ], "conveyors": [
+        (80,  GROUND_Y, 180, 2.5),
+        (630, GROUND_Y, 180, -2.5),
+    ], "portals": [(160, GROUND_Y-180), (700, GROUND_Y-145)]},
+    # Medieval Castle
+    {"name": "Medieval Castle", "platforms": [
+        (55,  GROUND_Y-110, 165, 0,   0),
+        (680, GROUND_Y-110, 165, 0,   0),
+        (310, GROUND_Y-200, 145, 1.5, 120),
+        (460, GROUND_Y-285, 110, 0,   0),
+    ], "springs": [
+        (350, -22), (600, -22),
+    ], "conveyors": [
+        (70,  GROUND_Y, 200, 1.8),
+        (620, GROUND_Y, 200, -1.8),
+    ], "portals": [(145, GROUND_Y-170), (715, GROUND_Y-170)]},
+    # Circus
+    {"name": "Circus", "platforms": [
+        (60,  GROUND_Y-100, 160, 2.0, 130),
+        (670, GROUND_Y-140, 150, -2.0,130),
+        (345, GROUND_Y-220, 170, 0,   0),
+    ], "springs": [
+        (200, -22), (450, -22), (720, -22),
+    ], "conveyors": [
+        (55,  GROUND_Y, 240, 3.0),
+        (590, GROUND_Y, 240, -3.0),
+    ], "portals": [(165, GROUND_Y-175), (695, GROUND_Y-175)]},
+    # Underwater
+    {"name": "Underwater", "platforms": [
+        (60,  GROUND_Y-95,  175, 0.8, 100),
+        (660, GROUND_Y-130, 165, -0.8,100),
+        (330, GROUND_Y-210, 150, 1.2, 120),
+    ], "springs": [
+        (300, -22), (600, -22),
+    ], "conveyors": [
+        (60,  GROUND_Y, 210, 1.5),
+        (620, GROUND_Y, 210, -1.5),
+    ], "portals": [(155, GROUND_Y-160), (705, GROUND_Y-185)]},
 ]
 
 # Stage-specific character advantages and disadvantages.
@@ -1180,7 +1248,13 @@ STAGE_MATCHUPS = {
     "Underworld": {"adv": "Skeleton",    "dis": "Boxer"},
     "Space":      {"adv": "Astronaut",    "dis": "Giant"},
     "Jungle":     {"adv": "Hooker",       "dis": "Gunner"},
-    "Computer":   {"adv": "Charger",      "dis": "Headless Horseman"},
+    "Computer":        {"adv": "Charger",      "dis": "Headless Horseman"},
+    "Ice Cave":        {"adv": "Cryogenisist", "dis": "Arsonist"},
+    "Pirate Ship":     {"adv": "Hooker",        "dis": "Skeleton"},
+    "City Rooftop":    {"adv": "Speedster",     "dis": "Tank"},
+    "Medieval Castle": {"adv": "Knight",        "dis": "Vampire"},
+    "Circus":          {"adv": "Clown",         "dis": "Samurai"},
+    "Underwater":      {"adv": "Cecalia",       "dis": "Arsonist"},
 }
 
 
@@ -1403,6 +1477,215 @@ def draw_bg(surface, stage_idx=0):
         import time as _t
         clk = font_tiny.render(_t.strftime("%H:%M"), True, (220, 220, 220))
         surface.blit(clk, (WIDTH - clk.get_width() - 8, GROUND_Y + 8))
+
+    elif s == 10:  # Ice Cave
+        surface.fill((40, 60, 100))
+        # Background ice wall gradient
+        for gy in range(HEIGHT):
+            t = gy / HEIGHT
+            r = int(40 + t * 30)
+            g = int(60 + t * 50)
+            b = int(100 + t * 60)
+            pygame.draw.line(surface, (r, g, b), (0, gy), (WIDTH, gy))
+        # Stalactites from ceiling
+        for sx2, sw2, sh2 in [(50,30,80),(140,22,55),(240,28,70),(360,20,50),(460,32,90),
+                               (570,24,60),(680,26,75),(790,20,45),(860,30,65)]:
+            pygame.draw.polygon(surface, (160, 200, 240),
+                [(sx2, 0),(sx2+sw2, 0),(sx2+sw2//2, sh2)])
+            pygame.draw.polygon(surface, (200, 230, 255),
+                [(sx2+4, 0),(sx2+8, 0),(sx2+6, sh2//2)])
+        # Ice crystals on ground
+        for cx2, ch2 in [(80,35),(180,25),(320,40),(500,30),(660,38),(800,28)]:
+            pygame.draw.polygon(surface, (180, 220, 255),
+                [(cx2-10, GROUND_Y+2),(cx2+10, GROUND_Y+2),(cx2, GROUND_Y+2-ch2)])
+            pygame.draw.polygon(surface, (220, 240, 255),
+                [(cx2-4, GROUND_Y+2),(cx2+4, GROUND_Y+2),(cx2, GROUND_Y+2-ch2//2)])
+        # Icy ground
+        pygame.draw.rect(surface, (100, 160, 210), (0, GROUND_Y+2, WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface, (140, 190, 235), (0, GROUND_Y+2, WIDTH, 10))
+        pygame.draw.line(surface, (200, 230, 255), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+        # Shiny reflections on ground
+        for rx2 in range(60, WIDTH, 120):
+            pygame.draw.line(surface, (220, 245, 255), (rx2, GROUND_Y+4), (rx2+50, GROUND_Y+4), 2)
+
+    elif s == 11:  # Pirate Ship
+        # Ocean sky
+        surface.fill((80, 130, 190))
+        # Clouds
+        for cxc, cyc, cwr in [(100,60,80),(280,40,60),(550,70,90),(750,45,70)]:
+            pygame.draw.ellipse(surface, (230,230,240),(cxc-cwr//2, cyc, cwr, 30))
+            pygame.draw.ellipse(surface, (240,240,250),(cxc-cwr//3, cyc-12, cwr*2//3, 26))
+        # Background sea
+        pygame.draw.rect(surface, (30, 80, 140), (0, GROUND_Y-60, WIDTH, 62))
+        # Waves
+        for wx2 in range(0, WIDTH, 70):
+            pygame.draw.arc(surface, (60, 120, 180),
+                (wx2, GROUND_Y-65, 70, 30), 0, math.pi, 3)
+        # Ship hull silhouette in background
+        hull_pts = [(50,GROUND_Y+2),(120,GROUND_Y-55),(780,GROUND_Y-55),(850,GROUND_Y+2)]
+        pygame.draw.polygon(surface, (60, 35, 10), hull_pts)
+        pygame.draw.polygon(surface, (90, 55, 20), hull_pts, 3)
+        # Mast
+        mx = WIDTH//2
+        pygame.draw.line(surface, (80, 50, 15), (mx, GROUND_Y-55), (mx, GROUND_Y-280), 8)
+        pygame.draw.line(surface, (80, 50, 15), (mx-2, GROUND_Y-55), (mx-2, GROUND_Y-280), 3)
+        # Sail
+        sail_pts = [(mx+4, GROUND_Y-260),(mx+4, GROUND_Y-130),(mx+130, GROUND_Y-160),(mx+120, GROUND_Y-240)]
+        pygame.draw.polygon(surface, (240, 235, 210), sail_pts)
+        pygame.draw.polygon(surface, (200, 195, 170), sail_pts, 2)
+        # Crow's nest
+        pygame.draw.rect(surface, (80, 50, 15), (mx-20, GROUND_Y-290, 40, 18))
+        # Wooden deck
+        pygame.draw.rect(surface, (100, 65, 25), (0, GROUND_Y+2, WIDTH, HEIGHT-GROUND_Y-2))
+        for plank_x in range(0, WIDTH, 40):
+            pygame.draw.line(surface, (80, 50, 15), (plank_x, GROUND_Y+2), (plank_x, HEIGHT), 2)
+        pygame.draw.line(surface, (140, 90, 35), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+        # Skull-and-crossbones flag
+        pygame.draw.circle(surface, WHITE, (mx, GROUND_Y-265), 9)
+        pygame.draw.line(surface, WHITE, (mx-7, GROUND_Y-258), (mx+7, GROUND_Y-274), 2)
+        pygame.draw.line(surface, WHITE, (mx+7, GROUND_Y-258), (mx-7, GROUND_Y-274), 2)
+
+    elif s == 12:  # City Rooftop
+        surface.fill((8, 8, 25))
+        # Stars
+        for sx3, sy3 in [(50,30),(120,15),(200,45),(340,20),(480,35),(600,10),(720,40),(840,25),(90,70),(400,55),(650,65)]:
+            pygame.draw.circle(surface, (255,255,220),(sx3,sy3), random.randint(1,2))
+        # Moon
+        pygame.draw.circle(surface, (240,240,200),(760,55),32)
+        pygame.draw.circle(surface, (8,8,25),(775,48),26)
+        # Building silhouettes
+        for bx2, bw2, bh2 in [(0,90,200),(85,70,260),(150,80,180),(230,60,300),(290,100,220),
+                                (480,70,250),(550,90,190),(640,80,270),(720,100,210),(820,80,240)]:
+            pygame.draw.rect(surface, (20,20,40),(bx2, GROUND_Y-bh2, bw2, bh2))
+            # Windows
+            for wy2 in range(GROUND_Y-bh2+15, GROUND_Y-20, 25):
+                for wx3 in range(bx2+8, bx2+bw2-8, 18):
+                    wc = (255,230,100) if random.random()>0.35 else (30,30,50)
+                    pygame.draw.rect(surface, wc, (wx3, wy2, 10, 14))
+        # Neon signs
+        for nx2, ny2, nt, nc in [(160,GROUND_Y-70,"BAR",(255,40,80)),
+                                   (480,GROUND_Y-90,"DINER",(80,200,255)),
+                                   (700,GROUND_Y-60,"CLUB",(200,80,255))]:
+            ns = font_tiny.render(nt, True, nc)
+            surface.blit(ns, (nx2, ny2))
+            pygame.draw.rect(surface, nc, (nx2-2, ny2-2, ns.get_width()+4, ns.get_height()+4), 1)
+        # Rooftop floor (gravel)
+        pygame.draw.rect(surface, (55,55,60),(0, GROUND_Y+2, WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface, (70,70,75),(0, GROUND_Y+2, WIDTH, 8))
+        pygame.draw.line(surface, (100,100,110),(0, GROUND_Y+2),(WIDTH, GROUND_Y+2), 3)
+        # AC units
+        for ax2 in [120, 380, 650, 820]:
+            pygame.draw.rect(surface, (70,70,80),(ax2, GROUND_Y-22, 38, 22))
+            pygame.draw.rect(surface, (90,90,100),(ax2, GROUND_Y-22, 38, 22), 2)
+
+    elif s == 13:  # Medieval Castle
+        surface.fill((30, 25, 20))
+        # Stone wall background — grid of blocks
+        for gy2 in range(0, GROUND_Y, 36):
+            offset = 18 if (gy2 // 36) % 2 == 0 else 0
+            for gx2 in range(-offset, WIDTH+36, 72):
+                pygame.draw.rect(surface, (55,50,45),(gx2+1, gy2+1, 70, 34), border_radius=2)
+                pygame.draw.rect(surface, (65,60,55),(gx2+1, gy2+1, 70, 34), 1, border_radius=2)
+        # Battlements at the top
+        for bx2 in range(0, WIDTH, 50):
+            pygame.draw.rect(surface, (70,65,58),(bx2, 0, 30, 40))
+        # Torches
+        for tx2 in [140, 380, 620, 820]:
+            pygame.draw.rect(surface, (100,60,20),(tx2-3, GROUND_Y-100, 6, 40))
+            pygame.draw.circle(surface, (255,160,0),(tx2, GROUND_Y-102), 9)
+            pygame.draw.circle(surface, (255,220,80),(tx2, GROUND_Y-104), 5)
+            pygame.draw.circle(surface, (255,255,180),(tx2, GROUND_Y-106), 2)
+            # Glow
+            gsurf = pygame.Surface((60,60), pygame.SRCALPHA)
+            pygame.draw.circle(gsurf, (255,140,0,40),(30,30),28)
+            surface.blit(gsurf,(tx2-30, GROUND_Y-130))
+        # Red banners
+        for bx2 in [80, 430, 780]:
+            pygame.draw.rect(surface, (160,20,20),(bx2-8, 40, 16, 70))
+            pygame.draw.polygon(surface, (160,20,20),
+                [(bx2-8,110),(bx2+8,110),(bx2, 130)])
+        # Stone floor
+        pygame.draw.rect(surface, (60,55,50),(0, GROUND_Y+2, WIDTH, HEIGHT-GROUND_Y-2))
+        for fx2 in range(0, WIDTH, 80):
+            pygame.draw.line(surface, (50,45,40),(fx2, GROUND_Y+2),(fx2, HEIGHT), 2)
+        pygame.draw.line(surface, (90,82,72),(0, GROUND_Y+2),(WIDTH, GROUND_Y+2), 3)
+
+    elif s == 14:  # Circus
+        surface.fill((10, 5, 20))
+        # Big top tent stripes (alternating red/white/yellow from top)
+        stripe_w = WIDTH // 10
+        stripe_cols = [(210,30,30),(240,240,240),(220,180,0),(210,30,30),(240,240,240),
+                       (220,180,0),(210,30,30),(240,240,240),(220,180,0),(210,30,30)]
+        for i, sc in enumerate(stripe_cols):
+            pygame.draw.rect(surface, sc, (i*stripe_w, 0, stripe_w, GROUND_Y+2))
+        # Dark overlay for depth
+        ov2 = pygame.Surface((WIDTH, GROUND_Y+2), pygame.SRCALPHA)
+        ov2.fill((0,0,0,110))
+        surface.blit(ov2,(0,0))
+        # Tent border outline
+        pygame.draw.line(surface,(255,255,200),(0,0),(WIDTH,0),4)
+        # Spotlight cones from top corners
+        for sp_x in [0, WIDTH]:
+            sp_pts = [(sp_x, 0),(sp_x + (300 if sp_x==0 else -300), 0),
+                      (WIDTH//2 + (100 if sp_x==0 else -100), GROUND_Y)]
+            sp_surf = pygame.Surface((WIDTH, GROUND_Y+2), pygame.SRCALPHA)
+            pygame.draw.polygon(sp_surf,(255,255,180,18), sp_pts)
+            surface.blit(sp_surf,(0,0))
+        # Sparkles
+        for px2, py2 in [(80,50),(200,30),(400,20),(600,35),(780,25),(140,80),(660,70)]:
+            pygame.draw.line(surface,(255,230,0),(px2-5,py2),(px2+5,py2),2)
+            pygame.draw.line(surface,(255,230,0),(px2,py2-5),(px2,py2+5),2)
+        # Sawdust ground
+        pygame.draw.rect(surface,(180,130,60),(0, GROUND_Y+2, WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface,(200,155,80),(0, GROUND_Y+2, WIDTH, 10))
+        pygame.draw.line(surface,(220,175,100),(0, GROUND_Y+2),(WIDTH, GROUND_Y+2),3)
+
+    elif s == 15:  # Underwater
+        # Deep sea gradient
+        for gy2 in range(HEIGHT):
+            t = gy2 / HEIGHT
+            r = int(0  + t * 10)
+            g = int(30 + t * 60)
+            b = int(80 + t * 80)
+            pygame.draw.line(surface, (r, g, b), (0, gy2), (WIDTH, gy2))
+        # Light rays from surface
+        for lx2 in range(50, WIDTH, 130):
+            ray_pts = [(lx2-20,0),(lx2+20,0),(lx2+50, GROUND_Y),(lx2-50, GROUND_Y)]
+            rs = pygame.Surface((WIDTH, GROUND_Y+2), pygame.SRCALPHA)
+            pygame.draw.polygon(rs,(180,220,255,15), ray_pts)
+            surface.blit(rs,(0,0))
+        # Bubbles rising (static pattern)
+        for bx2, by2, br2 in [(80,300,4),(200,200,3),(330,350,5),(460,150,3),
+                               (580,280,4),(700,180,3),(820,320,4),(130,100,2),(650,380,3)]:
+            pygame.draw.circle(surface,(160,220,255,0),(bx2,by2),br2,1)
+            pygame.draw.circle(surface,(160,220,255),(bx2,by2),br2,1)
+        # Coral at ground
+        for cx2, cc in [(80,(255,80,80)),(160,(255,120,60)),(280,(220,60,120)),
+                         (420,(255,80,80)),(540,(200,80,200)),(660,(255,100,60)),
+                         (760,(220,70,120)),(840,(255,80,80))]:
+            for branch in range(-2,3):
+                bh2 = random.randint(20,50)
+                pygame.draw.line(surface, cc,
+                    (cx2+branch*8, GROUND_Y+2),
+                    (cx2+branch*6, GROUND_Y+2-bh2), 4)
+                pygame.draw.circle(surface, cc, (cx2+branch*6, GROUND_Y+2-bh2), 5)
+        # Seaweed
+        for wx2 in [130, 320, 500, 720, 860]:
+            for seg2 in range(8):
+                sy2_1 = GROUND_Y + 2 - seg2 * 16
+                sy2_2 = sy2_1 - 14
+                pygame.draw.line(surface,(40,160,60),
+                    (wx2 + int(math.sin(seg2*0.8)*8), sy2_1),
+                    (wx2 + int(math.sin((seg2+1)*0.8)*8), sy2_2), 4)
+        # Sandy seafloor
+        pygame.draw.rect(surface,(140,120,60),(0, GROUND_Y+2, WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface,(160,140,80),(0, GROUND_Y+2, WIDTH, 8))
+        pygame.draw.line(surface,(180,160,100),(0, GROUND_Y+2),(WIDTH, GROUND_Y+2), 3)
+        # Fish silhouettes in background
+        for fx2, fy2, ff in [(200,180,1),(500,120,-1),(750,220,1),(350,300,-1)]:
+            pygame.draw.ellipse(surface,(20,80,120),(fx2,fy2,24,12))
+            pygame.draw.polygon(surface,(20,80,120),
+                [(fx2-ff*12,fy2+6),(fx2-ff*22,fy2+2),(fx2-ff*22,fy2+10)])
 
 
 def draw_health_bars(surface, p1, p2):
