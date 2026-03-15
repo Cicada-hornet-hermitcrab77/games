@@ -32,6 +32,7 @@ font_small  = pygame.font.SysFont("Arial", 24)
 font_tiny   = pygame.font.SysFont("Arial", 13)
 
 GRAVITY = 0.55
+STAGE_VOID = False   # when True the ground floor is removed; falling off = instant death
 
 CHARACTERS = [
     {"name": "Brawler", "color": RED,    "speed": 4, "jump": -14,
@@ -1223,6 +1224,17 @@ STAGES = [
         (55,  GROUND_Y, 240, 3.0),
         (590, GROUND_Y, 240, -3.0),
     ], "portals": [(165, GROUND_Y-175), (695, GROUND_Y-175)]},
+    # The Void
+    {"name": "The Void", "platforms": [
+        (310, GROUND_Y-70,  280, 0,   0),    # large central platform (spawn zone)
+        (50,  GROUND_Y-160, 175, 0,   0),    # left ledge
+        (675, GROUND_Y-160, 175, 0,   0),    # right ledge
+        (175, GROUND_Y-270, 140, 1.8, 110),  # left floating
+        (580, GROUND_Y-270, 140, -1.8,110),  # right floating
+        (380, GROUND_Y-360, 120, 0,   0),    # top centre
+    ], "springs": [
+        (430, -22), (580, -22),
+    ], "conveyors": [], "portals": [(160, GROUND_Y-230), (700, GROUND_Y-230)]},
     # Underwater
     {"name": "Underwater", "platforms": [
         (60,  GROUND_Y-95,  175, 0.8, 100),
@@ -1255,6 +1267,7 @@ STAGE_MATCHUPS = {
     "Medieval Castle": {"adv": "Knight",        "dis": "Vampire"},
     "Circus":          {"adv": "Clown",         "dis": "Samurai"},
     "Underwater":      {"adv": "Cecalia",       "dis": "Arsonist"},
+    "The Void":        {"adv": "Acrobat",       "dis": "Tank"},
 }
 
 
@@ -1640,7 +1653,34 @@ def draw_bg(surface, stage_idx=0):
         pygame.draw.rect(surface,(200,155,80),(0, GROUND_Y+2, WIDTH, 10))
         pygame.draw.line(surface,(220,175,100),(0, GROUND_Y+2),(WIDTH, GROUND_Y+2),3)
 
-    elif s == 15:  # Underwater
+    elif s == 15:  # The Void
+        # Deep black abyss
+        surface.fill((5, 0, 15))
+        # Starfield / void particles
+        for vx2, vy2, vr in [
+            (60,40,2),(150,80,1),(230,30,2),(380,60,1),(500,45,2),(620,25,1),
+            (740,70,2),(830,35,1),(90,120,1),(300,100,2),(470,130,1),(680,110,2),
+            (800,90,1),(180,160,2),(420,150,1),(560,170,2),(720,140,1),(50,200,1),
+        ]:
+            pygame.draw.circle(surface, (180,160,255), (vx2, vy2), vr)
+        # Void tendrils drifting up from below
+        for tx2, offset in [(80,0),(220,15),(370,5),(530,20),(680,8),(820,12)]:
+            for i in range(6):
+                ty1 = HEIGHT - i * 55
+                ty2 = ty1 - 50
+                pygame.draw.line(surface, (40,0,80),
+                    (tx2 + int(math.sin(i * 0.7 + offset) * 18), ty1),
+                    (tx2 + int(math.sin((i+1) * 0.7 + offset) * 18), ty2), 3)
+        # Eerie purple glow at the bottom
+        glow = pygame.Surface((WIDTH, 160), pygame.SRCALPHA)
+        for gi in range(80):
+            alpha = int(80 * (1 - gi / 80))
+            pygame.draw.line(glow, (80, 0, 140, alpha), (0, 160-gi), (WIDTH, 160-gi))
+        surface.blit(glow, (0, HEIGHT - 160))
+        # Floating platform islands have a glowing underside — drawn after platforms in game loop
+        # (the background just sets up the void atmosphere)
+
+    elif s == 16:  # Underwater
         # Deep sea gradient
         for gy2 in range(HEIGHT):
             t = gy2 / HEIGHT
@@ -2075,7 +2115,9 @@ class Fighter:
         self.vy += eff_grav
         self.y  += self.vy
         landed = False
-        if self.y >= GROUND_Y:
+        if STAGE_VOID and self.y > HEIGHT + 30:
+            self.hp = 0   # fell into the void
+        elif not STAGE_VOID and self.y >= GROUND_Y:
             self.y = GROUND_Y
             self.vy = 0
             landed = True
@@ -2503,7 +2545,9 @@ class AIFighter(Fighter):
         self.vy += eff_grav
         self.y  += self.vy
         landed = False
-        if self.y >= GROUND_Y:
+        if STAGE_VOID and self.y > HEIGHT + 30:
+            self.hp = 0   # fell into the void
+        elif not STAGE_VOID and self.y >= GROUND_Y:
             self.y = GROUND_Y
             self.vy = 0
             landed = True
@@ -3847,11 +3891,12 @@ def character_select(vs_ai=False):
 # ---------------------------------------------------------------------------
 
 def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
-    global GRAVITY
+    global GRAVITY, STAGE_VOID
     _stage_name = STAGES[stage_idx % len(STAGES)]["name"]
     _orig_gravity = GRAVITY
     if _stage_name == "Space":
         GRAVITY = 0.13   # floaty anti-gravity
+    STAGE_VOID = (_stage_name == "The Void")
 
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
                    punch=pygame.K_f, kick=pygame.K_g, duck=pygame.K_s, block=pygame.K_r)
@@ -3935,15 +3980,15 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             if event.type == pygame.KEYDOWN:
                 if game_over:
                     if event.key == pygame.K_r:
-                        GRAVITY = _orig_gravity; return 'rematch'
+                        GRAVITY = _orig_gravity; STAGE_VOID = False; return 'rematch'
                     if event.key == pygame.K_c:
-                        GRAVITY = _orig_gravity; return 'select'
+                        GRAVITY = _orig_gravity; STAGE_VOID = False; return 'select'
                     if event.key in (pygame.K_q, pygame.K_ESCAPE):
-                        GRAVITY = _orig_gravity
+                        GRAVITY = _orig_gravity; STAGE_VOID = False
                         pygame.quit(); sys.exit()
                 else:
                     if event.key in (pygame.K_q, pygame.K_ESCAPE):
-                        GRAVITY = _orig_gravity; return 'select'
+                        GRAVITY = _orig_gravity; STAGE_VOID = False; return 'select'
 
         if not game_over:
             for portal in portals_obj:
@@ -4343,11 +4388,12 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
 # ---------------------------------------------------------------------------
 
 def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
-    global GRAVITY
+    global GRAVITY, STAGE_VOID
     _stage_name   = STAGES[stage_idx % len(STAGES)]["name"]
     _orig_gravity = GRAVITY
     if _stage_name == "Space":
         GRAVITY = 0.13
+    STAGE_VOID = (_stage_name == "The Void")
 
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
                    punch=pygame.K_f, kick=pygame.K_g, duck=pygame.K_s, block=pygame.K_r)
@@ -4468,14 +4514,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             if event.type == pygame.KEYDOWN:
                 if game_over:
                     if event.key == pygame.K_r:
-                        GRAVITY = _orig_gravity; return 'rematch'
+                        GRAVITY = _orig_gravity; STAGE_VOID = False; return 'rematch'
                     if event.key == pygame.K_c:
-                        GRAVITY = _orig_gravity; return 'select'
+                        GRAVITY = _orig_gravity; STAGE_VOID = False; return 'select'
                     if event.key in (pygame.K_q, pygame.K_ESCAPE):
-                        GRAVITY = _orig_gravity; pygame.quit(); sys.exit()
+                        GRAVITY = _orig_gravity; STAGE_VOID = False; pygame.quit(); sys.exit()
                 else:
                     if event.key in (pygame.K_q, pygame.K_ESCAPE):
-                        GRAVITY = _orig_gravity; return 'select'
+                        GRAVITY = _orig_gravity; STAGE_VOID = False; return 'select'
 
         if not game_over:
             survival_timer += 1
