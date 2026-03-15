@@ -3909,6 +3909,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     else:
         p2 = Fighter(700, CHARACTERS[p2_idx], -1, P2_CTRL)
 
+    if STAGE_VOID:
+        # Spawn on the central platform (GROUND_Y-70), not on the (absent) floor
+        p1.x = 380.0; p1.y = float(GROUND_Y - 70); p1.on_ground = True
+        p2.x = 520.0; p2.y = float(GROUND_Y - 70); p2.on_ground = True
+
     stage_data = STAGES[stage_idx % len(STAGES)]
     platforms  = [Platform(*p) for p in stage_data["platforms"]] + [ConveyorBelt(*c) for c in stage_data.get("conveyors", [])]
     springs    = [Spring(*s)   for s in stage_data["springs"]]
@@ -4402,6 +4407,10 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
 
     p1      = Fighter(250, CHARACTERS[p1_idx],  1, P1_CTRL)
     p2      = Fighter(650, CHARACTERS[p2_idx], -1, P2_CTRL) if two_player else None
+    if STAGE_VOID:
+        p1.x = 400.0; p1.y = float(GROUND_Y - 70); p1.on_ground = True
+        if p2:
+            p2.x = 500.0; p2.y = float(GROUND_Y - 70); p2.on_ground = True
     players = [p1, p2] if two_player else [p1]
 
     stage_data  = STAGES[stage_idx % len(STAGES)]
