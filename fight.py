@@ -194,6 +194,32 @@ CHARACTERS = [
     {"name": "Knight", "color": (160, 160, 180), "speed": 3, "jump": -11,
      "punch_dmg": 17, "kick_dmg": 15, "max_hp": 150, "block": 12,
      "desc": "Heavily armored — massive block rating", "double_jump": False},
+    {"name": "Lava Man",   "color": (230, 80, 20),   "speed": 4, "jump": -13,
+     "punch_dmg": 11, "kick_dmg": 9,  "max_hp": 115, "block": 4,
+     "desc": "Burns on contact; punches ignite foes", "double_jump": False,
+     "fire_punch": True, "contact_dmg": 10},
+    {"name": "Angel",      "color": (255, 250, 210),  "speed": 6, "jump": -18,
+     "punch_dmg": 8,  "kick_dmg": 10, "max_hp": 90,  "block": 6,
+     "desc": "Slow fall — glides gracefully in the air", "double_jump": True, "slow_fall": True},
+    {"name": "Mime",       "color": (240, 240, 240),  "speed": 6, "jump": -14,
+     "punch_dmg": 10, "kick_dmg": 8,  "max_hp": 100, "block": 7,
+     "desc": "Landing a punch turns Mime invisible for 2s", "double_jump": False, "stealth_punch": True},
+    {"name": "Lumberjack", "color": (160, 80, 30),    "speed": 4, "jump": -12,
+     "punch_dmg": 14, "kick_dmg": 11, "max_hp": 140, "block": 5,
+     "desc": "Axe swing hits at double reach", "double_jump": False, "wide_punch": True},
+    {"name": "Bouncer",    "color": (80, 200, 80),    "speed": 4, "jump": -12,
+     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 130, "block": 8,
+     "desc": "Reflects 50% damage back when blocking", "double_jump": False, "reflect_block": True},
+    {"name": "Demon",      "color": (160, 20, 20),    "speed": 7, "jump": -15,
+     "punch_dmg": 16, "kick_dmg": 14, "max_hp": 110, "block": 4,
+     "desc": "Dark and powerful demon warrior", "double_jump": True},
+    {"name": "Dark Mage",  "color": (60, 20, 100),    "speed": 5, "jump": -14,
+     "punch_dmg": 10, "kick_dmg": 8,  "max_hp": 100, "block": 6,
+     "desc": "Magic orb punch + freeze kick combo", "double_jump": True,
+     "bounce_punch": True, "freeze_kick": True},
+    {"name": "Pirate",     "color": (80, 55, 30),     "speed": 4, "jump": -12,
+     "punch_dmg": 10, "kick_dmg": 0,  "max_hp": 120, "block": 5,
+     "desc": "Fires an explosive cannonball on kick (35 dmg)", "double_jump": False, "bazooka_kick": True},
 ]
 
 POWERUPS = [
@@ -915,6 +941,189 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         gx, gy = rhx + facing*int(10*s), rhy - int(8*s)
         pygame.draw.line(surface, (160, 130, 60), (gx - int(10*s), gy), (gx + int(10*s), gy), max(2, int(3*s)))
 
+    elif char_name == "Lava Man":
+        # Glowing lava cracks on body
+        for ly, lx1, lx2 in [(sy+int(10*s), sx-int(8*s), sx+int(5*s)),
+                              (sy+int(25*s), sx+int(3*s), sx-int(6*s)),
+                              (sy+int(38*s), sx-int(4*s), sx+int(10*s))]:
+            pygame.draw.line(surface, (255, 200, 50), (lx1, ly), (lx2, ly+int(8*s)), max(1,int(2*s)))
+        # Horns on head
+        for side in (-1, 1):
+            hpx = hx + side * int(hd*0.7)
+            pygame.draw.polygon(surface, (80, 20, 0),
+                [(hpx-side*int(4*s), hy-hd+int(2*s)),
+                 (hpx+side*int(4*s), hy-hd+int(2*s)),
+                 (hpx+side*int(2*s), hy-hd-int(18*s))])
+        # Glowing eyes
+        pygame.draw.circle(surface, (255, 180, 0), (hx - int(hd*0.35), hy - int(2*s)), max(2, int(4*s)))
+        pygame.draw.circle(surface, (255, 180, 0), (hx + int(hd*0.35), hy - int(2*s)), max(2, int(4*s)))
+
+    elif char_name == "Angel":
+        # Halo
+        pygame.draw.ellipse(surface, (255, 240, 100),
+                            (hx - int(hd*1.1), hy - hd - int(18*s), int(hd*2.2), int(10*s)), max(2, int(3*s)))
+        pygame.draw.ellipse(surface, (255, 255, 160),
+                            (hx - int(hd*1.1), hy - hd - int(18*s), int(hd*2.2), int(10*s)), max(1, int(2*s)))
+        # Wings (two arcs on sides)
+        for side in (-1, 1):
+            wx1 = sx + side * int(hd*0.5)
+            wy1 = sy + int(6*s)
+            pygame.draw.arc(surface, (255, 250, 230),
+                            (wx1 + side*int(4*s) - int(30*s), wy1 - int(30*s), int(36*s), int(44*s)),
+                            math.radians(200 if side == 1 else -20),
+                            math.radians(340 if side == 1 else 160),
+                            max(2, int(4*s)))
+            pygame.draw.arc(surface, (240, 240, 210),
+                            (wx1 + side*int(4*s) - int(22*s), wy1 + int(4*s), int(28*s), int(32*s)),
+                            math.radians(190 if side == 1 else -10),
+                            math.radians(350 if side == 1 else 170),
+                            max(1, int(3*s)))
+
+    elif char_name == "Mime":
+        # Black and white striped shirt
+        for si in range(3):
+            sy2m = sy + int((si * 14 + 4) * s)
+            pygame.draw.rect(surface, (30, 30, 30),
+                             (sx - int(12*s), sy2m, int(24*s), int(6*s)))
+        # White face with black outlines
+        pygame.draw.circle(surface, (255, 255, 255), (hx, hy), hd)
+        pygame.draw.circle(surface, (0, 0, 0), (hx, hy), hd, max(1, int(2*s)))
+        # Sad/happy mime smile
+        pygame.draw.arc(surface, (0, 0, 0),
+                        (hx - int(hd*0.55), hy, int(hd*1.1), int(hd*0.8)),
+                        0, math.pi, max(1, int(2*s)))
+        # Beret
+        pygame.draw.ellipse(surface, (20, 20, 20),
+                            (hx - int(hd*1.1), hy - hd - int(10*s), int(hd*2.2), int(12*s)))
+        pygame.draw.ellipse(surface, (30, 30, 30),
+                            (hx - int(hd*0.7), hy - hd - int(18*s), int(hd*1.4), int(14*s)))
+
+    elif char_name == "Lumberjack":
+        # Flannel shirt (red/dark checked)
+        for ci in range(3):
+            sx2l = sx - int(12*s) + ci * int(8*s)
+            for ri in range(4):
+                rc = (200, 40, 30) if (ci + ri) % 2 == 0 else (80, 20, 15)
+                pygame.draw.rect(surface, rc, (sx2l, sy + int(ri*10*s), int(8*s), int(10*s)))
+        # Beard
+        pygame.draw.ellipse(surface, (130, 80, 40),
+                            (hx - int(hd*0.9), hy + int(4*s), int(hd*1.8), int(hd*1.1)))
+        # Axe in right hand
+        ax_tip2 = (rhx + facing*int(38*s), rhy - int(4*s))
+        pygame.draw.line(surface, (130, 90, 40), (rhx, rhy), ax_tip2, max(2, int(4*s)))
+        bx2l = ax_tip2[0] + facing*int(3*s)
+        by2l = ax_tip2[1]
+        lpts = [(bx2l, by2l - int(24*s)),
+                (bx2l + facing*int(22*s), by2l - int(12*s)),
+                (bx2l + facing*int(20*s), by2l + int(10*s)),
+                (bx2l, by2l + int(16*s))]
+        pygame.draw.polygon(surface, (160, 170, 180), lpts)
+        pygame.draw.polygon(surface, (200, 210, 220), lpts, max(1, int(2*s)))
+
+    elif char_name == "Bouncer":
+        # Black vest
+        pygame.draw.rect(surface, (20, 20, 20),
+                         (sx - int(14*s), sy, int(28*s), int(36*s)), border_radius=max(2,int(3*s)))
+        pygame.draw.line(surface, (50, 50, 50),
+                         (sx, sy + int(4*s)), (sx, sy + int(32*s)), max(1, int(2*s)))
+        # Big boxing gloves on both hands
+        for ghx, ghy in [(lhx, lhy), (rhx, rhy)]:
+            pygame.draw.circle(surface, (220, 60, 20), (ghx, ghy), max(5, int(10*s)))
+            pygame.draw.circle(surface, (255, 90, 40), (ghx, ghy), max(3, int(7*s)), max(1,int(2*s)))
+        # Sunglasses
+        for side2, ex2 in [(-1, hx - int(hd*0.55)), (1, hx + int(hd*0.1))]:
+            pygame.draw.rect(surface, (10, 10, 10),
+                             (ex2 - int(3*s), hy - int(5*s), int(hd*0.7), int(8*s)), border_radius=2)
+        pygame.draw.line(surface, (10, 10, 10),
+                         (hx - int(hd*0.1), hy - int(2*s)), (hx + int(hd*0.1), hy - int(2*s)),
+                         max(1, int(2*s)))
+
+    elif char_name == "Demon":
+        # Large curved horns
+        for side in (-1, 1):
+            hbx = hx + side * int(hd*0.8)
+            hby = hy - hd + int(4*s)
+            pts2 = [(hbx - side*int(4*s), hby),
+                    (hbx + side*int(16*s), hby - int(28*s)),
+                    (hbx + side*int(20*s), hby - int(10*s))]
+            pygame.draw.polygon(surface, (100, 10, 10), pts2)
+            pygame.draw.polygon(surface, (140, 30, 20), pts2, max(1,int(2*s)))
+        # Tail
+        tpts = [(sx - facing*int(8*s), wy + int(8*s)),
+                (sx - facing*int(30*s), wy + int(28*s)),
+                (sx - facing*int(36*s), wy + int(18*s)),
+                (sx - facing*int(28*s), wy + int(10*s))]
+        pygame.draw.lines(surface, (140, 20, 20), False, tpts, max(2, int(3*s)))
+        # Arrow-head tail tip
+        pygame.draw.polygon(surface, (180, 30, 30),
+            [(sx - facing*int(28*s), wy + int(10*s)),
+             (sx - facing*int(40*s), wy + int(6*s)),
+             (sx - facing*int(34*s), wy + int(20*s))])
+        # Glowing red eyes
+        for ex3 in [hx - int(hd*0.38), hx + int(hd*0.38)]:
+            pygame.draw.circle(surface, (255, 60, 0), (ex3, hy - int(3*s)), max(2, int(5*s)))
+            pygame.draw.circle(surface, (255, 150, 0), (ex3, hy - int(3*s)), max(1, int(3*s)))
+        # Pitchfork in right hand
+        pf_top = (rhx + facing*int(8*s), rhy - int(46*s))
+        pygame.draw.line(surface, (160, 130, 60), (rhx, rhy), pf_top, max(2, int(3*s)))
+        for pfd in [-1, 0, 1]:
+            pygame.draw.line(surface, (200, 180, 80),
+                pf_top,
+                (pf_top[0] + pfd*int(8*s), pf_top[1] - int(14*s)),
+                max(1, int(2*s)))
+
+    elif char_name == "Dark Mage":
+        # Dark hooded robe
+        pygame.draw.rect(surface, (30, 10, 60),
+                         (sx - int(14*s), sy, int(28*s), int(38*s)), border_radius=max(2,int(3*s)))
+        # Hood over head
+        hood_pts = [(hx - int(hd*1.3), hy - hd + int(6*s)),
+                    (hx, hy - hd - int(28*s)),
+                    (hx + int(hd*1.3), hy - hd + int(6*s))]
+        pygame.draw.polygon(surface, (30, 10, 60), hood_pts)
+        # Glowing skull on chest
+        pygame.draw.circle(surface, (180, 180, 200),
+                           (sx, sy + int(14*s)), max(3, int(6*s)))
+        pygame.draw.circle(surface, (220, 220, 240),
+                           (sx, sy + int(14*s)), max(2, int(4*s)), max(1,int(1*s)))
+        # Dark staff with skull top in right hand
+        st_tip = (rhx + facing*int(5*s), rhy - int(44*s))
+        pygame.draw.line(surface, (60, 40, 80), (rhx, rhy), st_tip, max(2, int(3*s)))
+        pygame.draw.circle(surface, (160, 20, 200), st_tip, max(3, int(6*s)))
+        pygame.draw.circle(surface, (200, 80, 255), st_tip, max(2, int(4*s)))
+        # Stars orbiting staff tip
+        for sai in range(3):
+            sa2 = math.radians(pygame.time.get_ticks() * 0.3 + sai * 120)
+            sdx2 = int(math.cos(sa2) * int(10*s))
+            sdy2 = int(math.sin(sa2) * int(8*s))
+            pygame.draw.circle(surface, (180, 100, 255), (st_tip[0]+sdx2, st_tip[1]+sdy2), max(1,int(3*s)))
+
+    elif char_name == "Pirate":
+        # Tricorn hat
+        hat_bw2 = int(hd * 2.6)
+        pygame.draw.polygon(surface, (20, 15, 10),
+                            [(hx - hat_bw2//2, hy - hd),
+                             (hx + hat_bw2//2, hy - hd),
+                             (hx + facing*int(6*s), hy - hd - int(38*s))])
+        pygame.draw.ellipse(surface, (30, 22, 15),
+                            (hx - hat_bw2//2 - int(4*s), hy - hd - int(6*s),
+                             hat_bw2 + int(8*s), int(11*s)))
+        pygame.draw.ellipse(surface, (60, 50, 30),
+                            (hx - hat_bw2//2 - int(4*s), hy - hd - int(6*s),
+                             hat_bw2 + int(8*s), int(11*s)), max(1,int(2*s)))
+        # Eyepatch
+        pygame.draw.circle(surface, (10, 8, 5),
+                           (hx + facing*int(hd*0.4), hy - int(4*s)), max(3, int(6*s)))
+        pygame.draw.circle(surface, (30, 25, 15),
+                           (hx + facing*int(hd*0.4), hy - int(4*s)), max(3, int(6*s)), max(1,int(2*s)))
+        pygame.draw.line(surface, (40, 30, 20),
+                         (hx + facing*int(hd*0.4) - int(hd*0.5), hy - int(4*s)),
+                         (hx + facing*int(hd*0.4) + int(hd*0.5), hy - int(4*s)), max(1,int(1*s)))
+        # Hook on left hand
+        pygame.draw.arc(surface, (180, 185, 195),
+                        (lhx - int(10*s), lhy - int(10*s), int(14*s), int(14*s)),
+                        math.radians(-30), math.radians(200), max(2, int(3*s)))
+
     elif char_name == "Hammerhead":
         # Hard hat
         hat_w = int(hd * 2.0)
@@ -1246,6 +1455,67 @@ STAGES = [
         (60,  GROUND_Y, 210, 1.5),
         (620, GROUND_Y, 210, -1.5),
     ], "portals": [(155, GROUND_Y-160), (705, GROUND_Y-185)]},
+    # Arctic Tundra
+    {"name": "Arctic Tundra", "platforms": [
+        (55,  GROUND_Y-100, 180, 0,   0),
+        (665, GROUND_Y-130, 160, 0,   0),
+        (335, GROUND_Y-220, 160, 0,   0),
+    ], "springs": [
+        (220, -22), (680, -22),
+    ], "conveyors": [
+        (50,  GROUND_Y, 320, 5.0),
+        (530, GROUND_Y, 320, -5.0),
+    ], "portals": [(145, GROUND_Y-165), (720, GROUND_Y-165)]},
+    # Haunted House
+    {"name": "Haunted House", "platforms": [
+        (60,  GROUND_Y-110, 160, 0,   0),
+        (680, GROUND_Y-110, 160, 0,   0),
+        (320, GROUND_Y-215, 150, 1.2, 110),
+        (150, GROUND_Y-300, 120, 0,   0),
+    ], "springs": [
+        (390, -22),
+    ], "conveyors": [
+        (60,  GROUND_Y, 200, -1.8),
+        (640, GROUND_Y, 200,  1.8),
+    ], "portals": [(155, GROUND_Y-175), (710, GROUND_Y-175)]},
+    # Volcano Core
+    {"name": "Volcano Core", "platforms": [
+        (55,  GROUND_Y-90,  170, 1.5, 100),
+        (675, GROUND_Y-120, 155, -1.5,100),
+        (360, GROUND_Y-200, 135, 0,   0),
+        (200, GROUND_Y-295, 110, 2.0, 90),
+        (590, GROUND_Y-295, 110, -2.0,90),
+    ], "springs": [
+        (440, -22),
+    ], "conveyors": [
+        (60,  GROUND_Y, 220, 3.2),
+        (620, GROUND_Y, 220, -3.2),
+    ], "portals": [(160, GROUND_Y-210), (700, GROUND_Y-210)]},
+    # Sky Island
+    {"name": "Sky Island", "platforms": [
+        (80,  GROUND_Y-150, 160, 0,   0),
+        (660, GROUND_Y-150, 160, 0,   0),
+        (350, GROUND_Y-255, 145, 0,   0),
+        (200, GROUND_Y-340, 110, 0,   0),
+        (590, GROUND_Y-340, 110, 0,   0),
+    ], "springs": [
+        (160, -22), (460, -22), (740, -22),
+    ], "conveyors": [
+        (80,  GROUND_Y, 180, 1.5),
+        (640, GROUND_Y, 180, -1.5),
+    ], "portals": [(165, GROUND_Y-210), (695, GROUND_Y-210)]},
+    # Graveyard
+    {"name": "Graveyard", "platforms": [
+        (50,  GROUND_Y-105, 170, 0,   0),
+        (680, GROUND_Y-130, 155, 0,   0),
+        (330, GROUND_Y-210, 145, 1.0, 100),
+        (460, GROUND_Y-295, 115, 0,   0),
+    ], "springs": [
+        (300, -22), (620, -22),
+    ], "conveyors": [
+        (55,  GROUND_Y, 210, -2.0),
+        (635, GROUND_Y, 210,  2.0),
+    ], "portals": [(150, GROUND_Y-165), (715, GROUND_Y-165)]},
 ]
 
 # Stage-specific character advantages and disadvantages.
@@ -1267,7 +1537,12 @@ STAGE_MATCHUPS = {
     "Medieval Castle": {"adv": "Knight",        "dis": "Vampire"},
     "Circus":          {"adv": "Clown",         "dis": "Samurai"},
     "Underwater":      {"adv": "Cecalia",       "dis": "Arsonist"},
-    "The Void":        {"adv": "Acrobat",       "dis": "Tank"},
+    "The Void":        {"adv": "Acrobat",       "dis": "Titan"},
+    "Arctic Tundra":   {"adv": "Cryogenisist",  "dis": "Lava Man"},
+    "Haunted House":   {"adv": "Ghost",          "dis": "Rogue"},
+    "Volcano Core":    {"adv": "Lava Man",       "dis": "Cryogenisist"},
+    "Sky Island":      {"adv": "Angel",          "dis": "Sumo"},
+    "Graveyard":       {"adv": "Skeleton",       "dis": "Medic"},
 }
 
 
@@ -1727,6 +2002,195 @@ def draw_bg(surface, stage_idx=0):
             pygame.draw.polygon(surface,(20,80,120),
                 [(fx2-ff*12,fy2+6),(fx2-ff*22,fy2+2),(fx2-ff*22,fy2+10)])
 
+    elif s == 17:  # Arctic Tundra
+        # Sky gradient: pale blue top to white horizon
+        for gy2 in range(HEIGHT):
+            t = gy2 / HEIGHT
+            r = int(180 + t * 55)
+            g = int(210 + t * 35)
+            b = int(240 + t * 10)
+            pygame.draw.line(surface, (min(r,255), min(g,255), min(b,255)), (0, gy2), (WIDTH, gy2))
+        # Distant snow hills
+        for hx, hw, hh, hc in [(0,320,90,(230,240,250)),(260,300,75,(220,232,244)),(520,340,85,(235,244,252))]:
+            pygame.draw.ellipse(surface, hc, (hx, GROUND_Y-hh+20, hw, hh*2))
+        # Snow ground
+        pygame.draw.rect(surface, (240, 248, 255), (0, GROUND_Y+2, WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface, (210, 228, 245), (0, GROUND_Y+2, WIDTH, 10))
+        pygame.draw.line(surface, (255,255,255), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+        # Blizzard snowflakes
+        for bx2, by2, bs2 in [(40,80,3),(120,200,2),(200,140,4),(310,60,2),(420,180,3),
+                               (540,100,4),(650,240,2),(760,70,3),(840,190,2),(110,310,3),
+                               (340,280,2),(590,330,3),(720,150,2),(80,380,4),(500,360,3)]:
+            pygame.draw.circle(surface, (255,255,255), (bx2, by2), bs2)
+            pygame.draw.line(surface,(220,230,255),(bx2-bs2-2,by2),(bx2+bs2+2,by2),1)
+            pygame.draw.line(surface,(220,230,255),(bx2,by2-bs2-2),(bx2,by2+bs2+2),1)
+        # Ice formations at ground
+        for ix in [60,180,320,480,640,800]:
+            pts = [(ix,GROUND_Y+2),(ix-14,GROUND_Y-38),(ix,GROUND_Y-22),(ix+14,GROUND_Y-38)]
+            pygame.draw.polygon(surface,(180,220,255),pts)
+            pygame.draw.polygon(surface,(220,240,255),pts,2)
+
+    elif s == 18:  # Haunted House
+        # Dark purple-blue night sky
+        for gy2 in range(HEIGHT):
+            t = gy2 / HEIGHT
+            r = int(20 + t * 25)
+            g = int(10 + t * 20)
+            b = int(40 + t * 30)
+            pygame.draw.line(surface, (r, g, b), (0, gy2), (WIDTH, gy2))
+        # Full moon
+        pygame.draw.circle(surface, (200, 200, 160), (720, 80), 42)
+        pygame.draw.circle(surface, (230, 230, 190), (720, 80), 38)
+        # Moon glow
+        gsurf = pygame.Surface((120, 120), pygame.SRCALPHA)
+        pygame.draw.circle(gsurf, (200,200,150,25),(60,60),60)
+        surface.blit(gsurf, (660, 20))
+        # Haunted house silhouette
+        house_pts = [(50,GROUND_Y+2),(50,GROUND_Y-120),(120,GROUND_Y-120),(120,GROUND_Y-180),
+                     (155,GROUND_Y-200),(190,GROUND_Y-180),(190,GROUND_Y-120),(250,GROUND_Y-120),
+                     (250,GROUND_Y+2)]
+        pygame.draw.polygon(surface,(30,20,40),house_pts)
+        # Windows glowing yellow
+        for wx2, wy2 in [(80,GROUND_Y-105),(155,GROUND_Y-115),(80,GROUND_Y-60),(210,GROUND_Y-60)]:
+            pygame.draw.rect(surface,(180,140,20),(wx2,wy2,22,18),border_radius=2)
+            pygame.draw.rect(surface,(220,180,60),(wx2+3,wy2+3,16,12),border_radius=1)
+        # Bare trees
+        for tx2 in [310, 590, 740]:
+            pygame.draw.line(surface,(40,30,30),(tx2,GROUND_Y+2),(tx2,GROUND_Y-90),4)
+            for ang2 in [-50,-30,30,50]:
+                blen = random.randint(30,50)
+                ex2 = tx2 + int(math.cos(math.radians(ang2))*blen)
+                ey2 = (GROUND_Y-90) + int(math.sin(math.radians(ang2-90))*blen)
+                pygame.draw.line(surface,(40,30,30),(tx2,GROUND_Y-60),(ex2,ey2),2)
+        # Stars
+        for sx3,sy3 in [(100,40),(200,20),(400,55),(550,30),(650,15),(800,45),(860,25)]:
+            pygame.draw.circle(surface,(220,220,200),(sx3,sy3),2)
+        # Dark ground
+        pygame.draw.rect(surface,(30,25,35),(0,GROUND_Y+2,WIDTH,HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface,(45,35,50),(0,GROUND_Y+2,WIDTH,8))
+        pygame.draw.line(surface,(60,50,65),(0,GROUND_Y+2),(WIDTH,GROUND_Y+2),2)
+        # Gravestones
+        for gx3 in [400,480,560,640]:
+            pygame.draw.rect(surface,(60,55,65),(gx3,GROUND_Y-28,20,26),border_radius=5)
+            pygame.draw.rect(surface,(80,75,85),(gx3,GROUND_Y-28,20,26),2,border_radius=5)
+
+    elif s == 19:  # Volcano Core
+        # Deep red-orange gradient
+        for gy2 in range(HEIGHT):
+            t = gy2 / HEIGHT
+            r = int(80 + t * 80)
+            g = int(10 + t * 30)
+            b = int(5 + t * 10)
+            pygame.draw.line(surface, (min(r,255), min(g,255), min(b,255)), (0, gy2), (WIDTH, gy2))
+        # Glowing lava cracks in walls
+        for cx3, cy3_list in [(0,[(80,150),(160,260),(220,360)]),
+                               (WIDTH,[(70,120),(180,240),(240,380)])]:
+            for cy3a, cy3b in cy3_list:
+                lx3 = cx3 + (random.randint(10,50) if cx3==0 else -random.randint(10,50))
+                pygame.draw.line(surface,(255,120,0),(cx3,cy3a),(lx3,(cy3a+cy3b)//2),3)
+                pygame.draw.line(surface,(255,60,0),(lx3,(cy3a+cy3b)//2),(cx3,cy3b),3)
+                pygame.draw.line(surface,(255,200,50),(cx3,cy3a),(lx3,(cy3a+cy3b)//2),1)
+        # Lava pools at edges
+        for lx3, lw3 in [(0,180),(WIDTH-180,180)]:
+            pygame.draw.rect(surface,(200,60,0),(lx3,GROUND_Y+2,lw3,HEIGHT-GROUND_Y-2))
+            pygame.draw.rect(surface,(255,120,0),(lx3,GROUND_Y+2,lw3,12))
+            pygame.draw.line(surface,(255,180,0),(lx3,GROUND_Y+2),(lx3+lw3,GROUND_Y+2),3)
+        # Center ground
+        pygame.draw.rect(surface,(60,30,10),(180,GROUND_Y+2,WIDTH-360,HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface,(90,50,20),(180,GROUND_Y+2,WIDTH-360,8))
+        # Lava drips from ceiling
+        for dx3 in [80,200,380,550,700,860]:
+            dh3 = random.randint(20,60)
+            pygame.draw.line(surface,(200,60,0),(dx3,0),(dx3,dh3),4)
+            pygame.draw.circle(surface,(255,120,0),(dx3,dh3),5)
+        # Heat shimmer lines
+        for hx3 in range(50,WIDTH,80):
+            pygame.draw.line(surface,(200,80,0),(hx3,GROUND_Y-100),(hx3+10,GROUND_Y-40),1)
+
+    elif s == 20:  # Sky Island
+        # Bright sky gradient
+        for gy2 in range(GROUND_Y+2):
+            t = gy2 / (GROUND_Y+2)
+            r = int(50 + t * 130)
+            g = int(130 + t * 100)
+            b = int(230 - t * 30)
+            pygame.draw.line(surface, (r, g, b), (0, gy2), (WIDTH, gy2))
+        pygame.draw.rect(surface,(120,90,60),(0,GROUND_Y+2,WIDTH,HEIGHT-GROUND_Y-2))
+        # Sun
+        pygame.draw.circle(surface,(255,240,100),(820,60),36)
+        pygame.draw.circle(surface,(255,255,160),(820,60),28)
+        # Sun rays
+        for ra in range(0,360,30):
+            rx1 = 820 + int(math.cos(math.radians(ra))*40)
+            ry1 =  60 + int(math.sin(math.radians(ra))*40)
+            rx2 = 820 + int(math.cos(math.radians(ra))*54)
+            ry2 =  60 + int(math.sin(math.radians(ra))*54)
+            pygame.draw.line(surface,(255,220,80),(rx1,ry1),(rx2,ry2),2)
+        # Clouds (fluffy, below ground level too)
+        for cxc, cyc, cw in [(60,GROUND_Y+30,180),(300,GROUND_Y+60,220),(580,GROUND_Y+20,200),(800,GROUND_Y+50,160)]:
+            for cdx, cdy, cr in [(0,0,30),(35,-10,24),(-35,-8,22),(60,5,20),(-60,5,18)]:
+                pygame.draw.circle(surface,(255,255,255),(cxc+cdx,cyc+cdy),cr)
+        # A few background clouds in sky
+        for cxc, cyc, cw in [(150,120,160),(500,80,200),(750,140,150)]:
+            for cdx, cdy, cr in [(0,0,22),(28,-8,18),(-28,-6,16)]:
+                pygame.draw.circle(surface,(230,240,255),(cxc+cdx,cyc+cdy),cr)
+        # Floating rock islands (decorative, small)
+        for rxc, ryc, rw in [(130,GROUND_Y+5,90),(450,GROUND_Y+15,110),(750,GROUND_Y+5,80)]:
+            pygame.draw.ellipse(surface,(100,80,50),(rxc,ryc,rw,22))
+            pygame.draw.ellipse(surface,(130,105,70),(rxc,ryc,rw,10))
+        # Ground (floating rock)
+        pygame.draw.rect(surface,(110,90,55),(0,GROUND_Y+2,WIDTH,HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface,(140,115,70),(0,GROUND_Y+2,WIDTH,10))
+        pygame.draw.line(surface,(170,140,90),(0,GROUND_Y+2),(WIDTH,GROUND_Y+2),3)
+        # Grass tufts on ground
+        for gxt in range(40,WIDTH,60):
+            pygame.draw.line(surface,(60,160,40),(gxt,GROUND_Y+2),(gxt-5,GROUND_Y-8),2)
+            pygame.draw.line(surface,(60,160,40),(gxt,GROUND_Y+2),(gxt+5,GROUND_Y-10),2)
+
+    elif s == 21:  # Graveyard
+        # Dark blue-grey night sky
+        for gy2 in range(HEIGHT):
+            t = gy2 / HEIGHT
+            r = int(15 + t * 20)
+            g = int(20 + t * 25)
+            b = int(35 + t * 30)
+            pygame.draw.line(surface, (r, g, b), (0, gy2), (WIDTH, gy2))
+        # Full moon with glow
+        pygame.draw.circle(surface,(210,210,180),(180,70),36)
+        pygame.draw.circle(surface,(240,240,210),(180,70),30)
+        msurf = pygame.Surface((120,120),pygame.SRCALPHA)
+        pygame.draw.circle(msurf,(200,200,170,20),(60,60),60)
+        surface.blit(msurf,(120,10))
+        # Stars
+        for sx4,sy4 in [(70,30),(250,18),(400,45),(530,22),(640,38),(780,15),(850,55),(330,10)]:
+            pygame.draw.circle(surface,(200,200,180),(sx4,sy4),2)
+        # Fog at ground
+        fsurf = pygame.Surface((WIDTH,60),pygame.SRCALPHA)
+        for fy4 in range(60):
+            fa = int((60-fy4)/60 * 40)
+            pygame.draw.line(fsurf,(180,190,200,fa),(0,fy4),(WIDTH,fy4))
+        surface.blit(fsurf,(0,GROUND_Y-30))
+        # Dark ground with grass
+        pygame.draw.rect(surface,(25,35,20),(0,GROUND_Y+2,WIDTH,HEIGHT-GROUND_Y-2))
+        pygame.draw.rect(surface,(35,50,28),(0,GROUND_Y+2,WIDTH,8))
+        pygame.draw.line(surface,(50,70,38),(0,GROUND_Y+2),(WIDTH,GROUND_Y+2),2)
+        # Tombstones
+        for gxt2 in [100,220,380,530,680,820]:
+            gh = random.randint(32,48)
+            pygame.draw.rect(surface,(55,55,60),(gxt2-10,GROUND_Y+2-gh,20,gh),border_radius=5)
+            pygame.draw.rect(surface,(70,70,78),(gxt2-10,GROUND_Y+2-gh,20,gh),2,border_radius=5)
+            if gxt2 % 2 == 0:
+                pygame.draw.line(surface,(80,80,90),(gxt2,GROUND_Y+2-gh+8),(gxt2,GROUND_Y+2-gh+gh//2),1)
+                pygame.draw.line(surface,(80,80,90),(gxt2-6,GROUND_Y+2-gh+gh//3),(gxt2+6,GROUND_Y+2-gh+gh//3),1)
+        # Bare trees
+        for tx4 in [50, 450, 870]:
+            pygame.draw.line(surface,(40,38,35),(tx4,GROUND_Y+2),(tx4,GROUND_Y-100),4)
+            for ang4 in [-45,-20,20,45]:
+                bl4 = 35+random.randint(0,20)
+                ex4 = tx4 + int(math.cos(math.radians(ang4))*bl4)
+                ey4 = (GROUND_Y-80) + int(math.sin(math.radians(ang4-90))*bl4)
+                pygame.draw.line(surface,(40,38,35),(tx4,GROUND_Y-80),(ex4,ey4),2)
+
 
 def draw_health_bars(surface, p1, p2):
     draw_health_bars_labeled(surface, p1, p2, f"P2 — {p2.char['name']}")
@@ -1990,6 +2454,7 @@ class Fighter:
         self.confuse_frames          = 0      # frames of reversed controls (Clown kick)
         self._berserker_active       = False  # Viking: berserk when hp <= 50%
         self.trail                   = []     # Speedster: afterimage positions
+        self.stealth_frames          = 0      # frames of stealth invisibility (Mime punch)
         self.dash_tap_left      = 0     # frames remaining in double-tap window (left)
         self.dash_tap_right     = 0     # frames remaining in double-tap window (right)
         self.dash_cd            = 0     # cooldown between dashes
@@ -2084,6 +2549,8 @@ class Fighter:
             self.squish_frames -= 1
         if self.confuse_frames > 0:
             self.confuse_frames -= 1
+        if self.stealth_frames > 0:
+            self.stealth_frames -= 1
         if self.char.get("berserker"):
             self._berserker_active = self.hp > 0 and self.hp <= self.max_hp // 2
         if self.boomerang_timer > 0:
@@ -2111,7 +2578,12 @@ class Fighter:
             self.knockback *= 0.65
 
         prev_y = self.y
-        eff_grav = 0.13 if self.char.get("anti_gravity") else GRAVITY
+        if self.char.get("anti_gravity"):
+            eff_grav = 0.13
+        elif self.char.get("slow_fall") and self.vy > 0:
+            eff_grav = GRAVITY * 0.35
+        else:
+            eff_grav = GRAVITY
         self.vy += eff_grav
         self.y  += self.vy
         landed = False
@@ -2321,6 +2793,8 @@ class Fighter:
             return  # punches miss ducking opponents
         hit_cy = other.y - 70 * other.draw_scale
         hit_r  = 58 * other.draw_scale
+        if self.char.get("wide_punch") and self.action == 'punch':
+            hit_r *= 2.2
         dist = math.hypot(hit_pos[0] - other.x, hit_pos[1] - hit_cy)
         if dist < hit_r:
             if self.action == 'punch':
@@ -2344,6 +2818,8 @@ class Fighter:
                 elif r < perfect_p + partial_p:
                     dmg = max(1, dmg // 2)
             other.hp = max(0, other.hp - dmg)
+            if other.blocking and other.char.get("reflect_block") and dmg > 0:
+                self.hp = max(0, self.hp - dmg // 2)
             if self.leech:
                 self.hp = min(self.max_hp, self.hp + 8)
             other.action = 'hurt'
@@ -2368,6 +2844,8 @@ class Fighter:
                 other.knockback = self.facing * 48
             if self.char.get("confuse_kick") and self.action == 'kick':
                 other.confuse_frames = 180  # 3 seconds
+            if self.char.get("stealth_punch") and self.action == 'punch':
+                self.stealth_frames = 120   # 2 seconds invisible
 
     def draw(self, surface):
         _scale = self.draw_scale
@@ -2428,11 +2906,15 @@ class Fighter:
         else:
             _sw = int(50 * _scale)
             _sh = int(12 * _scale)
-            pygame.draw.ellipse(surface, (0, 0, 0),
-                                (int(self.x) - _sw//2, int(self.y) - _sh//2, _sw, _sh))
-            result = draw_stickman(surface, self.x, self.y, self.color,
-                                   self.facing, self.action, self.action_t, flash=flash, scale=_scale,
-                                   char_name=self.char["name"])
+            if self.stealth_frames > 0 and (self.stealth_frames // 4) % 2 == 1:
+                # Invisible phase — skip draw, return estimated attack pos
+                result = (int(self.x + self.facing * 40 * _scale), int(self.y - 70 * _scale))
+            else:
+                pygame.draw.ellipse(surface, (0, 0, 0),
+                                    (int(self.x) - _sw//2, int(self.y) - _sh//2, _sw, _sh))
+                result = draw_stickman(surface, self.x, self.y, self.color,
+                                       self.facing, self.action, self.action_t, flash=flash, scale=_scale,
+                                       char_name=self.char["name"])
         if self.poison_frames > 0:
             top_y = int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 14
             for i, dx in enumerate((-10, 0, 10)):
@@ -2541,7 +3023,12 @@ class AIFighter(Fighter):
             self.knockback *= 0.65
 
         prev_y = self.y
-        eff_grav = 0.13 if self.char.get("anti_gravity") else GRAVITY
+        if self.char.get("anti_gravity"):
+            eff_grav = 0.13
+        elif self.char.get("slow_fall") and self.vy > 0:
+            eff_grav = GRAVITY * 0.35
+        else:
+            eff_grav = GRAVITY
         self.vy += eff_grav
         self.y  += self.vy
         landed = False
@@ -3852,6 +4339,10 @@ def character_select(vs_ai=False):
         if detail_ch.get("slam_kick"):      badges.append(("SLAM KICK",      (220, 100, 40)))
         if detail_ch.get("confuse_kick"):   badges.append(("CONFUSE KICK",   (255, 60, 120)))
         if detail_ch.get("speedster"):      badges.append(("SPEED TRAIL",    (255, 220, 0)))
+        if detail_ch.get("slow_fall"):      badges.append(("SLOW FALL",      (255, 240, 180)))
+        if detail_ch.get("stealth_punch"):  badges.append(("STEALTH",        (200, 200, 220)))
+        if detail_ch.get("wide_punch"):     badges.append(("WIDE REACH",     (160, 80, 30)))
+        if detail_ch.get("reflect_block"):  badges.append(("REFLECT",        (80, 200, 80)))
         bx_off = PX + 8
         for btxt, bcol in badges:
             bs = font_tiny.render(btxt, True, bcol)
