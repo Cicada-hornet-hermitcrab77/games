@@ -937,7 +937,7 @@ STAGES = [
     ], "conveyors": [
         (50,  GROUND_Y, 180, 2.5),
         (650, GROUND_Y, 180, -2.5),
-    ], "portals": [(130, GROUND_Y), (760, GROUND_Y)]},
+    ], "portals": [(160, GROUND_Y-160), (700, GROUND_Y-160)]},
     # Volcano
     {"name": "Volcano", "platforms": [
         (70,  GROUND_Y-120, 130, 2,   80),
@@ -948,7 +948,7 @@ STAGES = [
     ], "conveyors": [
         (80,  GROUND_Y, 200, 3.5),
         (600, GROUND_Y, 200, -3.5),
-    ], "portals": [(150, GROUND_Y), (720, GROUND_Y)]},
+    ], "portals": [(140, GROUND_Y-180), (710, GROUND_Y-180)]},
     # Dojo
     {"name": "Dojo", "platforms": [
         (50,  GROUND_Y-115, 155, 0,   0),
@@ -959,7 +959,7 @@ STAGES = [
     ], "conveyors": [
         (200, GROUND_Y, 200, -2.0),
         (500, GROUND_Y, 200,  2.0),
-    ], "portals": [(100, GROUND_Y), (780, GROUND_Y)]},
+    ], "portals": [(130, GROUND_Y-170), (730, GROUND_Y-170)]},
     # Desert
     {"name": "Desert", "platforms": [
         (80,  GROUND_Y-75,  220, 0,   0),
@@ -970,7 +970,7 @@ STAGES = [
     ], "conveyors": [
         (50,  GROUND_Y, 260, 1.8),
         (570, GROUND_Y, 260, -1.8),
-    ], "portals": [(100, GROUND_Y), (760, GROUND_Y)]},
+    ], "portals": [(150, GROUND_Y-140), (700, GROUND_Y-140)]},
     # Arena
     {"name": "Arena", "platforms": [
         (80,  GROUND_Y-110, 140, 2,   120),
@@ -981,7 +981,7 @@ STAGES = [
     ], "conveyors": [
         (50,  GROUND_Y, 350, 3.0),
         (500, GROUND_Y, 350, -3.0),
-    ], "portals": [(120, GROUND_Y), (740, GROUND_Y)]},
+    ], "portals": [(160, GROUND_Y-175), (690, GROUND_Y-175)]},
     # Dream Land
     {"name": "Dream Land", "platforms": [
         (55,  GROUND_Y-95,  175, 0,   0),
@@ -994,7 +994,7 @@ STAGES = [
     ], "conveyors": [
         (60,  GROUND_Y, 160, 1.5),
         (680, GROUND_Y, 160, -1.5),
-    ], "portals": [(100, GROUND_Y), (760, GROUND_Y)]},
+    ], "portals": [(120, GROUND_Y-150), (740, GROUND_Y-150)]},
     # Underworld
     {"name": "Underworld", "platforms": [
         (55,  GROUND_Y-105, 165, 0,   0),
@@ -1006,7 +1006,7 @@ STAGES = [
     ], "conveyors": [
         (50,  GROUND_Y, 220, -2.5),
         (620, GROUND_Y, 220,  2.5),
-    ], "portals": [(150, GROUND_Y), (730, GROUND_Y)]},
+    ], "portals": [(170, GROUND_Y-165), (690, GROUND_Y-165)]},
     # Space
     {"name": "Space", "platforms": [
         (80,  GROUND_Y-120, 150, 1.5, 110),
@@ -1017,7 +1017,7 @@ STAGES = [
     ], "conveyors": [
         (60,  GROUND_Y, 200, 2.0),
         (640, GROUND_Y, 200, -2.0),
-    ], "portals": [(120, GROUND_Y), (750, GROUND_Y)]},
+    ], "portals": [(155, GROUND_Y-190), (710, GROUND_Y-190)]},
     # Jungle
     {"name": "Jungle", "platforms": [
         (55,  GROUND_Y-110, 175, 0,   0),
@@ -1028,7 +1028,7 @@ STAGES = [
     ], "conveyors": [
         (50,  GROUND_Y, 240, 2.2),
         (600, GROUND_Y, 240, -2.2),
-    ], "portals": [(100, GROUND_Y), (760, GROUND_Y)]},
+    ], "portals": [(140, GROUND_Y-160), (720, GROUND_Y-160)]},
     # Computer
     {"name": "Computer", "platforms": [
         (60,  GROUND_Y-105, 160, 0,   0),
@@ -1037,7 +1037,7 @@ STAGES = [
     ], "springs": [], "conveyors": [
         (50,  GROUND_Y, 200, 2.8),
         (640, GROUND_Y, 200, -2.8),
-    ], "portals": [(130, GROUND_Y), (750, GROUND_Y)]},
+    ], "portals": [(160, GROUND_Y-170), (700, GROUND_Y-170)]},
 ]
 
 # Stage-specific character advantages and disadvantages.
