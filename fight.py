@@ -2302,39 +2302,26 @@ class DrawnPlatform:
     H = 14
 
     def __init__(self, x, y, w=120):
-        self.x      = float(x)
-        self.y      = float(y)
-        self.w      = w
-        self.vx     = 0.0
-        self.alive  = True
-        self.max_t  = FPS * 9
-        self.timer  = self.max_t
+        self.x     = float(x)
+        self.y     = float(y)
+        self.w     = w
+        self.vx    = 0.0
+        self.alive = True
 
     def update(self):
-        self.timer -= 1
-        if self.timer <= 0:
-            self.alive = False
+        pass  # platforms are permanent
 
     def draw(self, surface, _stage_idx=0):
-        if not self.alive:
-            return
         rx, ry = int(self.x), int(self.y)
-        ratio = self.timer / self.max_t
-        alpha = int(255 * ratio)
-        col   = (max(20, int(80 * ratio)), max(20, int(60 * ratio)), 10)
-        # Sketchy hand-drawn look: a few slightly wobbly lines
+        col = (60, 50, 10)
         import random as _r; _seed = int(self.x + self.y)
         for off in range(3):
-            y_off = off * 3
             wobble = _r.Random(_seed + off).randint(-2, 2)
             pygame.draw.line(surface, col,
-                             (rx + off,           ry + y_off + wobble),
-                             (rx + self.w - off,  ry + y_off),
+                             (rx + off,          ry + off * 3 + wobble),
+                             (rx + self.w - off, ry + off * 3),
                              max(1, 3 - off))
-        # Fading timer indicator: thin bright top line
-        bright = int(220 * ratio)
-        pygame.draw.line(surface, (bright, bright, 20),
-                         (rx, ry), (int(rx + self.w * ratio), ry), 2)
+        pygame.draw.line(surface, (200, 180, 20), (rx, ry), (rx + self.w, ry), 2)
 
 
 class ConveyorBelt:
@@ -2581,6 +2568,59 @@ class Pumpkin:
 # ---------------------------------------------------------------------------
 # Jungle snake NPC
 # ---------------------------------------------------------------------------
+
+class FallingSkull:
+    RADIUS   = 14
+    GRAVITY  = 0.35
+    DMG      = 12
+    HIT_CD   = 50
+
+    def __init__(self):
+        self.x      = float(random.randint(60, WIDTH - 60))
+        self.y      = 22.0
+        self.vy     = random.uniform(1.5, 3.0)
+        self.alive  = True
+        self.hit_cd = 0
+        self.landed = False
+        self.roll   = 0.0   # roll velocity after landing
+
+    def update(self):
+        if self.hit_cd > 0:
+            self.hit_cd -= 1
+        if not self.landed:
+            self.vy += self.GRAVITY
+            self.y  += self.vy
+            if self.y >= GROUND_Y - self.RADIUS:
+                self.y      = GROUND_Y - self.RADIUS
+                self.landed = True
+                self.roll   = random.choice([-1.5, 1.5])
+        else:
+            self.x    += self.roll
+            self.roll *= 0.94
+            if self.x < 30 or self.x > WIDTH - 30:
+                self.roll *= -1
+            if abs(self.roll) < 0.05:
+                self.roll = 0
+
+    def collides(self, fighter):
+        return math.hypot(fighter.x - self.x, (fighter.y - 40) - self.y) < self.RADIUS + 28
+
+    def draw(self, surface):
+        sx, sy = int(self.x), int(self.y)
+        r = self.RADIUS
+        # Skull cranium
+        pygame.draw.circle(surface, (230, 220, 200), (sx, sy), r)
+        pygame.draw.circle(surface, (80, 70, 60),    (sx, sy), r, 2)
+        # Eye sockets
+        for ex in [sx - r//3, sx + r//3]:
+            pygame.draw.circle(surface, (20, 10, 30), (ex, sy - 2), r//4)
+        # Nose
+        pygame.draw.polygon(surface, (20, 10, 30), [
+            (sx, sy + r//5), (sx - 3, sy + r//2), (sx + 3, sy + r//2)])
+        # Teeth
+        for tx in range(sx - r//2, sx + r//2, 6):
+            pygame.draw.rect(surface, (20, 10, 30), (tx, sy + r//2, 4, r//3))
+
 
 class JungleSnake:
     SPEED        = 2.5
@@ -2896,21 +2936,31 @@ class MousePlatform:
     SPEED    = 1.6
 
     def __init__(self, x, y, travel=380):
-        self.x       = float(x)
-        self.y       = float(y)
-        self.w       = self.W
-        self.start_x = float(x)
-        self.travel  = travel
-        self.vx      = self.SPEED
+        self.x         = float(x)
+        self.y         = float(y)
+        self.w         = self.W
+        angle          = random.uniform(0, 2 * math.pi)
+        self.vx        = math.cos(angle) * self.SPEED
+        self.vy        = math.sin(angle) * self.SPEED
+        self.dir_timer = random.randint(80, 180)
 
     def update(self):
         self.x += self.vx
-        if self.x > self.start_x + self.travel:
-            self.x  = self.start_x + self.travel
-            self.vx = -self.SPEED
-        elif self.x < self.start_x:
-            self.x  = self.start_x
-            self.vx =  self.SPEED
+        self.y += self.vy
+        if self.x > WIDTH - self.W - 20:
+            self.x = WIDTH - self.W - 20; self.vx = -abs(self.vx)
+        elif self.x < 20:
+            self.x = 20; self.vx = abs(self.vx)
+        if self.y > GROUND_Y - 30:
+            self.y = GROUND_Y - 30; self.vy = -abs(self.vy)
+        elif self.y < 40:
+            self.y = 40; self.vy = abs(self.vy)
+        self.dir_timer -= 1
+        if self.dir_timer <= 0:
+            angle          = random.uniform(0, 2 * math.pi)
+            self.vx        = math.cos(angle) * self.SPEED
+            self.vy        = math.sin(angle) * self.SPEED
+            self.dir_timer = random.randint(80, 180)
 
     def draw(self, surface, _stage_idx=0):
         rx, ry = int(self.x), int(self.y)
@@ -3237,12 +3287,15 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     hooks        = []   # active SnakeHook objects (Hooker)
     pumpkins     = []   # active Pumpkin objects (Headless Horseman)
     spawn_timer  = 300   # first spawn after 5 seconds
-    is_jungle    = stage_data["name"] == "Jungle"
-    is_computer  = stage_data["name"] == "Computer"
+    is_jungle      = stage_data["name"] == "Jungle"
+    is_computer    = stage_data["name"] == "Computer"
+    is_underworld  = stage_data["name"] == "Underworld"
     jungle_snakes      = []
-    snake_spawn_timer  = 180   # first snake after 3 seconds
+    snake_spawn_timer  = 180
     computer_bugs      = []
     bug_spawn_timer    = 150
+    falling_skulls     = []
+    skull_spawn_timer  = 200
     stage_pencil = None
     stage_eraser = None
     if is_computer:
@@ -3460,6 +3513,21 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             pf.flash_timer = 8
                             pf.contact_cooldown = 60
 
+            # Falling skulls (Underworld)
+            if is_underworld:
+                skull_spawn_timer -= 1
+                if skull_spawn_timer <= 0 and len(falling_skulls) < 8:
+                    falling_skulls.append(FallingSkull())
+                    skull_spawn_timer = random.randint(120, 280)
+                for sk in falling_skulls:
+                    sk.update()
+                    if sk.hit_cd == 0:
+                        for victim in (p1, p2):
+                            if sk.collides(victim):
+                                victim.hp = max(0, victim.hp - sk.DMG)
+                                victim.flash_timer = 10
+                                sk.hit_cd = sk.HIT_CD
+
             timer -= 1
             if timer <= 0 or p1.hp <= 0 or p2.hp <= 0:
                 game_over = True
@@ -3521,6 +3589,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             pk.draw(screen)
         for sn in jungle_snakes:
             sn.draw(screen)
+        for sk in falling_skulls:
+            sk.draw(screen)
         for b in computer_bugs:
             b.draw(screen)
         if is_computer and stage_pencil:
@@ -3648,8 +3718,9 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     stage_data  = STAGES[stage_idx % len(STAGES)]
     platforms   = [Platform(*p) for p in stage_data["platforms"]]
     springs     = [Spring(*s)   for s in stage_data["springs"]]
-    is_jungle   = stage_data["name"] == "Jungle"
-    is_computer = stage_data["name"] == "Computer"
+    is_jungle     = stage_data["name"] == "Jungle"
+    is_computer   = stage_data["name"] == "Computer"
+    is_underworld = stage_data["name"] == "Underworld"
     stage_pencil = None
     stage_eraser = None
     if is_computer:
@@ -3673,6 +3744,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     jungle_snakes     = []
     computer_bugs     = []
     bug_spawn_timer   = 150
+    falling_skulls    = []
+    skull_spawn_timer = 200
     survival_timer    = 0
     enemies_killed    = 0
     enemy_spawn_timer = 180
@@ -4012,6 +4085,20 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         sn.update(closest, closest)
                 jungle_snakes = [sn for sn in jungle_snakes if sn.alive]
 
+            if is_underworld:
+                skull_spawn_timer -= 1
+                if skull_spawn_timer <= 0 and len(falling_skulls) < 8:
+                    falling_skulls.append(FallingSkull())
+                    skull_spawn_timer = random.randint(120, 280)
+                for sk in falling_skulls:
+                    sk.update()
+                    if sk.hit_cd == 0:
+                        for victim in [p for p in players if p.hp > 0] + enemies:
+                            if sk.collides(victim):
+                                victim.hp = max(0, victim.hp - sk.DMG)
+                                victim.flash_timer = 10
+                                sk.hit_cd = sk.HIT_CD
+
             if is_computer:
                 bug_spawn_timer -= 1
                 if bug_spawn_timer <= 0 and len(computer_bugs) < 5:
@@ -4086,6 +4173,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for pk   in pumpkins:      pk.draw(screen)
         for pk   in en_pumpkins:   pk.draw(screen)
         for sn   in jungle_snakes: sn.draw(screen)
+        for sk   in falling_skulls: sk.draw(screen)
         for b    in computer_bugs: b.draw(screen)
         if is_computer and stage_pencil:
             stage_pencil.draw(screen)
