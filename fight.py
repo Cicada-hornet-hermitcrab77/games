@@ -280,10 +280,48 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.rect(surface, (60, 60, 60), (hx - int(hw*.6), brim_y - hh, int(hw*1.2), hh), 2)
 
     elif char_name == "Tank":
-        # Military helmet dome over head
-        pygame.draw.circle(surface, (35, 75, 35), (hx, hy), int(hd * 1.28))
-        pygame.draw.circle(surface, (20, 50, 20), (hx, hy), int(hd * 1.28), 2)
-        pygame.draw.line(surface, (15, 40, 15), (hx - int(hd*.7), hy + int(hd*.1)), (hx + int(hd*.7), hy + int(hd*.1)), max(2, int(3*s)))
+        hull_top    = wy + int(4  * s)
+        hull_bot    = wy + int(LEG_LEN * s) + int(6 * s)
+        hull_h      = hull_bot - hull_top
+        hull_w      = int(110 * s)
+        hull_x      = wx - hull_w // 2
+        tank_col    = (45, 90, 45)
+        tank_dark   = (25, 55, 25)
+        tank_mid    = (60, 115, 60)
+        # --- Tracks (drawn first, behind hull) ---
+        track_h = int(18 * s)
+        track_w = hull_w + int(14 * s)
+        track_x = wx - track_w // 2
+        track_y = hull_bot - track_h
+        pygame.draw.rect(surface, (25, 25, 25), (track_x, track_y, track_w, track_h), border_radius=int(8*s))
+        pygame.draw.rect(surface, (50, 50, 50), (track_x, track_y, track_w, track_h), 2, border_radius=int(8*s))
+        # Track wheel circles
+        for wx2 in range(track_x + int(10*s), track_x + track_w - int(8*s), int(18*s)):
+            pygame.draw.circle(surface, (70, 70, 70), (wx2, track_y + track_h//2), max(3, int(7*s)))
+            pygame.draw.circle(surface, (30, 30, 30), (wx2, track_y + track_h//2), max(2, int(4*s)))
+        # --- Hull body ---
+        pygame.draw.rect(surface, tank_col,  (hull_x, hull_top, hull_w, hull_h), border_radius=int(3*s))
+        pygame.draw.rect(surface, tank_dark, (hull_x, hull_top, hull_w, hull_h), 2, border_radius=int(3*s))
+        # Hull panel lines
+        pygame.draw.line(surface, tank_dark, (hull_x + int(8*s), hull_top), (hull_x + int(8*s), hull_bot - track_h), 1)
+        pygame.draw.line(surface, tank_dark, (hull_x + hull_w - int(8*s), hull_top), (hull_x + hull_w - int(8*s), hull_bot - track_h), 1)
+        # --- Turret (covers waist, stickman sits on top) ---
+        t_w = int(62 * s); t_h = int(22 * s)
+        t_x = wx - t_w // 2; t_y = hull_top - t_h + int(2*s)
+        pygame.draw.rect(surface, tank_mid,  (t_x, t_y, t_w, t_h), border_radius=int(5*s))
+        pygame.draw.rect(surface, tank_dark, (t_x, t_y, t_w, t_h), 2, border_radius=int(5*s))
+        # Hatch ring around the stickman's waist
+        pygame.draw.circle(surface, tank_dark, (wx, hull_top), int(14*s), 2)
+        # --- Barrel ---
+        barrel_base = (wx + facing * int(t_w//2 - 4), t_y + t_h//2)
+        barrel_tip  = (barrel_base[0] + facing * int(52*s), barrel_base[1])
+        pygame.draw.line(surface, tank_dark, barrel_base, barrel_tip, max(4, int(7*s)))
+        pygame.draw.line(surface, tank_mid,  barrel_base, barrel_tip, max(2, int(4*s)))
+        pygame.draw.circle(surface, tank_dark, barrel_tip, max(3, int(5*s)))
+        # --- Helmet on stickman's head ---
+        pygame.draw.circle(surface, tank_col, (hx, hy - int(hd*.1)), int(hd * 1.1))
+        pygame.draw.circle(surface, tank_dark, (hx, hy - int(hd*.1)), int(hd * 1.1), 2)
+        pygame.draw.line(surface, tank_dark, (hx - int(hd*.7), hy + int(hd*.15)), (hx + int(hd*.7), hy + int(hd*.15)), max(2, int(3*s)))
 
     elif char_name == "Mighty Medieval Man":
         # Knight helmet with visor slit
