@@ -175,6 +175,24 @@ CHARACTERS = [
     {"name": "Hammerhead", "color": (80, 55, 30), "speed": 3, "jump": -11,
      "punch_dmg": 22, "kick_dmg": 6, "max_hp": 135, "block": 5,
      "desc": "Hammer punch squishes opponents flat for 4 seconds", "double_jump": False, "hammer_punch": True},
+    {"name": "Viking", "color": (180, 130, 60), "speed": 4, "jump": -13,
+     "punch_dmg": 15, "kick_dmg": 13, "max_hp": 145, "block": 5,
+     "desc": "Goes berserk below 50% HP: speed & damage x1.5", "double_jump": False, "berserker": True},
+    {"name": "Wizard", "color": (100, 60, 200), "speed": 5, "jump": -14,
+     "punch_dmg": 11, "kick_dmg": 8, "max_hp": 95, "block": 6,
+     "desc": "Punch fires a bouncing magic orb", "double_jump": True, "bounce_punch": True},
+    {"name": "Wrestler", "color": (220, 100, 40), "speed": 3, "jump": -10,
+     "punch_dmg": 12, "kick_dmg": 8, "max_hp": 155, "block": 6,
+     "desc": "Kick sends opponents flying across the arena", "double_jump": False, "slam_kick": True},
+    {"name": "Clown", "color": (255, 60, 120), "speed": 7, "jump": -15,
+     "punch_dmg": 8, "kick_dmg": 10, "max_hp": 100, "block": 4,
+     "desc": "Kick reverses opponent controls for 3 seconds", "double_jump": True, "confuse_kick": True},
+    {"name": "Speedster", "color": (255, 200, 0), "speed": 13, "jump": -17,
+     "punch_dmg": 7, "kick_dmg": 9, "max_hp": 85, "block": 5,
+     "desc": "Blazing fast with a speed trail", "double_jump": True, "speedster": True},
+    {"name": "Knight", "color": (160, 160, 180), "speed": 3, "jump": -11,
+     "punch_dmg": 17, "kick_dmg": 15, "max_hp": 150, "block": 12,
+     "desc": "Heavily armored — massive block rating", "double_jump": False},
 ]
 
 POWERUPS = [
@@ -785,6 +803,116 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             (bx + int(4*s), by + int(16*s)),
             (bx, tip_y)])  # bristles
         pygame.draw.circle(surface, (5, 5, 20), (bx, tip_y), max(2, int(3*s)))  # ink drop
+
+    elif char_name == "Viking":
+        # Horned helmet
+        helm_w = int(hd * 2.2)
+        helm_h = int(hd * 1.1)
+        pygame.draw.ellipse(surface, (100, 80, 50), (hx - helm_w//2, hy - hd - helm_h + int(4*s), helm_w, helm_h))
+        pygame.draw.rect(surface, (100, 80, 50), (hx - int(hd*0.7), hy - int(4*s), int(hd*1.4), int(8*s)))  # cheek guard
+        for side in (-1, 1):
+            hox = hx + side * helm_w//2
+            hoy = hy - hd - helm_h//2
+            pygame.draw.line(surface, (220, 220, 220), (hox, hoy), (hox + side*int(14*s), hoy - int(20*s)), max(2, int(3*s)))
+            pygame.draw.ellipse(surface, (220, 220, 220), (hox + side*int(10*s) - int(4*s), hoy - int(26*s), int(8*s), int(12*s)))
+        # Axe in right hand
+        ax_tip = (rhx + facing*int(36*s), rhy - int(6*s))
+        pygame.draw.line(surface, (140, 100, 60), (rhx, rhy), ax_tip, max(2, int(4*s)))  # handle
+        blade_cx = ax_tip[0] + facing*int(4*s)
+        blade_cy = ax_tip[1]
+        pts = [(blade_cx, blade_cy - int(22*s)),
+               (blade_cx + facing*int(20*s), blade_cy - int(14*s)),
+               (blade_cx + facing*int(18*s), blade_cy + int(8*s)),
+               (blade_cx, blade_cy + int(14*s))]
+        pygame.draw.polygon(surface, (180, 185, 195), pts)
+        pygame.draw.polygon(surface, (220, 225, 240), pts, max(1, int(2*s)))
+
+    elif char_name == "Wizard":
+        # Tall pointy hat
+        hat_base_w = int(hd * 2.4)
+        pygame.draw.polygon(surface, (70, 30, 160),
+                            [(hx - hat_base_w//2, hy - hd),
+                             (hx + hat_base_w//2, hy - hd),
+                             (hx + facing*int(4*s), hy - hd - int(52*s))])
+        pygame.draw.ellipse(surface, (90, 40, 190),
+                            (hx - hat_base_w//2 - int(4*s), hy - hd - int(7*s), hat_base_w + int(8*s), int(12*s)))
+        # Stars on hat
+        for sdx, sdy in [(facing*int(3*s), -int(30*s)), (-facing*int(5*s), -int(18*s))]:
+            pygame.draw.circle(surface, (255, 230, 80), (hx + sdx, hy - hd + sdy), max(2, int(3*s)))
+        # Magic staff in right hand
+        staff_tip = (rhx + facing*int(6*s), rhy - int(40*s))
+        pygame.draw.line(surface, (120, 90, 50), (rhx, rhy), staff_tip, max(2, int(3*s)))
+        pygame.draw.circle(surface, (180, 80, 255), staff_tip, max(3, int(6*s)))
+        pygame.draw.circle(surface, (220, 160, 255), staff_tip, max(2, int(4*s)))
+
+    elif char_name == "Wrestler":
+        # Singlet straps
+        pygame.draw.line(surface, (200, 50, 50), (sx - int(4*s), sy), (sx - int(8*s), wy), max(2, int(3*s)))
+        pygame.draw.line(surface, (200, 50, 50), (sx + int(4*s), sy), (sx + int(8*s), wy), max(2, int(3*s)))
+        pygame.draw.rect(surface, (200, 50, 50), (sx - int(10*s), wy, int(20*s), int(10*s)))
+        # Headband
+        pygame.draw.arc(surface, (255, 80, 80),
+                        (hx - hd, hy - hd - int(8*s), hd*2, int(12*s)), 0, math.pi, max(2, int(4*s)))
+        # Wrist bands
+        pygame.draw.rect(surface, (255, 80, 80), (lhx - int(5*s), lhy - int(4*s), int(10*s), int(7*s)), border_radius=2)
+        pygame.draw.rect(surface, (255, 80, 80), (rhx - int(5*s), rhy - int(4*s), int(10*s), int(7*s)), border_radius=2)
+
+    elif char_name == "Clown":
+        # Big clown hat
+        hat_bw = int(hd * 2.6)
+        pygame.draw.polygon(surface, (255, 80, 200),
+                            [(hx - hat_bw//2, hy - hd),
+                             (hx + hat_bw//2, hy - hd),
+                             (hx, hy - hd - int(46*s))])
+        pygame.draw.ellipse(surface, (255, 120, 220),
+                            (hx - hat_bw//2 - int(3*s), hy - hd - int(6*s), hat_bw + int(6*s), int(11*s)))
+        pygame.draw.circle(surface, (255, 255, 80), (hx, hy - hd - int(46*s)), max(3, int(5*s)))  # pompom
+        # Red nose
+        pygame.draw.circle(surface, (255, 40, 40), (hx, hy + int(2*s)), max(3, int(6*s)))
+        # Colorful collar
+        for i, cx2 in enumerate(range(sx - int(18*s), sx + int(20*s), int(9*s))):
+            c = [(255,80,80),(255,200,0),(80,200,255),(200,80,255)][i % 4]
+            pygame.draw.circle(surface, c, (cx2, sy + int(8*s)), max(3, int(5*s)))
+        # Big shoes
+        for fx, fy in [(lhx, lhy), (rhx, rhy)]:
+            pass  # shoes would be on feet coords - skip for simplicity
+
+    elif char_name == "Speedster":
+        # Aerodynamic visor
+        pygame.draw.ellipse(surface, (40, 40, 60),
+                            (hx - hd - int(2*s), hy - int(6*s), int(hd*2 + 4*s), int(10*s)))
+        pygame.draw.ellipse(surface, (100, 200, 255),
+                            (hx - hd, hy - int(5*s), hd*2, int(8*s)), max(1, int(2*s)))
+        # Lightning bolt on chest
+        bolt = [(sx + facing*int(3*s), sy + int(6*s)),
+                (sx - facing*int(2*s), sy + int(20*s)),
+                (sx + facing*int(6*s), sy + int(20*s)),
+                (sx - facing*int(3*s), sy + int(36*s))]
+        pygame.draw.lines(surface, (255, 230, 0), False, bolt, max(2, int(3*s)))
+
+    elif char_name == "Knight":
+        # Full great helm
+        helm_w = int(hd * 2.1)
+        helm_h = int(hd * 2.2)
+        pygame.draw.rect(surface, (130, 135, 150),
+                         (hx - helm_w//2, hy - hd - int(helm_h*0.6), helm_w, helm_h),
+                         border_radius=max(3, int(5*s)))
+        # Visor slit
+        pygame.draw.rect(surface, (20, 20, 30),
+                         (hx - int(hd*0.7), hy - int(4*s), int(hd*1.4), int(7*s)))
+        # Plume
+        pygame.draw.line(surface, (180, 20, 20),
+                         (hx + facing*int(3*s), hy - hd - int(helm_h*0.55)),
+                         (hx + facing*int(8*s), hy - hd - int(helm_h*0.55) - int(22*s)),
+                         max(2, int(3*s)))
+        # Sword in right hand (big)
+        blade_base = (rhx, rhy - int(4*s))
+        blade_tip  = (rhx + facing*int(50*s), rhy - int(28*s))
+        pygame.draw.line(surface, (200, 210, 220), blade_base, blade_tip, max(2, int(4*s)))
+        pygame.draw.line(surface, (240, 245, 255), blade_base, blade_tip, max(1, int(2*s)))  # shine
+        # Cross guard
+        gx, gy = rhx + facing*int(10*s), rhy - int(8*s)
+        pygame.draw.line(surface, (160, 130, 60), (gx - int(10*s), gy), (gx + int(10*s), gy), max(2, int(3*s)))
 
     elif char_name == "Hammerhead":
         # Hard hat
@@ -1536,6 +1664,9 @@ class Fighter:
         self.pending_ink_clone       = False  # Ink Brush: spawn a clone this frame
         self.ink_clone_cooldown      = 0      # cooldown between clones
         self.squish_frames           = 0      # frames of squish remaining (Hammerhead punch)
+        self.confuse_frames          = 0      # frames of reversed controls (Clown kick)
+        self._berserker_active       = False  # Viking: berserk when hp <= 50%
+        self.trail                   = []     # Speedster: afterimage positions
         self.dash_tap_left      = 0     # frames remaining in double-tap window (left)
         self.dash_tap_right     = 0     # frames remaining in double-tap window (right)
         self.dash_cd            = 0     # cooldown between dashes
@@ -1628,6 +1759,10 @@ class Fighter:
             self.ink_clone_cooldown -= 1
         if self.squish_frames > 0:
             self.squish_frames -= 1
+        if self.confuse_frames > 0:
+            self.confuse_frames -= 1
+        if self.char.get("berserker"):
+            self._berserker_active = self.hp > 0 and self.hp <= self.max_hp // 2
         if self.boomerang_timer > 0:
             self.boomerang_timer -= 1
             self.boomerang_angle = (self.boomerang_angle + 0.09) % (2 * math.pi)
@@ -1718,6 +1853,8 @@ class Fighter:
             self.angle_vel = 0.0
 
         spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
+        if self._berserker_active:
+            spd *= 1.5
 
         duck_key  = self.controls.get('duck')
         block_key = self.controls.get('block')
@@ -1741,13 +1878,18 @@ class Fighter:
         if self.hurt_timer == 0 and self.freeze_frames == 0 and not self.ducking and not self.blocking:
             ctrl = self.controls
             can_atk = not self.attacking or self.action in ('idle', 'walk', 'jump')
+            # Confuse: swap left/right keys
+            _lk = ctrl['right'] if self.confuse_frames > 0 else ctrl['left']
+            _rk = ctrl['left']  if self.confuse_frames > 0 else ctrl['right']
 
             if can_atk and keys[ctrl['punch']] and self.punch_cooldown == 0:
-                moving_toward = ((keys[ctrl['right']] and self.facing == 1) or
-                                 (keys[ctrl['left']]  and self.facing == -1))
+                moving_toward = ((keys[_rk] and self.facing == 1) or
+                                 (keys[_lk] and self.facing == -1))
                 self._start('punch', 0.07)
                 self.punch_cooldown = FPS        # 1 second
                 self.is_crit = moving_toward
+                if self.char.get("bounce_punch"):
+                    self.pending_bounce = True
             elif can_atk and keys[ctrl['kick']] and self.kick_cooldown == 0:
                 self._start('kick', 0.06)
                 self.kick_cooldown = FPS * 2     # 2 seconds
@@ -1790,7 +1932,7 @@ class Fighter:
                     self.jumps_left -= 1
                     self.action = 'jump'
                     self.attacking = False
-            elif keys[ctrl['left']]:
+            elif keys[_lk]:
                 # Double-tap left = dash left
                 if not self._prev_left and self.dash_cd == 0 and self.dash_frames == 0:
                     if self.dash_tap_left > 0:
@@ -1806,7 +1948,7 @@ class Fighter:
                     self.action = 'walk'
                     self.walk_t = (self.walk_t + 0.12) % 1.0
                     self.action_t = self.walk_t
-            elif keys[ctrl['right']]:
+            elif keys[_rk]:
                 # Double-tap right = dash right
                 if not self._prev_right and self.dash_cd == 0 and self.dash_frames == 0:
                     if self.dash_tap_right > 0:
@@ -1865,6 +2007,8 @@ class Fighter:
                 dmg = self.char["kick_dmg"] + self.kick_boost
             if other.shield:
                 dmg = max(1, int(dmg * 0.5))
+            if self._berserker_active:
+                dmg = int(dmg * 1.5)
             if other.blocking:
                 bsk = other.char.get("block", 5)
                 perfect_p = bsk * 0.025   # block=10 → 25%, block=1 → 2.5%
@@ -1895,10 +2039,27 @@ class Fighter:
                 other.shock_frames = 480   # 8 seconds
             if self.char.get("hammer_punch") and self.action == 'punch':
                 other.squish_frames = 240  # 4 seconds
+            if self.char.get("slam_kick") and self.action == 'kick':
+                other.knockback = self.facing * 48
+            if self.char.get("confuse_kick") and self.action == 'kick':
+                other.confuse_frames = 180  # 3 seconds
 
     def draw(self, surface):
         _scale = self.draw_scale
         flash = (self.flash_timer % 4) < 2 and self.flash_timer > 0
+
+        # Speedster: draw afterimage trail before main body
+        if self.char.get("speedster"):
+            self.trail.append((self.x, self.y))
+            if len(self.trail) > 6:
+                self.trail.pop(0)
+            for i, (tx, ty) in enumerate(self.trail[:-1]):
+                fade = (i + 1) / len(self.trail)
+                tc = tuple(int(c * fade * 0.5) for c in self.color)
+                pygame.draw.circle(surface, tc, (int(tx), int(ty - 60)), max(2, int(8 * fade)))
+                pygame.draw.line(surface, tc, (int(tx), int(ty - 60 - 18)), (int(tx), int(ty - 30)), 2)
+                pygame.draw.line(surface, tc, (int(tx), int(ty - 30)), (int(tx - 8), int(ty)), 2)
+                pygame.draw.line(surface, tc, (int(tx), int(ty - 30)), (int(tx + 8), int(ty)), 2)
 
         if self.squish_frames > 0:
             # Draw stickman flat on a temp surface, then squish-scale it
@@ -1971,6 +2132,20 @@ class Fighter:
                 pulse = (self.shock_frames // 4 + i) % 2 == 0
                 col = (255, 240, 0) if pulse else (200, 160, 0)
                 pygame.draw.circle(surface, col, (int(self.x) + dx, top_y), 4)
+        if self._berserker_active:
+            # Pulsing red aura
+            pulse_r = 34 + int(math.sin(pygame.time.get_ticks() * 0.015) * 6)
+            bsurf = pygame.Surface((pulse_r*2+4, pulse_r*2+4), pygame.SRCALPHA)
+            pygame.draw.circle(bsurf, (220, 30, 30, 60), (pulse_r+2, pulse_r+2), pulse_r)
+            pygame.draw.circle(bsurf, (255, 80, 0, 120), (pulse_r+2, pulse_r+2), pulse_r, 3)
+            surface.blit(bsurf, (int(self.x) - pulse_r - 2, int(self.y) - 80 - pulse_r - 2))
+        if self.confuse_frames > 0:
+            top_y = int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 60
+            for i in range(5):
+                ang = math.radians((self.confuse_frames * 8 + i * 72) % 360)
+                cx2 = int(self.x) + int(math.cos(ang) * 16)
+                cy2 = top_y + int(math.sin(ang) * 6)
+                pygame.draw.circle(surface, (255, 80, 200), (cx2, cy2), 4)
         if self.boomerang_timer > 0:
             bx = int(self.x + math.cos(self.boomerang_angle) * 85)
             by = int(self.y - 60 + math.sin(self.boomerang_angle) * 55)
@@ -2114,6 +2289,8 @@ class AIFighter(Fighter):
                 if self.ai_attack == 'punch':
                     self.punch_cooldown = FPS
                     self.is_crit = (self.ai_move == self.facing)  # running toward enemy
+                    if self.char.get("bounce_punch"):
+                        self.pending_bounce = True
                 else:
                     self.kick_cooldown = FPS * 2
                     if self.char.get("teleport_kick"):
@@ -2140,7 +2317,10 @@ class AIFighter(Fighter):
                         self.ink_clone_cooldown = FPS * 5
             self.ai_attack = None
         elif self.ai_move != 0:
-            self.x += self.ai_move * self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
+            _ai_spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
+            if self._berserker_active:
+                _ai_spd *= 1.5
+            self.x += self.ai_move * _ai_spd
             if self.on_ground and not self.attacking:
                 self.action = 'walk'
                 self.walk_t = (self.walk_t + 0.12) % 1.0
@@ -3340,6 +3520,11 @@ def character_select(vs_ai=False):
         if detail_ch.get("pumpkin_kick"):   badges.append(("PUMPKIN BOMB",  (215, 118, 0)))
         if detail_ch.get("contact_dmg"):    badges.append(("POISON TOUCH",  (100, 220, 60)))
         if detail_ch.get("hammer_punch"):   badges.append(("HAMMER SMASH",  (160, 120, 60)))
+        if detail_ch.get("berserker"):      badges.append(("BERSERKER",      (220, 60, 30)))
+        if detail_ch.get("bounce_punch"):   badges.append(("MAGIC ORB",      (160, 80, 255)))
+        if detail_ch.get("slam_kick"):      badges.append(("SLAM KICK",      (220, 100, 40)))
+        if detail_ch.get("confuse_kick"):   badges.append(("CONFUSE KICK",   (255, 60, 120)))
+        if detail_ch.get("speedster"):      badges.append(("SPEED TRAIL",    (255, 220, 0)))
         bx_off = PX + 8
         for btxt, bcol in badges:
             bs = font_tiny.render(btxt, True, bcol)
