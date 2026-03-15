@@ -189,7 +189,8 @@ POWERUPS = [
     {'name': 'Bomb',      'type': 'heal',      'amount':-60, 'duration': 0,   'color': (255,  60,   0)},
     {'name': 'Wither',      'type': 'speed',     'amount':  -2, 'duration': 420, 'color': (255,  0,  0)},
     {'name': '2x Trouble',  'type': 'clone',     'duration': 0,                  'color': (255, 80, 200)},
-    {'name': 'Cleanse',     'type': 'cleanse',   'duration': 0,                  'color': (205, 205, 155)},
+    {'name': 'Cleanse',       'type': 'cleanse',       'duration': 0,        'color': (205, 205, 155)},
+    {'name': 'Bubble Shield', 'type': 'bubble_shield', 'duration': FPS * 10, 'color': (100, 200, 255)},
 ]
 
 
@@ -907,7 +908,7 @@ STAGES = [
     ], "conveyors": [
         (50,  GROUND_Y, 180, 2.5),
         (650, GROUND_Y, 180, -2.5),
-    ]},
+    ], "portals": [(130, GROUND_Y), (760, GROUND_Y)]},
     # Volcano
     {"name": "Volcano", "platforms": [
         (70,  GROUND_Y-120, 130, 2,   80),
@@ -918,7 +919,7 @@ STAGES = [
     ], "conveyors": [
         (80,  GROUND_Y, 200, 3.5),
         (600, GROUND_Y, 200, -3.5),
-    ]},
+    ], "portals": [(150, GROUND_Y), (720, GROUND_Y)]},
     # Dojo
     {"name": "Dojo", "platforms": [
         (50,  GROUND_Y-115, 155, 0,   0),
@@ -929,7 +930,7 @@ STAGES = [
     ], "conveyors": [
         (200, GROUND_Y, 200, -2.0),
         (500, GROUND_Y, 200,  2.0),
-    ]},
+    ], "portals": [(100, GROUND_Y), (780, GROUND_Y)]},
     # Desert
     {"name": "Desert", "platforms": [
         (80,  GROUND_Y-75,  220, 0,   0),
@@ -940,7 +941,7 @@ STAGES = [
     ], "conveyors": [
         (50,  GROUND_Y, 260, 1.8),
         (570, GROUND_Y, 260, -1.8),
-    ]},
+    ], "portals": [(100, GROUND_Y), (760, GROUND_Y)]},
     # Arena
     {"name": "Arena", "platforms": [
         (80,  GROUND_Y-110, 140, 2,   120),
@@ -951,7 +952,7 @@ STAGES = [
     ], "conveyors": [
         (50,  GROUND_Y, 350, 3.0),
         (500, GROUND_Y, 350, -3.0),
-    ]},
+    ], "portals": [(120, GROUND_Y), (740, GROUND_Y)]},
     # Dream Land
     {"name": "Dream Land", "platforms": [
         (55,  GROUND_Y-95,  175, 0,   0),
@@ -964,7 +965,7 @@ STAGES = [
     ], "conveyors": [
         (60,  GROUND_Y, 160, 1.5),
         (680, GROUND_Y, 160, -1.5),
-    ]},
+    ], "portals": [(100, GROUND_Y), (760, GROUND_Y)]},
     # Underworld
     {"name": "Underworld", "platforms": [
         (55,  GROUND_Y-105, 165, 0,   0),
@@ -976,7 +977,7 @@ STAGES = [
     ], "conveyors": [
         (50,  GROUND_Y, 220, -2.5),
         (620, GROUND_Y, 220,  2.5),
-    ]},
+    ], "portals": [(150, GROUND_Y), (730, GROUND_Y)]},
     # Space
     {"name": "Space", "platforms": [
         (80,  GROUND_Y-120, 150, 1.5, 110),
@@ -987,7 +988,7 @@ STAGES = [
     ], "conveyors": [
         (60,  GROUND_Y, 200, 2.0),
         (640, GROUND_Y, 200, -2.0),
-    ]},
+    ], "portals": [(120, GROUND_Y), (750, GROUND_Y)]},
     # Jungle
     {"name": "Jungle", "platforms": [
         (55,  GROUND_Y-110, 175, 0,   0),
@@ -998,7 +999,7 @@ STAGES = [
     ], "conveyors": [
         (50,  GROUND_Y, 240, 2.2),
         (600, GROUND_Y, 240, -2.2),
-    ]},
+    ], "portals": [(100, GROUND_Y), (760, GROUND_Y)]},
     # Computer
     {"name": "Computer", "platforms": [
         (60,  GROUND_Y-105, 160, 0,   0),
@@ -1007,7 +1008,7 @@ STAGES = [
     ], "springs": [], "conveyors": [
         (50,  GROUND_Y, 200, 2.8),
         (640, GROUND_Y, 200, -2.8),
-    ]},
+    ], "portals": [(130, GROUND_Y), (750, GROUND_Y)]},
 ]
 
 # Stage-specific character advantages and disadvantages.
@@ -1466,8 +1467,10 @@ class Fighter:
         self.speed_boost  = 1.0
         self.punch_boost  = 0
         self.kick_boost   = 0
-        self.shield       = False
-        self.leech        = bool(char_data.get("vampire"))
+        self.shield         = False
+        self.leech          = bool(char_data.get("vampire"))
+        self.bubble_shield  = False
+        self.portal_cooldown = 0
         self.color        = char_data["color"]
         self.poison_frames    = 0   # frames of poison remaining
         self.poison_tick      = 0   # frames until next poison damage
@@ -1532,6 +1535,9 @@ class Fighter:
         elif t == 'shield':
             self.shield = True
             self.active_powerups[name] = spec['duration']
+        elif t == 'bubble_shield':
+            self.bubble_shield = True
+            self.active_powerups[name] = spec['duration']
         elif t == 'leech':
             self.leech = True
             self.active_powerups[name] = spec['duration']
@@ -1551,8 +1557,9 @@ class Fighter:
                 if t == 'speed':     self.speed_boost  = 1.0
                 elif t == 'punch_dmg': self.punch_boost = max(0, self.punch_boost - spec['amount'])
                 elif t == 'kick_dmg':  self.kick_boost  = max(0, self.kick_boost  - spec['amount'])
-                elif t == 'shield':    self.shield = False
-                elif t == 'leech':     self.leech  = False
+                elif t == 'shield':         self.shield        = False
+                elif t == 'leech':          self.leech         = False
+                elif t == 'bubble_shield':  self.bubble_shield = False
             del self.active_powerups[name]
         for name in list(self.active_powerups):
             self.active_powerups[name] -= 1
@@ -1564,8 +1571,9 @@ class Fighter:
             if self.poison_tick <= 0:
                 self.hp          = max(0, self.hp - 1)
                 self.poison_tick = 180   # 1 dmg every 3 seconds
-        if self.contact_cooldown > 0: self.contact_cooldown -= 1
-        if self.punch_cooldown   > 0: self.punch_cooldown   -= 1
+        if self.contact_cooldown > 0: self.contact_cooldown  -= 1
+        if self.punch_cooldown   > 0: self.punch_cooldown    -= 1
+        if self.portal_cooldown  > 0: self.portal_cooldown   -= 1
         if self.kick_cooldown    > 0: self.kick_cooldown    -= 1
         if self.regen_tick > 0:
             self.regen_tick -= 1
@@ -1806,6 +1814,9 @@ class Fighter:
 
     def check_hit(self, hit_pos, other):
         if hit_pos is None or self.attack_hit:
+            return
+        if other.bubble_shield:
+            other.flash_timer = 6   # visual deflect, no damage
             return
         if other.ducking and self.action == 'punch':
             return  # punches miss ducking opponents
@@ -2360,6 +2371,43 @@ class DrawnPlatform:
                              (rx + self.w - off, ry + off * 3),
                              max(1, 3 - off))
         pygame.draw.line(surface, (200, 180, 20), (rx, ry), (rx + self.w, ry), 2)
+
+
+class Portal:
+    RADIUS = 26
+
+    def __init__(self, x, y, col):
+        self.x       = float(x)
+        self.y       = float(y)
+        self.col     = col
+        self.partner = None   # set after both portals are created
+        self.anim    = random.randint(0, 59)
+
+    def update(self):
+        self.anim = (self.anim + 1) % 60
+
+    def near(self, fighter):
+        return (abs(fighter.x - self.x) < self.RADIUS + 10
+                and abs(fighter.y - self.y) < self.RADIUS + 20)
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        r = self.RADIUS
+        # Outer glow rings
+        for i in range(4, 0, -1):
+            glow = tuple(min(255, c + i * 14) for c in self.col)
+            pygame.draw.circle(surface, glow, (cx, cy), r + i * 5, 2)
+        # Main ring
+        pygame.draw.circle(surface, self.col, (cx, cy), r, 5)
+        # Swirling inner dots
+        for i in range(8):
+            angle = math.radians(self.anim * 6 + i * 45)
+            dx = int(math.cos(angle) * r * 0.55)
+            dy = int(math.sin(angle) * r * 0.55)
+            pygame.draw.circle(surface, self.col, (cx + dx, cy + dy), 4)
+        # Dark centre fill
+        dark = tuple(c // 4 for c in self.col)
+        pygame.draw.circle(surface, dark, (cx, cy), r - 7)
 
 
 class ConveyorBelt:
@@ -3341,6 +3389,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
         stage_pencil = StagePencil()
         stage_eraser = StageEraser()
 
+    _portal_cols = [(80, 100, 220), (220, 120, 20)]
+    _portal_pts  = stage_data.get("portals", [])
+    portals_obj  = [Portal(px, py, _portal_cols[i % 2]) for i, (px, py) in enumerate(_portal_pts)]
+    if len(portals_obj) >= 2:
+        portals_obj[0].partner = portals_obj[1]
+        portals_obj[1].partner = portals_obj[0]
+
     while True:
         clock.tick(FPS)
 
@@ -3361,6 +3416,17 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         GRAVITY = _orig_gravity; return 'select'
 
         if not game_over:
+            for portal in portals_obj:
+                portal.update()
+            for fighter in (p1, p2):
+                for portal in portals_obj:
+                    if portal.partner and fighter.portal_cooldown == 0 and portal.near(fighter):
+                        fighter.x = portal.partner.x
+                        fighter.y = portal.partner.y
+                        fighter.vy = 0
+                        fighter.portal_cooldown = FPS * 2
+                        break
+
             for plat in platforms:
                 plat.update()
             for sp in springs:
@@ -3609,6 +3675,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
         draw_bg(screen, stage_idx)
         pygame.draw.rect(screen, (60, 60, 70), (0, 0, WIDTH, 20))
         pygame.draw.line(screen, (180, 180, 200), (0, 20), (WIDTH, 20), 3)
+        for portal in portals_obj:
+            portal.draw(screen)
         for plat in platforms:
             plat.draw(screen, stage_idx)
         for sp in springs:
@@ -3644,6 +3712,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                                          (int(f.x), int(f.y - 60)), 1)
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen)
+        # Bubble shield visuals
+        for f in (p1, p2):
+            if f.bubble_shield:
+                bsurf = pygame.Surface((100, 100), pygame.SRCALPHA)
+                pygame.draw.circle(bsurf, (100, 200, 255, 70), (50, 50), 48)
+                pygame.draw.circle(bsurf, (100, 200, 255, 160), (50, 50), 48, 3)
+                screen.blit(bsurf, (int(f.x) - 50, int(f.y) - 90))
         clone_draws = [(cd, cd['fighter'].draw(screen)) for cd in clones]
 
         if not game_over:
@@ -3766,6 +3841,13 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         stage_pencil = StagePencil()
         stage_eraser = StageEraser()
 
+    _portal_cols_s = [(80, 100, 220), (220, 120, 20)]
+    _portal_pts_s  = stage_data.get("portals", [])
+    portals_obj_s  = [Portal(px, py, _portal_cols_s[i % 2]) for i, (px, py) in enumerate(_portal_pts_s)]
+    if len(portals_obj_s) >= 2:
+        portals_obj_s[0].partner = portals_obj_s[1]
+        portals_obj_s[1].partner = portals_obj_s[0]
+
     enemies           = []
     death_pops        = []   # [{x,y,color,t}] death burst particles
     balls             = []   # Projectile (shoot_kick)
@@ -3875,6 +3957,18 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 sp.trigger(p1)
                 if two_player: sp.trigger(p2)
                 for en in enemies: sp.trigger(en)
+
+            # Portals
+            for portal in portals_obj_s:
+                portal.update()
+            for fighter in players:
+                for portal in portals_obj_s:
+                    if portal.partner and fighter.portal_cooldown == 0 and portal.near(fighter):
+                        fighter.x = portal.partner.x
+                        fighter.y = portal.partner.y
+                        fighter.vy = 0
+                        fighter.portal_cooldown = FPS * 2
+                        break
 
             # Spawn enemies
             enemy_spawn_timer -= 1
@@ -4198,6 +4292,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         draw_bg(screen, stage_idx)
         pygame.draw.rect(screen, (60, 60, 70), (0, 0, WIDTH, 20))
         pygame.draw.line(screen, (180, 180, 200), (0, 20), (WIDTH, 20), 3)
+        for portal in portals_obj_s: portal.draw(screen)
         for plat in platforms:     plat.draw(screen, stage_idx)
         for sp   in springs:       sp.draw(screen)
         for pu   in powerups:      pu.draw(screen)
@@ -4234,6 +4329,13 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen) if two_player else None
         en_hits = [(en, en.draw(screen)) for en in enemies]
+        # Bubble shield visuals (survival)
+        for f in players:
+            if f.bubble_shield:
+                bsurf = pygame.Surface((100, 100), pygame.SRCALPHA)
+                pygame.draw.circle(bsurf, (100, 200, 255, 70), (50, 50), 48)
+                pygame.draw.circle(bsurf, (100, 200, 255, 160), (50, 50), 48, 3)
+                screen.blit(bsurf, (int(f.x) - 50, int(f.y) - 90))
 
         if not game_over:
             # Player attacks hit enemies
