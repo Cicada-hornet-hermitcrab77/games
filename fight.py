@@ -189,7 +189,7 @@ POWERUPS = [
     {'name': 'Forcefield',    'type': 'shield',    'reduction': 0.5, 'duration': 360, 'color': (100,150, 255)},
     {'name': 'Leech',     'type': 'leech',     'amount':  8, 'duration': 360, 'color': (200,  0, 200)},
     {'name': 'MegaHeal',  'type': 'heal',      'amount': 60, 'duration': 0,   'color': (0,   220,  80)},
-    {'name': 'Bomb',      'type': 'heal',      'amount':-60, 'duration': 0,   'color': (255,  60,   0)},
+    {'name': 'Killer',      'type': 'heal',      'amount':-60, 'duration': 0,   'color': (255,  60,   0)},
     {'name': 'Wither',      'type': 'speed',     'amount':  -2, 'duration': 420, 'color': (255,  0,  0)},
     {'name': '2x Trouble',  'type': 'clone',     'duration': 0,                  'color': (255, 80, 200)},
     {'name': 'Cleanse',       'type': 'cleanse',       'duration': 0,        'color': (205, 205, 155)},
@@ -792,22 +792,25 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         hat_h = int(hd * 0.7)
         pygame.draw.ellipse(surface, (40, 30, 20), (hx - hat_w//2, hy - hd - hat_h + int(2*s), hat_w, hat_h))
         pygame.draw.rect(surface, (40, 30, 20), (hx - int(hat_w*0.6), hy - hd - int(4*s), int(hat_w*1.2), int(5*s)))
-        # Giant hammer in right hand
-        # Shaft: from hand toward facing, long pole
-        shaft_len = int(38 * s)
-        head_w    = int(24 * s)
-        head_h    = int(18 * s)
+        # Gigantic hammer in right hand
+        shaft_len = int(90 * s)
+        head_w    = int(70 * s)
+        head_h    = int(52 * s)
+        shaft_w   = max(3, int(8 * s))
         hx2, hy2 = rhx, rhy   # hand position
-        tip_x = hx2 + facing * shaft_len
-        tip_y2 = hy2 - int(4 * s)
-        pygame.draw.line(surface, (120, 80, 40), (hx2, hy2), (tip_x, tip_y2), max(2, int(4*s)))  # shaft
-        # Hammer head (rectangle perpendicular to shaft)
-        pygame.draw.rect(surface, (80, 80, 90),
-                         (tip_x - head_w//2 + facing*int(6*s), tip_y2 - head_h//2,
-                          head_w, head_h), border_radius=max(2, int(3*s)))
-        pygame.draw.rect(surface, (140, 140, 150),
-                         (tip_x - head_w//2 + facing*int(6*s), tip_y2 - head_h//2,
-                          head_w, head_h), max(1, int(2*s)), border_radius=max(2, int(3*s)))
+        tip_x  = hx2 + facing * shaft_len
+        tip_y2 = hy2 - int(8 * s)
+        # Shaft
+        pygame.draw.line(surface, (140, 90, 40), (hx2, hy2), (tip_x, tip_y2), shaft_w)
+        pygame.draw.line(surface, (180, 130, 70), (hx2, hy2 - shaft_w//3), (tip_x, tip_y2 - shaft_w//3), max(1, shaft_w//3))  # highlight
+        # Hammer head fill
+        hd_x = tip_x - head_w//2 + facing * int(10 * s)
+        hd_y = tip_y2 - head_h//2
+        pygame.draw.rect(surface, (60, 65, 75), (hd_x, hd_y, head_w, head_h), border_radius=max(3, int(6*s)))
+        # Face highlight
+        pygame.draw.rect(surface, (110, 115, 130), (hd_x + int(4*s), hd_y + int(4*s), head_w - int(8*s), int(16*s)), border_radius=max(2, int(4*s)))
+        # Outline
+        pygame.draw.rect(surface, (160, 165, 180), (hd_x, hd_y, head_w, head_h), max(1, int(3*s)), border_radius=max(3, int(6*s)))
 
 
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
