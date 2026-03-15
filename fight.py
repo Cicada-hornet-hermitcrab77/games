@@ -172,6 +172,9 @@ CHARACTERS = [
     {"name": "Ink Brush", "color": (20, 20, 40), "speed": 6, "jump": -14,
      "punch_dmg": 10, "kick_dmg": 12, "max_hp": 110, "block": 6,
      "desc": "Kick spawns a moving clone that distracts enemies", "double_jump": True, "ink_kick": True},
+    {"name": "Hammerhead", "color": (80, 55, 30), "speed": 3, "jump": -11,
+     "punch_dmg": 22, "kick_dmg": 6, "max_hp": 135, "block": 5,
+     "desc": "Hammer punch squishes opponents flat for 4 seconds", "double_jump": False, "hammer_punch": True},
 ]
 
 POWERUPS = [
@@ -782,6 +785,29 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             (bx + int(4*s), by + int(16*s)),
             (bx, tip_y)])  # bristles
         pygame.draw.circle(surface, (5, 5, 20), (bx, tip_y), max(2, int(3*s)))  # ink drop
+
+    elif char_name == "Hammerhead":
+        # Hard hat
+        hat_w = int(hd * 2.0)
+        hat_h = int(hd * 0.7)
+        pygame.draw.ellipse(surface, (40, 30, 20), (hx - hat_w//2, hy - hd - hat_h + int(2*s), hat_w, hat_h))
+        pygame.draw.rect(surface, (40, 30, 20), (hx - int(hat_w*0.6), hy - hd - int(4*s), int(hat_w*1.2), int(5*s)))
+        # Giant hammer in right hand
+        # Shaft: from hand toward facing, long pole
+        shaft_len = int(38 * s)
+        head_w    = int(24 * s)
+        head_h    = int(18 * s)
+        hx2, hy2 = rhx, rhy   # hand position
+        tip_x = hx2 + facing * shaft_len
+        tip_y2 = hy2 - int(4 * s)
+        pygame.draw.line(surface, (120, 80, 40), (hx2, hy2), (tip_x, tip_y2), max(2, int(4*s)))  # shaft
+        # Hammer head (rectangle perpendicular to shaft)
+        pygame.draw.rect(surface, (80, 80, 90),
+                         (tip_x - head_w//2 + facing*int(6*s), tip_y2 - head_h//2,
+                          head_w, head_h), border_radius=max(2, int(3*s)))
+        pygame.draw.rect(surface, (140, 140, 150),
+                         (tip_x - head_w//2 + facing*int(6*s), tip_y2 - head_h//2,
+                          head_w, head_h), max(1, int(2*s)), border_radius=max(2, int(3*s)))
 
 
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
@@ -1506,6 +1532,7 @@ class Fighter:
         self.pumpkin_cooldown   = 0      # cooldown between throws
         self.pending_ink_clone       = False  # Ink Brush: spawn a clone this frame
         self.ink_clone_cooldown      = 0      # cooldown between clones
+        self.squish_frames           = 0      # frames of squish remaining (Hammerhead punch)
         self.dash_tap_left      = 0     # frames remaining in double-tap window (left)
         self.dash_tap_right     = 0     # frames remaining in double-tap window (right)
         self.dash_cd            = 0     # cooldown between dashes
@@ -1596,6 +1623,8 @@ class Fighter:
             self.pumpkin_cooldown -= 1
         if self.ink_clone_cooldown > 0:
             self.ink_clone_cooldown -= 1
+        if self.squish_frames > 0:
+            self.squish_frames -= 1
         if self.boomerang_timer > 0:
             self.boomerang_timer -= 1
             self.boomerang_angle = (self.boomerang_angle + 0.09) % (2 * math.pi)
@@ -1861,12 +1890,39 @@ class Fighter:
                 other.freeze_frames = 180  # 3 seconds
             if self.char.get("shock_punch") and self.action == 'punch':
                 other.shock_frames = 480   # 8 seconds
+            if self.char.get("hammer_punch") and self.action == 'punch':
+                other.squish_frames = 240  # 4 seconds
 
     def draw(self, surface):
         _scale = self.draw_scale
         flash = (self.flash_timer % 4) < 2 and self.flash_timer > 0
 
-        if self.angle != 0.0:
+        if self.squish_frames > 0:
+            # Draw stickman flat on a temp surface, then squish-scale it
+            tmp_w = int(260 * _scale)
+            tmp_h = int(220 * _scale)
+            tmp = pygame.Surface((tmp_w, tmp_h), pygame.SRCALPHA)
+            cx = tmp_w // 2
+            cy = int(tmp_h * 0.88)
+            draw_stickman(tmp, cx, cy, self.color, self.facing, self.action, self.action_t,
+                          flash=flash, scale=_scale, char_name=self.char["name"])
+            sq_w = int(tmp_w * 1.55)
+            sq_h = int(tmp_h * 0.35)
+            squished = pygame.transform.scale(tmp, (sq_w, sq_h))
+            bx = int(self.x) - sq_w // 2
+            by = int(self.y) - int(cy * 0.35)
+            surface.blit(squished, (bx, by))
+            # Stars spinning above squished fighter
+            star_cx = int(self.x)
+            star_cy = by - 12
+            for i in range(5):
+                ang = math.radians((self.squish_frames * 7 + i * 72) % 360)
+                sx2 = star_cx + int(math.cos(ang) * 18)
+                sy2 = star_cy + int(math.sin(ang) * 7)
+                pygame.draw.circle(surface, (255, 230, 0), (sx2, sy2), 4)
+                pygame.draw.circle(surface, (255, 140, 0), (sx2, sy2), 2)
+            result = None
+        elif self.angle != 0.0:
             # Draw stickman onto a temp surface, rotate it, blit to screen
             tmp_w = int(320 * _scale)
             tmp_h = int(340 * _scale)
@@ -3280,6 +3336,7 @@ def character_select(vs_ai=False):
         if detail_ch.get("grapple_kick"):   badges.append(("SNAKE HOOK",    (40, 200, 60)))
         if detail_ch.get("pumpkin_kick"):   badges.append(("PUMPKIN BOMB",  (215, 118, 0)))
         if detail_ch.get("contact_dmg"):    badges.append(("POISON TOUCH",  (100, 220, 60)))
+        if detail_ch.get("hammer_punch"):   badges.append(("HAMMER SMASH",  (160, 120, 60)))
         bx_off = PX + 8
         for btxt, bcol in badges:
             bs = font_tiny.render(btxt, True, bcol)
