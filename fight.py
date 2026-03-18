@@ -220,6 +220,9 @@ CHARACTERS = [
     {"name": "Pirate",     "color": (80, 55, 30),     "speed": 4, "jump": -12,
      "punch_dmg": 10, "kick_dmg": 0,  "max_hp": 120, "block": 5,
      "desc": "Fires an explosive cannonball on kick (35 dmg)", "double_jump": False, "bazooka_kick": True},
+    {"name": "Impossible", "color": CYAN,    "speed": 10, "jump": -16,
+     "punch_dmg": 1, "kick_dmg": 1, "max_hp": 1, "block": 1,
+     "desc": "gods at this game should try him",   "double_jump": True},
 ]
 
 POWERUPS = [
