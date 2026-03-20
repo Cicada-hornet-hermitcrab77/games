@@ -1533,10 +1533,10 @@ STAGE_MATCHUPS = {
     "Underworld": {"adv": "Skeleton",    "dis": "Boxer"},
     "Space":      {"adv": "Astronaut",    "dis": "Giant"},
     "Jungle":     {"adv": "Hooker",       "dis": "Gunner"},
-    "Computer":        {"adv": "Charger",      "dis": "Headless Horseman"},
+    "Computer":        {"adv": "Charger",      "dis": "Viking"},
     "Ice Cave":        {"adv": "Cryogenisist", "dis": "Arsonist"},
-    "Pirate Ship":     {"adv": "Hooker",        "dis": "Skeleton"},
-    "City Rooftop":    {"adv": "Speedster",     "dis": "Tank"},
+    "Pirate Ship":     {"adv": "Pirate",        "dis": "Wizard"},
+    "City Rooftop":    {"adv": "Speedster",     "dis": "Headless Horseman"},
     "Medieval Castle": {"adv": "Knight",        "dis": "Vampire"},
     "Circus":          {"adv": "Clown",         "dis": "Samurai"},
     "Underwater":      {"adv": "Cecalia",       "dis": "Arsonist"},
@@ -1545,7 +1545,7 @@ STAGE_MATCHUPS = {
     "Haunted House":   {"adv": "Ghost",          "dis": "Rogue"},
     "Volcano Core":    {"adv": "Lava Man",       "dis": "Cryogenisist"},
     "Sky Island":      {"adv": "Angel",          "dis": "Sumo"},
-    "Graveyard":       {"adv": "Skeleton",       "dis": "Medic"},
+    "Graveyard":       {"adv": "Ghost",       "dis": "Medic"},
 }
 
 
