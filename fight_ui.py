@@ -1,0 +1,410 @@
+import pygame
+import sys
+import math
+from constants import *
+from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS
+from fight_drawing import draw_bg, draw_stickman
+
+# ---------------------------------------------------------------------------
+# Stage select screen
+# ---------------------------------------------------------------------------
+
+def stage_select():
+    idx = 0
+    while True:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_LEFT,  pygame.K_a): idx = (idx - 1) % len(STAGES)
+                if event.key in (pygame.K_RIGHT, pygame.K_d): idx = (idx + 1) % len(STAGES)
+                if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_ESCAPE): return idx
+
+        draw_bg(screen, idx)
+        ov = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        ov.fill((0, 0, 0, 120))
+        screen.blit(ov, (0, 0))
+
+        title = font_large.render("SELECT STAGE", True, YELLOW)
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, 30))
+
+        nm = font_medium.render(STAGES[idx]["name"], True, WHITE)
+        screen.blit(nm, (WIDTH//2 - nm.get_width()//2, HEIGHT//2 - 30))
+
+        match = STAGE_MATCHUPS.get(STAGES[idx]["name"], {})
+        if match:
+            adv_s = font_small.render(f"★ ADV: {match['adv']}", True, (100, 255, 100))
+            dis_s = font_small.render(f"✗ DIS: {match['dis']}", True, (255, 100, 100))
+            screen.blit(adv_s, (WIDTH//2 - adv_s.get_width() - 12, HEIGHT//2 + 12))
+            screen.blit(dis_s, (WIDTH//2 + 12, HEIGHT//2 + 12))
+
+        for di in range(len(STAGES)):
+            col = WHITE if di == idx else GRAY
+            pygame.draw.circle(screen, col, (WIDTH//2 + (di - len(STAGES)//2)*30, HEIGHT//2 + 40), 6)
+
+        hint = font_small.render("◄ ► to browse   ENTER to confirm", True, (180, 180, 180))
+        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 40))
+        pygame.display.flip()
+
+
+# ---------------------------------------------------------------------------
+# Mode select screen
+# ---------------------------------------------------------------------------
+
+def mode_select():
+    """Returns ('1p', difficulty), '2p', 'survival_1p', or 'survival_2p'."""
+    selected = 0   # 0=1P, 1=2P, 2=SURVIVAL
+    difficulty_idx = 1
+    difficulties = ['easy', 'medium', 'hard', 'super_hard', 'super_super_hard', 'mega_hard']
+    diff_colors  = [GREEN, YELLOW, RED, PURPLE, CYAN, ORANGE]
+    scroll_offset = 0
+    VISIBLE = 3
+    survival_players = 0   # 0=1P survival, 1=2P survival
+    preview_t = 0.0
+
+    while True:
+        clock.tick(FPS)
+        preview_t = (preview_t + 0.02) % 1.0
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_q, pygame.K_ESCAPE):
+                    pygame.quit(); sys.exit()
+                if event.key in (pygame.K_LEFT, pygame.K_a):
+                    selected = (selected - 1) % 3
+                if event.key in (pygame.K_RIGHT, pygame.K_d):
+                    selected = (selected + 1) % 3
+                if selected == 0:   # 1P: difficulty picker
+                    if event.key in (pygame.K_UP, pygame.K_w):
+                        difficulty_idx = (difficulty_idx - 1) % len(difficulties)
+                    if event.key in (pygame.K_DOWN, pygame.K_s):
+                        difficulty_idx = (difficulty_idx + 1) % len(difficulties)
+                    if difficulty_idx < scroll_offset:
+                        scroll_offset = difficulty_idx
+                    elif difficulty_idx >= scroll_offset + VISIBLE:
+                        scroll_offset = difficulty_idx - VISIBLE + 1
+                if selected == 2:   # Survival: toggle 1P/2P
+                    if event.key in (pygame.K_UP, pygame.K_w, pygame.K_DOWN, pygame.K_s):
+                        survival_players = 1 - survival_players
+                if event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                    if selected == 0:
+                        return ('1p', difficulties[difficulty_idx])
+                    elif selected == 1:
+                        return '2p'
+                    else:
+                        return 'survival_2p' if survival_players else 'survival_1p'
+
+        screen.fill(DARK)
+        title = font_large.render("STICKMAN FIGHTER", True, YELLOW)
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, 30))
+
+        card_w, card_h = 170, 240
+        cards = [
+            (WIDTH//2 - 285, "1 PLAYER",  "vs CPU",    BLUE),
+            (WIDTH//2 -  85, "2 PLAYERS", "local",     ORANGE),
+            (WIDTH//2 + 115, "SURVIVAL",  "endless",   GREEN),
+        ]
+        for ci, (cx, top, sub, col) in enumerate(cards):
+            border = WHITE if ci == selected else GRAY
+            pygame.draw.rect(screen, (50,50,50), (cx, 140, card_w, card_h), border_radius=12)
+            pygame.draw.rect(screen, border,     (cx, 140, card_w, card_h), 3, border_radius=12)
+            lbl = font_medium.render(top, True, col)
+            screen.blit(lbl, (cx + card_w//2 - lbl.get_width()//2, 150))
+            sl = font_small.render(sub, True, GRAY)
+            screen.blit(sl, (cx + card_w//2 - sl.get_width()//2, 190))
+            draw_stickman(screen, cx + card_w//2 - 25, 140 + card_h - 30, BLUE, 1, 'walk', preview_t)
+            draw_stickman(screen, cx + card_w//2 + 25, 140 + card_h - 30, RED, -1, 'idle', 0.0)
+            if ci == selected:
+                sel_txt = font_tiny.render("ENTER / SPACE to select", True, WHITE)
+                screen.blit(sel_txt, (cx + card_w//2 - sel_txt.get_width()//2, 390))
+
+        # Difficulty picker (1P mode)
+        if selected == 0:
+            diff_lbl = font_small.render("Difficulty:", True, WHITE)
+            screen.blit(diff_lbl, (WIDTH//2 - 285, 400))
+            list_x, list_y, row_h = WIDTH//2 - 275, 428, 30
+            if scroll_offset > 0:
+                screen.blit(font_small.render("▲", True, GRAY), (list_x, list_y - 22))
+            for row, di in enumerate(range(scroll_offset, scroll_offset + VISIBLE)):
+                if di >= len(difficulties): break
+                dname, dcol = difficulties[di], diff_colors[di]
+                marker = "► " if di == difficulty_idx else "  "
+                dt = font_small.render(f"{marker}{dname.replace('_', ' ').capitalize()}", True,
+                                       dcol if di == difficulty_idx else GRAY)
+                screen.blit(dt, (list_x, list_y + row * row_h))
+            if scroll_offset + VISIBLE < len(difficulties):
+                screen.blit(font_small.render("▼", True, GRAY), (list_x, list_y + VISIBLE * row_h + 2))
+            screen.blit(font_tiny.render("↑/↓ or W/S to scroll", True, GRAY),
+                        (list_x, list_y + VISIBLE * row_h + 22))
+
+        # Survival 1P/2P toggle
+        if selected == 2:
+            opts = ["1 PLAYER", "2 PLAYERS"]
+            for oi, opt in enumerate(opts):
+                col = WHITE if oi == survival_players else GRAY
+                ot = font_small.render(("► " if oi == survival_players else "  ") + opt, True, col)
+                screen.blit(ot, (WIDTH//2 + 125, 405 + oi * 30))
+            screen.blit(font_tiny.render("W/S to switch", True, GRAY), (WIDTH//2 + 125, 468))
+
+        nav = font_tiny.render("◄ ► to switch mode", True, GRAY)
+        screen.blit(nav, (WIDTH//2 - nav.get_width()//2, HEIGHT - 24))
+        pygame.display.flip()
+
+# ---------------------------------------------------------------------------
+# Character select screen
+# ---------------------------------------------------------------------------
+
+def character_select(vs_ai=False):
+    """Returns (p1_idx, p2_idx). P2 is random if vs_ai."""
+    n     = len(CHARACTERS)
+    COLS  = 7
+    ROWS  = (n + COLS - 1) // COLS
+
+    # Grid occupies left ~60% of screen
+    GX, GY   = 8,  68
+    GW, GH   = 540, HEIGHT - GY - 28
+    CW       = GW // COLS
+    CH       = GH // ROWS
+
+    # Detail panel on the right
+    PX       = GX + GW + 10
+    PW       = WIDTH - PX - 8
+    PY, PH   = GY, GH
+
+    def move(idx, dr, dc):
+        r, c = divmod(idx, COLS)
+        if dc:
+            c = (c + dc) % COLS
+            ni = r * COLS + c
+            return min(ni, n - 1)
+        else:
+            r = (r + dr) % ROWS
+            ni = r * COLS + c
+            return min(ni, n - 1)
+
+    p1_idx, p2_idx = 0, 1
+    p1_ready = False
+    p2_ready = vs_ai
+    preview_t = 0.0
+    flash_t   = 0   # for ready flash
+
+    while True:
+        clock.tick(FPS)
+        preview_t = (preview_t + 0.02) % 1.0
+        flash_t   = (flash_t + 1) % 40
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_q, pygame.K_ESCAPE):
+                    return None, None
+                # P1 navigation (WASD or arrows while P1 not ready)
+                if not p1_ready:
+                    if event.key in (pygame.K_a, pygame.K_LEFT):  p1_idx = move(p1_idx, 0, -1)
+                    if event.key in (pygame.K_d, pygame.K_RIGHT): p1_idx = move(p1_idx, 0,  1)
+                    if event.key in (pygame.K_w, pygame.K_UP):    p1_idx = move(p1_idx, -1, 0)
+                    if event.key in (pygame.K_s, pygame.K_DOWN):  p1_idx = move(p1_idx,  1, 0)
+                    if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_f):
+                        p1_ready = True
+                        if vs_ai:
+                            p2_idx = random.randint(0, n - 1)
+                # P2 navigation (arrows only, after P1 locked in)
+                elif not vs_ai and not p2_ready:
+                    if event.key == pygame.K_LEFT:  p2_idx = move(p2_idx, 0, -1)
+                    if event.key == pygame.K_RIGHT: p2_idx = move(p2_idx, 0,  1)
+                    if event.key == pygame.K_UP:    p2_idx = move(p2_idx, -1, 0)
+                    if event.key == pygame.K_DOWN:  p2_idx = move(p2_idx,  1, 0)
+                    if event.key in (pygame.K_RETURN, pygame.K_k):
+                        p2_ready = True
+
+        if p1_ready and p2_ready:
+            return p1_idx, p2_idx
+
+        # Whose detail to show: the active picker
+        detail_idx = p2_idx if (p1_ready and not p2_ready) else p1_idx
+        detail_ch  = CHARACTERS[detail_idx]
+        active_col = ORANGE if (p1_ready and not p2_ready) else BLUE
+
+        # ── Background ──────────────────────────────────────────────────────
+        screen.fill((18, 18, 28))
+
+        # Title bar
+        pygame.draw.rect(screen, (30, 30, 48), (0, 0, WIDTH, GY - 2))
+        title = font_medium.render("SELECT YOUR FIGHTER", True, YELLOW)
+        screen.blit(title, (GX, 10))
+        if not vs_ai:
+            phase = "P1 choosing" if not p1_ready else "P2 choosing"
+            phase_col = BLUE if not p1_ready else ORANGE
+            ps = font_small.render(phase, True, phase_col)
+            screen.blit(ps, (WIDTH - ps.get_width() - 10, 12))
+
+        # ── Character grid ───────────────────────────────────────────────────
+        for i, ch in enumerate(CHARACTERS):
+            r, c  = divmod(i, COLS)
+            cx    = GX + c * CW
+            cy    = GY + r * CH
+            color = ch["color"]
+
+            # Tinted background from character color
+            bg_col = (max(10, color[0]//5), max(10, color[1]//5), max(10, color[2]//5))
+            pygame.draw.rect(screen, bg_col, (cx+2, cy+2, CW-4, CH-4), border_radius=6)
+
+            # Selection highlights
+            is_p1 = (i == p1_idx)
+            is_p2 = (i == p2_idx) and not vs_ai
+
+            if is_p1 and is_p2:
+                bord, bw = (180, 100, 255), 3
+            elif is_p1:
+                bord, bw = BLUE,   3
+            elif is_p2:
+                bord, bw = ORANGE, 3
+            else:
+                bord, bw = (55, 55, 70), 1
+            pygame.draw.rect(screen, bord, (cx+2, cy+2, CW-4, CH-4), bw, border_radius=6)
+
+            # Character name (truncate if needed)
+            name_str = ch["name"] if len(ch["name"]) <= 10 else ch["name"][:9] + "."
+            nm = font_tiny.render(name_str, True, color if (is_p1 or is_p2) else (160, 160, 160))
+            screen.blit(nm, (cx + CW//2 - nm.get_width()//2, cy + CH//2 - 6))
+
+            # Ready badge
+            if is_p1 and p1_ready:
+                pygame.draw.circle(screen, GREEN, (cx + CW - 8, cy + 8), 5)
+            if is_p2 and p2_ready:
+                pygame.draw.circle(screen, GREEN, (cx + 8, cy + 8), 5)
+
+            # Player cursor dot(s)
+            if is_p1 and not p1_ready:
+                pygame.draw.circle(screen, BLUE, (cx + CW - 8, cy + 8), 4)
+            if is_p2 and not p2_ready:
+                pygame.draw.circle(screen, ORANGE, (cx + 8, cy + 8), 4)
+
+        # Grid border
+        pygame.draw.rect(screen, (60, 60, 90), (GX, GY, GW, GH), 1, border_radius=4)
+
+        # ── Detail panel ─────────────────────────────────────────────────────
+        pygame.draw.rect(screen, (25, 25, 40),    (PX, PY, PW, PH), border_radius=10)
+        pygame.draw.rect(screen, active_col,      (PX, PY, PW, PH), 2, border_radius=10)
+
+        # Large animated stickman
+        sm_y = PY + 155
+        draw_stickman(screen, PX + PW//2, sm_y, detail_ch["color"], 1, 'walk', preview_t, scale=1.15,
+                      char_name=detail_ch["name"])
+
+        # Character name
+        nm_big = font_medium.render(detail_ch["name"], True, detail_ch["color"])
+        screen.blit(nm_big, (PX + PW//2 - nm_big.get_width()//2, PY + 8))
+
+        # Description (word-wrap)
+        words, line, desc_lines = detail_ch["desc"].split(), "", []
+        for w in words:
+            test = (line + " " + w).strip()
+            if font_tiny.size(test)[0] > PW - 16:
+                desc_lines.append(line); line = w
+            else:
+                line = test
+        if line: desc_lines.append(line)
+        for li, dl in enumerate(desc_lines):
+            ds = font_tiny.render(dl, True, YELLOW)
+            screen.blit(ds, (PX + PW//2 - ds.get_width()//2, PY + 34 + li * 15))
+
+        # Stat bars
+        bar_x  = PX + 10
+        bar_y  = PY + 172
+        bar_bw = PW - 20
+        bar_h  = 14
+        bar_gap = 23
+        for si, (lbl, val, mx, col) in enumerate([
+            ("HP",    detail_ch["max_hp"],              400, (60,  210,  80)),
+            ("SPD",   detail_ch["speed"],                10, (80,  170, 255)),
+            ("PUNCH", detail_ch["punch_dmg"],            30, (255, 120,  50)),
+            ("KICK",  detail_ch["kick_dmg"],             30, (255,  60, 180)),
+            ("BLOCK", detail_ch.get("block", 5),         10, (200, 200,  60)),
+        ]):
+            by  = bar_y + si * bar_gap
+            lbs = font_tiny.render(lbl, True, (180, 180, 180))
+            screen.blit(lbs, (bar_x, by))
+            bx2 = bar_x + 48
+            bw2 = bar_bw - 48
+            pygame.draw.rect(screen, (50, 50, 65), (bx2, by, bw2, bar_h), border_radius=3)
+            fw  = int(bw2 * min(1.0, val / mx))
+            if fw > 0:
+                pygame.draw.rect(screen, col, (bx2, by, fw, bar_h), border_radius=3)
+            pygame.draw.rect(screen, (90, 90, 110), (bx2, by, bw2, bar_h), 1, border_radius=3)
+            vs2 = font_tiny.render(str(val), True, WHITE)
+            screen.blit(vs2, (bx2 + bw2 + 5, by))
+
+        # Badges row
+        badge_y = bar_y + 5 * bar_gap + 6
+        badges  = []
+        if detail_ch.get("double_jump"):    badges.append(("2x JUMP",      CYAN))
+        if detail_ch.get("giant"):          badges.append(("GIANT",         GREEN))
+        if detail_ch.get("tiny"):           badges.append(("TINY",          (220, 200, 180)))
+        if detail_ch.get("phase"):          badges.append(("PHASES WALLS",  (200, 200, 255)))
+        if detail_ch.get("vampire"):        badges.append(("VAMPIRE",       (200, 0, 80)))
+        if detail_ch.get("anti_gravity"):   badges.append(("ANTI-GRAVITY",  (180, 220, 255)))
+        if detail_ch.get("wall_cling"):     badges.append(("WALL CLING",    ORANGE))
+        if detail_ch.get("regen"):          badges.append(("REGEN",         (120, 255, 120)))
+        if detail_ch.get("fire_punch"):     badges.append(("FIRE PUNCH",    (255, 100, 20)))
+        if detail_ch.get("freeze_kick"):    badges.append(("FREEZE KICK",   (120, 200, 255)))
+        if detail_ch.get("shock_punch"):    badges.append(("SHOCK PUNCH",   YELLOW))
+        if detail_ch.get("magnet"):         badges.append(("MAGNET",        PURPLE))
+        if detail_ch.get("teleport_kick"):  badges.append(("TELEPORT KICK", (220, 80, 255)))
+        if detail_ch.get("random_stats"):   badges.append(("RANDOM STATS",  GRAY))
+        if detail_ch.get("boomerang_kick"): badges.append(("BOOMERANG",     (200, 130, 50)))
+        if detail_ch.get("shoot_kick"):     badges.append(("SHOOTS BALLS",  (60, 200, 80)))
+        if detail_ch.get("bazooka_kick"):   badges.append(("BAZOOKA",       (220, 60, 60)))
+        if detail_ch.get("bounce_kick"):    badges.append(("BOUNCE BALL",   (255, 80, 200)))
+        if detail_ch.get("size_kick"):      badges.append(("SIZE SHIFT",    (80, 200, 220)))
+        if detail_ch.get("grapple_kick"):   badges.append(("SNAKE HOOK",    (40, 200, 60)))
+        if detail_ch.get("pumpkin_kick"):   badges.append(("PUMPKIN BOMB",  (215, 118, 0)))
+        if detail_ch.get("contact_dmg"):    badges.append(("POISON TOUCH",  (100, 220, 60)))
+        if detail_ch.get("hammer_punch"):   badges.append(("HAMMER SMASH",  (160, 120, 60)))
+        if detail_ch.get("berserker"):      badges.append(("BERSERKER",      (220, 60, 30)))
+        if detail_ch.get("bounce_punch"):   badges.append(("MAGIC ORB",      (160, 80, 255)))
+        if detail_ch.get("slam_kick"):      badges.append(("SLAM KICK",      (220, 100, 40)))
+        if detail_ch.get("confuse_kick"):   badges.append(("CONFUSE KICK",   (255, 60, 120)))
+        if detail_ch.get("speedster"):      badges.append(("SPEED TRAIL",    (255, 220, 0)))
+        if detail_ch.get("slow_fall"):      badges.append(("SLOW FALL",      (255, 240, 180)))
+        if detail_ch.get("stealth_punch"):  badges.append(("STEALTH",        (200, 200, 220)))
+        if detail_ch.get("wide_punch"):     badges.append(("WIDE REACH",     (160, 80, 30)))
+        if detail_ch.get("reflect_block"):  badges.append(("REFLECT",        (80, 200, 80)))
+        bx_off = PX + 8
+        for btxt, bcol in badges:
+            bs = font_tiny.render(btxt, True, bcol)
+            if bx_off + bs.get_width() + 10 > PX + PW - 4:
+                bx_off  = PX + 8
+                badge_y += 18
+            pygame.draw.rect(screen, (40, 40, 60), (bx_off - 2, badge_y - 1, bs.get_width() + 8, 16), border_radius=3)
+            screen.blit(bs, (bx_off + 2, badge_y))
+            bx_off += bs.get_width() + 14
+
+        # Controls hint at bottom of panel
+        if not p1_ready:
+            hint = "WASD / Arrows  move       F / ENTER  confirm"
+            hcol = BLUE
+        elif not vs_ai and not p2_ready:
+            hint = "Arrows  move       K / ENTER  confirm"
+            hcol = ORANGE
+        else:
+            hint, hcol = "", WHITE
+        if hint:
+            hs = font_tiny.render(hint, True, hcol)
+            screen.blit(hs, (PX + PW//2 - hs.get_width()//2, PY + PH - 18))
+
+        # Ready flash on panel border
+        if p1_ready and p2_ready:
+            if flash_t < 20:
+                pygame.draw.rect(screen, GREEN, (PX, PY, PW, PH), 3, border_radius=10)
+
+        esc = font_tiny.render("ESC — back to menu", True, GRAY)
+        screen.blit(esc, (GX + 4, HEIGHT - 22))
+
+        pygame.display.flip()
+
+

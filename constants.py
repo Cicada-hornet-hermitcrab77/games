@@ -33,3 +33,11 @@ font_tiny   = pygame.font.SysFont("Arial", 13)
 
 GRAVITY = 0.55
 STAGE_VOID = False   # when True the ground floor is removed; falling off = instant death
+
+
+HEAD_R   = 18
+BODY_LEN = 50
+ARM_LEN  = 38
+LEG_LEN  = 45
+NECK_LEN = 5
+

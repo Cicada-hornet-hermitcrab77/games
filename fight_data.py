@@ -1,14 +1,4 @@
-import pygame
-import sys
-import math
-import random
-
-from constants import (
-    WIDTH, HEIGHT, GROUND_Y, FPS,
-    WHITE, BLACK, RED, BLUE, GREEN, YELLOW, GRAY, DARK, ORANGE, PURPLE, CYAN,
-    screen, clock, font_large, font_medium, font_small, font_tiny,
-    GRAVITY, STAGE_VOID,
-)
+from constants import *
 
 CHARACTERS = [
     {"name": "Brawler", "color": RED,    "speed": 4, "jump": -14,
@@ -196,6 +186,9 @@ CHARACTERS = [
     {"name": "Pirate",     "color": (80, 55, 30),     "speed": 4, "jump": -12,
      "punch_dmg": 10, "kick_dmg": 0,  "max_hp": 120, "block": 5,
      "desc": "Fires an explosive cannonball on kick (35 dmg)", "double_jump": False, "bazooka_kick": True},
+    {"name": "Impossible", "color": CYAN,    "speed": 10, "jump": -16,
+     "punch_dmg": 1, "kick_dmg": 1, "max_hp": 1, "block": 1,
+     "desc": "gods at this game should try him",   "double_jump": True},
 ]
 
 POWERUPS = [
@@ -216,7 +209,6 @@ POWERUPS = [
     {'name': 'Cleanse',       'type': 'cleanse',       'duration': 0,        'color': (205, 205, 155)},
     {'name': 'Bubble Shield', 'type': 'bubble_shield', 'duration': FPS * 10, 'color': (100, 200, 255)},
 ]
-
 
 STAGES = [
     # Grasslands
@@ -484,10 +476,10 @@ STAGE_MATCHUPS = {
     "Underworld": {"adv": "Skeleton",    "dis": "Boxer"},
     "Space":      {"adv": "Astronaut",    "dis": "Giant"},
     "Jungle":     {"adv": "Hooker",       "dis": "Gunner"},
-    "Computer":        {"adv": "Charger",      "dis": "Headless Horseman"},
+    "Computer":        {"adv": "Charger",      "dis": "Viking"},
     "Ice Cave":        {"adv": "Cryogenisist", "dis": "Arsonist"},
-    "Pirate Ship":     {"adv": "Hooker",        "dis": "Skeleton"},
-    "City Rooftop":    {"adv": "Speedster",     "dis": "Tank"},
+    "Pirate Ship":     {"adv": "Pirate",        "dis": "Wizard"},
+    "City Rooftop":    {"adv": "Speedster",     "dis": "Headless Horseman"},
     "Medieval Castle": {"adv": "Knight",        "dis": "Vampire"},
     "Circus":          {"adv": "Clown",         "dis": "Samurai"},
     "Underwater":      {"adv": "Cecalia",       "dis": "Arsonist"},
@@ -496,5 +488,6 @@ STAGE_MATCHUPS = {
     "Haunted House":   {"adv": "Ghost",          "dis": "Rogue"},
     "Volcano Core":    {"adv": "Lava Man",       "dis": "Cryogenisist"},
     "Sky Island":      {"adv": "Angel",          "dis": "Sumo"},
-    "Graveyard":       {"adv": "Skeleton",       "dis": "Medic"},
+    "Graveyard":       {"adv": "Ghost",       "dis": "Medic"},
 }
+
