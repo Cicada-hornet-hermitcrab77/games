@@ -879,6 +879,16 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                         (lhx - int(10*s), lhy - int(10*s), int(14*s), int(14*s)),
                         math.radians(-30), math.radians(200), max(2, int(3*s)))
 
+    elif char_name == "Laser Eyes":
+        # Glowing red eyes
+        t = pygame.time.get_ticks()
+        pulse = 0.5 + 0.5 * math.sin(t * 0.008)
+        r1 = max(3, int((5 + 3 * pulse) * s))
+        for eye_ox in (-int(hd * 0.38), int(hd * 0.38)):
+            ex, ey = hx + eye_ox, hy - int(hd * 0.1)
+            pygame.draw.circle(surface, (255, int(40 + 40 * pulse), 0), (ex, ey), r1)
+            pygame.draw.circle(surface, (255, 220, 80), (ex, ey), max(1, r1 - 2))
+
     elif char_name == "Hammerhead":
         # Hard hat
         hat_w = int(hd * 2.0)

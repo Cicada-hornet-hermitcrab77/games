@@ -174,6 +174,18 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         victim.flash_timer = 6
                         thrower.boomerang_hit_cd = 30   # 0.5s between hits
 
+            # Laser Eyes beam damage
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if (shooter.char.get("laser_eyes") and shooter.laser_active > 0
+                        and shooter.laser_hit_cd == 0):
+                    laser_y = shooter.y - 100
+                    correct_side = ((shooter.facing == 1  and victim.x > shooter.x) or
+                                    (shooter.facing == -1 and victim.x < shooter.x))
+                    if correct_side and abs((victim.y - 60) - laser_y) < 35:
+                        victim.hp = max(0, victim.hp - 2)
+                        victim.flash_timer = 4
+                        shooter.laser_hit_cd = 15  # damage tick every 15 frames
+
             keys = pygame.key.get_pressed()
             p1.update(keys, p2, platforms)
             p2.update(keys, p1, platforms)
@@ -409,6 +421,19 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
         if is_computer and stage_pencil:
             stage_pencil.draw(screen)
             stage_eraser.draw(screen)
+        # Draw Laser Eyes beam
+        for f in (p1, p2):
+            if f.char.get("laser_eyes") and f.laser_active > 0:
+                eye_x = int(f.x)
+                eye_y = int(f.y - 100)
+                end_x = WIDTH if f.facing == 1 else 0
+                x = eye_x
+                while (f.facing == 1 and x < end_x) or (f.facing == -1 and x > end_x):
+                    dash_end = x + f.facing * 18
+                    dash_end = min(dash_end, end_x) if f.facing == 1 else max(dash_end, end_x)
+                    pygame.draw.line(screen, (255, 40, 0),  (x, eye_y),     (dash_end, eye_y), 3)
+                    pygame.draw.line(screen, (255, 160, 80), (x, eye_y),    (dash_end, eye_y), 1)
+                    x = dash_end + f.facing * 6  # 6-pixel gap between dashes
         # Draw magnet beams from powerups to any Magician fighter
         for f in (p1, p2):
             if f.char.get("magnet"):
@@ -573,6 +598,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     en_orbs           = []
     en_bounce_balls   = []
     en_pumpkins       = []
+    en_hooks          = []
     powerups          = []
     jungle_snakes     = []
     computer_bugs     = []
@@ -686,9 +712,16 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             # Spawn enemies
             enemy_spawn_timer -= 1
             if enemy_spawn_timer <= 0 and len(enemies) < max_en:
-                ci    = random.randint(0, len(CHARACTERS) - 1)
-                sx    = float(random.choice([60, WIDTH - 60]))
+                ci = random.randint(0, len(CHARACTERS) - 1)
+                if constants.STAGE_VOID:
+                    # Spawn on the central platform so they don't fall into the void
+                    sx = float(random.randint(330, 570))
+                    sy = float(GROUND_Y - 70)
+                else:
+                    sx = float(random.choice([60, WIDTH - 60]))
+                    sy = float(GROUND_Y)
                 en    = AIFighter(sx, CHARACTERS[ci], -1 if sx > WIDTH // 2 else 1, diff)
+                en.x  = sx; en.y = sy; en.on_ground = True
                 en.hp = en.char["max_hp"]
                 enemies.append(en)
                 interval          = max(60, 300 - survival_timer // (2 * FPS))
@@ -709,6 +742,11 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     if en.pending_bounce:
                         en.pending_bounce = False
                         en_bounce_balls.append(BouncingBall(en.x + en.facing*30, en.y-60, en.facing, en))
+                    if en.pending_hook and living:
+                        en.pending_hook = False
+                        tgt = min(living, key=lambda p: abs(p.x - en.x))
+                        en_hooks.append(SnakeHook(en.x + en.facing*20, en.y-60,
+                                                   tgt.x, tgt.y-60, en))
 
             # Mark newly dead players and freeze them
             for p in players:
@@ -748,6 +786,32 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                                            tgt.x, tgt.y-60, shooter))
                 else:
                     shooter.pending_hook = False
+
+            # Laser Eyes beam damage (survival)
+            for shooter in players:
+                if (shooter.char.get("laser_eyes") and shooter.laser_active > 0
+                        and shooter.laser_hit_cd == 0):
+                    laser_y = shooter.y - 100
+                    for en in enemies:
+                        correct_side = ((shooter.facing == 1  and en.x > shooter.x) or
+                                        (shooter.facing == -1 and en.x < shooter.x))
+                        if correct_side and abs((en.y - 60) - laser_y) < 35:
+                            en.hp = max(0, en.hp - 2)
+                            en.flash_timer = 4
+                            shooter.laser_hit_cd = 15
+                            break
+            for en in enemies:
+                if (en.char.get("laser_eyes") and en.laser_active > 0
+                        and en.laser_hit_cd == 0):
+                    laser_y = en.y - 100
+                    for p in living:
+                        correct_side = ((en.facing == 1  and p.x > en.x) or
+                                        (en.facing == -1 and p.x < en.x))
+                        if correct_side and abs((p.y - 60) - laser_y) < 35:
+                            p.hp = max(0, p.hp - 2)
+                            p.flash_timer = 4
+                            en.laser_hit_cd = 15
+                            break
 
             # Boomerang damage: player boomerangs hit enemies, enemy boomerangs hit players
             for thrower in players:
@@ -812,6 +876,18 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             en.hp = max(0, en.hp - 6); en.flash_timer = 8
                             h.alive = False; break
             hooks = [h for h in hooks if h.alive]
+
+            # Enemy hooks → players
+            for h in en_hooks:
+                h.update()
+                if h.alive:
+                    for p in living:
+                        if h.collides(p):
+                            pull = 1 if h.owner.x > p.x else -1
+                            p.knockback = pull * 22
+                            p.hp = max(0, p.hp - 6); p.flash_timer = 8
+                            h.alive = False; break
+            en_hooks = [h for h in en_hooks if h.alive]
 
             # Enemy balls → players
             for b in en_balls:
@@ -886,7 +962,6 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             for shooter in players:
                 if shooter.pending_ink_clone:
                     shooter.pending_ink_clone = False
-                    # target nearest enemy
                     tgt = min(enemies, key=lambda e: abs(e.x - shooter.x)) if enemies else None
                     if tgt:
                         cf = AIFighter(shooter.x + shooter.facing * 55, shooter.char, -shooter.facing, 'medium')
@@ -894,6 +969,15 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         cf.color = shooter.color
                         cf.no_attack = True
                         ink_clones.append({'fighter': cf, 'timer': FPS * 100, 'target': tgt})
+            for en in enemies:
+                if en.pending_ink_clone and living:
+                    en.pending_ink_clone = False
+                    tgt2 = min(living, key=lambda p: abs(p.x - en.x))
+                    cf2 = AIFighter(en.x + en.facing * 55, en.char, -en.facing, 'medium')
+                    cf2.hp = max(1, en.hp)
+                    cf2.color = en.color
+                    cf2.no_attack = True
+                    ink_clones.append({'fighter': cf2, 'timer': FPS * 8, 'target': tgt2})
             new_ink = []
             for ic in ink_clones:
                 ic['timer'] -= 1
@@ -1016,6 +1100,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for bb   in bounce_balls:  bb.draw(screen)
         for bb   in en_bounce_balls: bb.draw(screen)
         for h    in hooks:         h.draw(screen)
+        for h    in en_hooks:      h.draw(screen)
         for pk   in pumpkins:      pk.draw(screen)
         for pk   in en_pumpkins:   pk.draw(screen)
         for sn   in jungle_snakes: sn.draw(screen)
@@ -1025,6 +1110,20 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             stage_pencil.draw(screen)
             stage_eraser.draw(screen)
         for ic   in ink_clones:    ic['fighter'].draw(screen)
+
+        # Draw Laser Eyes beams (survival)
+        for f in list(players) + enemies:
+            if f.char.get("laser_eyes") and f.laser_active > 0:
+                eye_x = int(f.x)
+                eye_y = int(f.y - 100)
+                end_x = WIDTH if f.facing == 1 else 0
+                x = eye_x
+                while (f.facing == 1 and x < end_x) or (f.facing == -1 and x > end_x):
+                    dash_end = x + f.facing * 18
+                    dash_end = min(dash_end, end_x) if f.facing == 1 else max(dash_end, end_x)
+                    pygame.draw.line(screen, (255, 40, 0),   (x, eye_y), (dash_end, eye_y), 3)
+                    pygame.draw.line(screen, (255, 160, 80), (x, eye_y), (dash_end, eye_y), 1)
+                    x = dash_end + f.facing * 6
 
         # Death burst particles
         for dp in death_pops:

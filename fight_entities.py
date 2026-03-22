@@ -235,6 +235,9 @@ class Fighter:
         self.dash_dir           = 0     # direction of current dash
         self._prev_left         = False # was left key held last frame
         self._prev_right        = False # was right key held last frame
+        self.laser_fire_cd      = FPS * 10  # frames until next laser shot
+        self.laser_active       = 0         # frames remaining in current laser burst
+        self.laser_hit_cd       = 0         # cooldown between laser damage ticks
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -326,6 +329,17 @@ class Fighter:
             self.stealth_frames -= 1
         if self.char.get("berserker"):
             self._berserker_active = self.hp > 0 and self.hp <= self.max_hp // 2
+        if self.char.get("laser_eyes"):
+            if self.laser_active > 0:
+                self.laser_active -= 1
+                if self.laser_hit_cd > 0:
+                    self.laser_hit_cd -= 1
+            elif self.laser_fire_cd > 0:
+                self.laser_fire_cd -= 1
+            else:
+                self.laser_active  = FPS * 2   # fire for 2 seconds
+                self.laser_fire_cd = FPS * 10  # reload: 10 seconds
+                self.laser_hit_cd  = 0
         if self.boomerang_timer > 0:
             self.boomerang_timer -= 1
             self.boomerang_angle = (self.boomerang_angle + 0.09) % (2 * math.pi)

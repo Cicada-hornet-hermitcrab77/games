@@ -189,6 +189,9 @@ CHARACTERS = [
     {"name": "Impossible", "color": CYAN,    "speed": 10, "jump": -16,
      "punch_dmg": 1, "kick_dmg": 1, "max_hp": 1, "block": 1,
      "desc": "gods at this game should try him",   "double_jump": True},
+    {"name": "Laser Eyes", "color": (255, 60, 0), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 105, "block": 5,
+     "desc": "Every 10s fires a laser beam for 2s", "double_jump": False, "laser_eyes": True},
 ]
 
 POWERUPS = [
