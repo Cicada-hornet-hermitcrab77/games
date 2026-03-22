@@ -114,7 +114,8 @@ CHARACTERS = [
      "desc": "Kick cycles size: normal → big → small", "double_jump": False, "size_kick": True},
     {"name": "Ghost", "color": (210, 210, 255), "speed": 5, "jump": -15,
      "punch_dmg": 8, "kick_dmg": 9, "max_hp": 105, "block": 8,
-     "desc": "Phases through platforms", "double_jump": True, "phase": True},
+     "desc": "Floats freely — hold jump to rise, duck to sink", "double_jump": True,
+     "phase": True, "ghost_float": True},
     {"name": "Vampire", "color": (120, 0, 40), "speed": 6, "jump": -13,
      "punch_dmg": 9, "kick_dmg": 10, "max_hp": 90, "block": 5,
      "desc": "Heals 8 HP on every hit", "double_jump": False, "vampire": True},
@@ -186,12 +187,32 @@ CHARACTERS = [
     {"name": "Pirate",     "color": (80, 55, 30),     "speed": 4, "jump": -12,
      "punch_dmg": 10, "kick_dmg": 0,  "max_hp": 120, "block": 5,
      "desc": "Fires an explosive cannonball on kick (35 dmg)", "double_jump": False, "bazooka_kick": True},
+    {"name": "Elemental", "color": (120, 200, 255), "speed": 6, "jump": -14,
+     "punch_dmg": 8, "kick_dmg": 8, "max_hp": 25, "block": 5,
+     "desc": "Every ability — only 25 HP",
+     "double_jump": True,
+     # Punch abilities
+     "fire_punch": True, "shock_punch": True, "hammer_punch": True,
+     "wide_punch": True, "bounce_punch": True, "stealth_punch": True,
+     # Kick abilities — ALL fire at once
+     "shoot_kick": True, "bounce_kick": True, "boomerang_kick": True,
+     "bazooka_kick": True, "pumpkin_kick": True, "grapple_kick": True,
+     "ink_kick": True, "confuse_kick": True, "teleport_kick": True,
+     "slam_kick": True, "freeze_kick": True,
+     # Passives
+     "vampire": True, "regen": True, "berserker": True,
+     "contact_dmg": 5, "reflect_block": True, "magnet": True,
+     "speedster": True, "phase": True, "wall_cling": True,
+     "slow_fall": True, "laser_eyes": True},
     {"name": "Impossible", "color": CYAN,    "speed": 10, "jump": -16,
      "punch_dmg": 1, "kick_dmg": 1, "max_hp": 1, "block": 1,
      "desc": "gods at this game should try him",   "double_jump": True},
     {"name": "Laser Eyes", "color": (255, 60, 0), "speed": 5, "jump": -13,
      "punch_dmg": 9, "kick_dmg": 10, "max_hp": 105, "block": 5,
      "desc": "Every 10s fires a laser beam for 2s", "double_jump": False, "laser_eyes": True},
+    {"name": "Whipper", "color": (160, 90, 20), "speed": 5, "jump": -13,
+     "punch_dmg": 3, "kick_dmg": 12, "max_hp": 110, "block": 6,
+     "desc": "Long-range whip punch — 280px reach, 14 damage", "double_jump": False, "whip_punch": True},
 ]
 
 POWERUPS = [

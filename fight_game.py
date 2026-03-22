@@ -11,7 +11,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, Portal, ConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull,
                             JungleSnake, ComputerBug, MousePlatform,
-                            Projectile, Orb, BouncingBall)
+                            Projectile, Orb, BouncingBall, Whip)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu
 
@@ -78,6 +78,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     bounce_balls = []   # active BouncingBall objects (Pinball)
     hooks        = []   # active SnakeHook objects (Hooker)
     pumpkins     = []   # active Pumpkin objects (Headless Horseman)
+    whips        = []   # active Whip objects (Whipper)
     spawn_timer  = 300   # first spawn after 5 seconds
     is_jungle      = stage_data["name"] == "Jungle"
     is_computer    = stage_data["name"] == "Computer"
@@ -287,6 +288,24 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         pk._explode()
             pumpkins = [pk for pk in pumpkins if pk.alive]
 
+            # Whips (Whipper)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_whip:
+                    shooter.pending_whip = False
+                    whips.append(Whip(
+                        shooter.x + shooter.facing * 28, shooter.y - 60,
+                        shooter.facing, shooter))
+            for w in whips:
+                w.update()
+                if w.can_hit():
+                    victim = p2 if w.owner is p1 else p1
+                    if w.collides(victim):
+                        victim.hp = max(0, victim.hp - w.DMG)
+                        victim.flash_timer = 10
+                        victim.knockback = w.facing * 14
+                        w.hit_done = True
+            whips = [w for w in whips if w.alive]
+
             # Ink Brush clones
             for shooter, foe in [(p1, p2), (p2, p1)]:
                 if shooter.pending_ink_clone:
@@ -413,6 +432,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             h.draw(screen)
         for pk in pumpkins:
             pk.draw(screen)
+        for w in whips:
+            w.draw(screen)
         for sn in jungle_snakes:
             sn.draw(screen)
         for sk in falling_skulls:
@@ -594,12 +615,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     bounce_balls      = []   # BouncingBall (bounce_kick)
     hooks             = []   # SnakeHook (grapple_kick)
     pumpkins          = []   # Pumpkin (pumpkin_kick)
+    whips             = []   # Whip (whip_punch)
     ink_clones        = []   # Ink Brush clones
     en_balls          = []
     en_orbs           = []
     en_bounce_balls   = []
     en_pumpkins       = []
     en_hooks          = []
+    en_whips          = []
     powerups          = []
     jungle_snakes     = []
     computer_bugs     = []
@@ -959,6 +982,44 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             pk._explode(); break
             en_pumpkins = [pk for pk in en_pumpkins if pk.alive]
 
+            # Player whips → enemies
+            for shooter in players:
+                if shooter.pending_whip:
+                    shooter.pending_whip = False
+                    whips.append(Whip(
+                        shooter.x + shooter.facing * 28, shooter.y - 60,
+                        shooter.facing, shooter))
+            for w in whips:
+                w.update()
+                if w.can_hit():
+                    for en in enemies:
+                        if w.collides(en):
+                            en.hp = max(0, en.hp - w.DMG)
+                            en.flash_timer = 10
+                            en.knockback = w.facing * 14
+                            w.hit_done = True
+                            break
+            whips = [w for w in whips if w.alive]
+
+            # Enemy whips → players
+            for en in enemies:
+                if en.pending_whip:
+                    en.pending_whip = False
+                    en_whips.append(Whip(
+                        en.x + en.facing * 28, en.y - 60,
+                        en.facing, en))
+            for w in en_whips:
+                w.update()
+                if w.can_hit():
+                    for p in living:
+                        if w.collides(p):
+                            p.hp = max(0, p.hp - w.DMG)
+                            p.flash_timer = 10
+                            p.knockback = w.facing * 14
+                            w.hit_done = True
+                            break
+            en_whips = [w for w in en_whips if w.alive]
+
             # Ink Brush clones (survival)
             for shooter in players:
                 if shooter.pending_ink_clone:
@@ -1104,6 +1165,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for h    in en_hooks:      h.draw(screen)
         for pk   in pumpkins:      pk.draw(screen)
         for pk   in en_pumpkins:   pk.draw(screen)
+        for w    in whips:         w.draw(screen)
+        for w    in en_whips:      w.draw(screen)
         for sn   in jungle_snakes: sn.draw(screen)
         for sk   in falling_skulls: sk.draw(screen)
         for b    in computer_bugs: b.draw(screen)
@@ -1280,7 +1343,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     stage_data   = STAGES[stage_idx % len(STAGES)]
     platforms    = [Platform(*p) for p in stage_data["platforms"]]
     springs      = [Spring(*s)   for s in stage_data["springs"]]
-    balls        = []; orbs = []; bounce_balls = []; hooks = []; pumpkins = []
+    balls        = []; orbs = []; bounce_balls = []; hooks = []; pumpkins = []; whips = []
 
     game_over    = False
     winner       = None
@@ -1424,6 +1487,24 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                     if pk.collides(victim): pk._explode()
             pumpkins = [pk for pk in pumpkins if pk.alive]
 
+            # Whips
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_whip:
+                    shooter.pending_whip = False
+                    whips.append(Whip(
+                        shooter.x + shooter.facing * 28, shooter.y - 60,
+                        shooter.facing, shooter))
+            for w in whips:
+                w.update()
+                if w.can_hit():
+                    victim = p2 if w.owner is p1 else p1
+                    if w.collides(victim):
+                        victim.hp = max(0, victim.hp - w.DMG)
+                        victim.flash_timer = 10
+                        victim.knockback = w.facing * 14
+                        w.hit_done = True
+            whips = [w for w in whips if w.alive]
+
             # Laser eyes
             for shooter, victim in [(p1, p2), (p2, p1)]:
                 if (shooter.char.get("laser_eyes") and shooter.laser_active > 0
@@ -1502,6 +1583,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
         for bb   in bounce_balls: bb.draw(screen)
         for h    in hooks:     h.draw(screen)
         for pk   in pumpkins:  pk.draw(screen)
+        for w    in whips:     w.draw(screen)
 
         # Laser beams
         for f in (p1, p2):

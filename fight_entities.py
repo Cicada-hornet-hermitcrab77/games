@@ -238,6 +238,8 @@ class Fighter:
         self.laser_fire_cd      = FPS * 10  # frames until next laser shot
         self.laser_active       = 0         # frames remaining in current laser burst
         self.laser_hit_cd       = 0         # cooldown between laser damage ticks
+        self.pending_whip       = False     # Whipper: spawn a whip this frame
+        self.whip_cooldown      = 0         # cooldown between whip attacks
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -321,6 +323,8 @@ class Fighter:
             self.pumpkin_cooldown -= 1
         if self.ink_clone_cooldown > 0:
             self.ink_clone_cooldown -= 1
+        if self.whip_cooldown > 0:
+            self.whip_cooldown -= 1
         if self.squish_frames > 0:
             self.squish_frames -= 1
         if self.confuse_frames > 0:
@@ -367,6 +371,8 @@ class Fighter:
         prev_y = self.y
         if self.char.get("anti_gravity"):
             eff_grav = 0.13
+        elif self.char.get("ghost_float"):
+            eff_grav = 0.06   # very slow drift downward
         elif self.char.get("slow_fall") and self.vy > 0:
             eff_grav = constants.GRAVITY * 0.35
         else:
@@ -474,6 +480,9 @@ class Fighter:
                 self.is_crit = moving_toward
                 if self.char.get("bounce_punch"):
                     self.pending_bounce = True
+                if self.char.get("whip_punch") and self.whip_cooldown == 0:
+                    self.pending_whip  = True
+                    self.whip_cooldown = FPS * 2   # 2-second cooldown
             elif can_atk and keys[ctrl['kick']] and self.kick_cooldown == 0:
                 self._start('kick', 0.06)
                 self.kick_cooldown = FPS * 2     # 2 seconds
@@ -551,6 +560,19 @@ class Fighter:
             else:
                 if self.on_ground and not self.attacking:
                     self.action = 'idle'
+
+        # Ghost free float: hold jump = rise, hold duck = sink (independent of attack)
+        if self.char.get("ghost_float") and self.controls and self.hurt_timer == 0:
+            jk = self.controls.get('jump')
+            dk = self.controls.get('duck')
+            if jk and keys[jk]:
+                self.vy = max(self.vy - 1.2, -8)
+                self.on_ground = False
+                if self.action not in ('punch', 'kick'):
+                    self.action = 'jump'
+            elif dk and keys[dk]:
+                self.vy = min(self.vy + 1.2, 8)
+                self.on_ground = False
 
         self._prev_left  = bool(self.controls and keys[self.controls.get('left',  0)])
         self._prev_right = bool(self.controls and keys[self.controls.get('right', 0)])
@@ -812,6 +834,8 @@ class AIFighter(Fighter):
         prev_y = self.y
         if self.char.get("anti_gravity"):
             eff_grav = 0.13
+        elif self.char.get("ghost_float"):
+            eff_grav = 0.06   # very slow drift downward
         elif self.char.get("slow_fall") and self.vy > 0:
             eff_grav = constants.GRAVITY * 0.35
         else:
@@ -892,6 +916,9 @@ class AIFighter(Fighter):
                     self.is_crit = (self.ai_move == self.facing)  # running toward enemy
                     if self.char.get("bounce_punch"):
                         self.pending_bounce = True
+                    if self.char.get("whip_punch") and self.whip_cooldown == 0:
+                        self.pending_whip  = True
+                        self.whip_cooldown = FPS * 2
                 else:
                     self.kick_cooldown = FPS * 2
                     if self.char.get("teleport_kick"):
@@ -930,16 +957,31 @@ class AIFighter(Fighter):
             if self.on_ground and not self.attacking:
                 self.action = 'idle'
 
+        # Ghost AI: steer vertically toward the target
+        if self.char.get("ghost_float") and other is not None:
+            dy = other.y - self.y
+            if dy > 15:
+                self.vy = min(self.vy + 0.7, 6)
+            elif dy < -15:
+                self.vy = max(self.vy - 0.7, -6)
+            else:
+                self.vy *= 0.85   # dampen vertical drift near target height
+            self.on_ground = False
+            if self.action not in ('punch', 'kick', 'hurt'):
+                self.action = 'jump'
+
     def _decide(self, other):
         dist = abs(other.x - self.x)
         direction = 1 if other.x > self.x else -1
 
         # Dodge incoming attack
         if other.attacking and random.random() < self.dodge_chance:
-            if self.on_ground and self.jumps_left > 0:
+            can_dodge = (self.on_ground and self.jumps_left > 0) or self.char.get("ghost_float")
+            if can_dodge:
                 self.vy = self.char["jump"]
                 self.on_ground = False
-                self.jumps_left -= 1
+                if not self.char.get("ghost_float"):
+                    self.jumps_left -= 1
                 self.action = 'jump'
                 self.attacking = False
                 return
@@ -1735,4 +1777,103 @@ class MousePlatform:
         pygame.draw.polygon(surface, (248, 248, 248), pts)
         pygame.draw.polygon(surface, (10, 10, 10), pts, 2)
 
+
+# ---------------------------------------------------------------------------
+# Whip  (Whipper's long-range attack)
+# ---------------------------------------------------------------------------
+
+class Whip:
+    """A cracking whip that extends 280 px in the owner's facing direction.
+
+    Timeline (frames):
+      0-11  : extending  — tip travels outward
+      12-21 : retracting — tip travels back
+      Total lifetime: 22 frames
+
+    Damage is dealt once when the tip is fully extended (frame 10-14).
+    Visual: a catenary rope drawn as a series of short segments that sag
+    in the middle, with a bright tip flash on extension.
+    """
+
+    LENGTH      = 280    # max reach in pixels
+    DMG         = 14     # tip damage
+    LIFETIME    = 22     # total frames alive
+    EXTEND_END  = 12     # frame at which tip is fully extended
+    HIT_FRAMES  = (8, 16)  # window during which tip can deal damage
+
+    def __init__(self, x, y, facing, owner):
+        self.x       = float(x)
+        self.y       = float(y)
+        self.facing  = facing
+        self.owner   = owner
+        self.frame   = 0
+        self.alive   = True
+        self.hit_done = False   # only deal damage once
+
+    def update(self):
+        self.frame += 1
+        if self.frame >= self.LIFETIME:
+            self.alive = False
+
+    def _tip_x(self):
+        """Current x position of the whip tip."""
+        f = self.frame
+        if f <= self.EXTEND_END:
+            progress = f / self.EXTEND_END
+        else:
+            progress = 1.0 - (f - self.EXTEND_END) / (self.LIFETIME - self.EXTEND_END)
+        progress = max(0.0, min(1.0, progress))
+        return self.x + self.facing * self.LENGTH * progress
+
+    def can_hit(self):
+        return self.HIT_FRAMES[0] <= self.frame <= self.HIT_FRAMES[1] and not self.hit_done
+
+    def collides(self, fighter):
+        """True if the tip region hits the fighter."""
+        tip_x = self._tip_x()
+        tip_y = self.y
+        # Check several points along the outer third of the whip
+        for t in (0.75, 0.85, 1.0):
+            f = self.frame
+            if f <= self.EXTEND_END:
+                progress = f / self.EXTEND_END
+            else:
+                progress = 1.0 - (f - self.EXTEND_END) / (self.LIFETIME - self.EXTEND_END)
+            progress = max(0.0, min(1.0, progress)) * t
+            seg_x = self.x + self.facing * self.LENGTH * progress
+            sag   = math.sin(progress * math.pi) * 40
+            seg_y = self.y + sag
+            if math.hypot(seg_x - fighter.x, seg_y - (fighter.y - 60)) < 34:
+                return True
+        return False
+
+    def draw(self, surface):
+        f = self.frame
+        if f <= self.EXTEND_END:
+            progress = f / self.EXTEND_END
+        else:
+            progress = 1.0 - (f - self.EXTEND_END) / (self.LIFETIME - self.EXTEND_END)
+        progress = max(0.0, min(1.0, progress))
+
+        # Draw rope as 14 segments with catenary sag
+        segs = 14
+        pts = []
+        for i in range(segs + 1):
+            t   = (i / segs) * progress
+            sx  = self.x + self.facing * self.LENGTH * t
+            sag = math.sin(t / progress * math.pi if progress > 0.01 else 0) * 40
+            sy  = self.y + sag
+            pts.append((int(sx), int(sy)))
+
+        if len(pts) >= 2:
+            # Brown rope
+            pygame.draw.lines(surface, (110, 60, 20), False, pts, 3)
+            pygame.draw.lines(surface, (160, 100, 40), False, pts, 1)
+
+        # Bright crack at tip when fully extended
+        if self.EXTEND_END - 3 <= f <= self.EXTEND_END + 2:
+            tip_x = int(self.x + self.facing * self.LENGTH * progress)
+            tip_y = int(self.y + math.sin(math.pi) * 40)
+            pygame.draw.circle(surface, (255, 240, 180), (tip_x, tip_y), 6)
+            pygame.draw.circle(surface, (255, 255, 255), (tip_x, tip_y), 3)
 

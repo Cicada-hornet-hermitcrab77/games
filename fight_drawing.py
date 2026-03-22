@@ -879,6 +879,20 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                         (lhx - int(10*s), lhy - int(10*s), int(14*s), int(14*s)),
                         math.radians(-30), math.radians(200), max(2, int(3*s)))
 
+    elif char_name == "Whipper":
+        # Coiled whip looped at the hip
+        hip_x = hx + int(facing * hd * 0.55)
+        hip_y = hy + int(hd * 1.6)
+        for i in range(4):
+            r_loop = max(2, int((10 - i * 2) * s))
+            col = (110 + i * 10, 60 + i * 5, 15 + i * 3)
+            pygame.draw.circle(surface, col, (hip_x, hip_y + int(i * 2 * s)), r_loop, max(1, int(2 * s)))
+        # Short dangling tip
+        tip_x = hip_x + int(facing * 8 * s)
+        tip_y = hip_y + int(12 * s)
+        pygame.draw.line(surface, (140, 80, 25),
+                         (hip_x, hip_y + int(6 * s)), (tip_x, tip_y), max(1, int(2 * s)))
+
     elif char_name == "Laser Eyes":
         # Glowing red eyes
         t = pygame.time.get_ticks()
