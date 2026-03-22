@@ -1,0 +1,247 @@
+"""
+fight_network.py — networking layer for online play.
+
+Architecture
+------------
+* One player hosts (GameServer), the other joins (GameClient).
+* Friend code = 10-char alphanumeric encoding of host's public IP + port.
+* Messages are length-prefixed JSON frames sent over TCP.
+* The host runs the authoritative game simulation; the client sends inputs
+  and receives the full game state every frame.
+"""
+import socket
+import select
+import json
+import struct
+import os
+import urllib.request
+
+PORT          = 7777
+USERDATA_FILE = os.path.expanduser("~/.fight_userdata.json")
+
+
+# ── Userdata persistence ──────────────────────────────────────────────────────
+
+def load_userdata():
+    if os.path.exists(USERDATA_FILE):
+        try:
+            with open(USERDATA_FILE) as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"username": "Player", "friends": {}}   # code → {"name": str}
+
+
+def save_userdata(data):
+    with open(USERDATA_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+# ── Friend codes (10-char alphanumeric) ──────────────────────────────────────
+
+_B36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
+def _enc(n, width):
+    s = ""
+    while n:
+        s = _B36[n % 36] + s
+        n //= 36
+    return s.zfill(width)
+
+
+def _dec(s):
+    n = 0
+    for c in s.upper():
+        n = n * 36 + _B36.index(c)
+    return n
+
+
+def ip_port_to_code(ip: str, port: int = PORT) -> str:
+    """Encode IP + port as a 10-char alphanumeric friend code."""
+    parts  = ip.split(".")
+    ip_int = (int(parts[0]) << 24 | int(parts[1]) << 16 |
+              int(parts[2]) << 8  | int(parts[3]))
+    return _enc(ip_int, 7) + _enc(port, 3)
+
+
+def code_to_ip_port(code: str):
+    """Decode a friend code into (ip_str, port_int)."""
+    c      = code.upper().replace("-", "").replace(" ", "")
+    ip_int = _dec(c[:7])
+    port   = _dec(c[7:10])
+    ip     = (f"{(ip_int>>24)&0xFF}.{(ip_int>>16)&0xFF}."
+              f"{(ip_int>>8)&0xFF}.{ip_int&0xFF}")
+    return ip, port
+
+
+def get_public_ip() -> str:
+    """Fetch public IP from ipify; fall back to LAN IP."""
+    try:
+        return urllib.request.urlopen(
+            "https://api.ipify.org", timeout=5).read().decode()
+    except Exception:
+        return socket.gethostbyname(socket.gethostname())
+
+
+# ── Framed TCP messaging ──────────────────────────────────────────────────────
+
+def _send(sock, obj):
+    data = json.dumps(obj).encode()
+    sock.sendall(struct.pack(">I", len(data)) + data)
+
+
+class _Reader:
+    """Reassembles length-prefixed JSON frames from a TCP byte stream."""
+    def __init__(self):
+        self._buf = b""
+
+    def feed(self, data):
+        self._buf += data
+
+    def messages(self):
+        out = []
+        while len(self._buf) >= 4:
+            n = struct.unpack(">I", self._buf[:4])[0]
+            if len(self._buf) < 4 + n:
+                break
+            try:
+                out.append(json.loads(self._buf[4:4 + n]))
+            except Exception:
+                pass
+            self._buf = self._buf[4 + n:]
+        return out
+
+
+# ── Server ────────────────────────────────────────────────────────────────────
+
+class GameServer:
+    def __init__(self):
+        self._srv      = None
+        self._cli      = None
+        self._r        = _Reader()
+        self.connected = False
+        self.opp_name  = "Opponent"
+        self.chat_log  = []   # [(sender_label, text), ...]
+
+    def start(self, port=PORT):
+        self._srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._srv.bind(("", port))
+        self._srv.listen(1)
+        self._srv.setblocking(False)
+
+    def poll_accept(self) -> bool:
+        """Non-blocking check for incoming connection. Returns True once connected."""
+        if self.connected:
+            return True
+        r, _, _ = select.select([self._srv], [], [], 0)
+        if r:
+            self._cli, _ = self._srv.accept()
+            self._cli.setblocking(False)
+            self.connected = True
+        return self.connected
+
+    def send(self, obj):
+        if self._cli:
+            try:
+                _send(self._cli, obj)
+            except Exception:
+                self.connected = False
+
+    def recv_all(self):
+        """Return list of non-CHAT messages; CHAT messages go into chat_log."""
+        if not self._cli:
+            return []
+        r, _, _ = select.select([self._cli], [], [], 0)
+        if r:
+            try:
+                d = self._cli.recv(65536)
+                if not d:
+                    self.connected = False
+                    return []
+                self._r.feed(d)
+            except Exception:
+                self.connected = False
+                return []
+        out = []
+        for m in self._r.messages():
+            if m.get("type") == "CHAT":
+                self.chat_log.append((self.opp_name, m["msg"]))
+            else:
+                out.append(m)
+        return out
+
+    def send_chat(self, text):
+        self.chat_log.append(("You", text))
+        self.send({"type": "CHAT", "msg": text})
+
+    def close(self):
+        for s in (self._cli, self._srv):
+            if s:
+                try:
+                    s.close()
+                except Exception:
+                    pass
+        self.connected = False
+
+
+# ── Client ────────────────────────────────────────────────────────────────────
+
+class GameClient:
+    def __init__(self):
+        self._sock     = None
+        self._r        = _Reader()
+        self.connected = False
+        self.opp_name  = "Host"
+        self.chat_log  = []
+
+    def connect(self, ip, port=PORT, timeout=8):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout)
+        s.connect((ip, port))   # raises on failure
+        s.setblocking(False)
+        self._sock     = s
+        self.connected = True
+
+    def send(self, obj):
+        if self._sock:
+            try:
+                _send(self._sock, obj)
+            except Exception:
+                self.connected = False
+
+    def recv_all(self):
+        """Return list of non-CHAT messages; CHAT messages go into chat_log."""
+        if not self._sock:
+            return []
+        r, _, _ = select.select([self._sock], [], [], 0)
+        if r:
+            try:
+                d = self._sock.recv(65536)
+                if not d:
+                    self.connected = False
+                    return []
+                self._r.feed(d)
+            except Exception:
+                self.connected = False
+                return []
+        out = []
+        for m in self._r.messages():
+            if m.get("type") == "CHAT":
+                self.chat_log.append((self.opp_name, m["msg"]))
+            else:
+                out.append(m)
+        return out
+
+    def send_chat(self, text):
+        self.chat_log.append(("You", text))
+        self.send({"type": "CHAT", "msg": text})
+
+    def close(self):
+        if self._sock:
+            try:
+                self._sock.close()
+            except Exception:
+                pass
+        self.connected = False

@@ -1,6 +1,9 @@
 import pygame
 import sys
 import math
+import socket
+import threading
+import fight_network as _net
 from constants import *
 from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS
 from fight_drawing import draw_bg, draw_stickman
@@ -53,8 +56,8 @@ def stage_select():
 # ---------------------------------------------------------------------------
 
 def mode_select():
-    """Returns ('1p', difficulty), '2p', 'survival_1p', or 'survival_2p'."""
-    selected = 0   # 0=1P, 1=2P, 2=SURVIVAL
+    """Returns ('1p', difficulty), '2p', 'survival_1p', 'survival_2p', or 'online'."""
+    selected = 0   # 0=1P, 1=2P, 2=SURVIVAL, 3=ONLINE
     difficulty_idx = 1
     difficulties = ['easy', 'medium', 'hard', 'super_hard', 'super_super_hard', 'mega_hard']
     diff_colors  = [GREEN, YELLOW, RED, PURPLE, CYAN, ORANGE]
@@ -62,6 +65,12 @@ def mode_select():
     VISIBLE = 3
     survival_players = 0   # 0=1P survival, 1=2P survival
     preview_t = 0.0
+
+    # 4 cards layout
+    card_w, card_h = 155, 240
+    GAP   = 8
+    START = WIDTH // 2 - (4 * card_w + 3 * GAP) // 2
+    card_xs = [START + i * (card_w + GAP) for i in range(4)]
 
     while True:
         clock.tick(FPS)
@@ -74,9 +83,9 @@ def mode_select():
                 if event.key in (pygame.K_q, pygame.K_ESCAPE):
                     pygame.quit(); sys.exit()
                 if event.key in (pygame.K_LEFT, pygame.K_a):
-                    selected = (selected - 1) % 3
+                    selected = (selected - 1) % 4
                 if event.key in (pygame.K_RIGHT, pygame.K_d):
-                    selected = (selected + 1) % 3
+                    selected = (selected + 1) % 4
                 if selected == 0:   # 1P: difficulty picker
                     if event.key in (pygame.K_UP, pygame.K_w):
                         difficulty_idx = (difficulty_idx - 1) % len(difficulties)
@@ -94,18 +103,20 @@ def mode_select():
                         return ('1p', difficulties[difficulty_idx])
                     elif selected == 1:
                         return '2p'
-                    else:
+                    elif selected == 2:
                         return 'survival_2p' if survival_players else 'survival_1p'
+                    else:
+                        return 'online'
 
         screen.fill(DARK)
         title = font_large.render("STICKMAN FIGHTER", True, YELLOW)
         screen.blit(title, (WIDTH//2 - title.get_width()//2, 30))
 
-        card_w, card_h = 170, 240
         cards = [
-            (WIDTH//2 - 285, "1 PLAYER",  "vs CPU",    BLUE),
-            (WIDTH//2 -  85, "2 PLAYERS", "local",     ORANGE),
-            (WIDTH//2 + 115, "SURVIVAL",  "endless",   GREEN),
+            (card_xs[0], "1 PLAYER",  "vs CPU",    BLUE),
+            (card_xs[1], "2 PLAYERS", "local",      ORANGE),
+            (card_xs[2], "SURVIVAL",  "endless",    GREEN),
+            (card_xs[3], "ONLINE",    "internet",   CYAN),
         ]
         for ci, (cx, top, sub, col) in enumerate(cards):
             border = WHITE if ci == selected else GRAY
@@ -124,8 +135,8 @@ def mode_select():
         # Difficulty picker (1P mode)
         if selected == 0:
             diff_lbl = font_small.render("Difficulty:", True, WHITE)
-            screen.blit(diff_lbl, (WIDTH//2 - 285, 400))
-            list_x, list_y, row_h = WIDTH//2 - 275, 428, 30
+            screen.blit(diff_lbl, (card_xs[0], 400))
+            list_x, list_y, row_h = card_xs[0] + 10, 428, 30
             if scroll_offset > 0:
                 screen.blit(font_small.render("▲", True, GRAY), (list_x, list_y - 22))
             for row, di in enumerate(range(scroll_offset, scroll_offset + VISIBLE)):
@@ -146,8 +157,8 @@ def mode_select():
             for oi, opt in enumerate(opts):
                 col = WHITE if oi == survival_players else GRAY
                 ot = font_small.render(("► " if oi == survival_players else "  ") + opt, True, col)
-                screen.blit(ot, (WIDTH//2 + 125, 405 + oi * 30))
-            screen.blit(font_tiny.render("W/S to switch", True, GRAY), (WIDTH//2 + 125, 468))
+                screen.blit(ot, (card_xs[2] + 8, 405 + oi * 30))
+            screen.blit(font_tiny.render("W/S to switch", True, GRAY), (card_xs[2] + 8, 468))
 
         nav = font_tiny.render("◄ ► to switch mode", True, GRAY)
         screen.blit(nav, (WIDTH//2 - nav.get_width()//2, HEIGHT - 24))
@@ -408,3 +419,334 @@ def character_select(vs_ai=False):
         pygame.display.flip()
 
 
+# ---------------------------------------------------------------------------
+# Online play helpers
+# ---------------------------------------------------------------------------
+
+def _draw_waiting(msg, sub=""):
+    screen.fill(DARK)
+    t = font_medium.render(msg, True, WHITE)
+    screen.blit(t, (WIDTH//2 - t.get_width()//2, HEIGHT//2 - 28))
+    if sub:
+        s = font_small.render(sub, True, GRAY)
+        screen.blit(s, (WIDTH//2 - s.get_width()//2, HEIGHT//2 + 20))
+    pygame.display.flip()
+
+
+def _text_input_screen(prompt, default="", max_len=20):
+    """Full-screen text input. Returns entered string, or None on ESC."""
+    text = default
+    while True:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return None
+                if event.key == pygame.K_RETURN:
+                    return text.strip() or default
+                if event.key == pygame.K_BACKSPACE:
+                    text = text[:-1]
+                elif event.unicode.isprintable() and len(text) < max_len:
+                    text += event.unicode
+        screen.fill(DARK)
+        p = font_medium.render(prompt, True, YELLOW)
+        screen.blit(p, (WIDTH//2 - p.get_width()//2, HEIGHT//3 - 30))
+        box = pygame.Rect(WIDTH//2 - 180, HEIGHT//3 + 20, 360, 48)
+        pygame.draw.rect(screen, (60, 60, 60), box, border_radius=8)
+        pygame.draw.rect(screen, WHITE, box, 2, border_radius=8)
+        cursor = "|" if (pygame.time.get_ticks() // 500) % 2 == 0 else ""
+        tv = font_medium.render(text + cursor, True, WHITE)
+        screen.blit(tv, (box.x + 12, box.y + 8))
+        hint = font_tiny.render("ENTER to confirm   ESC to cancel", True, GRAY)
+        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT//3 + 90))
+        pygame.display.flip()
+
+
+def set_username_screen(userdata):
+    name = _text_input_screen("Enter your username:", userdata.get("username", "Player"), max_len=16)
+    if name:
+        userdata["username"] = name
+        _net.save_userdata(userdata)
+
+
+def friends_screen(userdata):
+    friends  = userdata.setdefault("friends", {})   # code → {"name": str}
+    sel      = 0
+    msg      = ""
+    msg_t    = 0
+
+    while True:
+        clock.tick(FPS)
+        keys_list = list(friends.keys())
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                    _net.save_userdata(userdata); return
+                if keys_list:
+                    if event.key in (pygame.K_UP, pygame.K_w):
+                        sel = (sel - 1) % len(keys_list)
+                    if event.key in (pygame.K_DOWN, pygame.K_s):
+                        sel = (sel + 1) % len(keys_list)
+                    if event.key == pygame.K_d:
+                        del friends[keys_list[sel]]
+                        sel = max(0, sel - 1)
+                        msg = "Friend removed."; msg_t = 120
+                if event.key == pygame.K_a:
+                    code = _text_input_screen("Enter friend's code:", max_len=10)
+                    if code:
+                        code  = code.upper().replace(" ", "").replace("-", "")
+                        fname = _text_input_screen("Nickname for this friend:", max_len=16) or "Friend"
+                        friends[code] = {"name": fname}
+                        msg = "Friend added!"; msg_t = 120
+
+        screen.fill(DARK)
+        title = font_large.render("FRIENDS", True, CYAN)
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, 20))
+
+        if not friends:
+            em = font_medium.render("No friends yet.  Press A to add one.", True, GRAY)
+            screen.blit(em, (WIDTH//2 - em.get_width()//2, HEIGHT//2 - 18))
+        else:
+            for i, code in enumerate(keys_list):
+                name = friends[code].get("name", "?")
+                col  = YELLOW if i == sel else WHITE
+                row  = font_small.render(
+                    f"{'► ' if i == sel else '  '}{name}   [{code}]", True, col)
+                screen.blit(row, (80, 120 + i * 36))
+
+        if msg_t > 0:
+            ms = font_small.render(msg, True, GREEN)
+            screen.blit(ms, (WIDTH//2 - ms.get_width()//2, HEIGHT - 60))
+            msg_t -= 1
+
+        hint = font_tiny.render("A = add friend   D = delete   ESC = back", True, GRAY)
+        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 28))
+        pygame.display.flip()
+
+
+def host_lobby(userdata):
+    """
+    Start server, show friend codes, wait for connection, do character
+    select + stage select, exchange PICK, return (net, p1_char, p2_char, stage).
+    Returns None if cancelled.
+    """
+    net = _net.GameServer()
+    net.start()
+
+    # Fetch public IP in background so the screen isn't blocked
+    public_ip = [socket.gethostbyname(socket.gethostname())]
+    def _fetch():
+        public_ip[0] = _net.get_public_ip()
+    threading.Thread(target=_fetch, daemon=True).start()
+
+    local_ip = socket.gethostbyname(socket.gethostname())
+
+    # Wait for client to connect
+    while not net.connected:
+        clock.tick(FPS)
+        net.poll_accept()
+
+        code_pub = _net.ip_port_to_code(public_ip[0], _net.PORT)
+        code_loc = _net.ip_port_to_code(local_ip,     _net.PORT)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                net.close(); pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                    net.close(); return None
+
+        screen.fill(DARK)
+        t = font_large.render("HOST GAME", True, CYAN)
+        screen.blit(t, (WIDTH//2 - t.get_width()//2, 25))
+
+        y = 110
+        for label, code in [("Internet code (share this):", code_pub),
+                             ("LAN code:",                   code_loc)]:
+            lb = font_small.render(label, True, GRAY)
+            screen.blit(lb, (WIDTH//2 - 210, y))
+            cb = font_medium.render(code, True, YELLOW)
+            screen.blit(cb, (WIDTH//2 - 210, y + 28))
+            y += 85
+
+        dots = "." * ((pygame.time.get_ticks() // 500) % 4)
+        st = font_small.render(f"Waiting for opponent{dots}", True, WHITE)
+        screen.blit(st, (WIDTH//2 - st.get_width()//2, y + 20))
+        hint = font_tiny.render("ESC to cancel", True, GRAY)
+        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 28))
+        pygame.display.flip()
+
+    # Exchange usernames
+    net.send({"type": "HELLO", "username": userdata["username"]})
+    deadline = pygame.time.get_ticks() + 5000
+    while pygame.time.get_ticks() < deadline:
+        clock.tick(FPS)
+        _draw_waiting(f"Connected!  Exchanging info…")
+        for m in net.recv_all():
+            if m.get("type") == "HELLO":
+                net.opp_name = m.get("username", "Opponent")
+                # Save as friend
+                code_pub = _net.ip_port_to_code(public_ip[0], _net.PORT)
+                userdata.setdefault("friends", {})[code_pub] = {"name": net.opp_name}
+                _net.save_userdata(userdata)
+                deadline = 0
+                break
+
+    # Character select (host only picks for themselves)
+    p1_idx, _ = character_select(vs_ai=True)
+    if p1_idx is None:
+        net.close(); return None
+
+    s_idx = stage_select()
+
+    # Send pick and wait for client's pick
+    net.send({"type": "PICK", "char_idx": p1_idx, "stage_idx": s_idx})
+    p2_idx  = None
+    deadline = pygame.time.get_ticks() + 20000
+    while p2_idx is None and pygame.time.get_ticks() < deadline:
+        clock.tick(FPS)
+        _draw_waiting(f"Waiting for {net.opp_name} to pick…", "ESC to cancel")
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                net.close(); pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                    net.close(); return None
+        for m in net.recv_all():
+            if m.get("type") == "PICK":
+                p2_idx = m["char_idx"]
+
+    if p2_idx is None:
+        net.close(); return None
+
+    return net, p1_idx, p2_idx, s_idx
+
+
+def join_lobby(userdata):
+    """
+    Ask for friend code, connect, exchange PICK, return
+    (net, my_char(=p2), host_char(=p1), stage).  Returns None on cancel/error.
+    """
+    code = _text_input_screen("Enter friend code:", max_len=10)
+    if not code:
+        return None
+    code = code.upper().replace(" ", "").replace("-", "")
+
+    try:
+        ip, port = _net.code_to_ip_port(code)
+    except Exception:
+        _draw_waiting("Invalid code.", "Returning to menu…")
+        pygame.time.wait(1800)
+        return None
+
+    net = _net.GameClient()
+    _draw_waiting(f"Connecting to {ip}:{port}…", "Please wait")
+    try:
+        net.connect(ip, port, timeout=10)
+    except Exception as e:
+        _draw_waiting(f"Connection failed.", str(e)[:60])
+        pygame.time.wait(2200)
+        return None
+
+    # Exchange usernames
+    net.send({"type": "HELLO", "username": userdata["username"]})
+    deadline = pygame.time.get_ticks() + 5000
+    while pygame.time.get_ticks() < deadline:
+        clock.tick(FPS)
+        _draw_waiting("Connected!  Exchanging info…")
+        for m in net.recv_all():
+            if m.get("type") == "HELLO":
+                net.opp_name = m.get("username", "Host")
+                userdata.setdefault("friends", {})[code] = {"name": net.opp_name}
+                _net.save_userdata(userdata)
+                deadline = 0
+                break
+
+    # Character select (client only picks for themselves)
+    my_idx, _ = character_select(vs_ai=True)
+    if my_idx is None:
+        net.close(); return None
+
+    # Exchange picks — client sends first, then waits for host's pick (which has stage)
+    net.send({"type": "PICK", "char_idx": my_idx})
+    p1_idx  = None
+    s_idx   = 0
+    deadline = pygame.time.get_ticks() + 20000
+    while p1_idx is None and pygame.time.get_ticks() < deadline:
+        clock.tick(FPS)
+        _draw_waiting(f"Waiting for {net.opp_name} to pick…", "ESC to cancel")
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                net.close(); pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                    net.close(); return None
+        for m in net.recv_all():
+            if m.get("type") == "PICK":
+                p1_idx = m["char_idx"]
+                s_idx  = m.get("stage_idx", 0)
+
+    if p1_idx is None:
+        net.close(); return None
+
+    # (net, my_char=p2_char, host_char=p1_char, stage)
+    return net, my_idx, p1_idx, s_idx
+
+
+def online_menu(userdata):
+    """
+    Top-level online menu.
+    Returns ('host', (net, p1_char, p2_char, stage))
+         or ('join', (net, p2_char, p1_char, stage))
+         or None on cancel.
+    """
+    opts = ["HOST GAME", "JOIN GAME", "FRIENDS", "SET USERNAME"]
+    sel  = 0
+
+    while True:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                    return None
+                if event.key in (pygame.K_UP, pygame.K_w):
+                    sel = (sel - 1) % len(opts)
+                if event.key in (pygame.K_DOWN, pygame.K_s):
+                    sel = (sel + 1) % len(opts)
+                if event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                    if sel == 0:
+                        result = host_lobby(userdata)
+                        if result:
+                            return 'host', result
+                    elif sel == 1:
+                        result = join_lobby(userdata)
+                        if result:
+                            return 'join', result
+                    elif sel == 2:
+                        friends_screen(userdata)
+                    elif sel == 3:
+                        set_username_screen(userdata)
+
+        screen.fill(DARK)
+        title = font_large.render("ONLINE PLAY", True, CYAN)
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, 28))
+
+        user_lbl = font_small.render(
+            f"Username: {userdata.get('username', 'Player')}", True, GRAY)
+        screen.blit(user_lbl, (WIDTH//2 - user_lbl.get_width()//2, 108))
+
+        for i, opt in enumerate(opts):
+            col = CYAN if i == sel else GRAY
+            r = font_medium.render(("► " if i == sel else "  ") + opt, True, col)
+            screen.blit(r, (WIDTH//2 - r.get_width()//2, 168 + i * 62))
+
+        hint = font_tiny.render("↑/↓ to navigate   ENTER to select   ESC = back", True, GRAY)
+        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 28))
+        pygame.display.flip()

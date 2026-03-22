@@ -12,7 +12,8 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             Spring, SnakeHook, Pumpkin, FallingSkull,
                             JungleSnake, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall)
-from fight_ui import stage_select, mode_select, character_select
+import fight_network as _net
+from fight_ui import stage_select, mode_select, character_select, online_menu
 
 # ---------------------------------------------------------------------------
 # Fight loop
@@ -1195,12 +1196,420 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
 
 
 # ---------------------------------------------------------------------------
+# Online fight helpers
+# ---------------------------------------------------------------------------
+
+class _KeyProxy:
+    """Lets Fighter.update() accept a dict instead of pygame.key.get_pressed()."""
+    def __init__(self, mapping):
+        self._m = mapping   # {pygame_key_const: bool}
+    def __getitem__(self, k): return self._m.get(k, False)
+    def get(self, k, d=False): return self._m.get(k, d)
+
+
+def _f2s(f):
+    """Serialize the fields a remote client needs to render a fighter."""
+    return {
+        'x': f.x, 'y': f.y, 'hp': f.hp,
+        'action': f.action, 'action_t': f.action_t,
+        'facing': f.facing, 'vy': f.vy, 'on_ground': f.on_ground,
+        'knockback': f.knockback,
+        'hurt_timer': f.hurt_timer, 'flash_timer': f.flash_timer,
+        'draw_scale': f.draw_scale,
+        'attacking': f.attacking, 'attack_hit': f.attack_hit,
+        'laser_active': f.laser_active,
+        'boomerang_timer': f.boomerang_timer,
+        'boomerang_angle': f.boomerang_angle,
+        'stealth_frames': f.stealth_frames,
+        'bubble_shield': f.bubble_shield,
+    }
+
+
+def _s2f(f, s):
+    """Apply a serialized state dict to a fighter (client-side rendering)."""
+    f.x = s['x']; f.y = s['y']; f.hp = s['hp']
+    f.action = s['action']; f.action_t = s['action_t']
+    f.facing = s['facing']; f.vy = s['vy']
+    f.on_ground = s.get('on_ground', True)
+    f.knockback = s['knockback']
+    f.hurt_timer = s['hurt_timer']; f.flash_timer = s['flash_timer']
+    f.draw_scale = s.get('draw_scale', 1.0)
+    f.attacking = s.get('attacking', False)
+    f.attack_hit = s.get('attack_hit', False)
+    f.laser_active = s.get('laser_active', 0)
+    f.boomerang_timer = s.get('boomerang_timer', 0)
+    f.boomerang_angle = s.get('boomerang_angle', 0.0)
+    f.stealth_frames = s.get('stealth_frames', 0)
+    f.bubble_shield = s.get('bubble_shield', False)
+
+
+# ---------------------------------------------------------------------------
+# Online fight loop
+# ---------------------------------------------------------------------------
+
+def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
+                     stage_idx, my_name, opp_name):
+    """
+    Networked 1v1 fight.
+    * Host (is_host=True)  runs the authoritative sim and sends STATE each frame.
+    * Client (is_host=False) sends INPUT each frame and renders received STATE.
+    * p1 = host's fighter (left), p2 = client's fighter (right) on both screens.
+    * Both players use P1_CTRL (WASD/FG) on their own machines; the client's
+      inputs are remapped to P2_CTRL by the host before simulation.
+    """
+    _stage_name   = STAGES[stage_idx % len(STAGES)]["name"]
+    _orig_gravity = constants.GRAVITY
+    if _stage_name == "Space":
+        constants.GRAVITY = 0.13
+    constants.STAGE_VOID = (_stage_name == "The Void")
+
+    P1_CTRL = dict(left=pygame.K_a,     right=pygame.K_d,     jump=pygame.K_w,
+                   punch=pygame.K_f,    kick=pygame.K_g,      duck=pygame.K_s,
+                   block=pygame.K_r)
+    P2_CTRL = dict(left=pygame.K_LEFT,  right=pygame.K_RIGHT, jump=pygame.K_UP,
+                   punch=pygame.K_k,    kick=pygame.K_l,      duck=pygame.K_DOWN,
+                   block=pygame.K_o)
+
+    p1 = Fighter(200, CHARACTERS[p1_char_idx],  1, P1_CTRL)
+    p2 = Fighter(700, CHARACTERS[p2_char_idx], -1, {})
+
+    if constants.STAGE_VOID:
+        p1.x = 380.0; p1.y = float(GROUND_Y - 70); p1.on_ground = True
+        p2.x = 520.0; p2.y = float(GROUND_Y - 70); p2.on_ground = True
+
+    stage_data   = STAGES[stage_idx % len(STAGES)]
+    platforms    = [Platform(*p) for p in stage_data["platforms"]]
+    springs      = [Spring(*s)   for s in stage_data["springs"]]
+    balls        = []; orbs = []; bounce_balls = []; hooks = []; pumpkins = []
+
+    game_over    = False
+    winner       = None
+    timer        = 90 * FPS
+    _remote_keys = {}   # action → bool  (latest from opponent; host uses for p2)
+
+    # Chat
+    chat_active  = False
+    chat_input   = ""
+
+    def _local_actions(keys, ctrl):
+        return {a: bool(keys[ctrl[a]]) for a in ctrl}
+
+    def _proxy(actions, ctrl):
+        """Map {action: bool} through ctrl keys into a _KeyProxy."""
+        return _KeyProxy({ctrl[a]: actions.get(a, False) for a in ctrl})
+
+    while True:
+        clock.tick(FPS)
+
+        # ── Events ──────────────────────────────────────────────────────────
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                constants.GRAVITY = _orig_gravity
+                constants.STAGE_VOID = False
+                net.close(); pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if chat_active:
+                    if event.key == pygame.K_RETURN:
+                        if chat_input.strip():
+                            net.send_chat(chat_input)
+                        chat_active = False; chat_input = ""
+                    elif event.key == pygame.K_ESCAPE:
+                        chat_active = False; chat_input = ""
+                    elif event.key == pygame.K_BACKSPACE:
+                        chat_input = chat_input[:-1]
+                    elif event.unicode.isprintable():
+                        chat_input += event.unicode
+                else:
+                    if event.key == pygame.K_t:
+                        chat_active = True
+                    if game_over and event.key in (pygame.K_q, pygame.K_ESCAPE,
+                                                   pygame.K_RETURN, pygame.K_r):
+                        constants.GRAVITY = _orig_gravity
+                        constants.STAGE_VOID = False
+                        net.close(); return 'select'
+
+        if not net.connected and not game_over:
+            game_over = True
+            winner    = "disconnect"
+
+        # ── Network ─────────────────────────────────────────────────────────
+        msgs = net.recv_all()
+        keys = pygame.key.get_pressed()
+
+        if is_host and not game_over:
+            # Collect latest client input
+            for m in msgs:
+                if m.get("type") == "INPUT":
+                    _remote_keys = m
+
+            # Simulate p1 (local)
+            p1.update(keys, p2, platforms)
+
+            # Simulate p2 using client's inputs remapped through P2_CTRL
+            p2.update(_proxy(_remote_keys, P2_CTRL), p1, platforms)
+
+            # Spawn projectiles for both fighters
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_ball:
+                    shooter.pending_ball = False
+                    balls.append(Projectile(shooter.x + shooter.facing * 30,
+                                            shooter.y - 60, shooter.facing, shooter))
+                if shooter.pending_orb:
+                    shooter.pending_orb = False
+                    orbs.append(Orb(shooter.x + shooter.facing * 30,
+                                    shooter.y - 60, shooter.facing, shooter))
+                if shooter.pending_bounce:
+                    shooter.pending_bounce = False
+                    bounce_balls.append(BouncingBall(shooter.x + shooter.facing * 30,
+                                                     shooter.y - 60, shooter.facing, shooter))
+                if shooter.pending_hook:
+                    shooter.pending_hook = False
+                    hooks.append(SnakeHook(shooter.x + shooter.facing * 20, shooter.y - 60,
+                                           victim.x, victim.y - 60, shooter))
+                if shooter.pending_pumpkin:
+                    shooter.pending_pumpkin = False
+                    pumpkins.append(Pumpkin(shooter.x + shooter.facing * 24,
+                                            shooter.y - 80, shooter.facing, shooter))
+
+            # Update projectiles
+            for b in balls:
+                b.update()
+                if b.alive:
+                    victim = p2 if b.owner is p1 else p1
+                    if b.collides(victim):
+                        victim.hp = max(0, victim.hp - 10)
+                        victim.flash_timer = 8; b.alive = False
+            balls = [b for b in balls if b.alive]
+
+            for o in orbs:
+                o.update()
+                if o.exploding and not o.damaged:
+                    o.damaged = True
+                    victim = p2 if o.owner is p1 else p1
+                    if math.hypot(o.x - victim.x, o.y - (victim.y - 60)) < o.EXPLODE_RADIUS:
+                        victim.hp = max(0, victim.hp - o.EXPLODE_DMG)
+                        victim.flash_timer = 14
+            orbs = [o for o in orbs if o.alive]
+
+            for bb in bounce_balls:
+                bb.update()
+                if bb.alive and bb.hit_cd == 0:
+                    victim = p2 if bb.owner is p1 else p1
+                    if bb.collides(victim):
+                        victim.hp = max(0, victim.hp - 10)
+                        victim.flash_timer = 8; bb.hit_cd = BouncingBall.HIT_CD
+            bounce_balls = [bb for bb in bounce_balls if bb.alive]
+
+            for h in hooks:
+                h.update()
+                if h.alive:
+                    victim = p2 if h.owner is p1 else p1
+                    if h.collides(victim):
+                        pull = 1 if h.owner.x > victim.x else -1
+                        victim.knockback = pull * 22
+                        victim.hp = max(0, victim.hp - 6)
+                        victim.flash_timer = 8; h.alive = False
+            hooks = [h for h in hooks if h.alive]
+
+            for pk in pumpkins:
+                pk.update()
+                if pk.exploding and not pk.damaged:
+                    pk.damaged = True
+                    victim = p2 if pk.owner is p1 else p1
+                    if math.hypot(pk.x - victim.x, pk.y - (victim.y - 60)) < pk.EXPLODE_RADIUS:
+                        victim.hp = max(0, victim.hp - pk.EXPLODE_DMG)
+                        victim.flash_timer = 14
+                elif not pk.exploding and not pk.damaged:
+                    victim = p2 if pk.owner is p1 else p1
+                    if pk.collides(victim): pk._explode()
+            pumpkins = [pk for pk in pumpkins if pk.alive]
+
+            # Laser eyes
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if (shooter.char.get("laser_eyes") and shooter.laser_active > 0
+                        and shooter.laser_hit_cd == 0):
+                    laser_y = shooter.y - 100
+                    side_ok  = ((shooter.facing ==  1 and victim.x > shooter.x) or
+                                (shooter.facing == -1 and victim.x < shooter.x))
+                    if side_ok and abs((victim.y - 60) - laser_y) < 35:
+                        victim.hp = max(0, victim.hp - 2)
+                        victim.flash_timer = 4; shooter.laser_hit_cd = 15
+
+            # Boomerang
+            for thrower, victim in [(p1, p2), (p2, p1)]:
+                if thrower.boomerang_timer > 0 and thrower.boomerang_hit_cd == 0:
+                    bx = thrower.x + math.cos(thrower.boomerang_angle) * 85
+                    by = (thrower.y - 60) + math.sin(thrower.boomerang_angle) * 55
+                    if math.hypot(bx - victim.x, by - (victim.y - 60)) < 48:
+                        victim.hp = max(0, victim.hp - 8)
+                        victim.flash_timer = 6; thrower.boomerang_hit_cd = 30
+
+            # Springs
+            for sp in springs:
+                sp.update(); sp.trigger(p1); sp.trigger(p2)
+
+            # Timer / game over
+            timer -= 1
+            if p1.hp <= 0 or p2.hp <= 0 or timer <= 0:
+                game_over = True
+                if   p1.hp > p2.hp: winner = "p1"
+                elif p2.hp > p1.hp: winner = "p2"
+                else:               winner = "draw"
+
+            # Send authoritative state to client
+            net.send({
+                "type":   "STATE",
+                "p1":     _f2s(p1),
+                "p2":     _f2s(p2),
+                "balls":  [{"x": b.x, "y": b.y, "vx": b.vx} for b in balls],
+                "orbs":   [{"x": o.x, "y": o.y, "exp": o.exploding} for o in orbs],
+                "winner": winner,
+            })
+
+        elif not is_host:
+            # Send our (client's) inputs as action booleans
+            if not game_over:
+                net.send({"type": "INPUT",
+                          **_local_actions(keys, P1_CTRL)})
+
+            # Apply received state
+            for m in msgs:
+                if m.get("type") == "STATE":
+                    _s2f(p1, m["p1"]); _s2f(p2, m["p2"])
+                    winner = m.get("winner")
+                    if winner:
+                        game_over = True
+                    # Reconstruct ball visuals from state
+                    balls = []
+                    for bd in m.get("balls", []):
+                        b = Projectile.__new__(Projectile)
+                        b.x = bd["x"]; b.y = bd["y"]
+                        b.vx = bd["vx"]; b.alive = True; b.owner = None
+                        balls.append(b)
+
+            # Springs (visual only on client — host is authoritative)
+            for sp in springs:
+                sp.update()
+
+        # ── Draw ────────────────────────────────────────────────────────────
+        draw_bg(screen, stage_idx)
+        pygame.draw.rect(screen, (60, 60, 70), (0, 0, WIDTH, 20))
+        pygame.draw.line(screen, (180, 180, 200), (0, 20), (WIDTH, 20), 3)
+        for plat in platforms: plat.draw(screen, stage_idx)
+        for sp   in springs:   sp.draw(screen)
+        for b    in balls:     b.draw(screen)
+        for o    in orbs:      o.draw(screen)
+        for bb   in bounce_balls: bb.draw(screen)
+        for h    in hooks:     h.draw(screen)
+        for pk   in pumpkins:  pk.draw(screen)
+
+        # Laser beams
+        for f in (p1, p2):
+            if f.char.get("laser_eyes") and f.laser_active > 0:
+                ex, ey  = int(f.x), int(f.y - 100)
+                end_x   = WIDTH if f.facing == 1 else 0
+                x = ex
+                while (f.facing == 1 and x < end_x) or (f.facing == -1 and x > end_x):
+                    de = x + f.facing * 18
+                    de = min(de, end_x) if f.facing == 1 else max(de, end_x)
+                    pygame.draw.line(screen, (255, 40, 0),   (x, ey), (de, ey), 3)
+                    pygame.draw.line(screen, (255, 160, 80), (x, ey), (de, ey), 1)
+                    x = de + f.facing * 6
+
+        p1_hit = p1.draw(screen)
+        p2_hit = p2.draw(screen)
+
+        # Bubble shields
+        for f in (p1, p2):
+            if f.bubble_shield:
+                bsurf = pygame.Surface((100, 100), pygame.SRCALPHA)
+                pygame.draw.circle(bsurf, (100, 200, 255, 70),  (50, 50), 48)
+                pygame.draw.circle(bsurf, (100, 200, 255, 160), (50, 50), 48, 3)
+                screen.blit(bsurf, (int(f.x) - 50, int(f.y) - 90))
+
+        # Melee hit detection (authoritative — host only)
+        if is_host and not game_over:
+            for attacker, hit_pos, other in [(p1, p1_hit, p2), (p2, p2_hit, p1)]:
+                if attacker.attacking and not attacker.attack_hit and hit_pos:
+                    attacker.check_hit(hit_pos, other)
+
+        # HUD — health bars + names + timer
+        p1_label = my_name  if is_host else opp_name
+        p2_label = opp_name if is_host else my_name
+        draw_health_bars_labeled(screen, p1, p2, f"{p2_label} — {p2.char['name']}")
+        for f, lbl in [(p1, p1_label), (p2, p2_label)]:
+            ns = font_tiny.render(lbl, True, f.char["color"])
+            screen.blit(ns, (int(f.x) - ns.get_width()//2, int(f.y) - 148))
+
+        if not game_over:
+            secs = max(0, timer // FPS)
+            tc = WHITE if secs > 10 else RED
+            ts = font_medium.render(str(secs), True, tc)
+            screen.blit(ts, (WIDTH//2 - ts.get_width()//2, 25))
+
+        # Chat overlay
+        recent = net.chat_log[-5:]
+        for i, (sender, text) in enumerate(recent):
+            col  = CYAN if sender == "You" else YELLOW
+            line = font_tiny.render(f"{sender}: {text}", True, col)
+            screen.blit(line, (10, HEIGHT - 110 + i * 18))
+        if chat_active:
+            pygame.draw.rect(screen, (30, 30, 50), (0, HEIGHT - 36, WIDTH, 36))
+            cur = "|" if (pygame.time.get_ticks() // 500) % 2 == 0 else ""
+            ci  = font_small.render("Say: " + chat_input + cur, True, WHITE)
+            screen.blit(ci, (10, HEIGHT - 30))
+        else:
+            ht = font_tiny.render("T = chat", True, (70, 70, 70))
+            screen.blit(ht, (10, HEIGHT - 16))
+
+        # Win / disconnect screen
+        if game_over:
+            ov = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            ov.fill((0, 0, 0, 150))
+            screen.blit(ov, (0, 0))
+            if winner == "disconnect":
+                wt = font_large.render("DISCONNECTED", True, RED)
+            elif winner == "draw":
+                wt = font_large.render("DRAW!", True, YELLOW)
+            elif (winner == "p1") == is_host:
+                wt = font_large.render("YOU WIN!", True, GREEN)
+            else:
+                wt = font_large.render("YOU LOSE!", True, RED)
+            screen.blit(wt, (WIDTH//2 - wt.get_width()//2, HEIGHT//3))
+            ht = font_small.render("Any key — back to menu", True, WHITE)
+            screen.blit(ht, (WIDTH//2 - ht.get_width()//2, HEIGHT//2 + 40))
+
+        pygame.display.flip()
+
+    constants.GRAVITY    = _orig_gravity
+    constants.STAGE_VOID = False
+    net.close()
+    return 'select'
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
 def main():
     while True:
         mode = mode_select()
+
+        # --- Online path ---
+        if mode == 'online':
+            userdata = _net.load_userdata()
+            result   = online_menu(userdata)
+            if result is None:
+                continue
+            role, info = result
+            net, my_char, opp_char, s_idx = info
+            if role == 'host':
+                p1_char, p2_char = my_char, opp_char
+            else:
+                p1_char, p2_char = opp_char, my_char
+            run_online_fight(net, role == 'host', p1_char, p2_char,
+                             s_idx, userdata['username'], net.opp_name)
+            continue
 
         # --- Survival path ---
         if mode in ('survival_1p', 'survival_2p'):
