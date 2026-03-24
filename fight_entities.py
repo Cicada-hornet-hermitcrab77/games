@@ -721,6 +721,37 @@ class Fighter:
             by = int(self.y) - int(tmp_h * 0.72)    - (rotated.get_height() - tmp_h) // 2
             surface.blit(rotated, (bx, by))
             result = (int(self.x + self.facing * 40 * _scale), int(self.y - 70 * _scale))
+        elif self.char.get("chameleon"):
+            # Camouflage — draw on SRCALPHA surface then blit at low alpha
+            tmp_w = int(300 * _scale)
+            tmp_h = int(300 * _scale)
+            tmp   = pygame.Surface((tmp_w, tmp_h), pygame.SRCALPHA)
+            cx    = tmp_w // 2
+            cy    = int(tmp_h * 0.85)
+            draw_stickman(tmp, cx, cy, self.color, self.facing, self.action, self.action_t,
+                          flash=flash, scale=_scale, char_name=self.char["name"])
+            # More visible when hurt, flashing, or attacking
+            if flash or self.hurt_timer > 0:
+                alpha = 210
+            elif self.attacking:
+                alpha = 90
+            else:
+                alpha = 35
+            tmp.set_alpha(alpha)
+            # Faint ripple outline to show position even when nearly invisible
+            if alpha < 80:
+                t_rip = pygame.time.get_ticks()
+                rip_r = int(28 * _scale) + int(math.sin(t_rip * 0.006) * 5)
+                rip_col = (
+                    int(127 + 127 * math.sin(t_rip * 0.003)),
+                    int(127 + 127 * math.sin(t_rip * 0.003 + 2.1)),
+                    int(127 + 127 * math.sin(t_rip * 0.003 + 4.2)),
+                )
+                pygame.draw.circle(surface, rip_col,
+                                   (int(self.x), int(self.y) - int(60 * _scale)),
+                                   rip_r, max(1, int(2 * _scale)))
+            surface.blit(tmp, (int(self.x) - cx, int(self.y) - cy))
+            result = (int(self.x + self.facing * 40 * _scale), int(self.y - 70 * _scale))
         else:
             _sw = int(50 * _scale)
             _sh = int(12 * _scale)

@@ -216,6 +216,9 @@ CHARACTERS = [
     {"name": "Mr. Crit", "color": (255, 200, 0), "speed": 5, "jump": -13,
      "punch_dmg": 10, "kick_dmg": 11, "max_hp": 100, "block": 5,
      "desc": "Every punch is a critical hit (+10 dmg)", "double_jump": False, "always_crit": True},
+    {"name": "Chameleon", "color": (60, 180, 80), "speed": 6, "jump": -14,
+     "punch_dmg": 9, "kick_dmg": 11, "max_hp": 105, "block": 6,
+     "desc": "Blends into the background — nearly invisible", "double_jump": False, "chameleon": True},
 ]
 
 POWERUPS = [
