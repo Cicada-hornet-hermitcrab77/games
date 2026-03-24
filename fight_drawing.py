@@ -879,6 +879,23 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                         (lhx - int(10*s), lhy - int(10*s), int(14*s), int(14*s)),
                         math.radians(-30), math.radians(200), max(2, int(3*s)))
 
+    elif char_name == "Mr. Crit":
+        # Spinning gold star above his head
+        t     = pygame.time.get_ticks()
+        angle = (t * 0.004) % (2 * math.pi)
+        cx    = hx
+        cy    = hy - int(hd * 1.6)
+        r_out = max(4, int(10 * s))
+        r_in  = max(2, int(4  * s))
+        pts   = []
+        for i in range(10):
+            r   = r_out if i % 2 == 0 else r_in
+            a   = angle + i * math.pi / 5
+            pts.append((int(cx + math.cos(a) * r), int(cy + math.sin(a) * r)))
+        if len(pts) >= 3:
+            pygame.draw.polygon(surface, (255, 215, 0), pts)
+            pygame.draw.polygon(surface, (255, 255, 120), pts, max(1, int(s)))
+
     elif char_name == "Whipper":
         # Coiled whip looped at the hip
         hip_x = hx + int(facing * hd * 0.55)

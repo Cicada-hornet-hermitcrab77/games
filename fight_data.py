@@ -213,6 +213,9 @@ CHARACTERS = [
     {"name": "Whipper", "color": (160, 90, 20), "speed": 5, "jump": -13,
      "punch_dmg": 3, "kick_dmg": 12, "max_hp": 110, "block": 6,
      "desc": "Long-range whip punch — 280px reach, 14 damage", "double_jump": False, "whip_punch": True},
+    {"name": "Mr. Crit", "color": (255, 200, 0), "speed": 5, "jump": -13,
+     "punch_dmg": 10, "kick_dmg": 11, "max_hp": 100, "block": 5,
+     "desc": "Every punch is a critical hit (+10 dmg)", "double_jump": False, "always_crit": True},
 ]
 
 POWERUPS = [

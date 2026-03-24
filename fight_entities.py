@@ -477,7 +477,7 @@ class Fighter:
                                  (keys[_lk] and self.facing == -1))
                 self._start('punch', 0.07)
                 self.punch_cooldown = FPS        # 1 second
-                self.is_crit = moving_toward
+                self.is_crit = moving_toward or bool(self.char.get("always_crit"))
                 if self.char.get("bounce_punch"):
                     self.pending_bounce = True
                 if self.char.get("whip_punch") and self.whip_cooldown == 0:
@@ -913,7 +913,7 @@ class AIFighter(Fighter):
                 self._start(self.ai_attack, 0.07 if self.ai_attack == 'punch' else 0.06)
                 if self.ai_attack == 'punch':
                     self.punch_cooldown = FPS
-                    self.is_crit = (self.ai_move == self.facing)  # running toward enemy
+                    self.is_crit = (self.ai_move == self.facing) or bool(self.char.get("always_crit"))
                     if self.char.get("bounce_punch"):
                         self.pending_bounce = True
                     if self.char.get("whip_punch") and self.whip_cooldown == 0:
