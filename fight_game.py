@@ -382,6 +382,15 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 powerups.append(Powerup())
                 spawn_timer = random.randint(480, 720)   # 8-12 seconds
 
+            # Everything powerup — poop out random powerups
+            for f in (p1, p2):
+                if f.poop_timer > 0 and f.poop_cd == 0:
+                    pu = Powerup()
+                    pu.x = f.x - f.facing * 20   # drop behind the player
+                    pu.y = float(GROUND_Y - 14)
+                    powerups.append(pu)
+                    f.poop_cd = 30   # one poop every 0.5 seconds
+
             # Magician attraction: pull all powerups slowly toward Magician fighters
             for f in (p1, p2):
                 if f.char.get("magnet"):
@@ -1142,6 +1151,20 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             en.apply_powerup(pu.spec)
                             pu.picked_up = True; break
             powerups = [pu for pu in powerups if not pu.picked_up]
+
+            # Everything powerup — poop out random powerups (survival)
+            for f in players:
+                if f.poop_timer > 0 and f.poop_cd == 0:
+                    pu_p = Powerup.__new__(Powerup)
+                    pu_p.spec = random.choice(_survival_pool)
+                    pu_p.name = pu_p.spec['name']
+                    pu_p.color = pu_p.spec['color']
+                    pu_p.x = f.x - f.facing * 20
+                    pu_p.y = float(GROUND_Y - 14)
+                    pu_p.age = 0
+                    pu_p.picked_up = False
+                    powerups.append(pu_p)
+                    f.poop_cd = 30
 
             # Game over when all players dead
             if all(p.hp <= 0 for p in players):

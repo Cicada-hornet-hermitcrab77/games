@@ -235,6 +235,7 @@ POWERUPS = [
     {'name': '2x Trouble',  'type': 'clone',     'duration': 0,                  'color': (255, 80, 200)},
     {'name': 'Cleanse',       'type': 'cleanse',       'duration': 0,        'color': (205, 205, 155)},
     {'name': 'Bubble Shield', 'type': 'bubble_shield', 'duration': FPS * 10, 'color': (100, 200, 255)},
+    {'name': 'Everything',    'type': 'poop',          'duration': FPS * 10, 'color': (255, 255, 255)},
 ]
 
 STAGES = [

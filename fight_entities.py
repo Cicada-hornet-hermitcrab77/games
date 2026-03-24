@@ -240,6 +240,8 @@ class Fighter:
         self.laser_hit_cd       = 0         # cooldown between laser damage ticks
         self.pending_whip       = False     # Whipper: spawn a whip this frame
         self.whip_cooldown      = 0         # cooldown between whip attacks
+        self.poop_timer         = 0         # Everything: frames of poop powerup remaining
+        self.poop_cd            = 0         # cooldown between poop drops
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -274,6 +276,9 @@ class Fighter:
             self.fire_frames   = 0
             self.fire_tick     = 0
             self.shock_frames  = 0
+        elif t == 'poop':
+            self.poop_timer = spec['duration']
+            self.active_powerups[name] = spec['duration']
 
     def tick_powerups(self):
         done = [n for n, t in self.active_powerups.items() if t <= 1]
@@ -325,6 +330,10 @@ class Fighter:
             self.ink_clone_cooldown -= 1
         if self.whip_cooldown > 0:
             self.whip_cooldown -= 1
+        if self.poop_timer > 0:
+            self.poop_timer -= 1
+        if self.poop_cd > 0:
+            self.poop_cd -= 1
         if self.squish_frames > 0:
             self.squish_frames -= 1
         if self.confuse_frames > 0:
@@ -1035,14 +1044,37 @@ class Powerup:
         bob = math.sin(self.age * 0.08) * 6
         cx, cy = int(self.x), int(self.y + bob)
 
-        # Glow ring (pulsing)
-        glow_r = PICKUP_RADIUS + 4 + int(math.sin(self.age * 0.12) * 3)
-        glow_col = tuple(min(255, c + 60) for c in self.color)
-        pygame.draw.circle(surface, glow_col, (cx, cy), glow_r, 3)
-
-        # Main circle
-        pygame.draw.circle(surface, self.color, (cx, cy), PICKUP_RADIUS)
-        pygame.draw.circle(surface, WHITE,      (cx, cy), PICKUP_RADIUS, 2)
+        if self.name == "Everything":
+            # Rainbow: cycle the whole circle through hue over time
+            t = self.age * 0.06
+            col = (
+                int(127 + 127 * math.sin(t)),
+                int(127 + 127 * math.sin(t + 2.094)),
+                int(127 + 127 * math.sin(t + 4.189)),
+            )
+            glow = (min(255, col[0] + 60), min(255, col[1] + 60), min(255, col[2] + 60))
+            glow_r = PICKUP_RADIUS + 4 + int(math.sin(self.age * 0.12) * 3)
+            pygame.draw.circle(surface, glow, (cx, cy), glow_r, 3)
+            # Draw striped rainbow ring
+            for i in range(6):
+                a  = i * math.pi / 3 + t
+                rc = (
+                    int(127 + 127 * math.sin(a)),
+                    int(127 + 127 * math.sin(a + 2.094)),
+                    int(127 + 127 * math.sin(a + 4.189)),
+                )
+                pygame.draw.arc(surface, rc,
+                                (cx - PICKUP_RADIUS, cy - PICKUP_RADIUS,
+                                 PICKUP_RADIUS * 2, PICKUP_RADIUS * 2),
+                                a, a + math.pi / 3 + 0.1, PICKUP_RADIUS)
+            pygame.draw.circle(surface, WHITE, (cx, cy), PICKUP_RADIUS, 2)
+        else:
+            # Standard powerup draw
+            glow_r   = PICKUP_RADIUS + 4 + int(math.sin(self.age * 0.12) * 3)
+            glow_col = tuple(min(255, c + 60) for c in self.color)
+            pygame.draw.circle(surface, glow_col, (cx, cy), glow_r, 3)
+            pygame.draw.circle(surface, self.color, (cx, cy), PICKUP_RADIUS)
+            pygame.draw.circle(surface, WHITE,      (cx, cy), PICKUP_RADIUS, 2)
 
         # Label
         lbl = font_tiny.render(self.name[0], True, WHITE)   # first letter
