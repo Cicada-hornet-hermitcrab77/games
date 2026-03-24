@@ -11,7 +11,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, Portal, ConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull,
                             JungleSnake, ComputerBug, MousePlatform,
-                            Projectile, Orb, BouncingBall, Whip)
+                            Projectile, Orb, BouncingBall, Whip, HotPotato)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu
 
@@ -1345,6 +1345,13 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     springs      = [Spring(*s)   for s in stage_data["springs"]]
     balls        = []; orbs = []; bounce_balls = []; hooks = []; pumpkins = []; whips = []
 
+    # Easter eggs
+    hot_potatoes   = []
+    crazy_snakes   = []
+    crazy_bugs     = []
+    crazy_timer    = 0
+    _chat_done     = 0   # index into net.chat_log already processed for easter eggs
+
     game_over    = False
     winner       = None
     timer        = 90 * FPS
@@ -1398,6 +1405,21 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
         # ── Network ─────────────────────────────────────────────────────────
         msgs = net.recv_all()
         keys = pygame.key.get_pressed()
+
+        # ── Easter eggs (host-authoritative; triggered by chat keywords) ────
+        if is_host and not game_over:
+            while _chat_done < len(net.chat_log):
+                sender, text = net.chat_log[_chat_done]
+                kw = text.strip().lower()
+                if kw == "hotpotato":
+                    hot_potatoes.append(HotPotato())
+                elif kw == "wtf":
+                    target = p1 if sender == "You" else p2
+                    target.hp = max(0, target.hp - 10)
+                    target.flash_timer = 25
+                elif kw == "crazy":
+                    crazy_timer = FPS * 8   # 8 seconds of chaos
+                _chat_done += 1
 
         if is_host and not game_over:
             # Collect latest client input
@@ -1505,6 +1527,32 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         w.hit_done = True
             whips = [w for w in whips if w.alive]
 
+            # Hot potatoes
+            for hp in hot_potatoes:
+                hp.update()
+                if hp.exploding and not hp.damaged:
+                    hp.damaged = True
+                    for f in (p1, p2):
+                        if hp.collides(f):
+                            f.hp = max(0, f.hp - hp.EXPLODE_DMG)
+                            f.flash_timer = 20
+            hot_potatoes = [hp for hp in hot_potatoes if hp.alive]
+
+            # Crazy mode — rapid snake & bug spawning
+            if crazy_timer > 0:
+                crazy_timer -= 1
+                if crazy_timer % 10 == 0:
+                    crazy_snakes.append(JungleSnake())
+                if crazy_timer % 7 == 0:
+                    crazy_bugs.append(ComputerBug())
+            for sn in crazy_snakes:
+                sn.update(p1, p2)   # biting handled internally
+            crazy_snakes = [sn for sn in crazy_snakes if sn.alive]
+            for cb in crazy_bugs:
+                target = min((p1, p2), key=lambda f: abs(f.x - cb.x))
+                cb.update(target)   # biting handled internally
+            crazy_bugs = [cb for cb in crazy_bugs if cb.alive]
+
             # Laser eyes
             for shooter, victim in [(p1, p2), (p2, p1)]:
                 if (shooter.char.get("laser_eyes") and shooter.laser_active > 0
@@ -1597,6 +1645,10 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                     pygame.draw.line(screen, (255, 40, 0),   (x, ey), (de, ey), 3)
                     pygame.draw.line(screen, (255, 160, 80), (x, ey), (de, ey), 1)
                     x = de + f.facing * 6
+
+        for hp in hot_potatoes:  hp.draw(screen)
+        for sn in crazy_snakes:  sn.draw(screen)
+        for cb in crazy_bugs:    cb.draw(screen)
 
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen)

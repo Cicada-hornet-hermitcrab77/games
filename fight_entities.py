@@ -1877,3 +1877,96 @@ class Whip:
             pygame.draw.circle(surface, (255, 240, 180), (tip_x, tip_y), 6)
             pygame.draw.circle(surface, (255, 255, 255), (tip_x, tip_y), 3)
 
+
+# ---------------------------------------------------------------------------
+# Hot Potato  (easter egg)
+# ---------------------------------------------------------------------------
+
+class HotPotato:
+    """
+    Sits on the ground for FUSE frames, then explodes dealing EXPLODE_DMG
+    to any fighter within EXPLODE_RADIUS.  Glows red and shakes in the
+    last 60 frames to warn players.
+    """
+    FUSE          = 240   # 4 seconds at 60 fps
+    EXPLODE_RADIUS = 110
+    EXPLODE_DMG    = 50
+    EXPLODE_DUR    = 30
+    RADIUS         = 18
+
+    def __init__(self):
+        self.x             = float(random.randint(120, WIDTH - 120))
+        self.y             = float(GROUND_Y - self.RADIUS)
+        self.fuse          = self.FUSE
+        self.exploding     = False
+        self.explode_timer = 0
+        self.damaged       = False
+        self.alive         = True
+        self._t            = 0
+
+    def update(self):
+        self._t += 1
+        if not self.exploding:
+            self.fuse -= 1
+            if self.fuse <= 0:
+                self.exploding     = True
+                self.explode_timer = self.EXPLODE_DUR
+        else:
+            self.explode_timer -= 1
+            if self.explode_timer <= 0:
+                self.alive = False
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x,
+                          self.y - (fighter.y - 60)) < self.EXPLODE_RADIUS
+
+    def draw(self, surface):
+        if not self.exploding:
+            r    = self.RADIUS
+            # Shake when fuse < 60
+            ox = int(math.sin(self._t * 0.8) * min(4, (60 - self.fuse) * 0.08)) if self.fuse < 60 else 0
+            cx, cy = int(self.x) + ox, int(self.y)
+
+            # Flash red in last 60 frames
+            blink = self.fuse < 60 and (self.fuse // 8) % 2 == 0
+            body_col = (255, 80, 0) if blink else (180, 110, 40)
+
+            # Potato body (slightly oval)
+            pygame.draw.ellipse(surface, body_col,
+                                (cx - r, cy - int(r * 0.85), r * 2, int(r * 1.7)))
+            pygame.draw.ellipse(surface, (220, 150, 60),
+                                (cx - r, cy - int(r * 0.85), r * 2, int(r * 1.7)), 2)
+
+            # Eyes (menacing)
+            for ex in [cx - r//3, cx + r//3]:
+                pygame.draw.circle(surface, (20, 10, 0), (ex, cy - 3), 3)
+
+            # Steam puffs above
+            prog = 1.0 - self.fuse / self.FUSE
+            for i in range(3):
+                sx = cx + (i - 1) * 7
+                sy = cy - r - int(8 + prog * 14) - i * 4
+                alpha_r = max(3, int(6 * (1 - prog * 0.5)))
+                pygame.draw.circle(surface, (200, 200, 200), (sx, sy), alpha_r)
+
+            # Fuse timer text
+            secs = max(0, self.fuse // 60) + 1
+            font_s = pygame.font.SysFont(None, 22)
+            lbl = font_s.render(str(secs), True, (255, 255, 0) if not blink else (255, 0, 0))
+            surface.blit(lbl, (cx - lbl.get_width() // 2, cy - r - 26))
+        else:
+            prog = 1.0 - self.explode_timer / self.EXPLODE_DUR
+            r_ex = int(self.EXPLODE_RADIUS * prog)
+            w    = max(1, int(10 * (1 - prog)))
+            cx, cy = int(self.x), int(self.y)
+            pygame.draw.circle(surface, (255, 200, 0), (cx, cy), r_ex, w)
+            if r_ex > 20:
+                pygame.draw.circle(surface, (255, 80, 0),
+                                   (cx, cy), max(1, r_ex - 20), max(1, w - 2))
+            # Chunk bits
+            for angle in range(0, 360, 40):
+                a  = math.radians(angle)
+                px = cx + int(math.cos(a) * r_ex * 0.6)
+                py = cy + int(math.sin(a) * r_ex * 0.6)
+                pygame.draw.circle(surface, (180, 110, 40), (px, py),
+                                   max(2, int(6 * (1 - prog))))
