@@ -1670,6 +1670,47 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
 
 
 # ---------------------------------------------------------------------------
+# Relay fight (matchmaking via fight_server.py)
+# ---------------------------------------------------------------------------
+
+class _RelayNet:
+    """
+    Thin adapter so run_online_fight() can drive a LobbyClient with the
+    same send / recv_all / send_chat / chat_log / close interface it uses
+    for GameServer / GameClient.
+    """
+    def __init__(self, lobby):
+        self._lobby   = lobby
+        self.chat_log = lobby.match_chat_log   # shared reference
+        self.opp_name = (lobby.match_info or {}).get("opp_name", "Opponent")
+
+    @property
+    def connected(self):
+        return self._lobby.connected
+
+    def send(self, obj):
+        self._lobby.relay(obj)
+
+    def recv_all(self):
+        return self._lobby.poll()   # already returns unwrapped relay payloads
+
+    def send_chat(self, text):
+        self._lobby.match_chat(text)
+
+    def close(self):
+        self._lobby.close()
+
+
+def run_relay_fight(lobby, is_host, p1_char_idx, p2_char_idx,
+                    stage_idx, my_name, opp_name):
+    """Wrapper: create a _RelayNet adapter and delegate to run_online_fight."""
+    net = _RelayNet(lobby)
+    net.opp_name = opp_name
+    return run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
+                            stage_idx, my_name, opp_name)
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -1684,13 +1725,19 @@ def main():
             if result is None:
                 continue
             role, info = result
-            net, my_char, opp_char, s_idx = info
-            if role == 'host':
-                p1_char, p2_char = my_char, opp_char
+            if role == 'quickmatch':
+                # info = (lobby, p1_char_idx, p2_char_idx, stage_idx, is_host, opp_name)
+                lobby, p1_char, p2_char, s_idx, is_host, opp_name = info
+                run_relay_fight(lobby, is_host, p1_char, p2_char,
+                                s_idx, userdata['username'], opp_name)
             else:
-                p1_char, p2_char = opp_char, my_char
-            run_online_fight(net, role == 'host', p1_char, p2_char,
-                             s_idx, userdata['username'], net.opp_name)
+                net, my_char, opp_char, s_idx = info
+                if role == 'host':
+                    p1_char, p2_char = my_char, opp_char
+                else:
+                    p1_char, p2_char = opp_char, my_char
+                run_online_fight(net, role == 'host', p1_char, p2_char,
+                                 s_idx, userdata['username'], net.opp_name)
             continue
 
         # --- Survival path ---

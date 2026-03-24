@@ -471,11 +471,117 @@ def set_username_screen(userdata):
         _net.save_userdata(userdata)
 
 
+def server_settings_screen(userdata):
+    """Let the player type in the fight_server IP (or blank for localhost)."""
+    cur = userdata.get("server_ip", "")
+    result = _text_input_screen("Server IP  (blank = localhost):", cur, max_len=48)
+    if result is not None:
+        userdata["server_ip"] = result.strip()
+        _net.save_userdata(userdata)
+
+
+def _make_lobby(userdata, timeout=6):
+    """Connect to the fight_server and register. Returns LobbyClient or None."""
+    host = userdata.get("server_ip", "").strip() or "127.0.0.1"
+    lc   = _net.LobbyClient()
+    try:
+        lc.connect(host, timeout=timeout)
+    except Exception as e:
+        return None
+    lc.register(userdata["user_code"], userdata["username"])
+    # Wait for HELLO_OK (up to 3 s)
+    deadline = pygame.time.get_ticks() + 3000
+    while pygame.time.get_ticks() < deadline:
+        clock.tick(FPS)
+        for m in lc.take_pending():
+            if m.get("type") == "HELLO_OK":
+                return lc
+        lc.poll()
+    return lc   # return anyway (server might not send HELLO_OK in all builds)
+
+
+def friend_chat_screen(userdata, to_code, friend_name):
+    """
+    Open a live chat window with a friend via the fight_server.
+    Connects, registers, then lets the user type messages.
+    Incoming FRIEND_CHAT messages from to_code are shown in the log.
+    """
+    _draw_waiting("Connecting to server…")
+    lobby = _make_lobby(userdata, timeout=5)
+    if lobby is None:
+        _draw_waiting("Could not reach server.", "Check Server Settings.  Any key…")
+        _wait_key(); return
+
+    log   = []   # [(label, text)]
+    inp   = ""
+    clock.tick(FPS)
+
+    while True:
+        clock.tick(FPS)
+
+        # Drain incoming friend messages
+        lobby.poll()
+        for fc, fn, txt in lobby.friend_msgs:
+            if fc == to_code:
+                log.append((fn, txt))
+        lobby.friend_msgs.clear()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                lobby.close(); pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                    lobby.close(); return
+                elif event.key == pygame.K_RETURN:
+                    text = inp.strip()
+                    if text:
+                        lobby.friend_chat(to_code, text)
+                        log.append(("You", text))
+                    inp = ""
+                elif event.key == pygame.K_BACKSPACE:
+                    inp = inp[:-1]
+                elif event.unicode.isprintable() and len(inp) < 60:
+                    inp += event.unicode
+
+        # Draw
+        screen.fill(DARK)
+        title = font_medium.render(f"Chat — {friend_name}  [{to_code}]", True, CYAN)
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, 14))
+
+        # Chat log (last lines that fit)
+        max_lines = (HEIGHT - 110) // 22
+        for i, (sender, text) in enumerate(log[-max_lines:]):
+            col  = CYAN if sender == "You" else YELLOW
+            line = font_tiny.render(f"{sender}: {text}", True, col)
+            screen.blit(line, (16, 60 + i * 22))
+
+        # Input bar
+        pygame.draw.rect(screen, (30, 30, 50), (0, HEIGHT - 48, WIDTH, 48))
+        cur_sym = "|" if (pygame.time.get_ticks() // 500) % 2 == 0 else ""
+        iv = font_small.render(inp + cur_sym, True, WHITE)
+        screen.blit(iv, (14, HEIGHT - 38))
+
+        hint = font_tiny.render("ENTER = send   ESC = back", True, GRAY)
+        screen.blit(hint, (WIDTH - hint.get_width() - 10, HEIGHT - 16))
+        pygame.display.flip()
+
+
+def _wait_key():
+    while True:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                return
+
+
 def friends_screen(userdata):
-    friends  = userdata.setdefault("friends", {})   # code → {"name": str}
-    sel      = 0
-    msg      = ""
-    msg_t    = 0
+    friends   = userdata.setdefault("friends", {})   # code → {"name": str}
+    user_code = userdata.get("user_code", "????????")
+    sel       = 0
+    msg       = ""
+    msg_t     = 0
 
     while True:
         clock.tick(FPS)
@@ -496,17 +602,26 @@ def friends_screen(userdata):
                         del friends[keys_list[sel]]
                         sel = max(0, sel - 1)
                         msg = "Friend removed."; msg_t = 120
+                    if event.key == pygame.K_c and keys_list:
+                        fc   = keys_list[sel]
+                        fn   = friends[fc].get("name", fc)
+                        friend_chat_screen(userdata, fc, fn)
                 if event.key == pygame.K_a:
                     code = _text_input_screen("Enter friend's code:", max_len=10)
                     if code:
                         code  = code.upper().replace(" ", "").replace("-", "")
-                        fname = _text_input_screen("Nickname for this friend:", max_len=16) or "Friend"
+                        fname = _text_input_screen(
+                            f"Nickname for {code}:", max_len=16) or "Friend"
                         friends[code] = {"name": fname}
                         msg = "Friend added!"; msg_t = 120
 
         screen.fill(DARK)
         title = font_large.render("FRIENDS", True, CYAN)
         screen.blit(title, (WIDTH//2 - title.get_width()//2, 20))
+
+        # Show player's own code
+        own = font_small.render(f"Your code:  {user_code}", True, (100, 220, 100))
+        screen.blit(own, (WIDTH//2 - own.get_width()//2, 72))
 
         if not friends:
             em = font_medium.render("No friends yet.  Press A to add one.", True, GRAY)
@@ -524,9 +639,121 @@ def friends_screen(userdata):
             screen.blit(ms, (WIDTH//2 - ms.get_width()//2, HEIGHT - 60))
             msg_t -= 1
 
-        hint = font_tiny.render("A = add friend   D = delete   ESC = back", True, GRAY)
+        hint = font_tiny.render(
+            "A = add   C = chat   D = delete   ESC = back", True, GRAY)
         screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 28))
         pygame.display.flip()
+
+
+def matchmaking_screen(userdata):
+    """
+    Connect to fight_server, join the matchmaking queue, wait for a random
+    opponent, pick a character, exchange picks, and return:
+      (lobby, p1_char_idx, p2_char_idx, stage_idx, is_host, opp_name)
+    or None on cancel / error.
+    """
+    # Step 1 — Connect & register
+    _draw_waiting("Connecting to server…")
+    lobby = _make_lobby(userdata, timeout=6)
+    if lobby is None:
+        _draw_waiting("Could not reach server.", "Check Server Settings.  Any key…")
+        _wait_key(); return None
+    if not lobby.connected:
+        _draw_waiting("Server refused connection.", "Any key…")
+        _wait_key(); return None
+
+    # Step 2 — Join queue
+    lobby.join_queue()
+
+    # Step 3 — Wait for MATCH_FOUND
+    dots_t = 0
+    while lobby.match_info is None:
+        clock.tick(FPS)
+        lobby.poll()
+        dots_t += 1
+        dots = "." * ((dots_t // 30) % 4)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                lobby.close(); pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                    lobby.leave_queue(); lobby.close(); return None
+
+        screen.fill(DARK)
+        t  = font_large.render("QUICK MATCH", True, CYAN)
+        screen.blit(t, (WIDTH//2 - t.get_width()//2, 60))
+        s  = font_medium.render(f"Searching for opponent{dots}", True, WHITE)
+        screen.blit(s, (WIDTH//2 - s.get_width()//2, HEIGHT//2 - 20))
+        ht = font_tiny.render("ESC to cancel", True, GRAY)
+        screen.blit(ht, (WIDTH//2 - ht.get_width()//2, HEIGHT - 28))
+        pygame.display.flip()
+
+        if not lobby.connected:
+            _draw_waiting("Lost connection to server.", "Any key…")
+            _wait_key(); return None
+
+    info      = lobby.match_info
+    is_host   = info.get("you_host", True)
+    stage_idx = info.get("stage", 0)
+    opp_name  = info.get("opp_name", "Opponent")
+    opp_code  = info.get("opp_code", "")
+
+    # Optionally save opponent as friend (no nickname prompt — just code)
+    userdata.setdefault("friends", {}).setdefault(opp_code, {"name": opp_name})
+    _net.save_userdata(userdata)
+
+    # Step 4 — Brief "Found!" screen
+    found_end = pygame.time.get_ticks() + 1800
+    while pygame.time.get_ticks() < found_end:
+        clock.tick(FPS)
+        lobby.poll()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                lobby.close(); pygame.quit(); sys.exit()
+        screen.fill(DARK)
+        ft = font_large.render("MATCH FOUND!", True, GREEN)
+        screen.blit(ft, (WIDTH//2 - ft.get_width()//2, HEIGHT//2 - 50))
+        vt = font_medium.render(f"vs  {opp_name}", True, YELLOW)
+        screen.blit(vt, (WIDTH//2 - vt.get_width()//2, HEIGHT//2 + 10))
+        from fight_data import STAGES
+        sn = font_small.render(f"Stage: {STAGES[stage_idx % len(STAGES)]['name']}", True, WHITE)
+        screen.blit(sn, (WIDTH//2 - sn.get_width()//2, HEIGHT//2 + 55))
+        pygame.display.flip()
+
+    # Step 5 — Character select (both players do this simultaneously)
+    my_idx, _ = character_select(vs_ai=True)
+    if my_idx is None:
+        lobby.close(); return None
+
+    # Step 6 — Exchange character picks via relay
+    lobby.relay({"type": "PICK", "char_idx": my_idx})
+    opp_idx  = None
+    deadline = pygame.time.get_ticks() + 20000
+    while opp_idx is None and pygame.time.get_ticks() < deadline:
+        clock.tick(FPS)
+        _draw_waiting(f"Waiting for {opp_name} to pick…", "ESC to cancel")
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                lobby.close(); pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                    lobby.close(); return None
+        for m in lobby.poll():
+            if isinstance(m, dict) and m.get("type") == "PICK":
+                opp_idx = m["char_idx"]
+        if not lobby.connected:
+            break
+
+    if opp_idx is None:
+        lobby.close(); return None
+
+    if is_host:
+        p1_idx, p2_idx = my_idx, opp_idx
+    else:
+        p1_idx, p2_idx = opp_idx, my_idx
+
+    return lobby, p1_idx, p2_idx, stage_idx, is_host, opp_name
 
 
 def host_lobby(userdata):
@@ -701,15 +928,20 @@ def join_lobby(userdata):
 def online_menu(userdata):
     """
     Top-level online menu.
-    Returns ('host', (net, p1_char, p2_char, stage))
-         or ('join', (net, p2_char, p1_char, stage))
+    Returns ('quickmatch', (lobby, p1, p2, stage, is_host, opp_name))
+         or ('host',       (net, p1_char, p2_char, stage))
+         or ('join',       (net, p2_char, p1_char, stage))
          or None on cancel.
     """
-    opts = ["HOST GAME", "JOIN GAME", "FRIENDS", "SET USERNAME"]
+    opts = ["QUICK MATCH", "HOST GAME", "JOIN GAME",
+            "FRIENDS", "SET USERNAME", "SERVER SETTINGS"]
     sel  = 0
 
     while True:
         clock.tick(FPS)
+        user_code = userdata.get("user_code", "????????")
+        server_ip = userdata.get("server_ip", "") or "localhost"
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
@@ -721,32 +953,44 @@ def online_menu(userdata):
                 if event.key in (pygame.K_DOWN, pygame.K_s):
                     sel = (sel + 1) % len(opts)
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    if sel == 0:
+                    if sel == 0:   # QUICK MATCH
+                        result = matchmaking_screen(userdata)
+                        if result:
+                            return 'quickmatch', result
+                    elif sel == 1:  # HOST GAME
                         result = host_lobby(userdata)
                         if result:
                             return 'host', result
-                    elif sel == 1:
+                    elif sel == 2:  # JOIN GAME
                         result = join_lobby(userdata)
                         if result:
                             return 'join', result
-                    elif sel == 2:
+                    elif sel == 3:  # FRIENDS
                         friends_screen(userdata)
-                    elif sel == 3:
+                    elif sel == 4:  # SET USERNAME
                         set_username_screen(userdata)
+                    elif sel == 5:  # SERVER SETTINGS
+                        server_settings_screen(userdata)
 
         screen.fill(DARK)
         title = font_large.render("ONLINE PLAY", True, CYAN)
-        screen.blit(title, (WIDTH//2 - title.get_width()//2, 28))
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, 18))
 
-        user_lbl = font_small.render(
-            f"Username: {userdata.get('username', 'Player')}", True, GRAY)
-        screen.blit(user_lbl, (WIDTH//2 - user_lbl.get_width()//2, 108))
+        # User identity info
+        name_lbl = font_small.render(
+            f"You: {userdata.get('username', 'Player')}   code: {user_code}", True, (100, 220, 100))
+        screen.blit(name_lbl, (WIDTH//2 - name_lbl.get_width()//2, 72))
+        srv_lbl = font_tiny.render(f"Server: {server_ip}", True, GRAY)
+        screen.blit(srv_lbl, (WIDTH//2 - srv_lbl.get_width()//2, 98))
 
         for i, opt in enumerate(opts):
-            col = CYAN if i == sel else GRAY
+            # QUICK MATCH gets special highlight
+            base_col = CYAN if i == 0 else WHITE
+            col = (CYAN if i == sel else base_col) if i > 0 else (
+                  (0, 255, 180) if i == sel else (0, 200, 140))
             r = font_medium.render(("► " if i == sel else "  ") + opt, True, col)
-            screen.blit(r, (WIDTH//2 - r.get_width()//2, 168 + i * 62))
+            screen.blit(r, (WIDTH//2 - r.get_width()//2, 132 + i * 52))
 
-        hint = font_tiny.render("↑/↓ to navigate   ENTER to select   ESC = back", True, GRAY)
+        hint = font_tiny.render("↑/↓  ENTER to select   ESC = back", True, GRAY)
         screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 28))
         pygame.display.flip()

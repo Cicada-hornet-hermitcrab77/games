@@ -3,8 +3,10 @@ fight_network.py — networking layer for online play.
 
 Architecture
 ------------
-* One player hosts (GameServer), the other joins (GameClient).
-* Friend code = 10-char alphanumeric encoding of host's public IP + port.
+* Direct (host/join): one player hosts (GameServer), the other joins (GameClient).
+  Friend code = 10-char alphanumeric encoding of host's public IP + port.
+* Matchmaking: both players connect to a central fight_server via LobbyClient.
+  The server pairs them, relays game frames, and handles friend / chat messages.
 * Messages are length-prefixed JSON frames sent over TCP.
 * The host runs the authoritative game simulation; the client sends inputs
   and receives the full game state every frame.
@@ -14,22 +16,39 @@ import select
 import json
 import struct
 import os
+import random
 import urllib.request
 
 PORT          = 7777
+SERVER_PORT   = 7779          # fight_server.py default port
 USERDATA_FILE = os.path.expanduser("~/.fight_userdata.json")
+
+_B36_ID = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
+def generate_user_code() -> str:
+    """Return a random permanent 8-char alphanumeric identity code."""
+    return "".join(random.choices(_B36_ID, k=8))
 
 
 # ── Userdata persistence ──────────────────────────────────────────────────────
 
 def load_userdata():
+    data = None
     if os.path.exists(USERDATA_FILE):
         try:
             with open(USERDATA_FILE) as f:
-                return json.load(f)
+                data = json.load(f)
         except Exception:
             pass
-    return {"username": "Player", "friends": {}}   # code → {"name": str}
+    if data is None:
+        data = {"username": "Player", "friends": {}}
+    # Auto-generate a permanent identity code on first run
+    if "user_code" not in data:
+        data["user_code"]  = generate_user_code()
+        data["server_ip"]  = data.get("server_ip", "")
+        save_userdata(data)
+    return data
 
 
 def save_userdata(data):
@@ -237,6 +256,140 @@ class GameClient:
     def send_chat(self, text):
         self.chat_log.append(("You", text))
         self.send({"type": "CHAT", "msg": text})
+
+    def close(self):
+        if self._sock:
+            try:
+                self._sock.close()
+            except Exception:
+                pass
+        self.connected = False
+
+
+# ── Lobby / matchmaking client ────────────────────────────────────────────────
+
+class LobbyClient:
+    """
+    Connects to fight_server.py for matchmaking, relay, and friend chat.
+
+    Typical flow
+    ------------
+    1.  lc = LobbyClient()
+    2.  lc.connect(server_ip)              # raises on failure
+    3.  lc.register(user_code, username)   # sends HELLO
+    4.  lc.join_queue()                    # sends QUEUE_JOIN
+    5.  while lc.match_info is None:
+            lc.poll()                      # drives the reader
+    6.  # lc.match_info now has opp_name, stage, you_host
+    7.  lc.relay({"type": "PICK", ...})    # exchange picks via relay
+    8.  # … use in run_relay_fight() via _RelayNet wrapper …
+    """
+
+    def __init__(self):
+        self._sock          = None
+        self._r             = _Reader()
+        self.connected      = False
+        self.match_info     = None   # filled when MATCH_FOUND arrives
+        self.match_chat_log = []     # [(sender_label, text)]  in-match chat
+        self.friend_msgs    = []     # [(from_code, from_name, text)]
+        self.pending_msgs   = []     # non-relay server messages (FRIEND_INFO etc.)
+
+    # ── Connection ────────────────────────────────────────────────────────────
+
+    def connect(self, host, port=SERVER_PORT, timeout=8):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout)
+        s.connect((host, port))   # raises on failure
+        s.setblocking(False)
+        self._sock     = s
+        self.connected = True
+
+    def register(self, user_code: str, username: str):
+        self._send({"type": "HELLO", "code": user_code, "username": username})
+
+    # ── Queue / match ─────────────────────────────────────────────────────────
+
+    def join_queue(self):
+        self._send({"type": "QUEUE_JOIN"})
+
+    def leave_queue(self):
+        self._send({"type": "QUEUE_LEAVE"})
+
+    # ── In-match relay ────────────────────────────────────────────────────────
+
+    def relay(self, obj):
+        """Send a game-state or input frame to the matched opponent via the server."""
+        self._send({"type": "RELAY", "msg": obj})
+
+    def match_chat(self, text: str):
+        self.match_chat_log.append(("You", text))
+        self._send({"type": "MATCH_CHAT", "msg": text})
+
+    # ── Friend chat ───────────────────────────────────────────────────────────
+
+    def friend_chat(self, to_code: str, text: str):
+        self._send({"type": "FRIEND_CHAT", "to_code": to_code, "msg": text})
+
+    def lookup_friend(self, code: str):
+        self._send({"type": "FRIEND_INFO", "code": code})
+
+    # ── Polling ───────────────────────────────────────────────────────────────
+
+    def poll(self):
+        """
+        Drain the socket, classify incoming messages.
+        Returns a list of *relay payload dicts* (already unwrapped from RELAY).
+        Side effects: populates match_info, match_chat_log, friend_msgs,
+        pending_msgs.  Sets connected=False on OPP_LEFT or socket error.
+        """
+        if not self._sock:
+            return []
+        r, _, _ = select.select([self._sock], [], [], 0)
+        if r:
+            try:
+                d = self._sock.recv(65536)
+                if not d:
+                    self.connected = False
+                    return []
+                self._r.feed(d)
+            except Exception:
+                self.connected = False
+                return []
+
+        relay_out = []
+        for m in self._r.messages():
+            t = m.get("type")
+            if t == "RELAY":
+                payload = m.get("msg")
+                if payload is not None:
+                    relay_out.append(payload)
+            elif t == "MATCH_FOUND":
+                self.match_info = m
+            elif t == "MATCH_CHAT":
+                self.match_chat_log.append((m.get("from_name", "?"), m.get("msg", "")))
+            elif t == "FRIEND_CHAT":
+                self.friend_msgs.append(
+                    (m.get("from_code", ""), m.get("from_name", "?"), m.get("msg", "")))
+            elif t == "OPP_LEFT":
+                self.connected = False
+            else:
+                self.pending_msgs.append(m)
+        return relay_out
+
+    def take_pending(self):
+        """Pop and return all non-relay, non-chat server messages."""
+        out = self.pending_msgs[:]
+        self.pending_msgs.clear()
+        return out
+
+    # ── Misc ──────────────────────────────────────────────────────────────────
+
+    def _send(self, obj):
+        if self._sock:
+            try:
+                _send(self._sock, obj)
+            except Exception:
+                self.connected = False
 
     def close(self):
         if self._sock:
