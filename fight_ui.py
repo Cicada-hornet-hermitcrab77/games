@@ -576,12 +576,82 @@ def _wait_key():
                 return
 
 
+def _confirm_add_friend_screen(name, code):
+    """Show a confirmation prompt. Returns True if accepted."""
+    while True:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    return True
+                if event.key in (pygame.K_ESCAPE, pygame.K_q, pygame.K_n):
+                    return False
+        screen.fill(DARK)
+        t = font_large.render("Add friend?", True, CYAN)
+        screen.blit(t, (WIDTH//2 - t.get_width()//2, HEIGHT//3 - 50))
+        n = font_medium.render(name, True, YELLOW)
+        screen.blit(n, (WIDTH//2 - n.get_width()//2, HEIGHT//3 + 10))
+        c = font_small.render(f"[{code}]", True, GRAY)
+        screen.blit(c, (WIDTH//2 - c.get_width()//2, HEIGHT//3 + 58))
+        h = font_tiny.render("ENTER to add   ESC to cancel", True, GRAY)
+        screen.blit(h, (WIDTH//2 - h.get_width()//2, HEIGHT//2 + 70))
+        pygame.display.flip()
+
+
+def _add_friend_flow(userdata, friends):
+    """
+    Look up a friend code on the server to verify it belongs to a real person.
+    Uses their actual server username — no manual nickname.
+    Returns a status message string, or None on silent cancel.
+    """
+    code = _text_input_screen("Enter their 8-char friend code:", max_len=8)
+    if not code:
+        return None
+    code = code.upper().replace(" ", "").replace("-", "").replace(" ", "")
+    if len(code) != 8:
+        return "Invalid code — friend codes are exactly 8 characters."
+    if code == userdata.get("user_code", ""):
+        return "That's your own code!"
+    if not all(c in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" for c in code):
+        return "Invalid code — letters and numbers only."
+
+    _draw_waiting("Looking up on server…", "connecting…")
+    lobby = _make_lobby(userdata, timeout=5)
+    if lobby is None:
+        return "Can't reach server. Set your server IP in Server Settings."
+
+    lobby.lookup_friend(code)
+    found_name = None
+    deadline   = pygame.time.get_ticks() + 4000
+    while pygame.time.get_ticks() < deadline:
+        clock.tick(FPS)
+        lobby.poll()
+        for m in lobby.take_pending():
+            if m.get("type") == "FRIEND_INFO" and m.get("code") == code:
+                if m.get("online") and m.get("username"):
+                    found_name = m["username"]
+        if found_name is not None:
+            break
+    lobby.close()
+
+    if found_name is None:
+        return "Code not found — that person must be online on the same server."
+
+    if _confirm_add_friend_screen(found_name, code):
+        friends[code] = {"name": found_name}
+        return f"Added {found_name}!"
+    return None
+
+
 def friends_screen(userdata):
     friends   = userdata.setdefault("friends", {})   # code → {"name": str}
     user_code = userdata.get("user_code", "????????")
     sel       = 0
     msg       = ""
     msg_t     = 0
+    msg_col   = GREEN
 
     while True:
         clock.tick(FPS)
@@ -601,25 +671,24 @@ def friends_screen(userdata):
                     if event.key == pygame.K_d:
                         del friends[keys_list[sel]]
                         sel = max(0, sel - 1)
-                        msg = "Friend removed."; msg_t = 120
-                    if event.key == pygame.K_c and keys_list:
-                        fc   = keys_list[sel]
-                        fn   = friends[fc].get("name", fc)
+                        msg = "Friend removed."; msg_t = 150; msg_col = RED
+                        _net.save_userdata(userdata)
+                    if event.key == pygame.K_c:
+                        fc = keys_list[sel]
+                        fn = friends[fc].get("name", fc)
                         friend_chat_screen(userdata, fc, fn)
                 if event.key == pygame.K_a:
-                    code = _text_input_screen("Enter friend's code:", max_len=10)
-                    if code:
-                        code  = code.upper().replace(" ", "").replace("-", "")
-                        fname = _text_input_screen(
-                            f"Nickname for {code}:", max_len=16) or "Friend"
-                        friends[code] = {"name": fname}
-                        msg = "Friend added!"; msg_t = 120
+                    result = _add_friend_flow(userdata, friends)
+                    if result:
+                        msg_col = GREEN if result.startswith("Added") else RED
+                        msg = result; msg_t = 180
+                        if result.startswith("Added"):
+                            _net.save_userdata(userdata)
 
         screen.fill(DARK)
         title = font_large.render("FRIENDS", True, CYAN)
         screen.blit(title, (WIDTH//2 - title.get_width()//2, 20))
 
-        # Show player's own code
         own = font_small.render(f"Your code:  {user_code}", True, (100, 220, 100))
         screen.blit(own, (WIDTH//2 - own.get_width()//2, 72))
 
@@ -635,12 +704,12 @@ def friends_screen(userdata):
                 screen.blit(row, (80, 120 + i * 36))
 
         if msg_t > 0:
-            ms = font_small.render(msg, True, GREEN)
+            ms = font_small.render(msg, True, msg_col)
             screen.blit(ms, (WIDTH//2 - ms.get_width()//2, HEIGHT - 60))
             msg_t -= 1
 
         hint = font_tiny.render(
-            "A = add   C = chat   D = delete   ESC = back", True, GRAY)
+            "A = add friend   C = chat   D = delete   ESC = back", True, GRAY)
         screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 28))
         pygame.display.flip()
 
