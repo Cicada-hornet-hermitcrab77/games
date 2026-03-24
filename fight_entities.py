@@ -738,18 +738,6 @@ class Fighter:
             else:
                 alpha = 35
             tmp.set_alpha(alpha)
-            # Faint ripple outline to show position even when nearly invisible
-            if alpha < 80:
-                t_rip = pygame.time.get_ticks()
-                rip_r = int(28 * _scale) + int(math.sin(t_rip * 0.006) * 5)
-                rip_col = (
-                    int(127 + 127 * math.sin(t_rip * 0.003)),
-                    int(127 + 127 * math.sin(t_rip * 0.003 + 2.1)),
-                    int(127 + 127 * math.sin(t_rip * 0.003 + 4.2)),
-                )
-                pygame.draw.circle(surface, rip_col,
-                                   (int(self.x), int(self.y) - int(60 * _scale)),
-                                   rip_r, max(1, int(2 * _scale)))
             surface.blit(tmp, (int(self.x) - cx, int(self.y) - cy))
             result = (int(self.x + self.facing * 40 * _scale), int(self.y - 70 * _scale))
         else:
