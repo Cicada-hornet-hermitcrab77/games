@@ -11,7 +11,8 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, Portal, ConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull,
                             JungleSnake, ComputerBug, MousePlatform,
-                            Projectile, Orb, BouncingBall, Whip, HotPotato)
+                            Projectile, Orb, BouncingBall, Whip, HotPotato,
+                            FallingPot, RollingCoin, FallingMerlin)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu
 
@@ -1373,6 +1374,14 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     crazy_snakes   = []
     crazy_bugs     = []
     crazy_timer    = 0
+    falling_pots   = []
+    rolling_coins  = []
+    falling_merlins = []
+    cooking_timer  = 0   # frames remaining of pot rain
+    rain_powerups  = []
+    rain_timer     = 0   # frames remaining of powerup rain
+    rain_cd        = 0
+    rain_type      = None  # 'heal' or 'poison'
     _chat_done     = 0   # index into net.chat_log already processed for easter eggs
 
     game_over    = False
@@ -1442,6 +1451,28 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                     target.flash_timer = 25
                 elif kw == "crazy":
                     crazy_timer = FPS * 8   # 8 seconds of chaos
+                elif kw == "imcooking":
+                    cooking_timer = FPS * 10  # pots rain for 10 seconds
+                elif kw == "imdead":
+                    target = p1 if sender == "You" else p2
+                    target.hp = 0
+                elif kw == "imselling":
+                    rolling_coins.append(RollingCoin())
+                elif kw == "merlin":
+                    for _ in range(8):
+                        falling_merlins.append(FallingMerlin())
+                elif kw == "randomskin":
+                    target = p1 if sender == "You" else p2
+                    new_char = random.choice(
+                        [c for c in CHARACTERS if c['name'] != target.char['name']])
+                    target.char = new_char
+                    target.color = new_char['color']
+                elif kw == "kevin=great":
+                    rain_timer = FPS * 8
+                    rain_type  = 'heal'
+                elif kw == "kevin=bad":
+                    rain_timer = FPS * 8
+                    rain_type  = 'poison'
                 _chat_done += 1
 
         if is_host and not game_over:
@@ -1576,6 +1607,59 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                 cb.update(target)   # biting handled internally
             crazy_bugs = [cb for cb in crazy_bugs if cb.alive]
 
+            # Falling pots (imcooking)
+            if cooking_timer > 0:
+                cooking_timer -= 1
+                if cooking_timer % 45 == 0:
+                    falling_pots.append(FallingPot())
+            for pot in falling_pots:
+                pot.update()
+                if pot.just_landed:
+                    for f in (p1, p2):
+                        if abs(f.x - pot.x) < pot.HIT_RANGE:
+                            f.hp = max(0, f.hp - pot.DAMAGE)
+                            f.flash_timer = 20
+            falling_pots = [pt for pt in falling_pots if pt.alive]
+
+            # Rolling coins (imselling)
+            for coin in rolling_coins:
+                hits = coin.update(p1, p2)
+                for f in hits:
+                    f.hp = max(0, f.hp - coin.DAMAGE)
+                    f.flash_timer = 15
+            rolling_coins = [c for c in rolling_coins if c.alive]
+
+            # Falling merlins (merlin) — no damage
+            for m in falling_merlins:
+                m.update()
+            falling_merlins = [m for m in falling_merlins if m.alive]
+
+            # Powerup rain (kevin=great / kevin=bad)
+            if rain_timer > 0:
+                rain_timer -= 1
+                if rain_cd > 0:
+                    rain_cd -= 1
+                else:
+                    _spec = next((p for p in POWERUPS
+                                  if p['name'] == ('Heal' if rain_type == 'heal'
+                                                   else 'Poison')), None)
+                    if _spec:
+                        _rpu = Powerup.__new__(Powerup)
+                        _rpu.spec = _spec; _rpu.name = _spec['name']
+                        _rpu.color = _spec['color']
+                        _rpu.x = float(random.randint(80, WIDTH - 80))
+                        _rpu.y = float(GROUND_Y - 14)
+                        _rpu.age = 0; _rpu.picked_up = False
+                        rain_powerups.append(_rpu)
+                    rain_cd = 20
+            for rpu in rain_powerups:
+                rpu.update()
+                for f in (p1, p2):
+                    if not rpu.picked_up and rpu.collides(f):
+                        f.apply_powerup(rpu.spec)
+                        rpu.picked_up = True
+            rain_powerups = [rpu for rpu in rain_powerups if not rpu.picked_up]
+
             # Laser eyes
             for shooter, victim in [(p1, p2), (p2, p1)]:
                 if (shooter.char.get("laser_eyes") and shooter.laser_active > 0
@@ -1669,9 +1753,13 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                     pygame.draw.line(screen, (255, 160, 80), (x, ey), (de, ey), 1)
                     x = de + f.facing * 6
 
-        for hp in hot_potatoes:  hp.draw(screen)
-        for sn in crazy_snakes:  sn.draw(screen)
-        for cb in crazy_bugs:    cb.draw(screen)
+        for hp  in hot_potatoes:   hp.draw(screen)
+        for sn  in crazy_snakes:   sn.draw(screen)
+        for cb  in crazy_bugs:     cb.draw(screen)
+        for pot in falling_pots:   pot.draw(screen)
+        for c   in rolling_coins:  c.draw(screen)
+        for m   in falling_merlins: m.draw(screen)
+        for rpu in rain_powerups:  rpu.draw(screen)
 
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen)

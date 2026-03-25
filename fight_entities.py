@@ -2021,3 +2021,210 @@ class HotPotato:
                 py = cy + int(math.sin(a) * r_ex * 0.6)
                 pygame.draw.circle(surface, (180, 110, 40), (px, py),
                                    max(2, int(6 * (1 - prog))))
+
+
+# ---------------------------------------------------------------------------
+# FallingPot  (imcooking easter egg)
+# ---------------------------------------------------------------------------
+
+class FallingPot:
+    GRAVITY    = 0.55
+    MAX_VY     = 15
+    SQUISH_DUR = 28
+    DAMAGE     = 25
+    HIT_RANGE  = 65   # px horizontal distance to deal damage on landing
+
+    def __init__(self):
+        self.x          = float(random.randint(100, WIDTH - 100))
+        self.y          = float(random.randint(-120, -30))
+        self.vy         = 0.0
+        self.alive      = True
+        self.landed     = False
+        self.squish_t   = 0
+        self.just_landed = False
+
+    def update(self):
+        self.just_landed = False
+        if not self.landed:
+            self.vy = min(self.vy + self.GRAVITY, self.MAX_VY)
+            self.y += self.vy
+            if self.y >= GROUND_Y - 10:
+                self.y = GROUND_Y - 10.0
+                self.landed = True
+                self.squish_t = self.SQUISH_DUR
+                self.just_landed = True
+        else:
+            self.squish_t -= 1
+            if self.squish_t <= 0:
+                self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        if not self.landed:
+            # Rim (top ellipse)
+            pygame.draw.ellipse(surface, (190, 110, 40),
+                                (cx - 22, cy - 32, 44, 14))
+            # Body
+            pygame.draw.rect(surface, (160, 80, 20),
+                             (cx - 18, cy - 26, 36, 32))
+            pygame.draw.ellipse(surface, (140, 65, 15),
+                                (cx - 18, cy + 4, 36, 12))
+            # Handle arc
+            pygame.draw.arc(surface, (140, 65, 15),
+                            (cx - 12, cy - 44, 24, 20),
+                            0, math.pi, 3)
+            # Steam lines (wobble as it falls)
+            for si, sx in enumerate([cx - 8, cx, cx + 8]):
+                swy = cy - 36 - si * 3
+                pygame.draw.line(surface, (200, 200, 200),
+                                 (sx, swy), (sx + 3, swy - 8), 2)
+        else:
+            # Squished flat on the ground
+            prog = 1.0 - self.squish_t / self.SQUISH_DUR
+            h = max(5, int(24 * (1 - prog * 0.75)))
+            pygame.draw.ellipse(surface, (160, 80, 20),
+                                (cx - 24, cy - h // 2, 48, h))
+            pygame.draw.ellipse(surface, (190, 110, 40),
+                                (cx - 24, cy - h // 2, 48, h), 2)
+
+
+# ---------------------------------------------------------------------------
+# RollingCoin  (imselling easter egg)
+# ---------------------------------------------------------------------------
+
+class RollingCoin:
+    RADIUS   = 16
+    SPEED    = 6
+    DAMAGE   = 8
+    HIT_CD   = 30    # frames between hits per fighter
+    LIFETIME = 900   # 15 seconds
+
+    def __init__(self):
+        self.x      = float(random.randint(150, WIDTH - 150))
+        self.y      = float(GROUND_Y - self.RADIUS)
+        self.vx     = self.SPEED * random.choice([-1, 1])
+        self.age    = 0
+        self.alive  = True
+        self._cds   = {}   # id(fighter) → cooldown frames remaining
+
+    def update(self, *fighters):
+        """Move, bounce walls, hit fighters. Returns list of (fighter, dmg) tuples."""
+        self.age += 1
+        self.x += self.vx
+        if self.x < 50 + self.RADIUS:
+            self.x = 50 + self.RADIUS
+            self.vx = abs(self.vx)
+        elif self.x > WIDTH - 50 - self.RADIUS:
+            self.x = WIDTH - 50 - self.RADIUS
+            self.vx = -abs(self.vx)
+
+        for fid in list(self._cds):
+            if self._cds[fid] > 0:
+                self._cds[fid] -= 1
+
+        hits = []
+        for f in fighters:
+            fid = id(f)
+            if self._cds.get(fid, 0) == 0:
+                if math.hypot(self.x - f.x, self.y - (f.y - 55)) < self.RADIUS + 28:
+                    hits.append(f)
+                    self._cds[fid] = self.HIT_CD
+
+        if self.age >= self.LIFETIME:
+            self.alive = False
+        return hits
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        # Spinning coin (flatten width based on rotation)
+        spin = math.cos(self.age * 0.18)
+        draw_w = max(4, int(self.RADIUS * 2 * abs(spin)))
+        # Gold coin
+        coin_rect = (cx - draw_w // 2, cy - self.RADIUS, draw_w, self.RADIUS * 2)
+        pygame.draw.ellipse(surface, (220, 185, 0),  coin_rect)
+        pygame.draw.ellipse(surface, (255, 220, 40), coin_rect, 2)
+        # Dollar sign (only when coin is face-on)
+        if abs(spin) > 0.4:
+            lbl = font_tiny.render("$", True, (120, 90, 0))
+            surface.blit(lbl, (cx - lbl.get_width() // 2,
+                               cy - lbl.get_height() // 2))
+
+
+# ---------------------------------------------------------------------------
+# FallingMerlin  (merlin easter egg)
+# ---------------------------------------------------------------------------
+
+class FallingMerlin:
+    GRAVITY   = 0.45
+    MAX_VY    = 12
+    STAY_DUR  = 70   # frames before disappearing after landing
+
+    def __init__(self):
+        self.x        = float(random.randint(80, WIDTH - 80))
+        self.y        = float(random.randint(-200, -40))
+        self.vy       = 0.0
+        self.alive    = True
+        self.landed   = False
+        self.stay_t   = 0
+        self.angle    = 0.0   # slight wobble while falling
+
+    def update(self):
+        if not self.landed:
+            self.vy = min(self.vy + self.GRAVITY, self.MAX_VY)
+            self.y += self.vy
+            self.angle = math.sin(self.y * 0.04) * 8
+            if self.y >= GROUND_Y:
+                self.y = float(GROUND_Y)
+                self.landed = True
+                self.stay_t = self.STAY_DUR
+        else:
+            self.stay_t -= 1
+            if self.stay_t <= 0:
+                self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        alpha = 255
+        if self.landed:
+            alpha = max(0, int(255 * self.stay_t / self.STAY_DUR))
+
+        # tmp surface: 80 wide, 120 tall; feet at (tx, ty) = (40, 100)
+        tmp = pygame.Surface((80, 120), pygame.SRCALPHA)
+        tx, ty = 40, 100
+
+        # Robe (blue triangle body)
+        pygame.draw.polygon(tmp, (30, 80, 200, alpha),
+                            [(tx, ty), (tx - 18, ty), (tx - 8, ty - 40),
+                             (tx + 8, ty - 40), (tx + 18, ty)])
+        # Arms
+        pygame.draw.line(tmp, (30, 80, 200, alpha),
+                         (tx - 8, ty - 32), (tx - 22, ty - 18), 4)
+        pygame.draw.line(tmp, (30, 80, 200, alpha),
+                         (tx + 8, ty - 32), (tx + 22, ty - 18), 4)
+        # Head
+        pygame.draw.circle(tmp, (255, 220, 180, alpha), (tx, ty - 50), 11)
+        # White beard
+        pygame.draw.polygon(tmp, (240, 240, 240, alpha),
+                            [(tx - 7, ty - 42), (tx + 7, ty - 42),
+                             (tx + 5, ty - 28), (tx, ty - 24), (tx - 5, ty - 28)])
+        # Wizard hat (tall purple triangle)
+        pygame.draw.polygon(tmp, (100, 0, 180, alpha),
+                            [(tx, ty - 90), (tx - 14, ty - 58), (tx + 14, ty - 58)])
+        # Hat brim
+        pygame.draw.ellipse(tmp, (80, 0, 150, alpha),
+                            (tx - 16, ty - 62, 32, 10))
+        # Star on hat
+        star_cx, star_cy = tx, ty - 80
+        for si in range(5):
+            a1 = math.radians(si * 72 - 90)
+            a2 = math.radians(si * 72 - 90 + 36)
+            p1x = star_cx + int(math.cos(a1) * 5)
+            p1y = star_cy + int(math.sin(a1) * 5)
+            p2x = star_cx + int(math.cos(a2) * 2)
+            p2y = star_cy + int(math.sin(a2) * 2)
+            pygame.draw.line(tmp, (255, 230, 0, alpha),
+                             (star_cx, star_cy), (p1x, p1y), 1)
+            pygame.draw.line(tmp, (255, 230, 0, alpha),
+                             (star_cx, star_cy), (p2x, p2y), 1)
+
+        surface.blit(tmp, (cx - tx, cy - ty))
