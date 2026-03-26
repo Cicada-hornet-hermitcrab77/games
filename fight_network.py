@@ -19,9 +19,10 @@ import os
 import random
 import urllib.request
 
-PORT          = 7777
-SERVER_PORT   = 7779          # fight_server.py default port
-USERDATA_FILE = os.path.expanduser("~/.fight_userdata.json")
+PORT               = 7777
+SERVER_PORT        = 7779          # fight_server.py default port
+DEFAULT_SERVER_IP  = "127.0.0.1"  # ← change this to your server's public IP
+USERDATA_FILE      = os.path.expanduser("~/.fight_userdata.json")
 
 _B36_ID = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -286,17 +287,19 @@ class LobbyClient:
     """
 
     def __init__(self):
-        self._sock          = None
-        self._r             = _Reader()
-        self.connected      = False
-        self.match_info     = None   # filled when MATCH_FOUND arrives
-        self.match_chat_log = []     # [(sender_label, text)]  in-match chat
-        self.friend_msgs    = []     # [(from_code, from_name, text)]
-        self.pending_msgs   = []     # non-relay server messages (FRIEND_INFO etc.)
+        self._sock                = None
+        self._r                   = _Reader()
+        self.connected            = False
+        self.match_info           = None   # filled when MATCH_FOUND arrives
+        self.match_chat_log       = []     # [(sender_label, text)]  in-match chat
+        self.friend_msgs          = []     # [(from_code, from_name, text)]
+        self.incoming_friend_reqs = []     # [(from_code, from_name)]
+        self.friend_req_results   = []     # [(from_code, from_name, result)]
+        self.pending_msgs         = []     # non-relay server messages (FRIEND_INFO etc.)
 
     # ── Connection ────────────────────────────────────────────────────────────
 
-    def connect(self, host, port=SERVER_PORT, timeout=8):
+    def connect(self, host=DEFAULT_SERVER_IP, port=SERVER_PORT, timeout=8):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(timeout)
         s.connect((host, port))   # raises on failure
@@ -332,6 +335,13 @@ class LobbyClient:
 
     def lookup_friend(self, code: str):
         self._send({"type": "FRIEND_INFO", "code": code})
+
+    def send_friend_request(self, to_code: str):
+        self._send({"type": "FRIEND_REQUEST", "to_code": to_code})
+
+    def respond_friend_request(self, to_code: str, accepted: bool):
+        self._send({"type": "FRIEND_RESPONSE", "to_code": to_code,
+                    "accepted": accepted})
 
     # ── Polling ───────────────────────────────────────────────────────────────
 
@@ -370,6 +380,13 @@ class LobbyClient:
             elif t == "FRIEND_CHAT":
                 self.friend_msgs.append(
                     (m.get("from_code", ""), m.get("from_name", "?"), m.get("msg", "")))
+            elif t == "FRIEND_REQUEST":
+                self.incoming_friend_reqs.append(
+                    (m.get("from_code", ""), m.get("from_name", "?")))
+            elif t == "FRIEND_REQUEST_RESULT":
+                self.friend_req_results.append(
+                    (m.get("from_code", ""), m.get("from_name", "?"),
+                     m.get("result", "")))
             elif t == "OPP_LEFT":
                 self.connected = False
             else:

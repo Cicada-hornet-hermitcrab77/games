@@ -150,6 +150,36 @@ def _handle(code, msg):
             _send(sock, {"type": "FRIEND_INFO", "code": query,
                          "username": None, "online": False})
 
+    elif t == "FRIEND_REQUEST":
+        to_code = msg.get("to_code", "")
+        with _lock:
+            target  = _clients.get(to_code)
+            my_name = info["username"]
+        if target:
+            _send(target["sock"], {
+                "type":      "FRIEND_REQUEST",
+                "from_code": code,
+                "from_name": my_name,
+            })
+        else:
+            _send(sock, {"type": "FRIEND_REQUEST_RESULT",
+                         "from_code": to_code, "from_name": "",
+                         "result": "offline"})
+
+    elif t == "FRIEND_RESPONSE":
+        to_code  = msg.get("to_code", "")
+        accepted = msg.get("accepted", False)
+        with _lock:
+            target  = _clients.get(to_code)
+            my_name = info["username"]
+        if target:
+            _send(target["sock"], {
+                "type":      "FRIEND_REQUEST_RESULT",
+                "from_code": code,
+                "from_name": my_name,
+                "result":    "accepted" if accepted else "declined",
+            })
+
 
 # ── Per-client thread ─────────────────────────────────────────────────────────
 

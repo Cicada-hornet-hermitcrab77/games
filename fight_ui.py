@@ -482,7 +482,7 @@ def server_settings_screen(userdata):
 
 def _make_lobby(userdata, timeout=6):
     """Connect to the fight_server and register. Returns LobbyClient or None."""
-    host = userdata.get("server_ip", "").strip() or "127.0.0.1"
+    host = _net.DEFAULT_SERVER_IP
     lc   = _net.LobbyClient()
     try:
         lc.connect(host, timeout=timeout)
@@ -576,52 +576,56 @@ def _wait_key():
                 return
 
 
-def _confirm_add_friend_screen(name, code):
-    """Show a confirmation prompt. Returns True if accepted."""
+def _respond_friend_request_screen(name, code):
+    """
+    Show an incoming friend request popup.
+    Returns True (accept) or False (decline).
+    """
     while True:
         clock.tick(FPS)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
+                if event.key in (pygame.K_y, pygame.K_RETURN):
                     return True
-                if event.key in (pygame.K_ESCAPE, pygame.K_q, pygame.K_n):
+                if event.key in (pygame.K_n, pygame.K_ESCAPE):
                     return False
         screen.fill(DARK)
-        t = font_large.render("Add friend?", True, CYAN)
-        screen.blit(t, (WIDTH//2 - t.get_width()//2, HEIGHT//3 - 50))
+        t = font_large.render("Friend Request!", True, CYAN)
+        screen.blit(t, (WIDTH//2 - t.get_width()//2, HEIGHT//3 - 60))
         n = font_medium.render(name, True, YELLOW)
         screen.blit(n, (WIDTH//2 - n.get_width()//2, HEIGHT//3 + 10))
         c = font_small.render(f"[{code}]", True, GRAY)
-        screen.blit(c, (WIDTH//2 - c.get_width()//2, HEIGHT//3 + 58))
-        h = font_tiny.render("ENTER to add   ESC to cancel", True, GRAY)
-        screen.blit(h, (WIDTH//2 - h.get_width()//2, HEIGHT//2 + 70))
+        screen.blit(c, (WIDTH//2 - c.get_width()//2, HEIGHT//3 + 55))
+        h = font_small.render("wants to be your friend", True, WHITE)
+        screen.blit(h, (WIDTH//2 - h.get_width()//2, HEIGHT//3 + 95))
+        hint = font_tiny.render("Y / ENTER = Accept     N / ESC = Decline", True, GRAY)
+        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT//2 + 80))
         pygame.display.flip()
 
 
-def _add_friend_flow(userdata, friends):
+def _add_friend_flow(userdata, friends, lobby):
     """
-    Look up a friend code on the server to verify it belongs to a real person.
-    Uses their actual server username — no manual nickname.
+    Send a friend request via the server and wait for the target to accept/decline.
+    lobby must already be connected and registered.
     Returns a status message string, or None on silent cancel.
     """
     code = _text_input_screen("Enter their 8-char friend code:", max_len=8)
     if not code:
         return None
-    code = code.upper().replace(" ", "").replace("-", "").replace(" ", "")
+    code = code.upper().replace(" ", "").replace("-", "")
     if len(code) != 8:
         return "Invalid code — friend codes are exactly 8 characters."
     if code == userdata.get("user_code", ""):
         return "That's your own code!"
     if not all(c in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" for c in code):
         return "Invalid code — letters and numbers only."
+    if code in friends:
+        return "Already friends!"
 
-    _draw_waiting("Looking up on server…", "connecting…")
-    lobby = _make_lobby(userdata, timeout=5)
-    if lobby is None:
-        return "Can't reach server. Set your server IP in Server Settings."
-
+    # Look up their name first
+    _draw_waiting("Checking if they're online…")
     lobby.lookup_friend(code)
     found_name = None
     deadline   = pygame.time.get_ticks() + 4000
@@ -634,15 +638,68 @@ def _add_friend_flow(userdata, friends):
                     found_name = m["username"]
         if found_name is not None:
             break
-    lobby.close()
 
     if found_name is None:
-        return "Code not found — that person must be online on the same server."
+        return "That person isn't online right now."
 
-    if _confirm_add_friend_screen(found_name, code):
-        friends[code] = {"name": found_name}
-        return f"Added {found_name}!"
-    return None
+    # Send the request and wait for their response
+    lobby.send_friend_request(code)
+
+    dots_t = 0
+    deadline = pygame.time.get_ticks() + 60_000   # 60 s timeout
+    while pygame.time.get_ticks() < deadline:
+        clock.tick(FPS)
+        lobby.poll()
+        # Check for result
+        for r_code, r_name, r_result in lobby.friend_req_results[:]:
+            if r_code == code:
+                lobby.friend_req_results.remove((r_code, r_name, r_result))
+                if r_result == "accepted":
+                    friends[code] = {"name": found_name}
+                    return f"{found_name} accepted your friend request!"
+                elif r_result == "declined":
+                    return f"{found_name} declined your friend request."
+                else:
+                    return f"{found_name} is not available."
+        # Also handle incoming requests while waiting
+        _process_incoming_requests(lobby, userdata, friends)
+
+        dots_t += 1
+        dots = "." * ((dots_t // 20) % 4)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                    return None
+        screen.fill(DARK)
+        tl = font_large.render("Friend Request Sent", True, CYAN)
+        screen.blit(tl, (WIDTH//2 - tl.get_width()//2, HEIGHT//3 - 40))
+        wl = font_medium.render(f"Waiting for {found_name}{dots}", True, WHITE)
+        screen.blit(wl, (WIDTH//2 - wl.get_width()//2, HEIGHT//2 - 10))
+        hl = font_tiny.render("ESC to cancel", True, GRAY)
+        screen.blit(hl, (WIDTH//2 - hl.get_width()//2, HEIGHT - 28))
+        pygame.display.flip()
+        if not lobby.connected:
+            break
+
+    return "No response — they may have gone offline."
+
+
+def _process_incoming_requests(lobby, userdata, friends):
+    """Check lobby for incoming friend requests and show accept/decline popup."""
+    if not lobby or not lobby.connected:
+        return
+    while lobby.incoming_friend_reqs:
+        fc, fn = lobby.incoming_friend_reqs.pop(0)
+        if fc in friends:
+            lobby.respond_friend_request(fc, True)   # already friends — auto-accept
+            continue
+        accepted = _respond_friend_request_screen(fn, fc)
+        lobby.respond_friend_request(fc, accepted)
+        if accepted:
+            friends[fc] = {"name": fn}
+            _net.save_userdata(userdata)
 
 
 def friends_screen(userdata):
@@ -653,15 +710,28 @@ def friends_screen(userdata):
     msg_t     = 0
     msg_col   = GREEN
 
+    # Keep a live server connection so incoming friend requests can arrive
+    _draw_waiting("Connecting to server…")
+    lobby = _make_lobby(userdata, timeout=4)
+
     while True:
         clock.tick(FPS)
         keys_list = list(friends.keys())
 
+        # Poll server — handle incoming friend requests
+        if lobby and lobby.connected:
+            lobby.poll()
+            if lobby.incoming_friend_reqs:
+                _process_incoming_requests(lobby, userdata, friends)
+                msg = "Friend list updated!"; msg_t = 150; msg_col = GREEN
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                if lobby: lobby.close()
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                    if lobby: lobby.close()
                     _net.save_userdata(userdata); return
                 if keys_list:
                     if event.key in (pygame.K_UP, pygame.K_w):
@@ -678,11 +748,15 @@ def friends_screen(userdata):
                         fn = friends[fc].get("name", fc)
                         friend_chat_screen(userdata, fc, fn)
                 if event.key == pygame.K_a:
-                    result = _add_friend_flow(userdata, friends)
+                    if lobby and lobby.connected:
+                        result = _add_friend_flow(userdata, friends, lobby)
+                    else:
+                        result = "Not connected to server."
                     if result:
-                        msg_col = GREEN if result.startswith("Added") else RED
-                        msg = result; msg_t = 180
-                        if result.startswith("Added"):
+                        accepted = "accepted" in result or "Added" in result
+                        msg_col = GREEN if accepted else RED
+                        msg = result; msg_t = 200
+                        if accepted:
                             _net.save_userdata(userdata)
 
         screen.fill(DARK)
@@ -690,7 +764,13 @@ def friends_screen(userdata):
         screen.blit(title, (WIDTH//2 - title.get_width()//2, 20))
 
         own = font_small.render(f"Your code:  {user_code}", True, (100, 220, 100))
-        screen.blit(own, (WIDTH//2 - own.get_width()//2, 72))
+        screen.blit(own, (WIDTH//2 - own.get_width()//2, 68))
+
+        srv_col = (80, 200, 80) if (lobby and lobby.connected) else (200, 60, 60)
+        srv_lbl = font_tiny.render(
+            "● Server connected" if (lobby and lobby.connected)
+            else "● Server offline — friend requests disabled", True, srv_col)
+        screen.blit(srv_lbl, (WIDTH//2 - srv_lbl.get_width()//2, 96))
 
         if not friends:
             em = font_medium.render("No friends yet.  Press A to add one.", True, GRAY)
@@ -701,7 +781,7 @@ def friends_screen(userdata):
                 col  = YELLOW if i == sel else WHITE
                 row  = font_small.render(
                     f"{'► ' if i == sel else '  '}{name}   [{code}]", True, col)
-                screen.blit(row, (80, 120 + i * 36))
+                screen.blit(row, (80, 126 + i * 36))
 
         if msg_t > 0:
             ms = font_small.render(msg, True, msg_col)
@@ -1002,20 +1082,30 @@ def online_menu(userdata):
          or ('join',       (net, p2_char, p1_char, stage))
          or None on cancel.
     """
-    opts = ["QUICK MATCH", "HOST GAME", "JOIN GAME",
-            "FRIENDS", "SET USERNAME", "SERVER SETTINGS"]
+    opts = ["QUICK MATCH", "HOST GAME", "JOIN GAME", "FRIENDS", "SET USERNAME"]
     sel  = 0
+
+    # Keep a background lobby connection for incoming friend requests
+    _lobby_bg = _make_lobby(userdata, timeout=3)
 
     while True:
         clock.tick(FPS)
         user_code = userdata.get("user_code", "????????")
-        server_ip = userdata.get("server_ip", "") or "localhost"
+
+        # Poll for incoming friend requests while idle on this menu
+        if _lobby_bg and _lobby_bg.connected:
+            _lobby_bg.poll()
+            if _lobby_bg.incoming_friend_reqs:
+                friends = userdata.setdefault("friends", {})
+                _process_incoming_requests(_lobby_bg, userdata, friends)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                if _lobby_bg: _lobby_bg.close()
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                    if _lobby_bg: _lobby_bg.close()
                     return None
                 if event.key in (pygame.K_UP, pygame.K_w):
                     sel = (sel - 1) % len(opts)
@@ -1023,42 +1113,50 @@ def online_menu(userdata):
                     sel = (sel + 1) % len(opts)
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     if sel == 0:   # QUICK MATCH
+                        if _lobby_bg: _lobby_bg.close()
                         result = matchmaking_screen(userdata)
                         if result:
                             return 'quickmatch', result
+                        _lobby_bg = _make_lobby(userdata, timeout=3)
                     elif sel == 1:  # HOST GAME
+                        if _lobby_bg: _lobby_bg.close()
                         result = host_lobby(userdata)
                         if result:
                             return 'host', result
+                        _lobby_bg = _make_lobby(userdata, timeout=3)
                     elif sel == 2:  # JOIN GAME
+                        if _lobby_bg: _lobby_bg.close()
                         result = join_lobby(userdata)
                         if result:
                             return 'join', result
+                        _lobby_bg = _make_lobby(userdata, timeout=3)
                     elif sel == 3:  # FRIENDS
+                        if _lobby_bg: _lobby_bg.close()
                         friends_screen(userdata)
+                        _lobby_bg = _make_lobby(userdata, timeout=3)
                     elif sel == 4:  # SET USERNAME
                         set_username_screen(userdata)
-                    elif sel == 5:  # SERVER SETTINGS
-                        server_settings_screen(userdata)
 
         screen.fill(DARK)
         title = font_large.render("ONLINE PLAY", True, CYAN)
         screen.blit(title, (WIDTH//2 - title.get_width()//2, 18))
 
-        # User identity info
+        # User identity
         name_lbl = font_small.render(
-            f"You: {userdata.get('username', 'Player')}   code: {user_code}", True, (100, 220, 100))
+            f"You: {userdata.get('username', 'Player')}   code: {user_code}",
+            True, (100, 220, 100))
         screen.blit(name_lbl, (WIDTH//2 - name_lbl.get_width()//2, 72))
-        srv_lbl = font_tiny.render(f"Server: {server_ip}", True, GRAY)
+        srv_col = (80, 200, 80) if (_lobby_bg and _lobby_bg.connected) else (160, 60, 60)
+        srv_lbl = font_tiny.render(
+            "● Connected" if (_lobby_bg and _lobby_bg.connected) else "● Server offline",
+            True, srv_col)
         screen.blit(srv_lbl, (WIDTH//2 - srv_lbl.get_width()//2, 98))
 
         for i, opt in enumerate(opts):
-            # QUICK MATCH gets special highlight
-            base_col = CYAN if i == 0 else WHITE
-            col = (CYAN if i == sel else base_col) if i > 0 else (
-                  (0, 255, 180) if i == sel else (0, 200, 140))
+            col = ((0, 255, 180) if i == sel else (0, 200, 140)) if i == 0 else \
+                  (CYAN if i == sel else WHITE)
             r = font_medium.render(("► " if i == sel else "  ") + opt, True, col)
-            screen.blit(r, (WIDTH//2 - r.get_width()//2, 132 + i * 52))
+            screen.blit(r, (WIDTH//2 - r.get_width()//2, 130 + i * 56))
 
         hint = font_tiny.render("↑/↓  ENTER to select   ESC = back", True, GRAY)
         screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 28))
