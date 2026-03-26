@@ -21,7 +21,7 @@ import urllib.request
 
 PORT               = 7777
 SERVER_PORT        = 7779          # fight_server.py default port
-DEFAULT_SERVER_IP  = "127.0.0.1"  # ← change this to your server's public IP
+DEFAULT_SERVER_IP  = "98.45.178.46"  # public server — run fight_server.py here
 USERDATA_FILE      = os.path.expanduser("~/.fight_userdata.json")
 
 _B36_ID = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
