@@ -12,7 +12,8 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             Spring, SnakeHook, Pumpkin, FallingSkull,
                             JungleSnake, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall, Whip, HotPotato,
-                            FallingPot, RollingCoin, FallingMerlin)
+                            FallingPot, RollingCoin, FallingMerlin,
+                            FlyingBaseball, FlyingBat)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu
 
@@ -1382,6 +1383,10 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     rain_timer     = 0   # frames remaining of powerup rain
     rain_cd        = 0
     rain_type      = None  # 'heal' or 'poison'
+    baseballs      = []
+    flying_bats    = []
+    baseball_timer = 0
+    baseball_cd    = 0   # cooldown between ball/bat spawns
     _chat_done     = 0   # index into net.chat_log already processed for easter eggs
 
     game_over    = False
@@ -1473,6 +1478,8 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                 elif kw == "kevin=bad":
                     rain_timer = FPS * 8
                     rain_type  = 'poison'
+                elif kw == "strike":
+                    baseball_timer = FPS * 15   # 15 seconds of baseball chaos
                 _chat_done += 1
 
         if is_host and not game_over:
@@ -1660,6 +1667,28 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         rpu.picked_up = True
             rain_powerups = [rpu for rpu in rain_powerups if not rpu.picked_up]
 
+            # Baseball mode (strike)
+            if baseball_timer > 0:
+                baseball_timer -= 1
+                if baseball_cd > 0:
+                    baseball_cd -= 1
+                else:
+                    baseballs.append(FlyingBaseball())
+                    if random.random() < 0.35:
+                        flying_bats.append(FlyingBat())
+                    baseball_cd = 80
+            for bb in baseballs:
+                for f in bb.update(p1, p2):
+                    f.hp = max(0, f.hp - bb.DAMAGE)
+                    f.flash_timer = 12
+            baseballs = [bb for bb in baseballs if bb.alive]
+            for fb in flying_bats:
+                for f in fb.update(p1, p2):
+                    f.hp = max(0, f.hp - fb.DAMAGE)
+                    f.flash_timer = 18
+                    f.knockback = fb._dir * 10
+            flying_bats = [fb for fb in flying_bats if fb.alive]
+
             # Laser eyes
             for shooter, victim in [(p1, p2), (p2, p1)]:
                 if (shooter.char.get("laser_eyes") and shooter.laser_active > 0
@@ -1760,9 +1789,34 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
         for c   in rolling_coins:  c.draw(screen)
         for m   in falling_merlins: m.draw(screen)
         for rpu in rain_powerups:  rpu.draw(screen)
+        for bb  in baseballs:      bb.draw(screen)
+        for fb  in flying_bats:    fb.draw(screen)
 
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen)
+
+        # Baseball caps on both fighters during strike mode
+        if baseball_timer > 0:
+            _CAP_BLUE  = (20, 60, 180)
+            _CAP_DARK  = (10, 35, 120)
+            for f in (p1, p2):
+                hx = int(f.x)
+                hy = int(f.y) - 118   # head centre y  (HEAD_R=18, NECK=5, BODY=50, LEG=45)
+                hd = 18
+                # Crown — dome covering top of head
+                pygame.draw.ellipse(screen, _CAP_BLUE,
+                                    (hx - hd, hy - hd - 8, hd * 2, hd + 10))
+                # Brim — flat rectangle extending in facing direction
+                if f.facing == 1:
+                    brim_rect = (hx - hd + 4, hy - 2, hd * 2 + 14, 7)
+                else:
+                    brim_rect = (hx - hd - 14, hy - 2, hd * 2 + 14, 7)
+                pygame.draw.rect(screen, _CAP_BLUE, brim_rect, border_radius=3)
+                # Cap button on top
+                pygame.draw.circle(screen, _CAP_DARK, (hx, hy - hd - 6), 3)
+                # Outline
+                pygame.draw.ellipse(screen, _CAP_DARK,
+                                    (hx - hd, hy - hd - 8, hd * 2, hd + 10), 2)
 
         # Bubble shields
         for f in (p1, p2):

@@ -2228,3 +2228,132 @@ class FallingMerlin:
                              (star_cx, star_cy), (p2x, p2y), 1)
 
         surface.blit(tmp, (cx - tx, cy - ty))
+
+
+# ---------------------------------------------------------------------------
+# FlyingBaseball  (strike easter egg)
+# ---------------------------------------------------------------------------
+
+class FlyingBaseball:
+    RADIUS   = 10
+    DAMAGE   = 8
+    HIT_CD   = 45
+    LIFETIME = 840   # 14 seconds per ball
+
+    def __init__(self):
+        self.x    = float(random.randint(80, WIDTH - 80))
+        self.y    = float(random.randint(40, 180))
+        speed     = random.uniform(5, 9)
+        self.vx   = speed * random.choice([-1, 1])
+        self.vy   = random.uniform(-2, 3)
+        self.spin = 0.0
+        self.age  = 0
+        self.alive = True
+        self._cds  = {}
+
+    def update(self, *fighters):
+        self.age  += 1
+        self.vy    = min(self.vy + 0.28, 13)
+        self.x    += self.vx
+        self.y    += self.vy
+        self.spin += 0.14
+
+        if self.x < self.RADIUS:
+            self.x = float(self.RADIUS);      self.vx = abs(self.vx)
+        elif self.x > WIDTH - self.RADIUS:
+            self.x = float(WIDTH - self.RADIUS); self.vx = -abs(self.vx)
+
+        if self.y > GROUND_Y - self.RADIUS:
+            self.y  = float(GROUND_Y - self.RADIUS)
+            self.vy = -abs(self.vy) * 0.70
+            if abs(self.vy) < 1.5:
+                self.vy = -random.uniform(3, 5)
+
+        for fid in list(self._cds):
+            if self._cds[fid] > 0:
+                self._cds[fid] -= 1
+
+        hits = []
+        for f in fighters:
+            fid = id(f)
+            if self._cds.get(fid, 0) == 0:
+                if math.hypot(self.x - f.x, self.y - (f.y - 60)) < self.RADIUS + 26:
+                    hits.append(f)
+                    self._cds[fid] = self.HIT_CD
+
+        if self.age >= self.LIFETIME:
+            self.alive = False
+        return hits
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        r = self.RADIUS
+        pygame.draw.circle(surface, (238, 238, 225), (cx, cy), r)
+        pygame.draw.circle(surface, (180, 175, 160), (cx, cy), r, 1)
+        # Red stitches — two rows of dots curved around the ball
+        for side in (-1, 1):
+            for i in range(5):
+                t  = self.spin + i * 0.38
+                sx = cx + int(side * (r - 2) * 0.55 * math.sin(t))
+                sy = cy + int((r - 3) * math.cos(t) * 0.45)
+                sx = max(0, min(WIDTH - 1, sx))
+                sy = max(0, min(HEIGHT - 1, sy))
+                pygame.draw.circle(surface, (200, 25, 25), (sx, sy), 1)
+
+
+# ---------------------------------------------------------------------------
+# FlyingBat  (strike easter egg)
+# ---------------------------------------------------------------------------
+
+class FlyingBat:
+    DAMAGE = 18
+    SPEED  = 9
+    HIT_CD = 55
+
+    def __init__(self):
+        self._dir = random.choice([-1, 1])          # −1 = enters from right
+        self.x    = float(-40 if self._dir == 1 else WIDTH + 40)
+        self.y    = float(random.randint(GROUND_Y - 220, GROUND_Y - 70))
+        self.vx   = self.SPEED * self._dir
+        self.spin = 0.0
+        self.alive = True
+        self._cds  = {}
+
+    def update(self, *fighters):
+        self.x   += self.vx
+        self.spin += 0.18
+
+        if self.x < -60 or self.x > WIDTH + 60:
+            self.alive = False
+            return []
+
+        for fid in list(self._cds):
+            if self._cds[fid] > 0:
+                self._cds[fid] -= 1
+
+        hits = []
+        for f in fighters:
+            fid = id(f)
+            if self._cds.get(fid, 0) == 0:
+                if math.hypot(self.x - f.x, self.y - (f.y - 60)) < 38:
+                    hits.append(f)
+                    self._cds[fid] = self.HIT_CD
+        return hits
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        cos_a  = math.cos(self.spin)
+        sin_a  = math.sin(self.spin)
+        # Bat = handle (thin) → barrel (thick), 52 px long
+        dx = int(cos_a * 26); dy = int(sin_a * 26)
+        handle = (cx - dx, cy - dy)
+        barrel = (cx + dx, cy + dy)
+        pygame.draw.line(surface, (150, 90, 40),  handle, barrel, 5)
+        pygame.draw.line(surface, (100, 55, 15),  handle, barrel, 5)
+        pygame.draw.circle(surface, (175, 110, 55), barrel, 9)
+        pygame.draw.circle(surface, (120, 70, 25),  barrel, 9, 2)
+        # Grip tape (dark lines near handle end)
+        for t in (0.15, 0.28):
+            gx = cx - dx + int(cos_a * 52 * t)
+            gy = cy - dy + int(sin_a * 52 * t)
+            pygame.draw.circle(surface, (40, 20, 10), (gx, gy), 3)
