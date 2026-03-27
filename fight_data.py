@@ -219,6 +219,9 @@ CHARACTERS = [
     {"name": "Chameleon", "color": (60, 180, 80), "speed": 6, "jump": -14,
      "punch_dmg": 9, "kick_dmg": 11, "max_hp": 105, "block": 6,
      "desc": "Blends into the background — nearly invisible", "double_jump": False, "chameleon": True},
+     {"name": "omuS", "color": WHITE, "speed": 8, "jump": -14,
+     "punch_dmg": 700, "kick_dmg": 700, "max_hp": 1, "block": 0,
+     "desc": "Don't you recognize him?",   "double_jump": True}
 ]
 
 POWERUPS = [
