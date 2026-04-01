@@ -946,6 +946,229 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         # Outline
         pygame.draw.rect(surface, (160, 165, 180), (hd_x, hd_y, head_w, head_h), max(1, int(3*s)), border_radius=max(3, int(6*s)))
 
+    elif char_name == "Kitsune":
+        # Fox ears — two pointed triangles atop the head
+        for ear_side in (-1, 1):
+            ear_base_x = hx + ear_side * int(hd * 0.55)
+            ear_tip_x  = hx + ear_side * int(hd * 0.9)
+            ear_tip_y  = hy - int(hd * 2.1)
+            ear_base_y = hy - int(hd * 0.9)
+            pygame.draw.polygon(surface, (220, 100, 0),
+                                [(ear_base_x, ear_base_y),
+                                 (ear_tip_x,  ear_tip_y),
+                                 (ear_base_x + ear_side * int(hd * 0.15), ear_tip_y + int(hd * 0.7))])
+            pygame.draw.polygon(surface, (255, 180, 80),
+                                [(ear_base_x, ear_base_y),
+                                 (ear_tip_x,  ear_tip_y),
+                                 (ear_base_x + ear_side * int(hd * 0.15), ear_tip_y + int(hd * 0.7))], max(1, int(2*s)))
+        # Multiple fox tails (fanned behind)
+        for ti in range(3):
+            tail_ang = math.radians(90 + (ti - 1) * 30)
+            tail_base = (wx - facing * int(hd * 0.5), wy + int(6 * s))
+            tail_mid  = (tail_base[0] - facing * int(30 * s),
+                         tail_base[1] - int(22 * s) + ti * int(8 * s))
+            tail_tip  = (tail_base[0] - facing * int(50 * s),
+                         tail_mid[1]  - int(20 * s))
+            pygame.draw.line(surface, (235, 120, 20), tail_base, tail_mid, max(3, int(5 * s)))
+            pygame.draw.line(surface, (235, 120, 20), tail_mid,  tail_tip, max(2, int(3 * s)))
+            pygame.draw.circle(surface, (255, 240, 220), tail_tip, max(2, int(4 * s)))
+
+    elif char_name == "Medusa":
+        t = pygame.time.get_ticks()
+        # Snake hair — 6 snakes waving from the head
+        for si in range(6):
+            base_ang = si * 60
+            base_x   = hx + int(math.cos(math.radians(base_ang)) * hd)
+            base_y   = hy + int(math.sin(math.radians(base_ang)) * hd * 0.6) - int(hd * 0.3)
+            wave     = math.sin(t * 0.006 + si * 1.0)
+            mid_x    = base_x + int(math.cos(math.radians(base_ang + 20)) * int(14 * s))
+            mid_y    = base_y - int(14 * s) + int(wave * 4 * s)
+            tip_x    = mid_x + int(math.cos(math.radians(base_ang - 10)) * int(10 * s))
+            tip_y    = mid_y - int(10 * s)
+            pygame.draw.line(surface, (40, 160, 40),  (base_x, base_y), (mid_x, mid_y), max(2, int(3 * s)))
+            pygame.draw.line(surface, (40, 160, 40),  (mid_x, mid_y),   (tip_x, tip_y), max(2, int(2 * s)))
+            # Forked tongue
+            pygame.draw.line(surface, (220, 30, 30),
+                             (tip_x, tip_y),
+                             (tip_x + int(facing * 3 * s), tip_y - int(3 * s)), 1)
+            pygame.draw.line(surface, (220, 30, 30),
+                             (tip_x, tip_y),
+                             (tip_x - int(facing * 2 * s), tip_y - int(3 * s)), 1)
+        # Glowing green eyes
+        pulse = 0.5 + 0.5 * math.sin(t * 0.01)
+        er = max(3, int((4 + 3 * pulse) * s))
+        for ex_off in (-int(hd * 0.38), int(hd * 0.38)):
+            ex, ey = hx + ex_off, hy - int(hd * 0.1)
+            pygame.draw.circle(surface, (0, int(160 + 80 * pulse), 0), (ex, ey), er)
+            pygame.draw.circle(surface, (180, 255, 130), (ex, ey), max(1, er - 2))
+
+    elif char_name == "Omus":
+        # Inverted sumo: small spiked hair + lightning bolt on chest (speed symbol)
+        pygame.draw.line(surface, (30, 80, 255), (hx, hy - hd), (hx, hy - int(hd * 1.9)), max(2, int(3 * s)))
+        pygame.draw.line(surface, (30, 80, 255), (hx - int(hd * 0.4), hy - int(hd * 1.5)),
+                         (hx + int(hd * 0.4), hy - int(hd * 1.5)), max(2, int(3 * s)))
+        # Lightning bolt on chest
+        bolt = [(sx + int(facing * 4 * s), sy + int(4 * s)),
+                (sx - int(facing * 4 * s), sy + int(14 * s)),
+                (sx + int(facing * 2 * s), sy + int(14 * s)),
+                (sx - int(facing * 4 * s), sy + int(24 * s))]
+        pygame.draw.lines(surface, (100, 160, 255), False, bolt, max(1, int(2 * s)))
+
+    elif char_name == "The Creator":
+        # Construction hard hat (yellow)
+        hat_w = int(hd * 2.2)
+        hat_h = int(hd * 0.65)
+        pygame.draw.ellipse(surface, (240, 200, 20),
+                            (hx - hat_w // 2, hy - hd - hat_h + int(3 * s), hat_w, hat_h))
+        pygame.draw.rect(surface, (240, 200, 20),
+                         (hx - int(hat_w * 0.55), hy - hd - int(4 * s), int(hat_w * 1.1), int(5 * s)))
+        pygame.draw.rect(surface, (180, 140, 10),
+                         (hx - int(hat_w * 0.55), hy - hd - int(4 * s), int(hat_w * 1.1), int(5 * s)), 1)
+        # Small block held in forward hand
+        bsz = max(5, int(10 * s))
+        pygame.draw.rect(surface, (180, 120, 50), (rhx - bsz // 2, rhy - bsz // 2, bsz, bsz))
+        pygame.draw.rect(surface, (220, 160, 80), (rhx - bsz // 2, rhy - bsz // 2, bsz, bsz), 1)
+
+    elif char_name == "Disorientated":
+        t = pygame.time.get_ticks()
+        # Spinning dizzy stars above head
+        for i in range(4):
+            ang = math.radians(t * 0.2 + i * 90)
+            sx2 = hx + int(math.cos(ang) * int(hd * 1.3))
+            sy2 = hy - int(hd * 1.5) + int(math.sin(ang) * int(hd * 0.5))
+            pygame.draw.circle(surface, (255, 220, 50), (sx2, sy2), max(2, int(4 * s)))
+            pygame.draw.circle(surface, (255, 100, 200), (sx2, sy2), max(1, int(2 * s)))
+        # Googly / spiral eyes
+        for ex_off in (-int(hd * 0.38), int(hd * 0.38)):
+            ex, ey = hx + ex_off, hy - int(hd * 0.1)
+            pygame.draw.circle(surface, (255, 255, 255), (ex, ey), max(3, int(5 * s)))
+            spiral_a = math.radians(t * 0.4)
+            px2 = ex + int(math.cos(spiral_a) * int(2 * s))
+            py2 = ey + int(math.sin(spiral_a) * int(2 * s))
+            pygame.draw.circle(surface, (80, 0, 80), (px2, py2), max(1, int(2 * s)))
+
+    elif char_name == "Janitor":
+        # Mop bucket cap (grey baseball cap)
+        cap_brim = int(hd * 1.6)
+        pygame.draw.ellipse(surface, (140, 140, 120),
+                            (hx - cap_brim // 2, hy - hd - int(4 * s), cap_brim, int(7 * s)))
+        pygame.draw.ellipse(surface, (160, 160, 140),
+                            (hx - int(hd * 0.75), hy - hd - int(hd * 0.6),
+                             int(hd * 1.5), int(hd * 0.75)))
+        # Mop in rear hand (trailing side)
+        mp_x = lhx
+        mp_y = lhy
+        # Handle
+        pygame.draw.line(surface, (160, 110, 60),
+                         (mp_x, mp_y), (mp_x - facing * int(8 * s), mp_y + int(50 * s)),
+                         max(2, int(3 * s)))
+        # Mop head (stringy)
+        mop_bot = (mp_x - facing * int(8 * s), mp_y + int(50 * s))
+        for mi in range(5):
+            mop_off = (mi - 2) * int(4 * s)
+            pygame.draw.line(surface, (220, 220, 220),
+                             mop_bot,
+                             (mop_bot[0] + mop_off, mop_bot[1] + int(12 * s)),
+                             max(1, int(2 * s)))
+        # Blue overalls stripe on chest
+        pygame.draw.line(surface, (80, 100, 200),
+                         (sx - int(hd * 0.3), sy + int(6 * s)),
+                         (sx + int(hd * 0.3), sy + int(6 * s)),
+                         max(2, int(4 * s)))
+
+    elif char_name == "Riptide":
+        # Water droplet halo around head
+        t = pygame.time.get_ticks()
+        for di in range(5):
+            a    = math.radians(t * 0.15 + di * 72)
+            dx2  = hx + int(math.cos(a) * int(hd * 1.6))
+            dy2  = hy + int(math.sin(a) * int(hd * 1.2)) - int(hd * 0.3)
+            pygame.draw.circle(surface, (0, 160, 220), (dx2, dy2), max(2, int(4 * s)))
+            pygame.draw.circle(surface, (180, 240, 255), (dx2, dy2), max(1, int(2 * s)))
+        # Wave pattern on chest
+        for wi in range(3):
+            wx2 = sx - int(hd * 0.5) + wi * int(hd * 0.5)
+            wy2 = sy + int(10 * s)
+            wy3 = sy + int(18 * s)
+            wave_off = int(math.sin(t * 0.01 + wi) * 3 * s)
+            pygame.draw.arc(surface, (0, 200, 255),
+                            (wx2 - int(5 * s), wy2 + wave_off - int(4 * s),
+                             int(10 * s), int(8 * s)),
+                            math.radians(0), math.radians(180), max(1, int(2 * s)))
+
+    elif char_name == "Whirlpool":
+        t = pygame.time.get_ticks()
+        # Spinning swirl rings around the body — speed reflects momentum
+        for ri in range(3):
+            ring_r   = int((hd * 1.4 + ri * hd * 0.5) * s)
+            ring_ang = math.radians(t * (0.3 + ri * 0.15) + ri * 120)
+            dot_x    = hx + int(math.cos(ring_ang) * ring_r)
+            dot_y    = wy - int(hd) + int(math.sin(ring_ang) * int(ring_r * 0.5))
+            pygame.draw.circle(surface, (0, 140 + ri * 30, 200), (dot_x, dot_y),
+                               max(2, int((4 - ri) * s)))
+        # Water swirl on forehead
+        for si in range(4):
+            sa = math.radians(t * 0.25 + si * 90)
+            sx2 = hx + int(math.cos(sa) * int(hd * 0.6))
+            sy2 = hy - int(hd * 0.3) + int(math.sin(sa) * int(hd * 0.4))
+            pygame.draw.circle(surface, (0, 180, 240), (sx2, sy2), max(1, int(2 * s)))
+
+    elif char_name == "Shadowfax":
+        # Flowing silver mane from head
+        t = pygame.time.get_ticks()
+        mane_pts = [(hx - facing * int(hd * 0.4), hy - int(hd * 0.8))]
+        for mi in range(5):
+            wave = math.sin(t * 0.008 + mi * 0.8) * int(6 * s)
+            mane_pts.append((hx - facing * int((hd * 0.3 + mi * hd * 0.35) * s),
+                             hy - int(hd * 0.8) + mi * int(8 * s) + int(wave)))
+        if len(mane_pts) >= 2:
+            pygame.draw.lines(surface, (200, 200, 240), False, mane_pts, max(2, int(3 * s)))
+            pygame.draw.lines(surface, (255, 255, 255), False, mane_pts[:3], max(1, int(2 * s)))
+        # Glowing speed aura (faint rings)
+        for ri in range(2):
+            ring_r = int(hd * (1.2 + ri * 0.5))
+            pygame.draw.circle(surface, (180, 180, 220),
+                               (hx, hy), ring_r, max(1, int(s)))
+
+    elif char_name == "ASCII":
+        # Keyboard key decorations at body joints
+        key_font = font_tiny
+        _key_positions = [
+            (hx,  hy - int(hd * 0.1), '@'),
+            (sx,  sy + int(6 * s),    '#'),
+            (wx,  wy,                  '$'),
+            (lhx, lhy,                '<'),
+            (rhx, rhy,                '>'),
+        ]
+        for kx, ky, kch in _key_positions:
+            kr = max(5, int(8 * s))
+            # Key background (white rounded rect)
+            pygame.draw.rect(surface, (230, 230, 230),
+                             (kx - kr, ky - kr, kr * 2, kr * 2),
+                             border_radius=max(1, int(2 * s)))
+            pygame.draw.rect(surface, (100, 100, 100),
+                             (kx - kr, ky - kr, kr * 2, kr * 2),
+                             max(1, int(s)), border_radius=max(1, int(2 * s)))
+            # Key character
+            txt = key_font.render(kch, True, (20, 20, 20))
+            surface.blit(txt, (kx - txt.get_width() // 2, ky - txt.get_height() // 2))
+        # Floating random key chars orbiting the body
+        t = pygame.time.get_ticks()
+        orbit_keys = ['Q','W','E','R','A','S','D','F','Z','X','C','V']
+        for oi, ok in enumerate(orbit_keys[:4]):
+            oa = math.radians(t * 0.12 + oi * 90)
+            ox2 = hx + int(math.cos(oa) * int(hd * 2.2))
+            oy2 = wy - int(hd) + int(math.sin(oa) * int(hd * 1.2))
+            okr = max(4, int(6 * s))
+            pygame.draw.rect(surface, (200, 200, 200),
+                             (ox2 - okr, oy2 - okr, okr * 2, okr * 2),
+                             border_radius=max(1, int(2 * s)))
+            pygame.draw.rect(surface, (80, 80, 80),
+                             (ox2 - okr, oy2 - okr, okr * 2, okr * 2),
+                             1, border_radius=max(1, int(2 * s)))
+            otxt = key_font.render(ok, True, (10, 10, 10))
+            surface.blit(otxt, (ox2 - otxt.get_width() // 2, oy2 - otxt.get_height() // 2))
+
 
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color

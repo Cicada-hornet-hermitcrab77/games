@@ -242,6 +242,14 @@ class Fighter:
         self.whip_cooldown      = 0         # cooldown between whip attacks
         self.poop_timer         = 0         # Everything: frames of poop powerup remaining
         self.poop_cd            = 0         # cooldown between poop drops
+        # --- new characters ---
+        self.kitsune_timer      = FPS * 9 if char_data.get("kitsune_barrage") else 0
+        self.pending_kitsune    = False     # Kitsune: fire 9-direction barrage this frame
+        self.pending_water_ball = False     # Riptide: spawn a water ball this frame
+        self.pending_creator_platform = False  # The Creator: spawn a timed platform this frame
+        self.creator_cd         = 0         # cooldown between platform creations
+        self.run_streak         = 0         # Whirlpool: consecutive running frames
+        self.smoke_particles    = []        # Shadowfax: [[x, y, life, max_life], ...]
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -361,6 +369,37 @@ class Fighter:
                 self.boomerang_cooldown = 240   # 4s cooldown after expiry
         elif self.boomerang_cooldown > 0:
             self.boomerang_cooldown -= 1
+        # Kitsune auto barrage — fires every 9 seconds
+        if self.char.get("kitsune_barrage"):
+            if self.kitsune_timer > 0:
+                self.kitsune_timer -= 1
+            else:
+                self.pending_kitsune = True
+                self.kitsune_timer   = FPS * 9
+        # Freeze laser (Medusa) — same timer logic as laser_eyes
+        if self.char.get("freeze_laser"):
+            if self.laser_active > 0:
+                self.laser_active -= 1
+                if self.laser_hit_cd > 0:
+                    self.laser_hit_cd -= 1
+            elif self.laser_fire_cd > 0:
+                self.laser_fire_cd -= 1
+            else:
+                self.laser_active  = FPS * 2
+                self.laser_fire_cd = FPS * 10
+                self.laser_hit_cd  = 0
+        # The Creator platform cooldown
+        if self.creator_cd > 0:
+            self.creator_cd -= 1
+        # Janitor: instantly clear all negative status effects
+        if self.char.get("immune"):
+            self.poison_frames = 0; self.fire_frames  = 0
+            self.freeze_frames = 0; self.shock_frames = 0
+            self.squish_frames = 0; self.confuse_frames = 0
+        # Shadowfax smoke particle aging
+        self.smoke_particles = [p for p in self.smoke_particles if p[2] > 0]
+        for p in self.smoke_particles:
+            p[2] -= 1
 
     def update(self, keys, other, platforms=()):
         self.tick_powerups()
@@ -454,9 +493,21 @@ class Fighter:
         spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
         if self._berserker_active:
             spd *= 1.5
+        # Whirlpool momentum: speed scales with consecutive running frames
+        if self.char.get("momentum") and self.run_streak > 0:
+            spd *= 1.0 + min(self.run_streak, 240) / 240.0 * 1.5
 
-        duck_key  = self.controls.get('duck')
-        block_key = self.controls.get('block')
+        # Disorientated: build swapped effective controls (W=S, A=D, punch=kick)
+        if self.char.get("disorientated") and self.controls:
+            _ec = dict(left=self.controls.get('right'), right=self.controls.get('left'),
+                       jump=self.controls.get('duck'),  duck=self.controls.get('jump'),
+                       punch=self.controls.get('kick'), kick=self.controls.get('punch'),
+                       block=self.controls.get('block'))
+        else:
+            _ec = self.controls
+
+        duck_key  = _ec.get('duck')  if _ec else None
+        block_key = _ec.get('block') if _ec else None
         self.ducking  = (bool(duck_key  and keys[duck_key])  and
                          self.on_ground and self.hurt_timer == 0 and not self.attacking)
         self.blocking = (bool(block_key and keys[block_key]) and
@@ -475,7 +526,7 @@ class Fighter:
             self.dash_dir = 0
 
         if self.hurt_timer == 0 and self.freeze_frames == 0 and not self.ducking and not self.blocking:
-            ctrl = self.controls
+            ctrl = _ec   # use effective controls (swapped if Disorientated)
             can_atk = not self.attacking or self.action in ('idle', 'walk', 'jump')
             # Confuse: swap left/right keys
             _lk = ctrl['right'] if self.confuse_frames > 0 else ctrl['left']
@@ -519,6 +570,11 @@ class Fighter:
                 if self.char.get("ink_kick") and self.ink_clone_cooldown == 0:
                     self.pending_ink_clone  = True
                     self.ink_clone_cooldown = FPS * 5  # 5-second cooldown
+                if self.char.get("water_kick"):
+                    self.pending_water_ball = True
+                if self.char.get("creator_kick") and self.creator_cd == 0:
+                    self.pending_creator_platform = True
+                    self.creator_cd = FPS * 3   # 3-second cooldown
             elif keys[ctrl['jump']]:
                 if self.wall_cling_active:
                     # wall jump: push away from wall and launch upward
@@ -550,6 +606,11 @@ class Fighter:
                     self.action = 'walk'
                     self.walk_t = (self.walk_t + 0.12) % 1.0
                     self.action_t = self.walk_t
+                if self.char.get("momentum"):
+                    self.run_streak = min(240, self.run_streak + 1)
+                if self.char.get("smoke_trail") and random.random() < 0.5:
+                    self.smoke_particles.append([self.x + random.randint(-8, 8),
+                                                 self.y - 40 + random.randint(-15, 15), 42, 42])
             elif keys[_rk]:
                 # Double-tap right = dash right
                 if not self._prev_right and self.dash_cd == 0 and self.dash_frames == 0:
@@ -566,14 +627,25 @@ class Fighter:
                     self.action = 'walk'
                     self.walk_t = (self.walk_t + 0.12) % 1.0
                     self.action_t = self.walk_t
+                if self.char.get("momentum"):
+                    self.run_streak = min(240, self.run_streak + 1)
+                if self.char.get("smoke_trail") and random.random() < 0.5:
+                    self.smoke_particles.append([self.x + random.randint(-8, 8),
+                                                 self.y - 40 + random.randint(-15, 15), 42, 42])
             else:
                 if self.on_ground and not self.attacking:
                     self.action = 'idle'
+                if self.char.get("momentum") and self.run_streak > 0:
+                    self.run_streak = max(0, self.run_streak - 3)
+        # Shadowfax smoke during dash
+        if self.dash_frames > 0 and self.char.get("smoke_trail") and random.random() < 0.7:
+            self.smoke_particles.append([self.x + random.randint(-6, 6),
+                                         self.y - 50 + random.randint(-10, 10), 38, 38])
 
         # Ghost free float: hold jump = rise, hold duck = sink (independent of attack)
-        if self.char.get("ghost_float") and self.controls and self.hurt_timer == 0:
-            jk = self.controls.get('jump')
-            dk = self.controls.get('duck')
+        if self.char.get("ghost_float") and _ec and self.hurt_timer == 0:
+            jk = _ec.get('jump')
+            dk = _ec.get('duck')
             if jk and keys[jk]:
                 self.vy = max(self.vy - 1.2, -8)
                 self.on_ground = False
@@ -583,8 +655,8 @@ class Fighter:
                 self.vy = min(self.vy + 1.2, 8)
                 self.on_ground = False
 
-        self._prev_left  = bool(self.controls and keys[self.controls.get('left',  0)])
-        self._prev_right = bool(self.controls and keys[self.controls.get('right', 0)])
+        self._prev_left  = bool(_ec and keys[_ec.get('left',  0)])
+        self._prev_right = bool(_ec and keys[_ec.get('right', 0)])
 
         if self.attacking and self.action in ('punch', 'kick'):
             self.action_t = min(1.0, self.action_t + self._attack_speed)
@@ -648,26 +720,35 @@ class Fighter:
             self.attack_hit = True
             if other.char["name"] == "Shapeshifter":
                 other.color = (random.randint(60,255), random.randint(60,255), random.randint(60,255))
-            if self.char.get("fire_punch") and self.action == 'punch':
-                if other.fire_frames == 0:
-                    other.fire_tick = 480
-                other.fire_frames = max(other.fire_frames, 960)  # 16 sec burn
-            if self.char.get("freeze_kick") and self.action == 'kick':
-                other.freeze_frames = 180  # 3 seconds
-            if self.char.get("shock_punch") and self.action == 'punch':
-                other.shock_frames = 480   # 8 seconds
-            if self.char.get("hammer_punch") and self.action == 'punch':
-                other.squish_frames = 240  # 4 seconds
             if self.char.get("slam_kick") and self.action == 'kick':
                 other.knockback = self.facing * 48
-            if self.char.get("confuse_kick") and self.action == 'kick':
-                other.confuse_frames = 180  # 3 seconds
             if self.char.get("stealth_punch") and self.action == 'punch':
                 self.stealth_frames = 120   # 2 seconds invisible
+            # Janitor: status effects cannot be applied to him
+            if not other.char.get("immune"):
+                if self.char.get("fire_punch") and self.action == 'punch':
+                    if other.fire_frames == 0:
+                        other.fire_tick = 480
+                    other.fire_frames = max(other.fire_frames, 960)  # 16 sec burn
+                if self.char.get("freeze_kick") and self.action == 'kick':
+                    other.freeze_frames = 180  # 3 seconds
+                if self.char.get("shock_punch") and self.action == 'punch':
+                    other.shock_frames = 480   # 8 seconds
+                if self.char.get("hammer_punch") and self.action == 'punch':
+                    other.squish_frames = 240  # 4 seconds
+                if self.char.get("confuse_kick") and self.action == 'kick':
+                    other.confuse_frames = 180  # 3 seconds
 
     def draw(self, surface):
         _scale = self.draw_scale
         flash = (self.flash_timer % 4) < 2 and self.flash_timer > 0
+
+        # Shadowfax smoke trail — drawn behind everything
+        for sp in self.smoke_particles:
+            frac = sp[2] / max(1, sp[3])
+            gray = int(55 + 130 * frac)
+            r    = max(2, int(3 + 9 * frac))
+            pygame.draw.circle(surface, (gray, gray, min(255, gray + 25)), (int(sp[0]), int(sp[1])), r)
 
         # Speedster: draw afterimage trail before main body
         if self.char.get("speedster"):
@@ -2357,3 +2438,116 @@ class FlyingBat:
             gx = cx - dx + int(cos_a * 52 * t)
             gy = cy - dy + int(sin_a * 52 * t)
             pygame.draw.circle(surface, (40, 20, 10), (gx, gy), 3)
+
+
+# ---------------------------------------------------------------------------
+# KitsuneShot  (Kitsune 9-direction barrage)
+# ---------------------------------------------------------------------------
+
+class KitsuneShot:
+    RADIUS = 9
+    SPEED  = 9
+    DMG    = 9
+    LIFE   = 110   # ~1.8 seconds
+
+    def __init__(self, x, y, angle_deg, owner):
+        self.x        = float(x)
+        self.y        = float(y)
+        angle_rad     = math.radians(angle_deg)
+        self.vx       = math.cos(angle_rad) * self.SPEED
+        self.vy       = math.sin(angle_rad) * self.SPEED
+        self.owner    = owner
+        self.alive    = True
+        self.life     = self.LIFE
+        self._spin    = 0.0
+
+    def update(self):
+        self.x     += self.vx
+        self.y     += self.vy
+        self.life  -= 1
+        self._spin += 0.2
+        if (self.life <= 0 or self.x < -20 or self.x > WIDTH + 20
+                or self.y < -20 or self.y > HEIGHT + 20):
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pygame.draw.circle(surface, (180, 80, 0),   (cx, cy), self.RADIUS)
+        pygame.draw.circle(surface, (255, 180, 0),  (cx, cy), self.RADIUS - 3)
+        pygame.draw.circle(surface, (255, 240, 120),(cx, cy), self.RADIUS - 6)
+        # Small directional flash
+        fx = cx + int(math.cos(self._spin) * (self.RADIUS - 1))
+        fy = cy + int(math.sin(self._spin) * (self.RADIUS - 1))
+        pygame.draw.circle(surface, (255, 255, 200), (fx, fy), 2)
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
+# WaterBall  (Riptide kick)
+# ---------------------------------------------------------------------------
+
+class WaterBall:
+    RADIUS = 10
+    SPEED  = 8
+    DMG    = 12
+
+    def __init__(self, x, y, facing, owner):
+        self.x      = float(x)
+        self.y      = float(y)
+        self.vx     = self.SPEED * facing
+        self.owner  = owner
+        self.alive  = True
+        self._t     = 0
+
+    def update(self):
+        self._t += 1
+        self.x  += self.vx
+        self.y  += math.sin(self._t * 0.14) * 1.8   # wavy arc
+        if self.x < -20 or self.x > WIDTH + 20:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pygame.draw.circle(surface, (0, 90, 180),   (cx, cy), self.RADIUS)
+        pygame.draw.circle(surface, (0, 180, 255),  (cx, cy), self.RADIUS - 3)
+        pygame.draw.circle(surface, (160, 235, 255),(cx, cy), self.RADIUS - 6)
+        # Highlight droplet
+        pygame.draw.circle(surface, (220, 250, 255), (cx - 2, cy - 3), 2)
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
+# TimedPlatform  (The Creator kick)
+# ---------------------------------------------------------------------------
+
+class TimedPlatform(DrawnPlatform):
+    """Temporary platform created by The Creator's kick — expires after a set time."""
+
+    def __init__(self, x, y, w=120, lifetime=300):
+        super().__init__(x, y, w)
+        self._lifetime     = lifetime
+        self._max_lifetime = lifetime
+
+    def update(self):
+        self._lifetime -= 1
+        if self._lifetime <= 0:
+            self.alive = False
+
+    def draw(self, surface, _stage_idx=0):
+        if not self.alive:
+            return
+        frac = self._lifetime / max(1, self._max_lifetime)
+        # Fades yellow → orange → red as it expires
+        r = min(255, int(200 + 55 * (1 - frac)))
+        g = max(0,   int(200 * frac))
+        col = (r, g, 30)
+        rx, ry = int(self.x), int(self.y)
+        pygame.draw.rect(surface, col, (rx, ry, self.w, self.H), border_radius=4)
+        pygame.draw.rect(surface, (255, 255, 255), (rx, ry, self.w, self.H), 1, border_radius=4)
+        # Countdown bar beneath
+        bar_w = int(self.w * frac)
+        pygame.draw.rect(surface, (255, 255, 100), (rx, ry + self.H, bar_w, 3))

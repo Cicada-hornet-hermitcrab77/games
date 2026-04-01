@@ -8,12 +8,12 @@ from fight_data import CHARACTERS, POWERUPS, STAGES, STAGE_MATCHUPS
 from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
                            draw_win_screen, draw_active_powerups)
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
-                            StageEraser, DrawnPlatform, Portal, ConveyorBelt,
+                            StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull,
                             JungleSnake, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall, Whip, HotPotato,
                             FallingPot, RollingCoin, FallingMerlin,
-                            FlyingBaseball, FlyingBat)
+                            FlyingBaseball, FlyingBat, KitsuneShot, WaterBall)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu
 
@@ -75,13 +75,15 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     timer        = 90 * FPS
     powerups     = []
     clones       = []   # list of {'fighter': AIFighter, 'timer': int, 'target': Fighter}
-    balls        = []   # active Projectile objects
-    orbs         = []   # active Orb objects (bazooka)
-    bounce_balls = []   # active BouncingBall objects (Pinball)
-    hooks        = []   # active SnakeHook objects (Hooker)
-    pumpkins     = []   # active Pumpkin objects (Headless Horseman)
-    whips        = []   # active Whip objects (Whipper)
-    spawn_timer  = 300   # first spawn after 5 seconds
+    balls         = []   # active Projectile objects
+    orbs          = []   # active Orb objects (bazooka)
+    bounce_balls  = []   # active BouncingBall objects (Pinball)
+    hooks         = []   # active SnakeHook objects (Hooker)
+    pumpkins      = []   # active Pumpkin objects (Headless Horseman)
+    whips         = []   # active Whip objects (Whipper)
+    kitsune_shots = []   # active KitsuneShot objects (Kitsune barrage)
+    water_balls   = []   # active WaterBall objects (Riptide)
+    spawn_timer   = 300   # first spawn after 5 seconds
     is_jungle      = stage_data["name"] == "Jungle"
     is_computer    = stage_data["name"] == "Computer"
     is_underworld  = stage_data["name"] == "Underworld"
@@ -318,6 +320,61 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     cf.no_attack = True
                     clones.append({'fighter': cf, 'timer': FPS * 8, 'target': foe, 'ink': True})
 
+            # Kitsune barrage — 9 shots in 9 directions
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_kitsune:
+                    shooter.pending_kitsune = False
+                    for i in range(9):
+                        angle = i * 40.0   # 40-degree spacing
+                        kitsune_shots.append(KitsuneShot(shooter.x, shooter.y - 70, angle, shooter))
+            for ks in kitsune_shots:
+                ks.update()
+                if ks.alive:
+                    victim = p2 if ks.owner is p1 else p1
+                    if ks.collides(victim):
+                        victim.hp = max(0, victim.hp - KitsuneShot.DMG)
+                        victim.flash_timer = 8
+                        ks.alive = False
+            kitsune_shots = [ks for ks in kitsune_shots if ks.alive]
+
+            # Riptide water balls
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_water_ball:
+                    shooter.pending_water_ball = False
+                    water_balls.append(WaterBall(shooter.x + shooter.facing * 30,
+                                                 shooter.y - 60, shooter.facing, shooter))
+            for wb in water_balls:
+                wb.update()
+                if wb.alive:
+                    victim = p2 if wb.owner is p1 else p1
+                    if wb.collides(victim):
+                        victim.hp = max(0, victim.hp - WaterBall.DMG)
+                        victim.flash_timer = 8
+                        wb.alive = False
+            water_balls = [wb for wb in water_balls if wb.alive]
+
+            # The Creator — spawn timed platform on kick
+            for shooter in (p1, p2):
+                if shooter.pending_creator_platform:
+                    shooter.pending_creator_platform = False
+                    px = int(shooter.x + shooter.facing * 80) - 60
+                    py = int(shooter.y) - 60
+                    py = max(60, min(GROUND_Y - 20, py))
+                    platforms.append(TimedPlatform(px, py, w=120, lifetime=FPS * 5))
+
+            # Medusa freeze laser — applies freeze instead of damage
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if (shooter.char.get("freeze_laser") and shooter.laser_active > 0
+                        and shooter.laser_hit_cd == 0):
+                    laser_y = shooter.y - 100
+                    correct_side = ((shooter.facing == 1  and victim.x > shooter.x) or
+                                    (shooter.facing == -1 and victim.x < shooter.x))
+                    if correct_side and abs((victim.y - 60) - laser_y) < 35:
+                        if not victim.char.get("immune"):
+                            victim.freeze_frames = max(victim.freeze_frames, 180)  # 3s freeze
+                        victim.flash_timer = 4
+                        shooter.laser_hit_cd = 30   # 0.5s between freeze applications
+
             # Jungle snakes
             if is_jungle:
                 snake_spawn_timer -= 1
@@ -445,6 +502,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             pk.draw(screen)
         for w in whips:
             w.draw(screen)
+        for ks in kitsune_shots:
+            ks.draw(screen)
+        for wb in water_balls:
+            wb.draw(screen)
         for sn in jungle_snakes:
             sn.draw(screen)
         for sk in falling_skulls:
@@ -467,6 +528,19 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     pygame.draw.line(screen, (255, 40, 0),  (x, eye_y),     (dash_end, eye_y), 3)
                     pygame.draw.line(screen, (255, 160, 80), (x, eye_y),    (dash_end, eye_y), 1)
                     x = dash_end + f.facing * 6  # 6-pixel gap between dashes
+        # Draw Medusa freeze laser beam (cyan)
+        for f in (p1, p2):
+            if f.char.get("freeze_laser") and f.laser_active > 0:
+                eye_x = int(f.x)
+                eye_y = int(f.y - 100)
+                end_x = WIDTH if f.facing == 1 else 0
+                x = eye_x
+                while (f.facing == 1 and x < end_x) or (f.facing == -1 and x > end_x):
+                    dash_end = x + f.facing * 18
+                    dash_end = min(dash_end, end_x) if f.facing == 1 else max(dash_end, end_x)
+                    pygame.draw.line(screen, (0, 200, 255),  (x, eye_y), (dash_end, eye_y), 3)
+                    pygame.draw.line(screen, (180, 240, 255), (x, eye_y), (dash_end, eye_y), 1)
+                    x = dash_end + f.facing * 6
         # Draw magnet beams from powerups to any Magician fighter
         for f in (p1, p2):
             if f.char.get("magnet"):
