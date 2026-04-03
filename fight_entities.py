@@ -932,6 +932,28 @@ class Fighter:
             tmp.set_alpha(alpha)
             surface.blit(tmp, (int(self.x) - cx, int(self.y) - cy))
             result = (int(self.x + self.facing * 40 * _scale), int(self.y - 70 * _scale))
+        elif self.char.get("snake"):
+            # Draw snake as a pure block — head block only (body drawn above)
+            bsz = 18
+            hx2 = int(self.x) - bsz // 2
+            hy2 = int(self.y) - bsz - 4
+            head_col = (255, 255, 255) if flash else (20, 200, 60)
+            pygame.draw.rect(surface, head_col,    (hx2, hy2, bsz, bsz))
+            pygame.draw.rect(surface, (40, 255, 80), (hx2, hy2, bsz, bsz), 2)
+            # Pixel eyes
+            for side in (-1, 1):
+                ex2 = int(self.x) + side * 4
+                ey2 = hy2 + 5
+                pygame.draw.rect(surface, (255, 255, 0), (ex2 - 2, ey2, 3, 3))
+            # Forked tongue
+            if (pygame.time.get_ticks() // 200) % 2 == 0:
+                tx0 = int(self.x) + self.facing * (bsz // 2)
+                ty0 = hy2 + bsz // 2
+                pygame.draw.line(surface, (220, 30, 30), (tx0, ty0),
+                                 (tx0 + self.facing * 9, ty0 - 3), 1)
+                pygame.draw.line(surface, (220, 30, 30), (tx0, ty0),
+                                 (tx0 + self.facing * 9, ty0 + 3), 1)
+            result = (int(self.x + self.facing * (bsz // 2 + 4)), hy2 + bsz // 2)
         else:
             _sw = int(50 * _scale)
             _sh = int(12 * _scale)

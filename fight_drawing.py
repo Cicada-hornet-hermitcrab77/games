@@ -1170,26 +1170,7 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             surface.blit(otxt, (ox2 - otxt.get_width() // 2, oy2 - otxt.get_height() // 2))
 
     elif char_name == "Snake":
-        # Blocky square head overlay (classic snake game look)
-        bsz = int(hd * 2.2)
-        bx  = hx - bsz // 2
-        by  = hy - bsz // 2
-        pygame.draw.rect(surface, (20, 200, 60), (bx, by, bsz, bsz))
-        pygame.draw.rect(surface, (40, 255, 80), (bx, by, bsz, bsz), max(1, int(2 * s)))
-        # Pixel eyes
-        for side in (-1, 1):
-            ex = hx + side * int(hd * 0.4)
-            ey = hy - int(hd * 0.2)
-            ep = max(2, int(3 * s))
-            pygame.draw.rect(surface, (255, 255, 0), (ex - ep // 2, ey - ep // 2, ep, ep))
-        # Forked tongue
-        t = pygame.time.get_ticks()
-        if (t // 200) % 2 == 0:
-            tx0 = hx + int(facing * bsz // 2)
-            pygame.draw.line(surface, (220, 30, 30), (tx0, hy),
-                             (tx0 + int(facing * 10 * s), hy - int(3 * s)), max(1, int(s)))
-            pygame.draw.line(surface, (220, 30, 30), (tx0, hy),
-                             (tx0 + int(facing * 10 * s), hy + int(3 * s)), max(1, int(s)))
+        pass  # head drawn directly in Fighter.draw() as a block
 
     elif char_name == "Enraged":
         # Angry red aura flames on head + furrowed brows
