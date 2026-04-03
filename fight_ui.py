@@ -401,6 +401,17 @@ def character_select(vs_ai=False):
         if detail_ch.get("momentum"):        badges.append(("MOMENTUM",      (0,  160, 220)))
         if detail_ch.get("smoke_trail"):     badges.append(("SMOKE TRAIL",   (180, 180, 220)))
         if detail_ch.get("ascii_fighter"):   badges.append(("ASCII BODY",    (0,  255, 120)))
+        if detail_ch.get("snake"):           badges.append(("SNAKE BODY",    (20, 200, 60)))
+        if detail_ch.get("always_berserk"):  badges.append(("ALWAYS ENRAGED",(220, 50,  0)))
+        if detail_ch.get("bee_punch"):       badges.append(("BEE SWARM",     (220,180,  0)))
+        if detail_ch.get("plague_punch"):    badges.append(("PLAGUE",        (120,200, 80)))
+        if detail_ch.get("undead"):          badges.append(("REVIVES ONCE",  (80,  40,120)))
+        if detail_ch.get("chaos_timer"):     badges.append(("CHAOS MAGIC",   (200, 80,255)))
+        if detail_ch.get("rapid_fire"):      badges.append(("RAPID PUNCH",   (255,160,  0)))
+        if detail_ch.get("drain_kick"):      badges.append(("DRAIN KICK",    (160,  0,160)))
+        if detail_ch.get("iron_fist"):       badges.append(("IRON FIST",     (180,180,200)))
+        if detail_ch.get("toxic_aura"):      badges.append(("TOXIC AURA",    (60, 220, 60)))
+        if detail_ch.get("time_freeze"):     badges.append(("TIME FREEZE",   (100,180,255)))
         bx_off = PX + 8
         for btxt, bcol in badges:
             bs = font_tiny.render(btxt, True, bcol)

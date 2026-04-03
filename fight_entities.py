@@ -38,6 +38,38 @@ class Projectile:
 
 
 # ---------------------------------------------------------------------------
+# BeeShot  (Beekeeper's bee swarm — small angled projectile with vy support)
+# ---------------------------------------------------------------------------
+
+class BeeShot:
+    RADIUS = 5
+    SPEED  = 8
+    DMG    = 5
+
+    def __init__(self, x, y, facing, owner, vy=0.0):
+        self.x     = float(x)
+        self.y     = float(y)
+        self.vx    = self.SPEED * facing
+        self.vy    = float(vy)
+        self.owner = owner
+        self.alive = True
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+        if self.x < 0 or self.x > WIDTH or self.y < 0 or self.y > HEIGHT:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pygame.draw.circle(surface, (230, 200, 0),  (cx, cy), self.RADIUS)
+        pygame.draw.circle(surface, (30, 20, 0),    (cx, cy), self.RADIUS - 3)
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
 # Orb (bazooka — explodes after 2 seconds)
 # ---------------------------------------------------------------------------
 
@@ -250,6 +282,17 @@ class Fighter:
         self.creator_cd         = 0         # cooldown between platform creations
         self.run_streak         = 0         # Whirlpool: consecutive running frames
         self.smoke_particles    = []        # Shadowfax: [[x, y, life, max_life], ...]
+        # Snake character
+        self.snake_segs         = [[float(x), float(GROUND_Y)] for _ in range(3)] if char_data.get("snake") else []
+        self.snake_length       = 3
+        self.snake_contact_cd   = 0
+        # New characters
+        self.undead_used        = False     # Necromancer: has the revive been used
+        self.chaos_timer        = FPS * 12 if char_data.get("chaos_timer") else 0
+        self.pending_chaos      = False     # Joker: apply random effect this frame
+        self.time_freeze_timer  = FPS * 18 if char_data.get("time_freeze") else 0
+        self.pending_time_freeze = False    # Time Lord: apply freeze this frame
+        self.pending_bee        = False     # Beekeeper: spawn bee swarm this frame
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -400,6 +443,26 @@ class Fighter:
         self.smoke_particles = [p for p in self.smoke_particles if p[2] > 0]
         for p in self.smoke_particles:
             p[2] -= 1
+        # Snake contact cooldown
+        if self.snake_contact_cd > 0:
+            self.snake_contact_cd -= 1
+        # Enraged: always in berserk state
+        if self.char.get("always_berserk"):
+            self._berserker_active = True
+        # Joker chaos timer
+        if self.char.get("chaos_timer"):
+            if self.chaos_timer > 0:
+                self.chaos_timer -= 1
+            else:
+                self.pending_chaos = True
+                self.chaos_timer   = FPS * 12
+        # Time Lord freeze timer
+        if self.char.get("time_freeze"):
+            if self.time_freeze_timer > 0:
+                self.time_freeze_timer -= 1
+            else:
+                self.pending_time_freeze = True
+                self.time_freeze_timer   = FPS * 18
 
     def update(self, keys, other, platforms=()):
         self.tick_powerups()
@@ -509,7 +572,8 @@ class Fighter:
         duck_key  = _ec.get('duck')  if _ec else None
         block_key = _ec.get('block') if _ec else None
         self.ducking  = (bool(duck_key  and keys[duck_key])  and
-                         self.on_ground and self.hurt_timer == 0 and not self.attacking)
+                         self.on_ground and self.hurt_timer == 0 and not self.attacking
+                         and not self.char.get("snake"))
         self.blocking = (bool(block_key and keys[block_key]) and
                          self.on_ground and self.hurt_timer == 0 and not self.attacking and not self.ducking)
         if self.ducking:
@@ -536,13 +600,15 @@ class Fighter:
                 moving_toward = ((keys[_rk] and self.facing == 1) or
                                  (keys[_lk] and self.facing == -1))
                 self._start('punch', 0.07)
-                self.punch_cooldown = FPS        # 1 second
+                self.punch_cooldown = 8 if self.char.get("rapid_fire") else FPS
                 self.is_crit = moving_toward or bool(self.char.get("always_crit"))
                 if self.char.get("bounce_punch"):
                     self.pending_bounce = True
                 if self.char.get("whip_punch") and self.whip_cooldown == 0:
                     self.pending_whip  = True
                     self.whip_cooldown = FPS * 2   # 2-second cooldown
+                if self.char.get("bee_punch"):
+                    self.pending_bee = True
             elif can_atk and keys[ctrl['kick']] and self.kick_cooldown == 0:
                 self._start('kick', 0.06)
                 self.kick_cooldown = FPS * 2     # 2 seconds
@@ -658,6 +724,25 @@ class Fighter:
         self._prev_left  = bool(_ec and keys[_ec.get('left',  0)])
         self._prev_right = bool(_ec and keys[_ec.get('right', 0)])
 
+        # Snake: override physics — free 4-directional movement, no gravity
+        if self.char.get("snake"):
+            self.vy = 0
+            self.on_ground = False
+            snk_spd = 3.5
+            if _ec:
+                jk = _ec.get('jump')
+                dk = _ec.get('duck')
+                if jk and keys[jk]:
+                    self.y -= snk_spd
+                elif dk and keys[dk]:
+                    self.y += snk_spd
+            self.y = max(50.0, min(float(GROUND_Y), self.y))
+            self.x = max(50.0, min(float(WIDTH - 50), self.x))
+            self.snake_segs.insert(0, [float(self.x), float(self.y)])
+            max_segs = self.snake_length * 10
+            if len(self.snake_segs) > max_segs:
+                self.snake_segs = self.snake_segs[:max_segs]
+
         if self.attacking and self.action in ('punch', 'kick'):
             self.action_t = min(1.0, self.action_t + self._attack_speed)
             if self.action_t >= 1.0:
@@ -738,10 +823,36 @@ class Fighter:
                     other.squish_frames = 240  # 4 seconds
                 if self.char.get("confuse_kick") and self.action == 'kick':
                     other.confuse_frames = 180  # 3 seconds
+                if self.char.get("plague_punch") and self.action == 'punch':
+                    if other.fire_frames == 0:    other.fire_tick = 480
+                    other.fire_frames    = max(other.fire_frames,    480)
+                    if other.poison_frames == 0:  other.poison_tick = 180
+                    other.poison_frames  = max(other.poison_frames,  480)
+                    other.shock_frames   = max(other.shock_frames,   240)
+            if self.char.get("iron_fist") and self.action == 'punch':
+                other.knockback  *= 3
+                other.hurt_timer  = max(other.hurt_timer, 40)
+            if self.char.get("drain_kick") and self.action == 'kick':
+                heal = min(20, self.max_hp - self.hp)
+                self.hp = min(self.max_hp, self.hp + heal)
 
     def draw(self, surface):
         _scale = self.draw_scale
         flash = (self.flash_timer % 4) < 2 and self.flash_timer > 0
+
+        # Snake body segments — drawn as blocks like the classic snake game
+        if self.char.get("snake") and len(self.snake_segs) > 0:
+            bsz = 16   # block size in pixels
+            step = 8
+            drawn = 0
+            for i in range(step, len(self.snake_segs), step):
+                seg = self.snake_segs[i]
+                bx  = int(seg[0]) - bsz // 2
+                by  = int(seg[1]) - bsz // 2
+                g   = min(230, 80 + drawn * 18)
+                pygame.draw.rect(surface, (10, g, 20),   (bx, by, bsz, bsz))
+                pygame.draw.rect(surface, (40, min(255, g + 60), 40), (bx, by, bsz, bsz), 2)
+                drawn += 1
 
         # Shadowfax smoke trail — drawn behind everything
         for sp in self.smoke_particles:
@@ -1021,13 +1132,15 @@ class AIFighter(Fighter):
             if cd == 0:
                 self._start(self.ai_attack, 0.07 if self.ai_attack == 'punch' else 0.06)
                 if self.ai_attack == 'punch':
-                    self.punch_cooldown = FPS
+                    self.punch_cooldown = 8 if self.char.get("rapid_fire") else FPS
                     self.is_crit = (self.ai_move == self.facing) or bool(self.char.get("always_crit"))
                     if self.char.get("bounce_punch"):
                         self.pending_bounce = True
                     if self.char.get("whip_punch") and self.whip_cooldown == 0:
                         self.pending_whip  = True
                         self.whip_cooldown = FPS * 2
+                    if self.char.get("bee_punch"):
+                        self.pending_bee = True
                 else:
                     self.kick_cooldown = FPS * 2
                     if self.char.get("teleport_kick"):

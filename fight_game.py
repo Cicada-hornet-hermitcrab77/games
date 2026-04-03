@@ -13,7 +13,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             JungleSnake, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall, Whip, HotPotato,
                             FallingPot, RollingCoin, FallingMerlin,
-                            FlyingBaseball, FlyingBat, KitsuneShot, WaterBall)
+                            FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu
 
@@ -83,6 +83,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     whips         = []   # active Whip objects (Whipper)
     kitsune_shots = []   # active KitsuneShot objects (Kitsune barrage)
     water_balls   = []   # active WaterBall objects (Riptide)
+    bee_shots     = []   # active BeeShot objects (Beekeeper)
     spawn_timer   = 300   # first spawn after 5 seconds
     is_jungle      = stage_data["name"] == "Jungle"
     is_computer    = stage_data["name"] == "Computer"
@@ -375,6 +376,78 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         victim.flash_timer = 4
                         shooter.laser_hit_cd = 30   # 0.5s between freeze applications
 
+            # Beekeeper bee swarm
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_bee:
+                    shooter.pending_bee = False
+                    for dvy in (-4, -2, 0, 2, 4):
+                        bee_shots.append(BeeShot(shooter.x + shooter.facing * 30,
+                                                 shooter.y - 60, shooter.facing, shooter, vy=dvy))
+            for b in bee_shots:
+                b.update()
+                if b.alive:
+                    victim = p2 if b.owner is p1 else p1
+                    if b.collides(victim):
+                        victim.hp = max(0, victim.hp - BeeShot.DMG)
+                        victim.flash_timer = 6
+                        b.alive = False
+            bee_shots = [b for b in bee_shots if b.alive]
+
+            # Joker chaos effect
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_chaos:
+                    shooter.pending_chaos = False
+                    if not victim.char.get("immune"):
+                        effect = random.choice(['freeze', 'fire', 'shock', 'confuse', 'squish'])
+                        if effect == 'freeze':
+                            victim.freeze_frames = max(victim.freeze_frames, 180)
+                        elif effect == 'fire':
+                            if victim.fire_frames == 0: victim.fire_tick = 480
+                            victim.fire_frames   = max(victim.fire_frames, 480)
+                        elif effect == 'shock':
+                            victim.shock_frames  = max(victim.shock_frames, 240)
+                        elif effect == 'confuse':
+                            victim.confuse_frames = max(victim.confuse_frames, 180)
+                        elif effect == 'squish':
+                            victim.squish_frames  = max(victim.squish_frames, 180)
+                        victim.flash_timer = 20
+
+            # Time Lord freeze
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_time_freeze:
+                    shooter.pending_time_freeze = False
+                    if not victim.char.get("immune"):
+                        victim.freeze_frames = max(victim.freeze_frames, 240)  # 4 seconds
+                        victim.flash_timer   = 20
+
+            # Toxic aura — proximity poison
+            for toxic, victim in [(p1, p2), (p2, p1)]:
+                if (toxic.char.get("toxic_aura") and victim.contact_cooldown == 0
+                        and math.hypot(toxic.x - victim.x, (toxic.y - 60) - (victim.y - 60)) < 80):
+                    victim.hp = max(0, victim.hp - 2)
+                    victim.flash_timer = 4
+                    victim.contact_cooldown = 90
+                    if not victim.char.get("immune"):
+                        if victim.poison_frames == 0: victim.poison_tick = 180
+                        victim.poison_frames = max(victim.poison_frames, 360)
+
+            # Snake body segment contact damage
+            for snake, victim in [(p1, p2), (p2, p1)]:
+                if snake.char.get("snake") and snake.snake_contact_cd == 0:
+                    for seg in snake.snake_segs[8:]:   # skip the head region
+                        if math.hypot(seg[0] - victim.x, seg[1] - (victim.y - 60)) < 30:
+                            victim.hp = max(0, victim.hp - 6)
+                            victim.flash_timer = 8
+                            snake.snake_contact_cd = 60
+                            break
+
+            # Necromancer: revive on first death
+            for f in (p1, p2):
+                if f.hp <= 0 and f.char.get("undead") and not f.undead_used:
+                    f.hp          = int(f.max_hp * 0.4)
+                    f.undead_used = True
+                    f.flash_timer = 30
+
             # Jungle snakes
             if is_jungle:
                 snake_spawn_timer -= 1
@@ -475,6 +548,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             clones.append({'fighter': cf, 'timer': 30 * FPS, 'target': foe})
                         else:
                             fighter.apply_powerup(pu.spec)
+                        if fighter.char.get("snake"):
+                            fighter.snake_length += 2
+                            fighter.kick_boost   += 2
                         pu.picked_up = True
                         break
             powerups = [pu for pu in powerups if not pu.picked_up]
@@ -506,6 +582,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             ks.draw(screen)
         for wb in water_balls:
             wb.draw(screen)
+        for b in bee_shots:
+            b.draw(screen)
         for sn in jungle_snakes:
             sn.draw(screen)
         for sk in falling_skulls:
