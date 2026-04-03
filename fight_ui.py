@@ -385,6 +385,22 @@ def character_select(vs_ai=False):
         if detail_ch.get("stealth_punch"):  badges.append(("STEALTH",        (200, 200, 220)))
         if detail_ch.get("wide_punch"):     badges.append(("WIDE REACH",     (160, 80, 30)))
         if detail_ch.get("reflect_block"):  badges.append(("REFLECT",        (80, 200, 80)))
+        if detail_ch.get("laser_eyes"):     badges.append(("LASER EYES",     (255, 60,  0)))
+        if detail_ch.get("whip_punch"):     badges.append(("WHIP",           (160, 90, 20)))
+        if detail_ch.get("always_crit"):    badges.append(("ALWAYS CRIT",    (255, 215, 0)))
+        if detail_ch.get("chameleon"):      badges.append(("CAMOUFLAGE",     (60, 180, 80)))
+        if detail_ch.get("ink_kick"):       badges.append(("INK CLONE",      (20,  20, 40)))
+        if detail_ch.get("ghost_float"):    badges.append(("GHOST FLOAT",    (210, 210, 255)))
+        # new characters
+        if detail_ch.get("kitsune_barrage"): badges.append(("九 BARRAGE",    (255, 160,  0)))
+        if detail_ch.get("freeze_laser"):    badges.append(("FREEZE GAZE",   (0,  210, 255)))
+        if detail_ch.get("creator_kick"):    badges.append(("CREATES WALLS", (220, 180, 40)))
+        if detail_ch.get("disorientated"):   badges.append(("ALL REVERSED",  (200,  80, 255)))
+        if detail_ch.get("immune"):          badges.append(("STATUS IMMUNE", (210, 210, 180)))
+        if detail_ch.get("water_kick"):      badges.append(("WATER BALL",    (0,  180, 240)))
+        if detail_ch.get("momentum"):        badges.append(("MOMENTUM",      (0,  160, 220)))
+        if detail_ch.get("smoke_trail"):     badges.append(("SMOKE TRAIL",   (180, 180, 220)))
+        if detail_ch.get("ascii_fighter"):   badges.append(("ASCII BODY",    (0,  255, 120)))
         bx_off = PX + 8
         for btxt, bcol in badges:
             bs = font_tiny.render(btxt, True, bcol)
