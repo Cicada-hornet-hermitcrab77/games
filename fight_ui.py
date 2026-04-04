@@ -420,7 +420,6 @@ def character_select(vs_ai=False):
         if detail_ch.get("reflect_proj"):    badges.append(("REFLECT PROJ",  (200,220,240)))
         if detail_ch.get("auto_fire"):       badges.append(("AUTO FIRE",     (255, 80,  0)))
         if detail_ch.get("thunder_punch"):   badges.append(("THUNDER",       (255,240, 80)))
-        if detail_ch.get("glass_cannon"):    badges.append(("GLASS CANNON",  (200,240,255)))
         if detail_ch.get("auto_teleport"):   badges.append(("AUTO TELEPORT", ( 80,200,220)))
         if detail_ch.get("sticky_punch"):    badges.append(("STICKY PUNCH",  (200,180, 60)))
         bx_off = PX + 8
