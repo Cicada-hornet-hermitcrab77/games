@@ -1321,6 +1321,19 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             if ga < 12:
                 pygame.draw.circle(surface, (60, 220, 60, 120), (gpx, gpy), max(2, int((4 - ga//4) * s)))
 
+    elif char_name == "Shifter":
+        # Three spinning icons above the head showing the cycle
+        t = pygame.time.get_ticks()
+        icons = [("N", (200, 200, 200)), ("W", (200, 120, 20)), ("S", (80, 180, 255))]
+        for ii, (ch2, ic) in enumerate(icons):
+            ia = math.radians(ii * 120 + t * 0.12)
+            ix = hx + int(math.cos(ia) * hd * 1.5)
+            iy = hy - hd - int(hd * 0.8) + int(math.sin(ia) * hd * 0.5)
+            ir = max(4, int(6 * s))
+            pygame.draw.circle(surface, ic, (ix, iy), ir)
+            lbl2 = font_tiny.render(ch2, True, (10, 10, 10))
+            surface.blit(lbl2, (ix - lbl2.get_width() // 2, iy - lbl2.get_height() // 2))
+
     elif char_name == "Time Lord":
         # Hourglass held in hand + clock face on chest
         # Hourglass

@@ -412,6 +412,7 @@ def character_select(vs_ai=False):
         if detail_ch.get("iron_fist"):       badges.append(("IRON FIST",     (180,180,200)))
         if detail_ch.get("toxic_aura"):      badges.append(("TOXIC AURA",    (60, 220, 60)))
         if detail_ch.get("time_freeze"):     badges.append(("TIME FREEZE",   (100,180,255)))
+        if detail_ch.get("cycle_attack"):    badges.append(("CYCLE ATTACK",  (160,120,255)))
         bx_off = PX + 8
         for btxt, bcol in badges:
             bs = font_tiny.render(btxt, True, bcol)

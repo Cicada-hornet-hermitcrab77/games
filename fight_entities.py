@@ -293,6 +293,8 @@ class Fighter:
         self.time_freeze_timer  = FPS * 18 if char_data.get("time_freeze") else 0
         self.pending_time_freeze = False    # Time Lord: apply freeze this frame
         self.pending_bee        = False     # Beekeeper: spawn bee swarm this frame
+        self.attack_cycle       = 0         # Shifter: 0=normal, 1=whip, 2=snipe
+        self.pending_snipe      = False     # Shifter: fire snipe shot this frame
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -609,6 +611,12 @@ class Fighter:
                     self.whip_cooldown = FPS * 2   # 2-second cooldown
                 if self.char.get("bee_punch"):
                     self.pending_bee = True
+                if self.char.get("cycle_attack"):
+                    if self.attack_cycle == 1:
+                        self.pending_whip = True
+                    elif self.attack_cycle == 2:
+                        self.pending_snipe = True
+                    self.attack_cycle = (self.attack_cycle + 1) % 3
             elif can_atk and keys[ctrl['kick']] and self.kick_cooldown == 0:
                 self._start('kick', 0.06)
                 self.kick_cooldown = FPS * 2     # 2 seconds
@@ -1027,6 +1035,12 @@ class Fighter:
             top_y = int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 20 - rise
             crit_surf = font_medium.render("CRIT!", True, (255, 60, 60))
             surface.blit(crit_surf, (int(self.x) - crit_surf.get_width() // 2, top_y))
+        if self.char.get("cycle_attack"):
+            _cycle_labels = ["NRM", "WHP", "SNP"]
+            _cycle_colors = [(200, 200, 200), (180, 100, 20), (80, 180, 255)]
+            lbl = font_tiny.render(_cycle_labels[self.attack_cycle], True, _cycle_colors[self.attack_cycle])
+            surface.blit(lbl, (int(self.x) - lbl.get_width() // 2,
+                               int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 30))
         return result
 
 
@@ -1163,6 +1177,12 @@ class AIFighter(Fighter):
                         self.whip_cooldown = FPS * 2
                     if self.char.get("bee_punch"):
                         self.pending_bee = True
+                    if self.char.get("cycle_attack"):
+                        if self.attack_cycle == 1:
+                            self.pending_whip = True
+                        elif self.attack_cycle == 2:
+                            self.pending_snipe = True
+                        self.attack_cycle = (self.attack_cycle + 1) % 3
                 else:
                     self.kick_cooldown = FPS * 2
                     if self.char.get("teleport_kick"):
@@ -2686,3 +2706,36 @@ class TimedPlatform(DrawnPlatform):
         # Countdown bar beneath
         bar_w = int(self.w * frac)
         pygame.draw.rect(surface, (255, 255, 100), (rx, ry + self.H, bar_w, 3))
+
+
+# ---------------------------------------------------------------------------
+# SnipeShot  (Shifter cycle_attack mode 2 — fast long-range bolt)
+# ---------------------------------------------------------------------------
+
+class SnipeShot:
+    SPEED  = 22
+    DMG    = 22
+    RADIUS = 5
+
+    def __init__(self, x, y, facing, owner):
+        self.x      = float(x)
+        self.y      = float(y)
+        self.vx     = self.SPEED * facing
+        self.owner  = owner
+        self.alive  = True
+
+    def update(self):
+        self.x += self.vx
+        if self.x < 0 or self.x > WIDTH:
+            self.alive = False
+
+    def draw(self, surface):
+        x1 = int(self.x)
+        x2 = int(self.x - self.vx * 4)   # elongated trail
+        y  = int(self.y)
+        pygame.draw.line(surface, (80, 160, 255),  (x2, y), (x1, y), 4)
+        pygame.draw.line(surface, (200, 230, 255), (x2, y), (x1, y), 1)
+        pygame.draw.circle(surface, (255, 255, 255), (x1, y), self.RADIUS - 1)
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28

@@ -303,6 +303,10 @@ CHARACTERS = [
      "punch_dmg": 9, "kick_dmg": 11, "max_hp": 110, "block": 5,
      "desc": "Every 18s freezes opponent for 4 seconds", "double_jump": True,
      "time_freeze": True},
+    {"name": "Shifter", "color": (160, 120, 255), "speed": 6, "jump": -14,
+     "punch_dmg": 11, "kick_dmg": 10, "max_hp": 110, "block": 5,
+     "desc": "Attacks cycle each punch: Normal → Whip → Snipe → repeat",
+     "double_jump": True, "cycle_attack": True},
 ]
 
 POWERUPS = [

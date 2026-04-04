@@ -13,7 +13,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             JungleSnake, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall, Whip, HotPotato,
                             FallingPot, RollingCoin, FallingMerlin,
-                            FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot)
+                            FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu
 
@@ -84,6 +84,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     kitsune_shots = []   # active KitsuneShot objects (Kitsune barrage)
     water_balls   = []   # active WaterBall objects (Riptide)
     bee_shots     = []   # active BeeShot objects (Beekeeper)
+    snipe_shots   = []   # active SnipeShot objects (Shifter)
     spawn_timer   = 300   # first spawn after 5 seconds
     is_jungle      = stage_data["name"] == "Jungle"
     is_computer    = stage_data["name"] == "Computer"
@@ -393,6 +394,22 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         b.alive = False
             bee_shots = [b for b in bee_shots if b.alive]
 
+            # Shifter snipe shots
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_snipe:
+                    shooter.pending_snipe = False
+                    snipe_shots.append(SnipeShot(shooter.x + shooter.facing * 30,
+                                                 shooter.y - 80, shooter.facing, shooter))
+            for s in snipe_shots:
+                s.update()
+                if s.alive:
+                    victim = p2 if s.owner is p1 else p1
+                    if s.collides(victim):
+                        victim.hp = max(0, victim.hp - SnipeShot.DMG)
+                        victim.flash_timer = 10
+                        s.alive = False
+            snipe_shots = [s for s in snipe_shots if s.alive]
+
             # Joker chaos effect
             for shooter, victim in [(p1, p2), (p2, p1)]:
                 if shooter.pending_chaos:
@@ -584,6 +601,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             wb.draw(screen)
         for b in bee_shots:
             b.draw(screen)
+        for s in snipe_shots:
+            s.draw(screen)
         for sn in jungle_snakes:
             sn.draw(screen)
         for sk in falling_skulls:
