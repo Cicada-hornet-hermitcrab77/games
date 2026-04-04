@@ -13,7 +13,8 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             JungleSnake, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall, Whip, HotPotato,
                             FallingPot, RollingCoin, FallingMerlin,
-                            FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot)
+                            FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
+                            FireBall, ThunderBolt)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu
 
@@ -85,6 +86,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     water_balls   = []   # active WaterBall objects (Riptide)
     bee_shots     = []   # active BeeShot objects (Beekeeper)
     snipe_shots   = []   # active SnipeShot objects (Shifter)
+    fire_balls    = []   # active FireBall objects (Pyro)
+    thunder_bolts = []   # active ThunderBolt objects (Thunder God)
     spawn_timer   = 300   # first spawn after 5 seconds
     is_jungle      = stage_data["name"] == "Jungle"
     is_computer    = stage_data["name"] == "Computer"
@@ -211,9 +214,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if b.alive:
                     victim = p2 if b.owner is p1 else p1
                     if b.collides(victim):
-                        victim.hp = max(0, victim.hp - 10)
-                        victim.flash_timer = 8
-                        b.alive = False
+                        if victim.blocking and victim.char.get("reflect_proj"):
+                            b.vx    = -b.vx
+                            b.owner = victim
+                        else:
+                            victim.hp = max(0, victim.hp - 10)
+                            victim.flash_timer = 8
+                            b.alive = False
             balls = [b for b in balls if b.alive]
 
             # Spawn orbs from bazooka_kick
@@ -465,6 +472,52 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     f.undead_used = True
                     f.flash_timer = 30
 
+            # Kamikaze: explode on first death
+            for kamikaze, victim in [(p1, p2), (p2, p1)]:
+                if (kamikaze.char.get("explode_death") and kamikaze.hp <= 0
+                        and not kamikaze.kamikaze_exploded):
+                    kamikaze.kamikaze_exploded = True
+                    if math.hypot(kamikaze.x - victim.x,
+                                  (kamikaze.y - 60) - (victim.y - 60)) < 150:
+                        victim.hp = max(0, victim.hp - 60)
+                        victim.flash_timer = 20
+
+            # Pyro auto-fire balls
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_autofire:
+                    shooter.pending_autofire = False
+                    fire_balls.append(FireBall(shooter.x + shooter.facing * 30,
+                                               shooter.y - 60, shooter.facing, shooter))
+            for fb in fire_balls:
+                fb.update()
+                if fb.alive:
+                    victim = p2 if fb.owner is p1 else p1
+                    if fb.collides(victim):
+                        victim.hp = max(0, victim.hp - FireBall.DMG)
+                        victim.flash_timer = 8
+                        if not victim.char.get("immune"):
+                            if victim.fire_frames == 0: victim.fire_tick = 480
+                            victim.fire_frames = max(victim.fire_frames, 480)
+                        fb.alive = False
+            fire_balls = [fb for fb in fire_balls if fb.alive]
+
+            # Thunder God bolts
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_thunder:
+                    shooter.pending_thunder = False
+                    thunder_bolts.append(ThunderBolt(victim.x, shooter))
+            for tb in thunder_bolts:
+                tb.update()
+                if tb.alive and not tb.hit:
+                    victim = p2 if tb.owner is p1 else p1
+                    if tb.collides(victim):
+                        victim.hp = max(0, victim.hp - ThunderBolt.DMG)
+                        victim.flash_timer = 12
+                        if not victim.char.get("immune"):
+                            victim.shock_frames = max(victim.shock_frames, 180)
+                        tb.hit = True
+            thunder_bolts = [tb for tb in thunder_bolts if tb.alive]
+
             # Jungle snakes
             if is_jungle:
                 snake_spawn_timer -= 1
@@ -603,6 +656,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             b.draw(screen)
         for s in snipe_shots:
             s.draw(screen)
+        for fb in fire_balls:
+            fb.draw(screen)
+        for tb in thunder_bolts:
+            tb.draw(screen)
         for sn in jungle_snakes:
             sn.draw(screen)
         for sk in falling_skulls:

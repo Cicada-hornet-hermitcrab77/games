@@ -413,6 +413,16 @@ def character_select(vs_ai=False):
         if detail_ch.get("toxic_aura"):      badges.append(("TOXIC AURA",    (60, 220, 60)))
         if detail_ch.get("time_freeze"):     badges.append(("TIME FREEZE",   (100,180,255)))
         if detail_ch.get("cycle_attack"):    badges.append(("CYCLE ATTACK",  (160,120,255)))
+        if detail_ch.get("explode_death"):   badges.append(("DEATH EXPLODE", (255,100,  0)))
+        if detail_ch.get("shrink_kick"):     badges.append(("SHRINK KICK",   (120,255,200)))
+        if detail_ch.get("launch_kick"):     badges.append(("LAUNCH KICK",   (200,160,255)))
+        if detail_ch.get("speed_steal"):     badges.append(("SPEED STEAL",   ( 60, 80, 60)))
+        if detail_ch.get("reflect_proj"):    badges.append(("REFLECT PROJ",  (200,220,240)))
+        if detail_ch.get("auto_fire"):       badges.append(("AUTO FIRE",     (255, 80,  0)))
+        if detail_ch.get("thunder_punch"):   badges.append(("THUNDER",       (255,240, 80)))
+        if detail_ch.get("glass_cannon"):    badges.append(("GLASS CANNON",  (200,240,255)))
+        if detail_ch.get("auto_teleport"):   badges.append(("AUTO TELEPORT", ( 80,200,220)))
+        if detail_ch.get("sticky_punch"):    badges.append(("STICKY PUNCH",  (200,180, 60)))
         bx_off = PX + 8
         for btxt, bcol in badges:
             bs = font_tiny.render(btxt, True, bcol)

@@ -1321,6 +1321,123 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             if ga < 12:
                 pygame.draw.circle(surface, (60, 220, 60, 120), (gpx, gpy), max(2, int((4 - ga//4) * s)))
 
+    elif char_name == "Kamikaze":
+        # Ticking bomb strapped to chest
+        bx2, by2 = sx - int(6 * s), sy - int(8 * s)
+        bsz2 = max(8, int(14 * s))
+        t = pygame.time.get_ticks()
+        blink = (t // 300) % 2 == 0
+        pygame.draw.rect(surface, (220, 60, 20) if blink else (160, 40, 10),
+                         (bx2, by2, bsz2, bsz2), border_radius=3)
+        pygame.draw.rect(surface, (255, 200, 0), (bx2, by2, bsz2, bsz2), 1, border_radius=3)
+        # Fuse spark
+        if blink:
+            pygame.draw.circle(surface, (255, 230, 0),
+                               (bx2 + bsz2 // 2, by2 - max(2, int(3 * s))), max(2, int(3 * s)))
+
+    elif char_name == "Shrink Ray":
+        # Ray gun held out front
+        gun_x = hx + int(facing * hd)
+        gun_y = hy + int(hd * 0.2)
+        gun_w = int(22 * s)
+        gun_h = int(9 * s)
+        pygame.draw.rect(surface, (60, 220, 180),
+                         (gun_x, gun_y - gun_h // 2, int(facing) * gun_w, gun_h),
+                         border_radius=3)
+        pygame.draw.circle(surface, (120, 255, 210),
+                           (gun_x + int(facing * gun_w), gun_y), max(3, int(5 * s)))
+
+    elif char_name == "Levitator":
+        # Upward-pointing glowing hands
+        for hpos in [(lhx, lhy), (rhx, rhy)]:
+            glow_r = max(5, int(8 * s))
+            gsurf = pygame.Surface((glow_r * 2 + 4, glow_r * 2 + 4), pygame.SRCALPHA)
+            pygame.draw.circle(gsurf, (180, 140, 255, 100), (glow_r + 2, glow_r + 2), glow_r)
+            surface.blit(gsurf, (int(hpos[0]) - glow_r - 2, int(hpos[1]) - glow_r - 2))
+            pygame.draw.circle(surface, (220, 180, 255), (int(hpos[0]), int(hpos[1])),
+                               max(3, int(5 * s)))
+
+    elif char_name == "Stalker":
+        # Dark hood pulled low, glowing red eyes
+        hood_pts = [
+            (hx - int(hd * 1.05), hy + int(hd * 0.2)),
+            (hx,                   hy - hd - int(14 * s)),
+            (hx + int(hd * 1.05), hy + int(hd * 0.2)),
+        ]
+        pygame.draw.polygon(surface, (20, 30, 20), hood_pts)
+        pygame.draw.polygon(surface, (40, 60, 40), hood_pts, max(1, int(s)))
+        for side in (-1, 1):
+            pygame.draw.circle(surface, (200, 20, 20),
+                               (hx + side * int(hd * 0.38), hy), max(2, int(3 * s)))
+
+    elif char_name == "Mirror Man":
+        # Shiny mirror shield on blocking arm side
+        shx = hx + int(facing * hd * 1.4)
+        shy = hy
+        sh_r = max(8, int(14 * s))
+        pygame.draw.circle(surface, (200, 220, 240), (shx, shy), sh_r)
+        pygame.draw.circle(surface, (255, 255, 255), (shx, shy), sh_r, max(1, int(2 * s)))
+        # Reflection glint
+        pygame.draw.line(surface, (255, 255, 255),
+                         (shx - int(4 * s), shy - int(6 * s)),
+                         (shx + int(4 * s), shy + int(6 * s)), max(1, int(s)))
+
+    elif char_name == "Pyro":
+        # Flamethrower nozzle on the punch arm
+        nozzle_x = rhx + int(facing * int(10 * s))
+        nozzle_y = rhy
+        pygame.draw.rect(surface, (80, 60, 40),
+                         (nozzle_x - max(3, int(4 * s)), nozzle_y - max(3, int(4 * s)),
+                          max(6, int(8 * s)) + int(facing * max(8, int(14 * s))),
+                          max(6, int(8 * s))), border_radius=2)
+        t = pygame.time.get_ticks()
+        if (t // 150) % 2 == 0:
+            pygame.draw.circle(surface, (255, 120, 0),
+                               (nozzle_x + int(facing * max(10, int(16 * s))), nozzle_y),
+                               max(3, int(5 * s)))
+
+    elif char_name == "Thunder God":
+        # Lightning crown of 5 bolts
+        t = pygame.time.get_ticks()
+        for ci in range(5):
+            ca = math.radians(ci * 72 + t * 0.08)
+            cx2 = hx + int(math.cos(ca) * hd * 1.4)
+            cy2 = hy - hd - int(math.sin(ca) * hd * 0.6) - int(6 * s)
+            pygame.draw.line(surface, (255, 240, 0),
+                             (hx, hy - hd), (cx2, cy2), max(1, int(2 * s)))
+            pygame.draw.circle(surface, (255, 255, 180), (cx2, cy2), max(2, int(3 * s)))
+
+    elif char_name == "Glass Cannon":
+        # Cannon barrel on shoulder
+        c_x = sx + int(facing * int(8 * s))
+        c_y = sy - int(8 * s)
+        c_len = int(28 * s)
+        pygame.draw.rect(surface, (180, 200, 220),
+                         (c_x, c_y - max(3, int(5 * s)),
+                          int(facing * c_len), max(6, int(10 * s))),
+                         border_radius=2)
+        pygame.draw.circle(surface, (140, 160, 180),
+                           (c_x + int(facing * c_len), c_y), max(4, int(7 * s)))
+
+    elif char_name == "Teleporter":
+        # Swirling portal ring around body
+        t = pygame.time.get_ticks()
+        for pi in range(8):
+            pa = math.radians(pi * 45 + t * 0.18)
+            px2 = hx + int(math.cos(pa) * hd * 1.8)
+            py2 = wy + int(math.sin(pa) * int(hd * 1.2))
+            pygame.draw.circle(surface, (0, 200, 220), (px2, py2), max(2, int(3 * s)))
+
+    elif char_name == "Sticker":
+        # Glue dripping from fists
+        for hpos in [(lhx, lhy), (rhx, rhy)]:
+            drop_y = int(hpos[1]) + max(4, int(6 * s))
+            pygame.draw.line(surface, (230, 200, 50),
+                             (int(hpos[0]), int(hpos[1])),
+                             (int(hpos[0]), drop_y), max(1, int(2 * s)))
+            pygame.draw.circle(surface, (255, 220, 60),
+                               (int(hpos[0]), drop_y), max(2, int(3 * s)))
+
     elif char_name == "Shifter":
         # Three spinning icons above the head showing the cycle
         t = pygame.time.get_ticks()

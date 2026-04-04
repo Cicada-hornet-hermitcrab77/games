@@ -295,6 +295,14 @@ class Fighter:
         self.pending_bee        = False     # Beekeeper: spawn bee swarm this frame
         self.attack_cycle       = 0         # Shifter: 0=normal, 1=whip, 2=snipe
         self.pending_snipe      = False     # Shifter: fire snipe shot this frame
+        # Batch 3 characters
+        self.kamikaze_exploded  = False
+        self.shrink_frames      = 0
+        self.sticky_frames      = 0
+        self.auto_fire_timer    = FPS * 5  if char_data.get("auto_fire")      else 0
+        self.pending_autofire   = False
+        self.auto_teleport_timer = FPS * 8 if char_data.get("auto_teleport")  else 0
+        self.pending_thunder    = False
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -458,6 +466,29 @@ class Fighter:
             else:
                 self.pending_chaos = True
                 self.chaos_timer   = FPS * 12
+        # Shrink frames — restore scale when expiry
+        if self.shrink_frames > 0:
+            self.shrink_frames -= 1
+            if self.shrink_frames == 0 and not self.char.get("tiny"):
+                self.draw_scale = 2.0 if self.char.get("giant") else 1.0
+        # Sticky frames
+        if self.sticky_frames > 0:
+            self.sticky_frames -= 1
+        # Pyro auto fire
+        if self.char.get("auto_fire"):
+            if self.auto_fire_timer > 0:
+                self.auto_fire_timer -= 1
+            else:
+                self.pending_autofire    = True
+                self.auto_fire_timer     = FPS * 5
+        # Auto teleport
+        if self.char.get("auto_teleport"):
+            if self.auto_teleport_timer > 0:
+                self.auto_teleport_timer -= 1
+            else:
+                self.x = float(random.randint(80, WIDTH - 80))
+                self.flash_timer = 12
+                self.auto_teleport_timer = FPS * 8
         # Time Lord freeze timer
         if self.char.get("time_freeze"):
             if self.time_freeze_timer > 0:
@@ -591,6 +622,8 @@ class Fighter:
         else:
             self.dash_dir = 0
 
+        _sticky_save_x = self.x   # captured before key movement for Sticker
+
         if self.hurt_timer == 0 and self.freeze_frames == 0 and not self.ducking and not self.blocking:
             ctrl = _ec   # use effective controls (swapped if Disorientated)
             can_atk = not self.attacking or self.action in ('idle', 'walk', 'jump')
@@ -617,6 +650,8 @@ class Fighter:
                     elif self.attack_cycle == 2:
                         self.pending_snipe = True
                     self.attack_cycle = (self.attack_cycle + 1) % 3
+                if self.char.get("thunder_punch"):
+                    self.pending_thunder = True
             elif can_atk and keys[ctrl['kick']] and self.kick_cooldown == 0:
                 self._start('kick', 0.06)
                 self.kick_cooldown = FPS * 2     # 2 seconds
@@ -715,6 +750,10 @@ class Fighter:
         if self.dash_frames > 0 and self.char.get("smoke_trail") and random.random() < 0.7:
             self.smoke_particles.append([self.x + random.randint(-6, 6),
                                          self.y - 50 + random.randint(-10, 10), 38, 38])
+
+        # Sticker: opponent can't move horizontally while sticky_frames > 0
+        if self.sticky_frames > 0:
+            self.x = _sticky_save_x
 
         # Ghost free float: hold jump = rise, hold duck = sink (independent of attack)
         if self.char.get("ghost_float") and _ec and self.hurt_timer == 0:
@@ -843,6 +882,21 @@ class Fighter:
             if self.char.get("drain_kick") and self.action == 'kick':
                 heal = min(20, self.max_hp - self.hp)
                 self.hp = min(self.max_hp, self.hp + heal)
+            if self.char.get("shrink_kick") and self.action == 'kick':
+                if not other.char.get("immune"):
+                    other.shrink_frames = 300   # 5 seconds
+                    if not other.char.get("giant"):
+                        other.draw_scale = 0.45
+            if self.char.get("launch_kick") and self.action == 'kick':
+                other.vy          = -22
+                other.on_ground   = False
+            if self.char.get("speed_steal"):
+                steal             = 0.08
+                other.speed_boost = max(0.3, other.speed_boost - steal)
+                self.speed_boost  = min(3.0, self.speed_boost  + steal)
+            if self.char.get("sticky_punch") and self.action == 'punch':
+                if not other.char.get("immune"):
+                    other.sticky_frames = 120   # 2 seconds
 
     def draw(self, surface):
         _scale = self.draw_scale
@@ -1183,6 +1237,8 @@ class AIFighter(Fighter):
                         elif self.attack_cycle == 2:
                             self.pending_snipe = True
                         self.attack_cycle = (self.attack_cycle + 1) % 3
+                    if self.char.get("thunder_punch"):
+                        self.pending_thunder = True
                 else:
                     self.kick_cooldown = FPS * 2
                     if self.char.get("teleport_kick"):
@@ -2739,3 +2795,79 @@ class SnipeShot:
 
     def collides(self, fighter):
         return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
+# FireBall  (Pyro auto-fire — applies fire on hit)
+# ---------------------------------------------------------------------------
+
+class FireBall:
+    RADIUS = 10
+    SPEED  = 7
+    DMG    = 8
+
+    def __init__(self, x, y, facing, owner):
+        self.x     = float(x)
+        self.y     = float(y)
+        self.vx    = self.SPEED * facing
+        self.owner = owner
+        self.alive = True
+        self._t    = 0
+
+    def update(self):
+        self._t += 1
+        self.x += self.vx
+        if self.x < 0 or self.x > WIDTH:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pulse = (self._t // 4) % 2 == 0
+        pygame.draw.circle(surface, (255, 60, 0) if pulse else (220, 100, 20), (cx, cy), self.RADIUS)
+        pygame.draw.circle(surface, (255, 200, 0), (cx, cy), self.RADIUS - 4)
+        pygame.draw.circle(surface, (255, 255, 180), (cx, cy), self.RADIUS - 7)
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
+# ThunderBolt  (Thunder God punch — falls from above onto opponent)
+# ---------------------------------------------------------------------------
+
+class ThunderBolt:
+    GRAVITY = 1.4
+    DMG     = 20
+
+    def __init__(self, target_x, owner):
+        self.x     = float(target_x)
+        self.y     = 0.0
+        self.vy    = 5.0
+        self.owner = owner
+        self.alive = True
+        self.hit   = False
+        self._t    = 0
+
+    def update(self):
+        self._t += 1
+        self.vy = min(self.vy + self.GRAVITY, 30)
+        self.y  += self.vy
+        if self.y >= GROUND_Y:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, bot = int(self.x), int(self.y)
+        segs = 6
+        pts  = []
+        for i in range(segs + 1):
+            t  = i / segs
+            sy = int(t * bot)
+            sx = cx + int(math.sin(t * math.pi * 3 + self._t * 0.4) * 10)
+            pts.append((sx, sy))
+        if len(pts) >= 2:
+            pygame.draw.lines(surface, (180, 180, 255), False, pts, 3)
+            pygame.draw.lines(surface, (255, 255, 255), False, pts, 1)
+        pygame.draw.circle(surface, (255, 255, 100), (cx, bot), 7)
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 40)) < 40
