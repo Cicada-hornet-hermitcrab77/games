@@ -1396,6 +1396,21 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     powerups.append(pu_p)
                     f.poop_cd = 30
 
+            # Kamikaze death explosion (survival)
+            for p in players:
+                if (p.char.get("explode_death") and p.hp <= 0
+                        and not p.kamikaze_exploded):
+                    p.kamikaze_exploded = True
+                    for en in enemies:
+                        if math.hypot(p.x - en.x, (p.y - 60) - (en.y - 60)) < 150:
+                            en.hp = max(0, en.hp - 60)
+                            en.flash_timer = 20
+                            # Enemy had < 60 HP — explosion kills them; kamikaze survives
+                            if en.hp <= 0:
+                                p.hp = 1
+                                p.action = 'idle'
+                                p.flash_timer = 20
+
             # Game over when all players dead
             if all(p.hp <= 0 for p in players):
                 game_over = True
