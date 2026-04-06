@@ -168,8 +168,10 @@ def mode_select():
 # Character select screen
 # ---------------------------------------------------------------------------
 
-def character_select(vs_ai=False):
+def character_select(vs_ai=False, unlocked=None):
     """Returns (p1_idx, p2_idx). P2 is random if vs_ai."""
+    if unlocked is None:
+        unlocked = {ch["name"] for ch in CHARACTERS}
     n     = len(CHARACTERS)
     COLS  = 7
     ROWS  = (n + COLS - 1) // COLS
@@ -220,9 +222,13 @@ def character_select(vs_ai=False):
                     if event.key in (pygame.K_w, pygame.K_UP):    p1_idx = move(p1_idx, -1, 0)
                     if event.key in (pygame.K_s, pygame.K_DOWN):  p1_idx = move(p1_idx,  1, 0)
                     if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_f):
-                        p1_ready = True
-                        if vs_ai:
-                            p2_idx = random.randint(0, n - 1)
+                        if CHARACTERS[p1_idx]["name"] not in unlocked:
+                            pass  # locked — do nothing
+                        else:
+                            p1_ready = True
+                            if vs_ai:
+                                _ul = [i for i, c in enumerate(CHARACTERS) if c["name"] in unlocked]
+                                p2_idx = random.choice(_ul) if _ul else random.randint(0, n - 1)
                 # P2 navigation (arrows only, after P1 locked in)
                 elif not vs_ai and not p2_ready:
                     if event.key == pygame.K_LEFT:  p2_idx = move(p2_idx, 0, -1)
@@ -230,7 +236,8 @@ def character_select(vs_ai=False):
                     if event.key == pygame.K_UP:    p2_idx = move(p2_idx, -1, 0)
                     if event.key == pygame.K_DOWN:  p2_idx = move(p2_idx,  1, 0)
                     if event.key in (pygame.K_RETURN, pygame.K_k):
-                        p2_ready = True
+                        if CHARACTERS[p2_idx]["name"] in unlocked:
+                            p2_ready = True
 
         if p1_ready and p2_ready:
             return p1_idx, p2_idx
@@ -255,13 +262,17 @@ def character_select(vs_ai=False):
 
         # ── Character grid ───────────────────────────────────────────────────
         for i, ch in enumerate(CHARACTERS):
-            r, c  = divmod(i, COLS)
-            cx    = GX + c * CW
-            cy    = GY + r * CH
-            color = ch["color"]
+            r, c    = divmod(i, COLS)
+            cx      = GX + c * CW
+            cy      = GY + r * CH
+            color   = ch["color"]
+            is_locked = ch["name"] not in unlocked
 
-            # Tinted background from character color
-            bg_col = (max(10, color[0]//5), max(10, color[1]//5), max(10, color[2]//5))
+            # Tinted background from character color (very dark if locked)
+            if is_locked:
+                bg_col = (14, 14, 18)
+            else:
+                bg_col = (max(10, color[0]//5), max(10, color[1]//5), max(10, color[2]//5))
             pygame.draw.rect(screen, bg_col, (cx+2, cy+2, CW-4, CH-4), border_radius=6)
 
             # Selection highlights
@@ -278,9 +289,17 @@ def character_select(vs_ai=False):
                 bord, bw = (55, 55, 70), 1
             pygame.draw.rect(screen, bord, (cx+2, cy+2, CW-4, CH-4), bw, border_radius=6)
 
-            # Character name (truncate if needed)
-            name_str = ch["name"] if len(ch["name"]) <= 10 else ch["name"][:9] + "."
-            nm = font_tiny.render(name_str, True, color if (is_p1 or is_p2) else (160, 160, 160))
+            # Character name or lock indicator
+            if is_locked:
+                nm = font_tiny.render("???", True, (70, 70, 80))
+                # small padlock lines
+                lx, ly = cx + CW//2, cy + CH//2 - 6
+                pygame.draw.rect(screen, (70, 70, 80), (lx - 5, ly + 4, 10, 8), border_radius=2)
+                pygame.draw.arc(screen, (70, 70, 80), (lx - 4, ly - 4, 8, 10),
+                                math.pi * 0.1, math.pi * 0.9, 2)
+            else:
+                name_str = ch["name"] if len(ch["name"]) <= 10 else ch["name"][:9] + "."
+                nm = font_tiny.render(name_str, True, color if (is_p1 or is_p2) else (160, 160, 160))
             screen.blit(nm, (cx + CW//2 - nm.get_width()//2, cy + CH//2 - 6))
 
             # Ready badge
@@ -299,138 +318,154 @@ def character_select(vs_ai=False):
         pygame.draw.rect(screen, (60, 60, 90), (GX, GY, GW, GH), 1, border_radius=4)
 
         # ── Detail panel ─────────────────────────────────────────────────────
+        detail_locked = detail_ch["name"] not in unlocked
         pygame.draw.rect(screen, (25, 25, 40),    (PX, PY, PW, PH), border_radius=10)
         pygame.draw.rect(screen, active_col,      (PX, PY, PW, PH), 2, border_radius=10)
 
-        # Large animated stickman
-        sm_y = PY + 155
-        draw_stickman(screen, PX + PW//2, sm_y, detail_ch["color"], 1, 'walk', preview_t, scale=1.15,
-                      char_name=detail_ch["name"])
+        if detail_locked:
+            # Show locked placeholder
+            lbl = font_medium.render("???", True, (80, 80, 100))
+            screen.blit(lbl, (PX + PW//2 - lbl.get_width()//2, PY + 8))
+            msg = font_small.render("LOCKED", True, (180, 60, 60))
+            screen.blit(msg, (PX + PW//2 - msg.get_width()//2, PY + PH//2 - 30))
+            hint2 = font_tiny.render("Win a match to unlock", True, (140, 140, 160))
+            screen.blit(hint2, (PX + PW//2 - hint2.get_width()//2, PY + PH//2 + 5))
+            # Draw a big padlock shape
+            lkcx, lkcy = PX + PW//2, PY + PH//2 - 80
+            pygame.draw.rect(screen, (80, 80, 100), (lkcx - 22, lkcy + 8, 44, 34), border_radius=5)
+            pygame.draw.arc(screen, (80, 80, 100), (lkcx - 18, lkcy - 22, 36, 40),
+                            math.pi * 0.05, math.pi * 0.95, 5)
+        else:
+            # Large animated stickman
+            sm_y = PY + 155
+            draw_stickman(screen, PX + PW//2, sm_y, detail_ch["color"], 1, 'walk', preview_t, scale=1.15,
+                          char_name=detail_ch["name"])
 
-        # Character name
-        nm_big = font_medium.render(detail_ch["name"], True, detail_ch["color"])
-        screen.blit(nm_big, (PX + PW//2 - nm_big.get_width()//2, PY + 8))
+            # Character name
+            nm_big = font_medium.render(detail_ch["name"], True, detail_ch["color"])
+            screen.blit(nm_big, (PX + PW//2 - nm_big.get_width()//2, PY + 8))
 
-        # Description (word-wrap)
-        words, line, desc_lines = detail_ch["desc"].split(), "", []
-        for w in words:
-            test = (line + " " + w).strip()
-            if font_tiny.size(test)[0] > PW - 16:
-                desc_lines.append(line); line = w
-            else:
-                line = test
-        if line: desc_lines.append(line)
-        for li, dl in enumerate(desc_lines):
-            ds = font_tiny.render(dl, True, YELLOW)
-            screen.blit(ds, (PX + PW//2 - ds.get_width()//2, PY + 34 + li * 15))
+        if not detail_locked:
+            # Description (word-wrap)
+            words, line, desc_lines = detail_ch["desc"].split(), "", []
+            for w in words:
+                test = (line + " " + w).strip()
+                if font_tiny.size(test)[0] > PW - 16:
+                    desc_lines.append(line); line = w
+                else:
+                    line = test
+            if line: desc_lines.append(line)
+            for li, dl in enumerate(desc_lines):
+                ds = font_tiny.render(dl, True, YELLOW)
+                screen.blit(ds, (PX + PW//2 - ds.get_width()//2, PY + 34 + li * 15))
 
-        # Stat bars
-        bar_x  = PX + 10
-        bar_y  = PY + 172
-        bar_bw = PW - 20
-        bar_h  = 14
-        bar_gap = 23
-        for si, (lbl, val, mx, col) in enumerate([
-            ("HP",    detail_ch["max_hp"],              400, (60,  210,  80)),
-            ("SPD",   detail_ch["speed"],                10, (80,  170, 255)),
-            ("PUNCH", detail_ch["punch_dmg"],            30, (255, 120,  50)),
-            ("KICK",  detail_ch["kick_dmg"],             30, (255,  60, 180)),
-            ("BLOCK", detail_ch.get("block", 5),         10, (200, 200,  60)),
-        ]):
-            by  = bar_y + si * bar_gap
-            lbs = font_tiny.render(lbl, True, (180, 180, 180))
-            screen.blit(lbs, (bar_x, by))
-            bx2 = bar_x + 48
-            bw2 = bar_bw - 48
-            pygame.draw.rect(screen, (50, 50, 65), (bx2, by, bw2, bar_h), border_radius=3)
-            fw  = int(bw2 * min(1.0, val / mx))
-            if fw > 0:
-                pygame.draw.rect(screen, col, (bx2, by, fw, bar_h), border_radius=3)
-            pygame.draw.rect(screen, (90, 90, 110), (bx2, by, bw2, bar_h), 1, border_radius=3)
-            vs2 = font_tiny.render(str(val), True, WHITE)
-            screen.blit(vs2, (bx2 + bw2 + 5, by))
+            # Stat bars
+            bar_x  = PX + 10
+            bar_y  = PY + 172
+            bar_bw = PW - 20
+            bar_h  = 14
+            bar_gap = 23
+            for si, (lbl, val, mx, col) in enumerate([
+                ("HP",    detail_ch["max_hp"],              400, (60,  210,  80)),
+                ("SPD",   detail_ch["speed"],                10, (80,  170, 255)),
+                ("PUNCH", detail_ch["punch_dmg"],            30, (255, 120,  50)),
+                ("KICK",  detail_ch["kick_dmg"],             30, (255,  60, 180)),
+                ("BLOCK", detail_ch.get("block", 5),         10, (200, 200,  60)),
+            ]):
+                by  = bar_y + si * bar_gap
+                lbs = font_tiny.render(lbl, True, (180, 180, 180))
+                screen.blit(lbs, (bar_x, by))
+                bx2 = bar_x + 48
+                bw2 = bar_bw - 48
+                pygame.draw.rect(screen, (50, 50, 65), (bx2, by, bw2, bar_h), border_radius=3)
+                fw  = int(bw2 * min(1.0, val / mx))
+                if fw > 0:
+                    pygame.draw.rect(screen, col, (bx2, by, fw, bar_h), border_radius=3)
+                pygame.draw.rect(screen, (90, 90, 110), (bx2, by, bw2, bar_h), 1, border_radius=3)
+                vs2 = font_tiny.render(str(val), True, WHITE)
+                screen.blit(vs2, (bx2 + bw2 + 5, by))
 
-        # Badges row
-        badge_y = bar_y + 5 * bar_gap + 6
-        badges  = []
-        if detail_ch.get("double_jump"):    badges.append(("2x JUMP",      CYAN))
-        if detail_ch.get("giant"):          badges.append(("GIANT",         GREEN))
-        if detail_ch.get("tiny"):           badges.append(("TINY",          (220, 200, 180)))
-        if detail_ch.get("phase"):          badges.append(("PHASES WALLS",  (200, 200, 255)))
-        if detail_ch.get("vampire"):        badges.append(("VAMPIRE",       (200, 0, 80)))
-        if detail_ch.get("anti_gravity"):   badges.append(("ANTI-GRAVITY",  (180, 220, 255)))
-        if detail_ch.get("wall_cling"):     badges.append(("WALL CLING",    ORANGE))
-        if detail_ch.get("regen"):          badges.append(("REGEN",         (120, 255, 120)))
-        if detail_ch.get("fire_punch"):     badges.append(("FIRE PUNCH",    (255, 100, 20)))
-        if detail_ch.get("freeze_kick"):    badges.append(("FREEZE KICK",   (120, 200, 255)))
-        if detail_ch.get("shock_punch"):    badges.append(("SHOCK PUNCH",   YELLOW))
-        if detail_ch.get("magnet"):         badges.append(("MAGNET",        PURPLE))
-        if detail_ch.get("teleport_kick"):  badges.append(("TELEPORT KICK", (220, 80, 255)))
-        if detail_ch.get("random_stats"):   badges.append(("RANDOM STATS",  GRAY))
-        if detail_ch.get("boomerang_kick"): badges.append(("BOOMERANG",     (200, 130, 50)))
-        if detail_ch.get("shoot_kick"):     badges.append(("SHOOTS BALLS",  (60, 200, 80)))
-        if detail_ch.get("bazooka_kick"):   badges.append(("BAZOOKA",       (220, 60, 60)))
-        if detail_ch.get("bounce_kick"):    badges.append(("BOUNCE BALL",   (255, 80, 200)))
-        if detail_ch.get("size_kick"):      badges.append(("SIZE SHIFT",    (80, 200, 220)))
-        if detail_ch.get("grapple_kick"):   badges.append(("SNAKE HOOK",    (40, 200, 60)))
-        if detail_ch.get("pumpkin_kick"):   badges.append(("PUMPKIN BOMB",  (215, 118, 0)))
-        if detail_ch.get("contact_dmg"):    badges.append(("POISON TOUCH",  (100, 220, 60)))
-        if detail_ch.get("hammer_punch"):   badges.append(("HAMMER SMASH",  (160, 120, 60)))
-        if detail_ch.get("berserker"):      badges.append(("BERSERKER",      (220, 60, 30)))
-        if detail_ch.get("bounce_punch"):   badges.append(("MAGIC ORB",      (160, 80, 255)))
-        if detail_ch.get("slam_kick"):      badges.append(("SLAM KICK",      (220, 100, 40)))
-        if detail_ch.get("confuse_kick"):   badges.append(("CONFUSE KICK",   (255, 60, 120)))
-        if detail_ch.get("speedster"):      badges.append(("SPEED TRAIL",    (255, 220, 0)))
-        if detail_ch.get("slow_fall"):      badges.append(("SLOW FALL",      (255, 240, 180)))
-        if detail_ch.get("stealth_punch"):  badges.append(("STEALTH",        (200, 200, 220)))
-        if detail_ch.get("wide_punch"):     badges.append(("WIDE REACH",     (160, 80, 30)))
-        if detail_ch.get("reflect_block"):  badges.append(("REFLECT",        (80, 200, 80)))
-        if detail_ch.get("laser_eyes"):     badges.append(("LASER EYES",     (255, 60,  0)))
-        if detail_ch.get("whip_punch"):     badges.append(("WHIP",           (160, 90, 20)))
-        if detail_ch.get("always_crit"):    badges.append(("ALWAYS CRIT",    (255, 215, 0)))
-        if detail_ch.get("chameleon"):      badges.append(("CAMOUFLAGE",     (60, 180, 80)))
-        if detail_ch.get("ink_kick"):       badges.append(("INK CLONE",      (20,  20, 40)))
-        if detail_ch.get("ghost_float"):    badges.append(("GHOST FLOAT",    (210, 210, 255)))
-        # new characters
-        if detail_ch.get("kitsune_barrage"): badges.append(("九 BARRAGE",    (255, 160,  0)))
-        if detail_ch.get("freeze_laser"):    badges.append(("FREEZE GAZE",   (0,  210, 255)))
-        if detail_ch.get("creator_kick"):    badges.append(("CREATES WALLS", (220, 180, 40)))
-        if detail_ch.get("disorientated"):   badges.append(("ALL REVERSED",  (200,  80, 255)))
-        if detail_ch.get("immune"):          badges.append(("STATUS IMMUNE", (210, 210, 180)))
-        if detail_ch.get("water_kick"):      badges.append(("WATER BALL",    (0,  180, 240)))
-        if detail_ch.get("momentum"):        badges.append(("MOMENTUM",      (0,  160, 220)))
-        if detail_ch.get("smoke_trail"):     badges.append(("SMOKE TRAIL",   (180, 180, 220)))
-        if detail_ch.get("ascii_fighter"):   badges.append(("ASCII BODY",    (0,  255, 120)))
-        if detail_ch.get("snake"):           badges.append(("SNAKE BODY",    (20, 200, 60)))
-        if detail_ch.get("always_berserk"):  badges.append(("ALWAYS ENRAGED",(220, 50,  0)))
-        if detail_ch.get("bee_punch"):       badges.append(("BEE SWARM",     (220,180,  0)))
-        if detail_ch.get("plague_punch"):    badges.append(("PLAGUE",        (120,200, 80)))
-        if detail_ch.get("undead"):          badges.append(("REVIVES ONCE",  (80,  40,120)))
-        if detail_ch.get("chaos_timer"):     badges.append(("CHAOS MAGIC",   (200, 80,255)))
-        if detail_ch.get("rapid_fire"):      badges.append(("RAPID PUNCH",   (255,160,  0)))
-        if detail_ch.get("drain_kick"):      badges.append(("DRAIN KICK",    (160,  0,160)))
-        if detail_ch.get("iron_fist"):       badges.append(("IRON FIST",     (180,180,200)))
-        if detail_ch.get("toxic_aura"):      badges.append(("TOXIC AURA",    (60, 220, 60)))
-        if detail_ch.get("time_freeze"):     badges.append(("TIME FREEZE",   (100,180,255)))
-        if detail_ch.get("cycle_attack"):    badges.append(("CYCLE ATTACK",  (160,120,255)))
-        if detail_ch.get("explode_death"):   badges.append(("DEATH EXPLODE", (255,100,  0)))
-        if detail_ch.get("shrink_kick"):     badges.append(("SHRINK KICK",   (120,255,200)))
-        if detail_ch.get("launch_kick"):     badges.append(("LAUNCH KICK",   (200,160,255)))
-        if detail_ch.get("speed_steal"):     badges.append(("SPEED STEAL",   ( 60, 80, 60)))
-        if detail_ch.get("reflect_proj"):    badges.append(("REFLECT PROJ",  (200,220,240)))
-        if detail_ch.get("auto_fire"):       badges.append(("AUTO FIRE",     (255, 80,  0)))
-        if detail_ch.get("thunder_punch"):   badges.append(("THUNDER",       (255,240, 80)))
-        if detail_ch.get("auto_teleport"):   badges.append(("AUTO TELEPORT", ( 80,200,220)))
-        if detail_ch.get("sticky_punch"):    badges.append(("STICKY PUNCH",  (200,180, 60)))
-        bx_off = PX + 8
-        for btxt, bcol in badges:
-            bs = font_tiny.render(btxt, True, bcol)
-            if bx_off + bs.get_width() + 10 > PX + PW - 4:
-                bx_off  = PX + 8
-                badge_y += 18
-            pygame.draw.rect(screen, (40, 40, 60), (bx_off - 2, badge_y - 1, bs.get_width() + 8, 16), border_radius=3)
-            screen.blit(bs, (bx_off + 2, badge_y))
-            bx_off += bs.get_width() + 14
+            # Badges row
+            badge_y = bar_y + 5 * bar_gap + 6
+            badges  = []
+            if detail_ch.get("double_jump"):    badges.append(("2x JUMP",      CYAN))
+            if detail_ch.get("giant"):          badges.append(("GIANT",         GREEN))
+            if detail_ch.get("tiny"):           badges.append(("TINY",          (220, 200, 180)))
+            if detail_ch.get("phase"):          badges.append(("PHASES WALLS",  (200, 200, 255)))
+            if detail_ch.get("vampire"):        badges.append(("VAMPIRE",       (200, 0, 80)))
+            if detail_ch.get("anti_gravity"):   badges.append(("ANTI-GRAVITY",  (180, 220, 255)))
+            if detail_ch.get("wall_cling"):     badges.append(("WALL CLING",    ORANGE))
+            if detail_ch.get("regen"):          badges.append(("REGEN",         (120, 255, 120)))
+            if detail_ch.get("fire_punch"):     badges.append(("FIRE PUNCH",    (255, 100, 20)))
+            if detail_ch.get("freeze_kick"):    badges.append(("FREEZE KICK",   (120, 200, 255)))
+            if detail_ch.get("shock_punch"):    badges.append(("SHOCK PUNCH",   YELLOW))
+            if detail_ch.get("magnet"):         badges.append(("MAGNET",        PURPLE))
+            if detail_ch.get("teleport_kick"):  badges.append(("TELEPORT KICK", (220, 80, 255)))
+            if detail_ch.get("random_stats"):   badges.append(("RANDOM STATS",  GRAY))
+            if detail_ch.get("boomerang_kick"): badges.append(("BOOMERANG",     (200, 130, 50)))
+            if detail_ch.get("shoot_kick"):     badges.append(("SHOOTS BALLS",  (60, 200, 80)))
+            if detail_ch.get("bazooka_kick"):   badges.append(("BAZOOKA",       (220, 60, 60)))
+            if detail_ch.get("bounce_kick"):    badges.append(("BOUNCE BALL",   (255, 80, 200)))
+            if detail_ch.get("size_kick"):      badges.append(("SIZE SHIFT",    (80, 200, 220)))
+            if detail_ch.get("grapple_kick"):   badges.append(("SNAKE HOOK",    (40, 200, 60)))
+            if detail_ch.get("pumpkin_kick"):   badges.append(("PUMPKIN BOMB",  (215, 118, 0)))
+            if detail_ch.get("contact_dmg"):    badges.append(("POISON TOUCH",  (100, 220, 60)))
+            if detail_ch.get("hammer_punch"):   badges.append(("HAMMER SMASH",  (160, 120, 60)))
+            if detail_ch.get("berserker"):      badges.append(("BERSERKER",      (220, 60, 30)))
+            if detail_ch.get("bounce_punch"):   badges.append(("MAGIC ORB",      (160, 80, 255)))
+            if detail_ch.get("slam_kick"):      badges.append(("SLAM KICK",      (220, 100, 40)))
+            if detail_ch.get("confuse_kick"):   badges.append(("CONFUSE KICK",   (255, 60, 120)))
+            if detail_ch.get("speedster"):      badges.append(("SPEED TRAIL",    (255, 220, 0)))
+            if detail_ch.get("slow_fall"):      badges.append(("SLOW FALL",      (255, 240, 180)))
+            if detail_ch.get("stealth_punch"):  badges.append(("STEALTH",        (200, 200, 220)))
+            if detail_ch.get("wide_punch"):     badges.append(("WIDE REACH",     (160, 80, 30)))
+            if detail_ch.get("reflect_block"):  badges.append(("REFLECT",        (80, 200, 80)))
+            if detail_ch.get("laser_eyes"):     badges.append(("LASER EYES",     (255, 60,  0)))
+            if detail_ch.get("whip_punch"):     badges.append(("WHIP",           (160, 90, 20)))
+            if detail_ch.get("always_crit"):    badges.append(("ALWAYS CRIT",    (255, 215, 0)))
+            if detail_ch.get("chameleon"):      badges.append(("CAMOUFLAGE",     (60, 180, 80)))
+            if detail_ch.get("ink_kick"):       badges.append(("INK CLONE",      (20,  20, 40)))
+            if detail_ch.get("ghost_float"):    badges.append(("GHOST FLOAT",    (210, 210, 255)))
+            # new characters
+            if detail_ch.get("kitsune_barrage"): badges.append(("九 BARRAGE",    (255, 160,  0)))
+            if detail_ch.get("freeze_laser"):    badges.append(("FREEZE GAZE",   (0,  210, 255)))
+            if detail_ch.get("creator_kick"):    badges.append(("CREATES WALLS", (220, 180, 40)))
+            if detail_ch.get("disorientated"):   badges.append(("ALL REVERSED",  (200,  80, 255)))
+            if detail_ch.get("immune"):          badges.append(("STATUS IMMUNE", (210, 210, 180)))
+            if detail_ch.get("water_kick"):      badges.append(("WATER BALL",    (0,  180, 240)))
+            if detail_ch.get("momentum"):        badges.append(("MOMENTUM",      (0,  160, 220)))
+            if detail_ch.get("smoke_trail"):     badges.append(("SMOKE TRAIL",   (180, 180, 220)))
+            if detail_ch.get("ascii_fighter"):   badges.append(("ASCII BODY",    (0,  255, 120)))
+            if detail_ch.get("snake"):           badges.append(("SNAKE BODY",    (20, 200, 60)))
+            if detail_ch.get("always_berserk"):  badges.append(("ALWAYS ENRAGED",(220, 50,  0)))
+            if detail_ch.get("bee_punch"):       badges.append(("BEE SWARM",     (220,180,  0)))
+            if detail_ch.get("plague_punch"):    badges.append(("PLAGUE",        (120,200, 80)))
+            if detail_ch.get("undead"):          badges.append(("REVIVES ONCE",  (80,  40,120)))
+            if detail_ch.get("chaos_timer"):     badges.append(("CHAOS MAGIC",   (200, 80,255)))
+            if detail_ch.get("rapid_fire"):      badges.append(("RAPID PUNCH",   (255,160,  0)))
+            if detail_ch.get("drain_kick"):      badges.append(("DRAIN KICK",    (160,  0,160)))
+            if detail_ch.get("iron_fist"):       badges.append(("IRON FIST",     (180,180,200)))
+            if detail_ch.get("toxic_aura"):      badges.append(("TOXIC AURA",    (60, 220, 60)))
+            if detail_ch.get("time_freeze"):     badges.append(("TIME FREEZE",   (100,180,255)))
+            if detail_ch.get("cycle_attack"):    badges.append(("CYCLE ATTACK",  (160,120,255)))
+            if detail_ch.get("explode_death"):   badges.append(("DEATH EXPLODE", (255,100,  0)))
+            if detail_ch.get("shrink_kick"):     badges.append(("SHRINK KICK",   (120,255,200)))
+            if detail_ch.get("launch_kick"):     badges.append(("LAUNCH KICK",   (200,160,255)))
+            if detail_ch.get("speed_steal"):     badges.append(("SPEED STEAL",   ( 60, 80, 60)))
+            if detail_ch.get("reflect_proj"):    badges.append(("REFLECT PROJ",  (200,220,240)))
+            if detail_ch.get("auto_fire"):       badges.append(("AUTO FIRE",     (255, 80,  0)))
+            if detail_ch.get("thunder_punch"):   badges.append(("THUNDER",       (255,240, 80)))
+            if detail_ch.get("auto_teleport"):   badges.append(("AUTO TELEPORT", ( 80,200,220)))
+            if detail_ch.get("sticky_punch"):    badges.append(("STICKY PUNCH",  (200,180, 60)))
+            bx_off = PX + 8
+            for btxt, bcol in badges:
+                bs = font_tiny.render(btxt, True, bcol)
+                if bx_off + bs.get_width() + 10 > PX + PW - 4:
+                    bx_off  = PX + 8
+                    badge_y += 18
+                pygame.draw.rect(screen, (40, 40, 60), (bx_off - 2, badge_y - 1, bs.get_width() + 8, 16), border_radius=3)
+                screen.blit(bs, (bx_off + 2, badge_y))
+                bx_off += bs.get_width() + 14
 
         # Controls hint at bottom of panel
         if not p1_ready:

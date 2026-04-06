@@ -2,6 +2,8 @@ import pygame
 import sys
 import math
 import random
+import json
+import os
 import constants
 from constants import *
 from fight_data import CHARACTERS, POWERUPS, STAGES, STAGE_MATCHUPS
@@ -17,6 +19,61 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             FireBall, ThunderBolt)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu
+
+# ---------------------------------------------------------------------------
+# Unlock system
+# ---------------------------------------------------------------------------
+
+_UNLOCK_FILE     = os.path.join(os.path.dirname(__file__), "unlocks.json")
+_DEFAULT_UNLOCK  = {"Brawler", "Boxer", "Ninja", "Phantom"}
+
+def load_unlocked():
+    try:
+        with open(_UNLOCK_FILE) as f:
+            data = json.load(f)
+        s = set(data.get("unlocked", []))
+        s.update(_DEFAULT_UNLOCK)
+        return s
+    except Exception:
+        return set(_DEFAULT_UNLOCK)
+
+def _save_unlocked(s):
+    with open(_UNLOCK_FILE, 'w') as f:
+        json.dump({"unlocked": sorted(s)}, f)
+
+def unlock_next(s):
+    """Unlock the next locked character in CHARACTERS order. Returns name or None."""
+    for ch in CHARACTERS:
+        if ch["name"] not in s:
+            s.add(ch["name"])
+            _save_unlocked(s)
+            return ch["name"]
+    return None
+
+def _show_unlock(char_name):
+    """Show a 3-second 'CHARACTER UNLOCKED' overlay on the current screen."""
+    ch = next((c for c in CHARACTERS if c["name"] == char_name), None)
+    col = ch["color"] if ch else WHITE
+    start = pygame.time.get_ticks()
+    while pygame.time.get_ticks() - start < 3000:
+        clock.tick(FPS)
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if ev.type == pygame.KEYDOWN:
+                return  # skip on any key
+        elapsed = (pygame.time.get_ticks() - start) / 3000.0
+        alpha = int(220 * (1.0 - max(0, elapsed - 0.7) / 0.3)) if elapsed > 0.7 else 220
+        ov = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        ov.fill((0, 0, 0, alpha))
+        screen.blit(ov, (0, 0))
+        t1 = font_large.render("CHARACTER UNLOCKED!", True, YELLOW)
+        t2 = font_medium.render(char_name, True, col)
+        screen.blit(t1, (WIDTH//2 - t1.get_width()//2, HEIGHT//2 - 60))
+        screen.blit(t2, (WIDTH//2 - t2.get_width()//2, HEIGHT//2 + 10))
+        hint = font_small.render("press any key to continue", True, (160, 160, 160))
+        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT//2 + 70))
+        pygame.display.flip()
 
 # ---------------------------------------------------------------------------
 # Fight loop
@@ -122,16 +179,17 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
                 if game_over:
+                    _p1w = vs_ai and winner is p1
                     if event.key == pygame.K_r:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return 'rematch'
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('rematch', _p1w)
                     if event.key == pygame.K_c:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return 'select'
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('select', _p1w)
                     if event.key in (pygame.K_q, pygame.K_ESCAPE):
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False
                         pygame.quit(); sys.exit()
                 else:
                     if event.key in (pygame.K_q, pygame.K_ESCAPE):
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return 'select'
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('select', False)
 
         if not game_over:
             for portal in portals_obj:
@@ -849,6 +907,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
 
     enemies           = []
     death_pops        = []   # [{x,y,color,t}] death burst particles
+    kamikaze_pops     = []   # [{x,y,t}] kamikaze explosion ring
     balls             = []   # Projectile (shoot_kick)
     orbs              = []   # Orb (bazooka_kick)
     bounce_balls      = []   # BouncingBall (bounce_kick)
@@ -1401,6 +1460,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 if (p.char.get("explode_death") and p.hp <= 0
                         and not p.kamikaze_exploded):
                     p.kamikaze_exploded = True
+                    kamikaze_pops.append({'x': p.x, 'y': p.y - 60, 't': 20})
                     for en in enemies:
                         if math.hypot(p.x - en.x, (p.y - 60) - (en.y - 60)) < 150:
                             en.hp = max(0, en.hp - 60)
@@ -1410,6 +1470,9 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                                 p.hp = 1
                                 p.action = 'idle'
                                 p.flash_timer = 20
+            for kp in kamikaze_pops:
+                kp['t'] -= 1
+            kamikaze_pops = [kp for kp in kamikaze_pops if kp['t'] > 0]
 
             # Game over when all players dead
             if all(p.hp <= 0 for p in players):
@@ -1469,6 +1532,20 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 cr  = max(1, int(6 * (1.0 - prog)))
                 pygame.draw.circle(screen, col, (px, py), cr)
             pygame.draw.circle(screen, WHITE, (int(dp['x']), int(dp['y'])), max(1, int(10 * (1.0 - prog))))
+        # Kamikaze explosion ring
+        for kp in kamikaze_pops:
+            prog = 1.0 - kp['t'] / 20
+            r    = max(1, int(10 + prog * 140))
+            col  = (255, max(0, int(180 - prog * 180)), 0)
+            for angle in range(0, 360, 20):
+                rad = math.radians(angle)
+                px  = int(kp['x'] + math.cos(rad) * r)
+                py  = int(kp['y'] + math.sin(rad) * r)
+                cr  = max(1, int(7 * (1.0 - prog)))
+                pygame.draw.circle(screen, col, (px, py), cr)
+            if prog < 0.35:
+                inner = max(1, int(28 * (0.35 - prog) / 0.35))
+                pygame.draw.circle(screen, (255, 255, 180), (int(kp['x']), int(kp['y'])), inner)
 
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen) if two_player else None
@@ -2175,6 +2252,7 @@ def run_relay_fight(lobby, is_host, p1_char_idx, p2_char_idx,
 # ---------------------------------------------------------------------------
 
 def main():
+    unlocked = load_unlocked()
     while True:
         mode = mode_select()
 
@@ -2203,7 +2281,7 @@ def main():
         # --- Survival path ---
         if mode in ('survival_1p', 'survival_2p'):
             two_player = (mode == 'survival_2p')
-            p1_idx, p2_idx = character_select(vs_ai=not two_player)
+            p1_idx, p2_idx = character_select(vs_ai=not two_player, unlocked=unlocked)
             if p1_idx is None:
                 continue
             s_idx = stage_select()
@@ -2221,14 +2299,19 @@ def main():
         else:
             vs_ai, difficulty = True, mode[1]
 
-        p1_idx, p2_idx = character_select(vs_ai=vs_ai)
+        p1_idx, p2_idx = character_select(vs_ai=vs_ai, unlocked=unlocked)
         if p1_idx is None:
             continue
 
         s_idx = stage_select()
         while True:
             result = run_fight(p1_idx, p2_idx, vs_ai=vs_ai, ai_difficulty=difficulty, stage_idx=s_idx)
-            if result == 'rematch':
+            action, p1_won = result if isinstance(result, tuple) else (result, False)
+            if p1_won:
+                new_name = unlock_next(unlocked)
+                if new_name:
+                    _show_unlock(new_name)
+            if action == 'rematch':
                 continue
             break
 
