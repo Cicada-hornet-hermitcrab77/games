@@ -24,56 +24,211 @@ from fight_ui import stage_select, mode_select, character_select, online_menu
 # Unlock system
 # ---------------------------------------------------------------------------
 
-_UNLOCK_FILE     = os.path.join(os.path.dirname(__file__), "unlocks.json")
-_DEFAULT_UNLOCK  = {"Brawler", "Boxer", "Ninja", "Phantom"}
+_UNLOCK_FILE    = os.path.join(os.path.dirname(__file__), "unlocks.json")
+_DEFAULT_UNLOCK = {"Brawler", "Boxer", "Ninja", "Phantom"}
 
-def load_unlocked():
+# Each entry: (type, param, n, hint_text)
+# types: wins_total | win_with | win_on_stage | survival_kills | perfect_wins | clutch_wins | win_streak
+UNLOCK_CONDITIONS = {
+    "Ares":                ("wins_total",     None,                 2,  "Win 2 matches vs AI"),
+    "Zephyr":              ("wins_total",     None,                 3,  "Win 3 matches vs AI"),
+    "Titan":               ("win_with",       "Brawler",            1,  "Win 1 match as Brawler"),
+    "Dancing Man":         ("wins_total",     None,                 5,  "Win 5 matches vs AI"),
+    "Tank":                ("win_with",       "Boxer",              1,  "Win 1 match as Boxer"),
+    "Mighty Medieval Man": ("win_on_stage",   "Medieval Castle",    1,  "Win on Medieval Castle"),
+    "Samurai":             ("win_on_stage",   "Dojo",               1,  "Win on Dojo stage"),
+    "Skeleton":            ("win_on_stage",   "Graveyard",          1,  "Win on Graveyard stage"),
+    "Unknown":             ("wins_total",     None,                20,  "Win 20 matches vs AI"),
+    "Hardy":               ("clutch_wins",    None,                 1,  "Win with 10 HP or less"),
+    "Rogue":               ("win_with",       "Phantom",            1,  "Win 1 match as Phantom"),
+    "Gladiator":           ("win_on_stage",   "Arena",              1,  "Win on Arena stage"),
+    "Oni":                 ("wins_total",     None,                 7,  "Win 7 matches vs AI"),
+    "Cecalia":             ("wins_total",     None,                16,  "Win 16 matches vs AI"),
+    "Acrobat":             ("win_with",       "Ninja",              1,  "Win 1 match as Ninja"),
+    "Shapeshifter":        ("wins_total",     None,                11,  "Win 11 matches vs AI"),
+    "Spring":              ("win_on_stage",   "Grasslands",         1,  "Win on Grasslands stage"),
+    "Harpy":               ("wins_total",     None,                13,  "Win 13 matches vs AI"),
+    "Scarecrow":           ("win_on_stage",   "Jungle",             1,  "Win on Jungle stage"),
+    "Cactus":              ("win_on_stage",   "Desert",             1,  "Win on Desert stage"),
+    "Medic":               ("perfect_wins",   None,                 1,  "Win a match at full HP"),
+    "Arsonist":            ("win_on_stage",   "Volcano",            1,  "Win on Volcano stage"),
+    "Cryogenisist":        ("win_on_stage",   "Arctic Tundra",      1,  "Win on Arctic Tundra"),
+    "Magician":            ("win_on_stage",   "Circus",             1,  "Win on Circus stage"),
+    "Charger":             ("win_with",       "Ares",               1,  "Win 1 match as Ares"),
+    "Psychopath":          ("win_streak",     None,                 3,  "Win 3 matches in a row"),
+    "Ran-Doom":            ("wins_total",     None,                 9,  "Win 9 matches vs AI"),
+    "Outbacker":           ("win_on_stage",   "Desert",             3,  "Win on Desert 3 times"),
+    "Gunner":              ("win_with",       "Boxer",              3,  "Win 3 matches as Boxer"),
+    "Bazooka Man":         ("win_with",       "Brawler",            3,  "Win 3 matches as Brawler"),
+    "Pinball":             ("win_with",       "Ninja",              3,  "Win 3 matches as Ninja"),
+    "Giant":               ("win_with",       "Titan",              1,  "Win 1 match as Titan"),
+    "Morph":               ("wins_total",     None,                15,  "Win 15 matches vs AI"),
+    "Ghost":               ("perfect_wins",   None,                 3,  "Win 3 matches at full HP"),
+    "Vampire":             ("win_with",       "Phantom",            3,  "Win 3 matches as Phantom"),
+    "Astronaut":           ("win_on_stage",   "Space",              1,  "Win on Space stage"),
+    "Spooderman":          ("win_on_stage",   "City Rooftop",       1,  "Win on City Rooftop"),
+    "Hooker":              ("survival_kills", None,                10,  "Get 10 kills in survival"),
+    "Mouse":               ("clutch_wins",    None,                 3,  "Win 3 matches with ≤10 HP"),
+    "Sumo":                ("win_with",       "Titan",              3,  "Win 3 matches as Titan"),
+    "Headless Horseman":   ("win_on_stage",   "Haunted House",      1,  "Win on Haunted House"),
+    "Ink Brush":           ("win_on_stage",   "Dojo",               3,  "Win on Dojo 3 times"),
+    "Hammerhead":          ("win_with",       "Boxer",              5,  "Win 5 matches as Boxer"),
+    "Viking":              ("win_with",       "Brawler",            5,  "Win 5 matches as Brawler"),
+    "Wizard":              ("win_on_stage",   "Dream Land",         1,  "Win on Dream Land stage"),
+    "Wrestler":            ("win_with",       "Giant",              1,  "Win 1 match as Giant"),
+    "Clown":               ("win_on_stage",   "Circus",             3,  "Win on Circus 3 times"),
+    "Speedster":           ("win_with",       "Zephyr",             1,  "Win 1 match as Zephyr"),
+    "Knight":              ("win_on_stage",   "Medieval Castle",    3,  "Win on Medieval Castle 3 times"),
+    "Lava Man":            ("win_on_stage",   "Volcano Core",       1,  "Win on Volcano Core stage"),
+    "Angel":               ("win_on_stage",   "Sky Island",         1,  "Win on Sky Island stage"),
+    "Mime":                ("perfect_wins",   None,                 5,  "Win 5 matches at full HP"),
+    "Lumberjack":          ("win_on_stage",   "Jungle",             3,  "Win on Jungle 3 times"),
+    "Bouncer":             ("win_on_stage",   "Arena",              3,  "Win on Arena 3 times"),
+    "Demon":               ("win_on_stage",   "Underworld",         1,  "Win on Underworld stage"),
+    "Dark Mage":           ("win_on_stage",   "The Void",           1,  "Win on The Void stage"),
+    "Pirate":              ("win_on_stage",   "Pirate Ship",        1,  "Win on Pirate Ship stage"),
+    "Elemental":           ("wins_total",     None,                35,  "Win 35 matches vs AI"),
+    "Impossible":          ("wins_total",     None,                50,  "Win 50 matches vs AI"),
+    "Laser Eyes":          ("win_on_stage",   "Space",              3,  "Win on Space 3 times"),
+    "Whipper":             ("win_with",       "Gladiator",          1,  "Win 1 match as Gladiator"),
+    "Mr. Crit":            ("win_with",       "Boxer",              7,  "Win 7 matches as Boxer"),
+    "Chameleon":           ("perfect_wins",   None,                 7,  "Win 7 matches at full HP"),
+    "omuS":                ("wins_total",     None,                40,  "Win 40 matches vs AI"),
+    "Kitsune":             ("win_on_stage",   "Jungle",             5,  "Win on Jungle 5 times"),
+    "Medusa":              ("win_on_stage",   "Underwater",         1,  "Win on Underwater stage"),
+    "The Creator":         ("win_on_stage",   "Computer",           1,  "Win on Computer stage"),
+    "Disorientated":       ("win_on_stage",   "The Void",           3,  "Win on The Void 3 times"),
+    "Janitor":             ("wins_total",     None,                25,  "Win 25 matches vs AI"),
+    "Riptide":             ("win_on_stage",   "Underwater",         3,  "Win on Underwater 3 times"),
+    "Whirlpool":           ("win_with",       "Zephyr",             3,  "Win 3 matches as Zephyr"),
+    "Shadowfax":           ("win_streak",     None,                 5,  "Win 5 matches in a row"),
+    "ASCII":               ("win_on_stage",   "Computer",           3,  "Win on Computer 3 times"),
+    "Snake":               ("win_on_stage",   "Jungle",             7,  "Win on Jungle 7 times"),
+    "Enraged":             ("win_streak",     None,                 7,  "Win 7 matches in a row"),
+    "Beekeeper":           ("survival_kills", None,                25,  "Get 25 kills in survival"),
+    "Plague Doctor":       ("survival_kills", None,                50,  "Get 50 kills in survival"),
+    "Necromancer":         ("win_on_stage",   "Graveyard",          3,  "Win on Graveyard 3 times"),
+    "Joker":               ("survival_kills", None,                75,  "Get 75 kills in survival"),
+    "Blitzer":             ("survival_kills", None,               100,  "Get 100 kills in survival"),
+    "Vamp Lord":           ("win_with",       "Vampire",            1,  "Win 1 match as Vampire"),
+    "Iron Fist":           ("win_with",       "Boxer",             10,  "Win 10 matches as Boxer"),
+    "Toxic":               ("survival_kills", None,               150,  "Get 150 kills in survival"),
+    "Time Lord":           ("survival_kills", None,               200,  "Get 200 kills in survival"),
+    "Shifter":             ("win_with",       "Rogue",              1,  "Win 1 match as Rogue"),
+    "Kamikaze":            ("clutch_wins",    None,                 5,  "Win 5 matches with ≤10 HP"),
+    "Shrink Ray":          ("win_with",       "Mouse",              1,  "Win 1 match as Mouse"),
+    "Levitator":           ("win_on_stage",   "Sky Island",         3,  "Win on Sky Island 3 times"),
+    "Stalker":             ("win_with",       "Rogue",              3,  "Win 3 matches as Rogue"),
+    "Mirror Man":          ("perfect_wins",   None,                10,  "Win 10 matches at full HP"),
+    "Pyro":                ("win_on_stage",   "Volcano",            3,  "Win on Volcano 3 times"),
+    "Thunder God":         ("win_on_stage",   "Space",              5,  "Win on Space 5 times"),
+    "Glass Cannon":        ("clutch_wins",    None,                 7,  "Win 7 matches with ≤10 HP"),
+    "Teleporter":          ("win_with",       "Psychopath",         1,  "Win 1 match as Psychopath"),
+    "Sticker":             ("survival_kills", None,               300,  "Get 300 kills in survival"),
+}
+
+def _default_stats():
+    return {
+        "wins_total":          0,
+        "wins_with":           {},
+        "wins_on_stage":       {},
+        "survival_kills":      0,
+        "perfect_wins":        0,
+        "clutch_wins":         0,
+        "current_streak":      0,
+        "best_streak":         0,
+    }
+
+def load_save():
+    """Returns (unlocked_set, stats_dict)."""
     try:
         with open(_UNLOCK_FILE) as f:
             data = json.load(f)
-        s = set(data.get("unlocked", []))
+        s     = set(data.get("unlocked", []))
         s.update(_DEFAULT_UNLOCK)
-        return s
+        stats = _default_stats()
+        stats.update(data.get("stats", {}))
+        return s, stats
     except Exception:
-        return set(_DEFAULT_UNLOCK)
+        return set(_DEFAULT_UNLOCK), _default_stats()
 
-def _save_unlocked(s):
+def _save_data(unlocked, stats):
     with open(_UNLOCK_FILE, 'w') as f:
-        json.dump({"unlocked": sorted(s)}, f)
+        json.dump({"unlocked": sorted(unlocked), "stats": stats}, f)
 
-def unlock_next(s):
-    """Unlock the next locked character in CHARACTERS order. Returns name or None."""
+def _meets_condition(cond, stats):
+    kind, param, n, _ = cond
+    if kind == "wins_total":
+        return stats["wins_total"] >= n
+    if kind == "win_with":
+        return stats["wins_with"].get(param, 0) >= n
+    if kind == "win_on_stage":
+        return stats["wins_on_stage"].get(param, 0) >= n
+    if kind == "survival_kills":
+        return stats["survival_kills"] >= n
+    if kind == "perfect_wins":
+        return stats["perfect_wins"] >= n
+    if kind == "clutch_wins":
+        return stats["clutch_wins"] >= n
+    if kind == "win_streak":
+        return stats["best_streak"] >= n
+    return False
+
+def check_and_unlock(unlocked, stats):
+    """Check conditions for all locked chars. Returns list of newly unlocked names."""
+    newly = []
     for ch in CHARACTERS:
-        if ch["name"] not in s:
-            s.add(ch["name"])
-            _save_unlocked(s)
-            return ch["name"]
-    return None
+        name = ch["name"]
+        if name in unlocked:
+            continue
+        cond = UNLOCK_CONDITIONS.get(name)
+        if cond and _meets_condition(cond, stats):
+            unlocked.add(name)
+            newly.append(name)
+    if newly:
+        _save_data(unlocked, stats)
+    return newly
 
-def _show_unlock(char_name):
-    """Show a 3-second 'CHARACTER UNLOCKED' overlay on the current screen."""
-    ch = next((c for c in CHARACTERS if c["name"] == char_name), None)
-    col = ch["color"] if ch else WHITE
-    start = pygame.time.get_ticks()
-    while pygame.time.get_ticks() - start < 3000:
-        clock.tick(FPS)
-        for ev in pygame.event.get():
-            if ev.type == pygame.QUIT:
-                pygame.quit(); sys.exit()
-            if ev.type == pygame.KEYDOWN:
-                return  # skip on any key
-        elapsed = (pygame.time.get_ticks() - start) / 3000.0
-        alpha = int(220 * (1.0 - max(0, elapsed - 0.7) / 0.3)) if elapsed > 0.7 else 220
-        ov = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        ov.fill((0, 0, 0, alpha))
-        screen.blit(ov, (0, 0))
-        t1 = font_large.render("CHARACTER UNLOCKED!", True, YELLOW)
-        t2 = font_medium.render(char_name, True, col)
-        screen.blit(t1, (WIDTH//2 - t1.get_width()//2, HEIGHT//2 - 60))
-        screen.blit(t2, (WIDTH//2 - t2.get_width()//2, HEIGHT//2 + 10))
-        hint = font_small.render("press any key to continue", True, (160, 160, 160))
-        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT//2 + 70))
-        pygame.display.flip()
+def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp):
+    """Update stats dict after a vs-AI fight."""
+    if p1_won:
+        stats["wins_total"]   += 1
+        stats["wins_with"][p1_char]   = stats["wins_with"].get(p1_char, 0) + 1
+        stats["wins_on_stage"][stage] = stats["wins_on_stage"].get(stage, 0) + 1
+        if p1_full_hp:
+            stats["perfect_wins"] += 1
+        if p1_low_hp:
+            stats["clutch_wins"]  += 1
+        stats["current_streak"] += 1
+        stats["best_streak"] = max(stats["best_streak"], stats["current_streak"])
+    else:
+        stats["current_streak"] = 0
+
+def _show_unlocks(new_names):
+    """Show animated unlock screens for each newly unlocked character."""
+    for char_name in new_names:
+        ch  = next((c for c in CHARACTERS if c["name"] == char_name), None)
+        col = ch["color"] if ch else WHITE
+        start = pygame.time.get_ticks()
+        while pygame.time.get_ticks() - start < 3000:
+            clock.tick(FPS)
+            for ev in pygame.event.get():
+                if ev.type == pygame.QUIT:
+                    pygame.quit(); sys.exit()
+                if ev.type == pygame.KEYDOWN:
+                    start = 0; break
+            elapsed = (pygame.time.get_ticks() - start) / 3000.0
+            alpha   = int(220 * (1.0 - max(0, elapsed - 0.7) / 0.3)) if elapsed > 0.7 else 220
+            ov = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            ov.fill((0, 0, 0, alpha))
+            screen.blit(ov, (0, 0))
+            t1 = font_large.render("CHARACTER UNLOCKED!", True, YELLOW)
+            t2 = font_medium.render(char_name, True, col)
+            screen.blit(t1, (WIDTH//2 - t1.get_width()//2, HEIGHT//2 - 60))
+            screen.blit(t2, (WIDTH//2 - t2.get_width()//2, HEIGHT//2 + 10))
+            h = font_small.render("press any key to continue", True, (160, 160, 160))
+            screen.blit(h, (WIDTH//2 - h.get_width()//2, HEIGHT//2 + 70))
+            pygame.display.flip()
 
 # ---------------------------------------------------------------------------
 # Fight loop
@@ -128,9 +283,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     p2_stag, p2_stag_col = _stage_tag(p2)
     announce_timer = 180   # 3 seconds
 
-    game_over    = False
-    winner       = None
-    timer        = 90 * FPS
+    game_over          = False
+    winner             = None
+    timer              = 90 * FPS
+    p1_ever_below_max  = False   # for perfect-win tracking
     powerups     = []
     clones       = []   # list of {'fighter': AIFighter, 'timer': int, 'target': Fighter}
     balls         = []   # active Projectile objects
@@ -173,23 +329,28 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
 
     while True:
         clock.tick(FPS)
+        if p1.hp < p1.max_hp:
+            p1_ever_below_max = True
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
                 if game_over:
-                    _p1w = vs_ai and winner is p1
+                    _p1w  = vs_ai and winner is p1
+                    _info = (_p1w, p1.char["name"], _stage_name,
+                             not p1_ever_below_max, p1.hp <= 10)
                     if event.key == pygame.K_r:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('rematch', _p1w)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('rematch', _info)
                     if event.key == pygame.K_c:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('select', _p1w)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('select',  _info)
                     if event.key in (pygame.K_q, pygame.K_ESCAPE):
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False
                         pygame.quit(); sys.exit()
                 else:
                     if event.key in (pygame.K_q, pygame.K_ESCAPE):
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('select', False)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False
+                        return ('select', (False, p1.char["name"], _stage_name, False, False))
 
         if not game_over:
             for portal in portals_obj:
@@ -997,14 +1158,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             if event.type == pygame.KEYDOWN:
                 if game_over:
                     if event.key == pygame.K_r:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return 'rematch'
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('rematch', enemies_killed)
                     if event.key == pygame.K_c:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return 'select'
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('select',  enemies_killed)
                     if event.key in (pygame.K_q, pygame.K_ESCAPE):
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; pygame.quit(); sys.exit()
                 else:
                     if event.key in (pygame.K_q, pygame.K_ESCAPE):
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return 'select'
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('select', enemies_killed)
 
         if not game_over:
             survival_timer += 1
@@ -2252,7 +2413,8 @@ def run_relay_fight(lobby, is_host, p1_char_idx, p2_char_idx,
 # ---------------------------------------------------------------------------
 
 def main():
-    unlocked = load_unlocked()
+    unlocked, stats = load_save()
+    hints = {name: cond[3] for name, cond in UNLOCK_CONDITIONS.items()}
     while True:
         mode = mode_select()
 
@@ -2264,7 +2426,6 @@ def main():
                 continue
             role, info = result
             if role == 'quickmatch':
-                # info = (lobby, p1_char_idx, p2_char_idx, stage_idx, is_host, opp_name)
                 lobby, p1_char, p2_char, s_idx, is_host, opp_name = info
                 run_relay_fight(lobby, is_host, p1_char, p2_char,
                                 s_idx, userdata['username'], opp_name)
@@ -2281,14 +2442,21 @@ def main():
         # --- Survival path ---
         if mode in ('survival_1p', 'survival_2p'):
             two_player = (mode == 'survival_2p')
-            p1_idx, p2_idx = character_select(vs_ai=not two_player, unlocked=unlocked)
+            p1_idx, p2_idx = character_select(vs_ai=not two_player,
+                                              unlocked=unlocked, unlock_hints=hints)
             if p1_idx is None:
                 continue
             s_idx = stage_select()
             while True:
                 result = run_survival(p1_idx, p2_idx if two_player else None,
                                       two_player=two_player, stage_idx=s_idx)
-                if result == 'rematch':
+                action, kills = result if isinstance(result, tuple) else (result, 0)
+                stats["survival_kills"] += kills
+                new_unlocks = check_and_unlock(unlocked, stats)
+                if new_unlocks:
+                    _save_data(unlocked, stats)
+                    _show_unlocks(new_unlocks)
+                if action == 'rematch':
                     continue
                 break
             continue
@@ -2299,18 +2467,21 @@ def main():
         else:
             vs_ai, difficulty = True, mode[1]
 
-        p1_idx, p2_idx = character_select(vs_ai=vs_ai, unlocked=unlocked)
+        p1_idx, p2_idx = character_select(vs_ai=vs_ai, unlocked=unlocked, unlock_hints=hints)
         if p1_idx is None:
             continue
 
         s_idx = stage_select()
         while True:
             result = run_fight(p1_idx, p2_idx, vs_ai=vs_ai, ai_difficulty=difficulty, stage_idx=s_idx)
-            action, p1_won = result if isinstance(result, tuple) else (result, False)
-            if p1_won:
-                new_name = unlock_next(unlocked)
-                if new_name:
-                    _show_unlock(new_name)
+            action, info = result if isinstance(result, tuple) else (result, (False,)*5)
+            p1_won, p1_char, stage, is_perfect, is_clutch = info
+            if vs_ai:
+                update_stats(stats, p1_won, p1_char, stage, is_perfect, is_clutch)
+            new_unlocks = check_and_unlock(unlocked, stats)
+            if new_unlocks:
+                _save_data(unlocked, stats)
+                _show_unlocks(new_unlocks)
             if action == 'rematch':
                 continue
             break

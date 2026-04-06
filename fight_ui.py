@@ -168,10 +168,12 @@ def mode_select():
 # Character select screen
 # ---------------------------------------------------------------------------
 
-def character_select(vs_ai=False, unlocked=None):
+def character_select(vs_ai=False, unlocked=None, unlock_hints=None):
     """Returns (p1_idx, p2_idx). P2 is random if vs_ai."""
     if unlocked is None:
         unlocked = {ch["name"] for ch in CHARACTERS}
+    if unlock_hints is None:
+        unlock_hints = {}
     n     = len(CHARACTERS)
     COLS  = 7
     ROWS  = (n + COLS - 1) // COLS
@@ -328,7 +330,8 @@ def character_select(vs_ai=False, unlocked=None):
             screen.blit(lbl, (PX + PW//2 - lbl.get_width()//2, PY + 8))
             msg = font_small.render("LOCKED", True, (180, 60, 60))
             screen.blit(msg, (PX + PW//2 - msg.get_width()//2, PY + PH//2 - 30))
-            hint2 = font_tiny.render("Win a match to unlock", True, (140, 140, 160))
+            cond_text = unlock_hints.get(detail_ch["name"], "???")
+            hint2 = font_tiny.render(cond_text, True, YELLOW)
             screen.blit(hint2, (PX + PW//2 - hint2.get_width()//2, PY + PH//2 + 5))
             # Draw a big padlock shape
             lkcx, lkcy = PX + PW//2, PY + PH//2 - 80
