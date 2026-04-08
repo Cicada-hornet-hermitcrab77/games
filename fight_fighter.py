@@ -362,6 +362,7 @@ class Fighter:
         else:
             eff_grav = constants.GRAVITY
         self.vy += eff_grav
+        self._prev_vy = self.vy   # capture before zeroing (quake_land)
         self.y  += self.vy
         landed = False
         if constants.STAGE_VOID and self.y > HEIGHT + 30:
