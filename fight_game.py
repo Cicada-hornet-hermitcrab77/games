@@ -108,10 +108,10 @@ UNLOCK_CONDITIONS = {
     "Whirlpool":           ("win_streak",     None,            5,  "Win 5 matches in a row"),
     "Shadowfax":           ("win_streak",     None,            7,  "Win 7 matches in a row"),
     "Thunder God":         ("win_streak",     None,           10,  "Win 10 matches in a row"),
-    # ── win_2p ──────────────────────────────────────────────────────────────
-    "Oni":                 ("win_2p",         None,            1,  "Win 1 match in 2P mode"),
-    "Bouncer":             ("win_2p",         None,            3,  "Win 3 matches in 2P mode"),
-    "Teleporter":          ("win_2p",         None,            7,  "Win 7 matches in 2P mode"),
+    # ── win_2p replaced ─────────────────────────────────────────────────────
+    "Oni":                 ("wins_total",     None,            7,  "Win 7 matches vs AI"),
+    "Bouncer":             ("win_on_stage",   "Arena",         3,  "Win on Arena 3 times"),
+    "Teleporter":          ("win_with",       "Psychopath",    1,  "Win 1 match as Psychopath"),
     # ── play_survival ───────────────────────────────────────────────────────
     "Harpy":               ("play_survival",  None,            3,  "Play survival mode 3 times"),
     "Joker":               ("play_survival",  None,           10,  "Play survival mode 10 times"),
@@ -143,6 +143,17 @@ UNLOCK_CONDITIONS = {
     # ── unique_wins ─────────────────────────────────────────────────────────
     "Shapeshifter":        ("unique_wins",    None,            5,  "Win with 5 different characters"),
     "Elemental":           ("unique_wins",    None,           15,  "Win with 15 different characters"),
+    # ── new characters ──────────────────────────────────────────────────────
+    "Gargoyle":            ("win_with",       "Wrestler",      1,  "Win 1 match as Wrestler"),
+    "Banshee":             ("win_on_stage",   "Haunted House", 3,  "Win on Haunted House 3 times"),
+    "Storm Caller":        ("win_hard_ai",    None,            4,  "Win 4 matches vs Hard AI"),
+    "Magnetar":            ("win_with",       "Charger",       1,  "Win 1 match as Charger"),
+    "Swamp Thing":         ("win_on_stage",   "Jungle",        3,  "Win on Jungle 3 times"),
+    "Duelist":             ("win_with",       "Shifter",       1,  "Win 1 match as Shifter"),
+    "Polar Bear":          ("win_on_stage",   "Arctic Tundra", 3,  "Win on Arctic Tundra 3 times"),
+    "Quaker":              ("win_streak",     None,            4,  "Win 4 matches in a row"),
+    "Echo":                ("matches_played", None,           35,  "Play 35 matches"),
+    "Phantom Thief":       ("win_with",       "Rogue",         5,  "Win 5 matches as Rogue"),
 }
 
 def _default_stats():
@@ -778,11 +789,22 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         fb.alive = False
             fire_balls = [fb for fb in fire_balls if fb.alive]
 
-            # Thunder God bolts
+            # Thunder God bolts + Storm Caller random bolts
             for shooter, victim in [(p1, p2), (p2, p1)]:
                 if shooter.pending_thunder:
                     shooter.pending_thunder = False
                     thunder_bolts.append(ThunderBolt(victim.x, shooter))
+                if shooter.pending_storm:
+                    shooter.pending_storm = False
+                    thunder_bolts.append(ThunderBolt(random.randint(80, WIDTH - 80), shooter))
+            # Quaker shockwave — landing deals area damage
+            for attacker, victim in [(p1, p2), (p2, p1)]:
+                if attacker.quake_pending:
+                    attacker.quake_pending = False
+                    if abs(attacker.x - victim.x) < 140 and victim.hp > 0:
+                        victim.hp = max(0, victim.hp - 15)
+                        victim.flash_timer = 12
+                        victim.knockback = (1 if victim.x > attacker.x else -1) * 8
             for tb in thunder_bolts:
                 tb.update()
                 if tb.alive and not tb.hit:
@@ -1305,6 +1327,25 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 p1.update(keys, other_p1, platforms)
             if two_player and p2.hp > 0:
                 p2.update(keys, p1, platforms)
+
+            # Storm Caller + Quaker (survival)
+            for p in players:
+                if p.pending_storm:
+                    p.pending_storm = False
+                    sx = random.randint(80, WIDTH - 80)
+                    for en in enemies:
+                        if abs(en.x - sx) < 80:
+                            en.hp = max(0, en.hp - ThunderBolt.DMG)
+                            en.flash_timer = 12
+                            if not en.char.get("immune"):
+                                en.shock_frames = max(en.shock_frames, 180)
+                if p.quake_pending:
+                    p.quake_pending = False
+                    for en in enemies:
+                        if abs(p.x - en.x) < 140:
+                            en.hp = max(0, en.hp - 15)
+                            en.flash_timer = 10
+                            en.knockback = (1 if en.x > p.x else -1) * 8
 
             # Spawn player projectiles
             for shooter in players:

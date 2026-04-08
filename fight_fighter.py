@@ -132,6 +132,12 @@ class Fighter:
         self.pending_autofire   = False
         self.auto_teleport_timer = FPS * 8 if char_data.get("auto_teleport")  else 0
         self.pending_thunder    = False
+        # New batch
+        self.pending_storm      = False   # Storm Caller: random lightning bolt
+        self.quake_pending      = False   # Quaker: shockwave on heavy landing
+        self._prev_vy           = 0.0     # Quaker: track vy before landing
+        self.combo_timer        = 0       # Echo: frames since last punch hit
+        self.combo_count        = 0       # Echo: consecutive combo count
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -303,6 +309,11 @@ class Fighter:
         # Sticky frames
         if self.sticky_frames > 0:
             self.sticky_frames -= 1
+        # Echo combo timer
+        if self.combo_timer > 0:
+            self.combo_timer -= 1
+            if self.combo_timer == 0:
+                self.combo_count = 0
         # Pyro auto fire
         if self.char.get("auto_fire"):
             if self.auto_fire_timer > 0:
@@ -375,6 +386,8 @@ class Fighter:
             self.on_ground = True
             self.jumps_left = 2 if self.char["double_jump"] else 1
             self.wall_cling_active = False
+            if self.char.get("quake_land") and self._prev_vy > 9:
+                self.quake_pending = True
         # Conveyor belt push — runs every frame while standing on one
         if self.on_ground:
             for plat in platforms:
@@ -481,6 +494,8 @@ class Fighter:
                     self.attack_cycle = (self.attack_cycle + 1) % 3
                 if self.char.get("thunder_punch"):
                     self.pending_thunder = True
+                if self.char.get("storm_punch"):
+                    self.pending_storm = True
             elif can_atk and keys[ctrl['kick']] and self.kick_cooldown == 0:
                 self._start('kick', 0.06)
                 self.kick_cooldown = FPS * 2     # 2 seconds
@@ -726,6 +741,25 @@ class Fighter:
             if self.char.get("sticky_punch") and self.action == 'punch':
                 if not other.char.get("immune"):
                     other.sticky_frames = 120   # 2 seconds
+            if self.char.get("magnet_punch") and self.action == 'punch':
+                pull = 100
+                if other.x > self.x:
+                    other.x = max(self.x + 30, other.x - pull)
+                else:
+                    other.x = min(self.x - 30, other.x + pull)
+            if self.char.get("combo_punch") and self.action == 'punch':
+                if self.combo_timer > 0:
+                    self.combo_count = min(self.combo_count + 1, 5)
+                    bonus = self.combo_count * 5
+                    other.hp = max(0, other.hp - bonus)
+                else:
+                    self.combo_count = 1
+                self.combo_timer = 90   # 1.5s window
+            if self.char.get("steal_kick") and self.action == 'kick':
+                if other.active_powerups:
+                    stolen_name = next(iter(other.active_powerups))
+                    stolen_t    = other.active_powerups.pop(stolen_name)
+                    self.active_powerups[stolen_name] = stolen_t
 
     def draw(self, surface):
         _scale = self.draw_scale
@@ -980,6 +1014,7 @@ class AIFighter(Fighter):
         else:
             eff_grav = constants.GRAVITY
         self.vy += eff_grav
+        self._prev_vy = self.vy
         self.y  += self.vy
         landed = False
         if constants.STAGE_VOID and self.y > HEIGHT + 30:
@@ -1005,6 +1040,8 @@ class AIFighter(Fighter):
         if landed:
             self.on_ground = True
             self.jumps_left = 2 if self.char["double_jump"] else 1
+            if self.char.get("quake_land") and self._prev_vy > 9:
+                self.quake_pending = True
         else:
             self.on_ground = False
 
