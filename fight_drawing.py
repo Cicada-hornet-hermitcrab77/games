@@ -2270,7 +2270,7 @@ def draw_win_screen(surface, winner, p1, p2, vs_ai=False):
     surface.blit(t, (WIDTH//2 - t.get_width()//2, HEIGHT//3 - 20))
     sub = font_medium.render(winner.char["name"], True, WHITE)
     surface.blit(sub, (WIDTH//2 - sub.get_width()//2, HEIGHT//3 + 70))
-    hint = font_small.render("R — rematch     C — char select     Q — quit", True, (200,200,200))
+    hint = font_small.render("R — rematch     C — char select     ESC — quit", True, (200,200,200))
     surface.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT*2//3 + 20))
 
 def draw_active_powerups(surface, fighter, side):

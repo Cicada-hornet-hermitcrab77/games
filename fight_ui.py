@@ -80,7 +80,7 @@ def mode_select():
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_q, pygame.K_ESCAPE):
+                if event.key == pygame.K_ESCAPE:
                     pygame.quit(); sys.exit()
                 if event.key in (pygame.K_LEFT, pygame.K_a):
                     selected = (selected - 1) % 4
@@ -215,7 +215,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None):
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_q, pygame.K_ESCAPE):
+                if event.key == pygame.K_ESCAPE:
                     return None, None
                 # P1 navigation (WASD or arrows while P1 not ready)
                 if not p1_ready:
@@ -605,7 +605,7 @@ def friend_chat_screen(userdata, to_code, friend_name):
             if event.type == pygame.QUIT:
                 lobby.close(); pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                if event.key == pygame.K_ESCAPE:
                     lobby.close(); return
                 elif event.key == pygame.K_RETURN:
                     text = inp.strip()
@@ -745,7 +745,7 @@ def _add_friend_flow(userdata, friends, lobby):
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                if event.key == pygame.K_ESCAPE:
                     return None
         screen.fill(DARK)
         tl = font_large.render("Friend Request Sent", True, CYAN)
@@ -805,7 +805,7 @@ def friends_screen(userdata):
                 if lobby: lobby.close()
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                if event.key == pygame.K_ESCAPE:
                     if lobby: lobby.close()
                     _net.save_userdata(userdata); return
                 if keys_list:
@@ -901,7 +901,7 @@ def matchmaking_screen(userdata):
             if event.type == pygame.QUIT:
                 lobby.close(); pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                if event.key == pygame.K_ESCAPE:
                     lobby.leave_queue(); lobby.close(); return None
 
         screen.fill(DARK)
@@ -961,7 +961,7 @@ def matchmaking_screen(userdata):
             if event.type == pygame.QUIT:
                 lobby.close(); pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                if event.key == pygame.K_ESCAPE:
                     lobby.close(); return None
         for m in lobby.poll():
             if isinstance(m, dict) and m.get("type") == "PICK":
@@ -1009,7 +1009,7 @@ def host_lobby(userdata):
             if event.type == pygame.QUIT:
                 net.close(); pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                if event.key == pygame.K_ESCAPE:
                     net.close(); return None
 
         screen.fill(DARK)
@@ -1066,7 +1066,7 @@ def host_lobby(userdata):
             if event.type == pygame.QUIT:
                 net.close(); pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                if event.key == pygame.K_ESCAPE:
                     net.close(); return None
         for m in net.recv_all():
             if m.get("type") == "PICK":
@@ -1135,7 +1135,7 @@ def join_lobby(userdata):
             if event.type == pygame.QUIT:
                 net.close(); pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                if event.key == pygame.K_ESCAPE:
                     net.close(); return None
         for m in net.recv_all():
             if m.get("type") == "PICK":
@@ -1179,7 +1179,7 @@ def online_menu(userdata):
                 if _lobby_bg: _lobby_bg.close()
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                if event.key == pygame.K_ESCAPE:
                     if _lobby_bg: _lobby_bg.close()
                     return None
                 if event.key in (pygame.K_UP, pygame.K_w):

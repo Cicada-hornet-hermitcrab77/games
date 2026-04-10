@@ -17,7 +17,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             Projectile, Orb, BouncingBall, Whip, HotPotato,
                             FallingPot, RollingCoin, FallingMerlin,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
-                            FireBall, ThunderBolt)
+                            FireBall, ThunderBolt, Scroll)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu
 
@@ -163,6 +163,7 @@ UNLOCK_CONDITIONS = {
     "Halves":              ("win_with_all", "Stalker,Laser Eyes,Elemental,Medusa,Wizard,Dark Mage,Sticker,Bomb,Vampire", 1,
                             "Win with Stalker, Laser Eyes, Elemental, Medusa, Wizard, Dark Mage, Sticker, Bomb & Vampire"),
     "Godslayer":           ("win_mega_hard",       None,            1,  "Win 1 match vs Mega Hard AI"),
+    "Scrollmaster":        ("secret_chars",         None,            3,  "Unlock 3 secret characters"),
     # ── Secret characters (hint hidden in UI) ───────────────────────────────
     "777":                 ("daily_streak",        None,            7,  "Play for 7 consecutive days",        True),
     "Scratch":             ("konami_unlock",        None,            1,  "Enter the secret code",              True),
@@ -197,6 +198,7 @@ def _default_stats():
         "played_at_333pm":          False,
         "konami_unlocked":          False,
         "iddqd_win":                False,
+        "secret_chars_unlocked":    0,
     }
 
 def load_save():
@@ -286,6 +288,8 @@ def _meets_condition(cond, stats):
         return stats.get("played_at_333pm", False)
     if kind == "iddqd_win":
         return stats.get("iddqd_win", False)
+    if kind == "secret_chars":
+        return stats.get("secret_chars_unlocked", 0) >= n
     return False
 
 def check_and_unlock(unlocked, stats):
@@ -299,6 +303,9 @@ def check_and_unlock(unlocked, stats):
         if cond and _meets_condition(cond, stats):
             unlocked.add(name)
             newly.append(name)
+            # Track secret character unlocks for Scrollmaster condition
+            if len(cond) > 4 and cond[4]:
+                stats["secret_chars_unlocked"] = stats.get("secret_chars_unlocked", 0) + 1
     if newly:
         _save_data(unlocked, stats)
     return newly
@@ -454,6 +461,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     clones       = []   # list of {'fighter': AIFighter, 'timer': int, 'target': Fighter}
     active_bombs = []   # list of {'x': float, 'y': float, 'fuse': int}
     bomb_pops    = []   # list of {'x': float, 'y': float, 't': int}
+    scrolls      = []   # active Scroll objects (Scrollmaster)
     balls         = []   # active Projectile objects
     orbs          = []   # active Orb objects (bazooka)
     bounce_balls  = []   # active BouncingBall objects (Pinball)
@@ -543,11 +551,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('rematch', _info)
                     if event.key == pygame.K_c:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('select',  _info)
-                    if event.key in (pygame.K_q, pygame.K_ESCAPE):
+                    if event.key == pygame.K_ESCAPE:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False
                         pygame.quit(); sys.exit()
                 else:
-                    if event.key in (pygame.K_q, pygame.K_ESCAPE):
+                    if event.key == pygame.K_ESCAPE:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False
                         return ('select', (False, p1.char["name"], _stage_name, False, False, p2.char["name"], ai_difficulty, p1.void_falls))
                     # Konami code tracking (only on Computer stage)
@@ -694,6 +702,23 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         victim.flash_timer = 8
                         bb.hit_cd = BouncingBall.HIT_CD
             bounce_balls = [bb for bb in bounce_balls if bb.alive]
+
+            # Spawn scrolls from scroll_kick (Scrollmaster)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_scroll:
+                    shooter.pending_scroll = False
+                    scrolls.append(Scroll(shooter.x + shooter.facing * 30,
+                                          shooter.y - 60, shooter.facing, shooter))
+            # Update scrolls and check collisions
+            for sc in scrolls:
+                sc.update()
+                if sc.alive and sc.hit_cd == 0:
+                    victim = p2 if sc.owner is p1 else p1
+                    if sc.collides(victim):
+                        victim.hp = max(0, victim.hp - Scroll.DMG)
+                        victim.flash_timer = 8
+                        sc.hit_cd = Scroll.HIT_CD
+            scrolls = [sc for sc in scrolls if sc.alive]
 
             # Spawn snake hooks from grapple_kick (Hooker)
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -1112,6 +1137,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             o.draw(screen)
         for bb in bounce_balls:
             bb.draw(screen)
+        for sc in scrolls:
+            sc.draw(screen)
         for h in hooks:
             h.draw(screen)
         for pk in pumpkins:
@@ -1355,6 +1382,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     ink_clones        = []   # Ink Brush clones
     survival_bombs    = []   # Bomb character active bombs
     survival_bomb_pops = []  # explosion rings
+    survival_scrolls   = []  # Scroll projectiles (Scrollmaster)
     en_balls          = []
     en_orbs           = []
     en_bounce_balls   = []
@@ -1425,7 +1453,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         screen.blit(ts, (WIDTH//2 - ts.get_width()//2, HEIGHT//3 + 40))
         ks = font_medium.render(f"Kills: {enemies_killed}", True, YELLOW)
         screen.blit(ks, (WIDTH//2 - ks.get_width()//2, HEIGHT//3 + 90))
-        hint = font_small.render("R — restart     C — menu     Q — quit", True, (200,200,200))
+        hint = font_small.render("R — restart     C — menu     ESC — quit", True, (200,200,200))
         screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT*2//3 + 30))
 
     _survival_screentime = any(p.char.get("screentime") for p in players)
@@ -1442,10 +1470,10 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('rematch', enemies_killed)
                     if event.key == pygame.K_c:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('select',  enemies_killed)
-                    if event.key in (pygame.K_q, pygame.K_ESCAPE):
+                    if event.key == pygame.K_ESCAPE:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; pygame.quit(); sys.exit()
                 else:
-                    if event.key in (pygame.K_q, pygame.K_ESCAPE):
+                    if event.key == pygame.K_ESCAPE:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('select', enemies_killed)
 
         if not game_over:
@@ -1651,6 +1679,23 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             en.hp = max(0, en.hp - 10); en.flash_timer = 8
                             bb.hit_cd = BouncingBall.HIT_CD; break
             bounce_balls = [bb for bb in bounce_balls if bb.alive]
+
+            # Player scrolls → enemies (Scrollmaster survival)
+            for p in players:
+                if p.pending_scroll:
+                    p.pending_scroll = False
+                    survival_scrolls.append(Scroll(p.x + p.facing * 30,
+                                                   p.y - 60, p.facing, p))
+            for sc in survival_scrolls:
+                sc.update()
+                if sc.alive and sc.hit_cd == 0:
+                    for en in enemies:
+                        if sc.collides(en):
+                            en.hp = max(0, en.hp - Scroll.DMG)
+                            en.flash_timer = 8
+                            sc.hit_cd = Scroll.HIT_CD
+                            break
+            survival_scrolls = [sc for sc in survival_scrolls if sc.alive]
 
             # Player hooks → enemies
             for h in hooks:
@@ -1985,6 +2030,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for o    in en_orbs:       o.draw(screen)
         for bb   in bounce_balls:  bb.draw(screen)
         for bb   in en_bounce_balls: bb.draw(screen)
+        for sc   in survival_scrolls: sc.draw(screen)
         for h    in hooks:         h.draw(screen)
         for h    in en_hooks:      h.draw(screen)
         for pk   in pumpkins:      pk.draw(screen)

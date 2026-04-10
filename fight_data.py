@@ -404,6 +404,10 @@ CHARACTERS = [
      "punch_dmg": 18, "kick_dmg": 16, "max_hp": 85, "block": 4,
      "desc": "When HP drops below 30%, next attack deals 999 damage — once per life",
      "double_jump": True, "godslayer": True},
+    {"name": "Scrollmaster", "color": (180, 150, 80), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 100, "block": 4,
+     "desc": "Kick shoots a scroll that bounces everywhere and grows every second",
+     "double_jump": False, "scroll_kick": True},
     # ── Secret characters ────────────────────────────────────────────────────
     {"name": "777", "color": (255, 215, 0), "speed": 5, "jump": -13,
      "punch_dmg": 8, "kick_dmg": 9, "max_hp": 100, "block": 4,

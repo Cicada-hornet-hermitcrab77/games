@@ -72,6 +72,7 @@ class Fighter:
         self.pending_orb        = False  # bazooka_kick: spawn an orb this frame
         self.bazooka_cooldown   = 0      # 5-second cooldown between orb shots
         self.pending_bounce     = False  # bounce_kick: spawn a bouncing ball this frame
+        self.pending_scroll     = False  # scroll_kick: spawn a growing scroll this frame
         self.draw_scale         = 2.0 if char_data.get("giant") else (0.45 if char_data.get("tiny") else 1.0)
         self._size_state        = 0    # for size_kick: 0=normal, 1=big, 2=small
         self.angle              = 0.0  # visual rotation angle (degrees)
@@ -531,6 +532,8 @@ class Fighter:
                     self.bazooka_cooldown = FPS * 5   # 5 second cooldown
                 if self.char.get("bounce_kick"):
                     self.pending_bounce = True
+                if self.char.get("scroll_kick"):
+                    self.pending_scroll = True
                 if self.char.get("size_kick"):
                     self._size_state = (self._size_state + 1) % 3
                     self.draw_scale = (1.0, 2.0, 0.55)[self._size_state]

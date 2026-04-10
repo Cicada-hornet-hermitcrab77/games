@@ -1097,3 +1097,95 @@ class ThunderBolt:
 
     def collides(self, fighter):
         return math.hypot(self.x - fighter.x, self.y - (fighter.y - 40)) < 40
+
+
+# ---------------------------------------------------------------------------
+# Scroll (Scrollmaster kick) — bounces around, grows every second
+# ---------------------------------------------------------------------------
+
+class Scroll:
+    BASE_HALF  = 8      # starting half-width (pixels)
+    SPEED      = 8
+    GROW_EVERY = 60     # frames between size increases
+    GROW_BY    = 5      # pixels added each growth tick
+    MAX_HALF   = 60
+    DMG        = 10
+    HIT_CD     = 35     # frames between hits on same target
+    LIFETIME   = 1200   # 20 seconds
+
+    def __init__(self, x, y, facing, owner):
+        self.x        = float(x)
+        self.y        = float(y)
+        self.vx       = self.SPEED * facing
+        self.vy       = -5.0
+        self.owner    = owner
+        self.half     = float(self.BASE_HALF)
+        self.alive    = True
+        self.frames   = 0
+        self.grow_t   = self.GROW_EVERY
+        self.hit_cd   = 0
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+        self.vy += 0.3   # gravity
+
+        # Bounce off walls
+        if self.x - self.half < 0:
+            self.x  = self.half
+            self.vx = abs(self.vx)
+        elif self.x + self.half > WIDTH:
+            self.x  = float(WIDTH) - self.half
+            self.vx = -abs(self.vx)
+
+        # Bounce off ground
+        if self.y + self.half >= GROUND_Y:
+            self.y  = float(GROUND_Y) - self.half
+            self.vy = -abs(self.vy) * 0.80
+
+        # Bounce off ceiling
+        if self.y - self.half < 20:
+            self.y  = 20.0 + self.half
+            self.vy = abs(self.vy)
+
+        # Grow every second
+        self.grow_t -= 1
+        if self.grow_t <= 0:
+            self.grow_t = self.GROW_EVERY
+            self.half   = min(self.MAX_HALF, self.half + self.GROW_BY)
+
+        if self.hit_cd > 0:
+            self.hit_cd -= 1
+
+        self.frames += 1
+        if self.frames >= self.LIFETIME:
+            self.alive = False
+
+    def collides(self, fighter):
+        h = self.half
+        return (abs(self.x - fighter.x) < h + 28 and
+                abs(self.y - (fighter.y - 60)) < h + 38)
+
+    def draw(self, surface):
+        h  = int(self.half)
+        h2 = max(4, h // 2)
+        cx = int(self.x)
+        cy = int(self.y)
+        # Parchment body
+        pygame.draw.rect(surface, (220, 200, 130),
+                         (cx - h, cy - h2, h * 2, h2 * 2))
+        # Rolled left cap
+        pygame.draw.ellipse(surface, (190, 165, 95),
+                            (cx - h - 5, cy - h2 - 2, 11, h2 * 2 + 4))
+        # Rolled right cap
+        pygame.draw.ellipse(surface, (190, 165, 95),
+                            (cx + h - 5, cy - h2 - 2, 11, h2 * 2 + 4))
+        # Text lines on scroll
+        line_count = max(1, h2 // 5)
+        for i in range(1, line_count + 1):
+            ly = cy - h2 + i * (h2 * 2 // (line_count + 1))
+            pygame.draw.line(surface, (150, 120, 70),
+                             (cx - h + 6, ly), (cx + h - 6, ly), 1)
+        # Outline
+        pygame.draw.rect(surface, (160, 128, 65),
+                         (cx - h, cy - h2, h * 2, h2 * 2), 2)
