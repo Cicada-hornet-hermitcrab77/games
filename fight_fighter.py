@@ -138,6 +138,12 @@ class Fighter:
         self._prev_vy           = 0.0     # Quaker: track vy before landing
         self.combo_timer        = 0       # Echo: frames since last punch hit
         self.combo_count        = 0       # Echo: consecutive combo count
+        self.bomb_spawn_timer   = FPS * 5 if char_data.get("bomb_character") else 0
+        self.one_shot_armed     = False   # Godslayer: one-shot primed
+        self.one_shot_used      = False   # Godslayer: has it fired this life
+        self.punch_seven_count  = 0       # 777: count punch hits for bonus
+        self.void_falls         = 0       # Void Master / void death tracking
+        self._in_void           = False   # prevent counting same fall multiple times
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -294,6 +300,10 @@ class Fighter:
         # Enraged: always in berserk state
         if self.char.get("always_berserk"):
             self._berserker_active = True
+        # Godslayer: arm one-shot when HP falls below 30%
+        if (self.char.get("godslayer") and not self.one_shot_used
+                and self.hp <= int(self.max_hp * 0.30) and self.hp > 0):
+            self.one_shot_armed = True
         # Joker chaos timer
         if self.char.get("chaos_timer"):
             if self.chaos_timer > 0:
@@ -366,7 +376,15 @@ class Fighter:
         self.y  += self.vy
         landed = False
         if constants.STAGE_VOID and self.y > HEIGHT + 30:
-            self.hp = 0   # fell into the void
+            if not self._in_void:
+                self._in_void = True
+                self.void_falls += 1
+            if self.char.get("void_immune"):
+                self.y = float(GROUND_Y - 70)
+                self.vy = 0
+                self._in_void = False
+            else:
+                self.hp = 0   # fell into the void
         elif not constants.STAGE_VOID and self.y >= GROUND_Y:
             self.y = GROUND_Y
             self.vy = 0
@@ -664,11 +682,30 @@ class Fighter:
             hit_r *= 2.2
         dist = math.hypot(hit_pos[0] - other.x, hit_pos[1] - hit_cy)
         if dist < hit_r:
+            # Godslayer one-shot fires before normal damage calc
+            if self.char.get("godslayer") and self.one_shot_armed and not self.one_shot_used:
+                other.hp = max(0, other.hp - 999)
+                other.flash_timer = 20
+                other.action = 'hurt'
+                other.hurt_timer = 30
+                other.attacking = False
+                other.knockback = self.facing * 20
+                self.attack_hit = True
+                self.one_shot_armed = False
+                self.one_shot_used  = True
+                return
             if self.action == 'punch':
-                dmg = self.char["punch_dmg"] + self.punch_boost
-                if self.is_crit:
-                    dmg += 10
-                    other.crit_display_timer = 70
+                if self.char.get("halves_punch"):
+                    dmg = max(1, other.hp // 2)
+                else:
+                    dmg = self.char["punch_dmg"] + self.punch_boost
+                    if self.is_crit:
+                        dmg += 10
+                        other.crit_display_timer = 70
+                if self.char.get("seven_punch"):
+                    self.punch_seven_count += 1
+                    if self.punch_seven_count % 7 == 0:
+                        dmg += 7
             else:
                 dmg = self.char["kick_dmg"] + self.kick_boost
             if other.shield:
@@ -1019,7 +1056,15 @@ class AIFighter(Fighter):
         self.y  += self.vy
         landed = False
         if constants.STAGE_VOID and self.y > HEIGHT + 30:
-            self.hp = 0   # fell into the void
+            if not self._in_void:
+                self._in_void = True
+                self.void_falls += 1
+            if self.char.get("void_immune"):
+                self.y = float(GROUND_Y - 70)
+                self.vy = 0
+                self._in_void = False
+            else:
+                self.hp = 0   # fell into the void
         elif not constants.STAGE_VOID and self.y >= GROUND_Y:
             self.y = GROUND_Y
             self.vy = 0

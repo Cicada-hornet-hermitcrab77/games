@@ -4,6 +4,7 @@ import math
 import random
 import json
 import os
+import datetime
 import constants
 from constants import *
 from fight_data import CHARACTERS, POWERUPS, STAGES, STAGE_MATCHUPS
@@ -26,11 +27,13 @@ from fight_ui import stage_select, mode_select, character_select, online_menu
 
 _UNLOCK_FILE    = os.path.join(os.path.dirname(__file__), "unlocks.json")
 _DEFAULT_UNLOCK = {"Brawler", "Boxer", "Ninja", "Phantom"}
+_konami_flag    = [False]   # set True when Konami code entered on Computer stage
 
-# Each entry: (type, param, n, hint_text)
+# Each entry: (type, param, n, hint_text[, secret=True])
 # types: wins_total | matches_played | win_with | beat_char | win_on_stage |
 #        win_hard_ai | win_streak | win_2p | play_survival | survival_kills |
-#        survival_best | perfect_wins | clutch_wins | losses | unique_wins
+#        survival_best | perfect_wins | clutch_wins | losses | unique_wins |
+#        daily_streak | konami_unlock | void_deaths | played_at_333pm
 UNLOCK_CONDITIONS = {
     # ── wins_total ──────────────────────────────────────────────────────────
     "Ares":                ("wins_total",     None,            2,  "Win 2 matches vs AI"),
@@ -144,16 +147,26 @@ UNLOCK_CONDITIONS = {
     "Shapeshifter":        ("unique_wins",    None,            5,  "Win with 5 different characters"),
     "Elemental":           ("unique_wins",    None,           15,  "Win with 15 different characters"),
     # ── new characters ──────────────────────────────────────────────────────
-    "Gargoyle":            ("win_with",       "Wrestler",      1,  "Win 1 match as Wrestler"),
-    "Banshee":             ("win_on_stage",   "Haunted House", 3,  "Win on Haunted House 3 times"),
-    "Storm Caller":        ("win_hard_ai",    None,            4,  "Win 4 matches vs Hard AI"),
-    "Magnetar":            ("win_with",       "Charger",       1,  "Win 1 match as Charger"),
-    "Swamp Thing":         ("win_on_stage",   "Jungle",        3,  "Win on Jungle 3 times"),
-    "Duelist":             ("win_with",       "Shifter",       1,  "Win 1 match as Shifter"),
-    "Polar Bear":          ("win_on_stage",   "Arctic Tundra", 3,  "Win on Arctic Tundra 3 times"),
-    "Quaker":              ("win_streak",     None,            4,  "Win 4 matches in a row"),
-    "Echo":                ("matches_played", None,           35,  "Play 35 matches"),
-    "Phantom Thief":       ("win_with",       "Rogue",         5,  "Win 5 matches as Rogue"),
+    "Gargoyle":            ("win_with",            "Wrestler",      1,  "Win 1 match as Wrestler"),
+    "Banshee":             ("win_on_stage",        "Haunted House", 3,  "Win on Haunted House 3 times"),
+    "Storm Caller":        ("win_hard_ai",         None,            4,  "Win 4 matches vs Hard AI"),
+    "Magnetar":            ("win_with",            "Charger",       1,  "Win 1 match as Charger"),
+    "Swamp Thing":         ("win_on_stage",        "Jungle",        3,  "Win on Jungle 3 times"),
+    "Duelist":             ("win_with",            "Shifter",       1,  "Win 1 match as Shifter"),
+    "Polar Bear":          ("win_on_stage",        "Arctic Tundra", 3,  "Win on Arctic Tundra 3 times"),
+    "Quaker":              ("win_streak",          None,            4,  "Win 4 matches in a row"),
+    "Echo":                ("matches_played",      None,           35,  "Play 35 matches"),
+    "Phantom Thief":       ("win_with",            "Rogue",         5,  "Win 5 matches as Rogue"),
+    "Cloned":              ("win_super_hard",      None,            1,  "Win 1 match vs Super Hard AI"),
+    "Bomb":                ("win_super_super_hard",None,            1,  "Win 1 match vs Super Super Hard AI"),
+    "Halves":              ("win_with_all", "Stalker,Laser Eyes,Elemental,Medusa,Wizard,Dark Mage,Sticker,Bomb,Vampire", 1,
+                            "Win with Stalker, Laser Eyes, Elemental, Medusa, Wizard, Dark Mage, Sticker, Bomb & Vampire"),
+    "Godslayer":           ("win_mega_hard",       None,            1,  "Win 1 match vs Mega Hard AI"),
+    # ── Secret characters (hint hidden in UI) ───────────────────────────────
+    "777":                 ("daily_streak",        None,            7,  "Play for 7 consecutive days",        True),
+    "Scratch":             ("konami_unlock",        None,            1,  "Enter the secret code",              True),
+    "Void Master":         ("void_deaths",          None,           50,  "Fall into the void 50 times",        True),
+    "Screentime":          ("played_at_333pm",      None,            1,  "Play at a specific time of day",     True),
 }
 
 def _default_stats():
@@ -166,14 +179,21 @@ def _default_stats():
         "clutch_wins":         0,
         "current_streak":      0,
         "best_streak":         0,
-        "matches_played":      0,
-        "losses":              0,
-        "wins_hard_ai":        0,
-        "beaten_chars":        {},
-        "unique_wins_chars":   [],
-        "survival_runs":       0,
-        "survival_best_kills": 0,
-        "wins_2p":             0,
+        "matches_played":           0,
+        "losses":                   0,
+        "wins_hard_ai":             0,
+        "wins_super_hard":          0,
+        "wins_super_super_hard":    0,
+        "wins_mega_hard":           0,
+        "beaten_chars":             {},
+        "unique_wins_chars":        [],
+        "survival_runs":            0,
+        "survival_best_kills":      0,
+        "wins_2p":                  0,
+        "void_deaths":              0,
+        "daily_play_dates":         [],
+        "played_at_333pm":          False,
+        "konami_unlocked":          False,
     }
 
 def load_save():
@@ -193,8 +213,27 @@ def _save_data(unlocked, stats):
     with open(_UNLOCK_FILE, 'w') as f:
         json.dump({"unlocked": sorted(unlocked), "stats": stats}, f)
 
+def _count_daily_streak(dates):
+    """Count the number of consecutive days (ending today or yesterday) in the date list."""
+    if not dates:
+        return 0
+    unique = sorted(set(dates), reverse=True)
+    today     = datetime.date.today().isoformat()
+    yesterday = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+    if unique[0] not in (today, yesterday):
+        return 0
+    streak = 1
+    for i in range(1, len(unique)):
+        prev = datetime.date.fromisoformat(unique[i - 1])
+        curr = datetime.date.fromisoformat(unique[i])
+        if (prev - curr).days == 1:
+            streak += 1
+        else:
+            break
+    return streak
+
 def _meets_condition(cond, stats):
-    kind, param, n, _ = cond
+    kind = cond[0]; param = cond[1]; n = cond[2]
     if kind == "wins_total":
         return stats["wins_total"] >= n
     if kind == "win_with":
@@ -225,6 +264,23 @@ def _meets_condition(cond, stats):
         return stats.get("survival_best_kills", 0) >= n
     if kind == "win_2p":
         return stats.get("wins_2p", 0) >= n
+    if kind == "win_super_hard":
+        return stats.get("wins_super_hard", 0) >= n
+    if kind == "win_super_super_hard":
+        return stats.get("wins_super_super_hard", 0) >= n
+    if kind == "win_mega_hard":
+        return stats.get("wins_mega_hard", 0) >= n
+    if kind == "win_with_all":
+        chars_needed = [c.strip() for c in param.split(',')]
+        return all(stats.get("wins_with", {}).get(c, 0) >= 1 for c in chars_needed)
+    if kind == "daily_streak":
+        return _count_daily_streak(stats.get("daily_play_dates", [])) >= n
+    if kind == "konami_unlock":
+        return stats.get("konami_unlocked", False)
+    if kind == "void_deaths":
+        return stats.get("void_deaths", 0) >= n
+    if kind == "played_at_333pm":
+        return stats.get("played_at_333pm", False)
     return False
 
 def check_and_unlock(unlocked, stats):
@@ -242,9 +298,21 @@ def check_and_unlock(unlocked, stats):
         _save_data(unlocked, stats)
     return newly
 
-def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=None, ai_difficulty=None):
+def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=None, ai_difficulty=None, p1_void_falls=0):
     """Update stats dict after a vs-AI fight."""
     stats["matches_played"] = stats.get("matches_played", 0) + 1
+    # Track daily play date
+    today = datetime.date.today().isoformat()
+    dates = stats.get("daily_play_dates", [])
+    if today not in dates:
+        dates.append(today)
+    stats["daily_play_dates"] = dates
+    # Track 3:33 PM
+    now = datetime.datetime.now()
+    if now.hour == 15 and now.minute == 33:
+        stats["played_at_333pm"] = True
+    # Accumulate void deaths
+    stats["void_deaths"] = stats.get("void_deaths", 0) + p1_void_falls
     if p1_won:
         stats["wins_total"]   += 1
         stats["wins_with"][p1_char]   = stats["wins_with"].get(p1_char, 0) + 1
@@ -257,6 +325,12 @@ def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=N
         stats["best_streak"] = max(stats["best_streak"], stats["current_streak"])
         if ai_difficulty in ('hard', 'super_hard', 'super_super_hard', 'mega_hard'):
             stats["wins_hard_ai"] = stats.get("wins_hard_ai", 0) + 1
+        if ai_difficulty in ('super_hard', 'super_super_hard', 'mega_hard'):
+            stats["wins_super_hard"] = stats.get("wins_super_hard", 0) + 1
+        if ai_difficulty in ('super_super_hard', 'mega_hard'):
+            stats["wins_super_super_hard"] = stats.get("wins_super_super_hard", 0) + 1
+        if ai_difficulty == 'mega_hard':
+            stats["wins_mega_hard"] = stats.get("wins_mega_hard", 0) + 1
         if p2_char:
             bc = stats.get("beaten_chars", {})
             bc[p2_char] = bc.get(p2_char, 0) + 1
@@ -274,9 +348,12 @@ def _show_unlocks(new_names):
     for char_name in new_names:
         ch  = next((c for c in CHARACTERS if c["name"] == char_name), None)
         col = ch["color"] if ch else WHITE
+        cond      = UNLOCK_CONDITIONS.get(char_name)
+        is_secret = cond is not None and len(cond) > 4 and cond[4]
+        duration  = 5000 if is_secret else 3000
         start = pygame.time.get_ticks()
         done  = False
-        while not done and pygame.time.get_ticks() - start < 3000:
+        while not done and pygame.time.get_ticks() - start < duration:
             clock.tick(FPS)
             for ev in pygame.event.get():
                 if ev.type == pygame.QUIT:
@@ -285,17 +362,30 @@ def _show_unlocks(new_names):
                     done = True; break
             if done:
                 break
-            elapsed = (pygame.time.get_ticks() - start) / 3000.0
+            elapsed = (pygame.time.get_ticks() - start) / duration
             alpha   = int(220 * (1.0 - max(0, elapsed - 0.7) / 0.3)) if elapsed > 0.7 else 220
             ov = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
             ov.fill((0, 0, 0, alpha))
             screen.blit(ov, (0, 0))
-            t1 = font_large.render("CHARACTER UNLOCKED!", True, YELLOW)
-            t2 = font_medium.render(char_name, True, col)
+            if is_secret:
+                # Glitch-style secret reveal
+                for _ in range(6):
+                    gx = random.randint(0, WIDTH - 200)
+                    gy = random.randint(0, HEIGHT - 20)
+                    gw = random.randint(30, 220)
+                    gh = random.randint(2, 14)
+                    gc = random.choice([(255,0,80),(0,255,120),(0,100,255),(255,220,0)])
+                    pygame.draw.rect(screen, gc, (gx, gy, gw, gh))
+                t1 = font_large.render("??? SECRET UNLOCKED ???", True, (255, 50, 80))
+                t2 = font_medium.render(char_name, True, col)
+                t3 = font_small.render("you found a secret character", True, (200, 200, 200))
+            else:
+                t1 = font_large.render("CHARACTER UNLOCKED!", True, YELLOW)
+                t2 = font_medium.render(char_name, True, col)
+                t3 = font_small.render("press any key to continue", True, (160, 160, 160))
             screen.blit(t1, (WIDTH//2 - t1.get_width()//2, HEIGHT//2 - 60))
             screen.blit(t2, (WIDTH//2 - t2.get_width()//2, HEIGHT//2 + 10))
-            h = font_small.render("press any key to continue", True, (160, 160, 160))
-            screen.blit(h, (WIDTH//2 - h.get_width()//2, HEIGHT//2 + 70))
+            screen.blit(t3, (WIDTH//2 - t3.get_width()//2, HEIGHT//2 + 70))
             pygame.display.flip()
 
 # ---------------------------------------------------------------------------
@@ -357,6 +447,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     p1_ever_below_max  = False   # for perfect-win tracking
     powerups     = []
     clones       = []   # list of {'fighter': AIFighter, 'timer': int, 'target': Fighter}
+    active_bombs = []   # list of {'x': float, 'y': float, 'fuse': int}
+    bomb_pops    = []   # list of {'x': float, 'y': float, 't': int}
     balls         = []   # active Projectile objects
     orbs          = []   # active Orb objects (bazooka)
     bounce_balls  = []   # active BouncingBall objects (Pinball)
@@ -395,8 +487,34 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     portals_obj[0].partner = portals_obj[1]
     portals_obj[1].partner = portals_obj[0]
 
+    # Cloned: spawn permanent AI clones at fight start
+    for _p, _opp in [(p1, p2), (p2, p1)]:
+        if _p.char.get("cloned"):
+            _cx = 350.0 if _p is p1 else 550.0
+            _cf = AIFighter(_cx, dict(_p.char), 1 if _p is p1 else -1, 'medium')
+            _cf.hp = 999999; _cf.max_hp = 999999
+            clones.append({'fighter': _cf, 'timer': 999999, 'target': _opp, 'permanent': True})
+
+    # Konami code tracking (for Scratch unlock on Computer stage)
+    _KONAMI = [pygame.K_UP, pygame.K_UP, pygame.K_DOWN, pygame.K_DOWN,
+               pygame.K_LEFT, pygame.K_RIGHT, pygame.K_LEFT, pygame.K_RIGHT,
+               pygame.K_a, pygame.K_b]
+    _konami_idx = 0
+    _konami_unlocked_this_fight = False
+
+    # Screentime: track whether a Screentime fighter is playing
+    _screentime_active = (p1.char.get("screentime") or p2.char.get("screentime"))
+    _screentime_skip = False  # toggle for slow-mode frame skip
+
     while True:
         clock.tick(FPS)
+        # Screentime: 1v1 runs at half speed — skip every other update frame
+        if _screentime_active and not game_over:
+            _screentime_skip = not _screentime_skip
+            if _screentime_skip:
+                pygame.event.pump()
+                pygame.display.flip()
+                continue
         if p1.hp < p1.max_hp:
             p1_ever_below_max = True
 
@@ -408,7 +526,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     _p1w  = vs_ai and winner is p1
                     _info = (_p1w, p1.char["name"], _stage_name,
                              not p1_ever_below_max, p1.hp <= 10,
-                             p2.char["name"], ai_difficulty)
+                             p2.char["name"], ai_difficulty, p1.void_falls)
                     if event.key == pygame.K_r:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('rematch', _info)
                     if event.key == pygame.K_c:
@@ -419,7 +537,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 else:
                     if event.key in (pygame.K_q, pygame.K_ESCAPE):
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False
-                        return ('select', (False, p1.char["name"], _stage_name, False, False, p2.char["name"], ai_difficulty))
+                        return ('select', (False, p1.char["name"], _stage_name, False, False, p2.char["name"], ai_difficulty, p1.void_falls))
+                    # Konami code tracking (only on Computer stage)
+                    if is_computer and not _konami_unlocked_this_fight:
+                        if event.key == _KONAMI[_konami_idx]:
+                            _konami_idx += 1
+                            if _konami_idx == len(_KONAMI):
+                                _konami_unlocked_this_fight = True
+                                _konami_flag[0] = True
+                        else:
+                            _konami_idx = 1 if event.key == _KONAMI[0] else 0
 
         if not game_over:
             for portal in portals_obj:
@@ -445,7 +572,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             # Update clones
             new_clones = []
             for cd in clones:
-                cd['timer'] -= 1
+                if not cd.get('permanent'):
+                    cd['timer'] -= 1
                 if cd['timer'] > 0 and cd['fighter'].hp > 0:
                     cd['fighter'].update(None, cd['target'], platforms)
                     new_clones.append(cd)
@@ -817,6 +945,29 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         tb.hit = True
             thunder_bolts = [tb for tb in thunder_bolts if tb.alive]
 
+            # Bomb character: spawn a center-screen bomb every 5 seconds
+            for _p in (p1, p2):
+                if _p.char.get("bomb_character") and _p.hp > 0:
+                    _p.bomb_spawn_timer -= 1
+                    if _p.bomb_spawn_timer <= 0:
+                        active_bombs.append({'x': float(WIDTH // 2), 'y': float(GROUND_Y - 80), 'fuse': 120})
+                        _p.bomb_spawn_timer = FPS * 5
+            new_bombs = []
+            for _bom in active_bombs:
+                _bom['fuse'] -= 1
+                if _bom['fuse'] <= 0:
+                    for _victim in (p1, p2):
+                        if math.hypot(_victim.x - _bom['x'], (_victim.y - 60) - _bom['y']) < 180:
+                            _victim.hp = max(0, _victim.hp - 100)
+                            _victim.flash_timer = 20
+                    bomb_pops.append({'x': _bom['x'], 'y': _bom['y'], 't': 25})
+                else:
+                    new_bombs.append(_bom)
+            active_bombs = new_bombs
+            for _bp in bomb_pops:
+                _bp['t'] -= 1
+            bomb_pops = [bp for bp in bomb_pops if bp['t'] > 0]
+
             # Jungle snakes
             if is_jungle:
                 snake_spawn_timer -= 1
@@ -959,6 +1110,24 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             fb.draw(screen)
         for tb in thunder_bolts:
             tb.draw(screen)
+        # Draw active bombs (pulsing circle)
+        for _bom in active_bombs:
+            pulse = abs(math.sin(_bom['fuse'] * 0.13)) * 8
+            _br = int(16 + pulse)
+            pygame.draw.circle(screen, (200, 80, 20), (int(_bom['x']), int(_bom['y'])), _br)
+            pygame.draw.circle(screen, (255, 220, 60), (int(_bom['x']), int(_bom['y'])), _br, 3)
+            _fuse_pct = _bom['fuse'] / 120
+            _fc = (int(255 * (1 - _fuse_pct)), int(255 * _fuse_pct), 0)
+            _ft = font_tiny.render(f"BOMB {_bom['fuse']//FPS+1}s", True, _fc)
+            screen.blit(_ft, (int(_bom['x']) - _ft.get_width()//2, int(_bom['y']) - _br - 16))
+        # Draw bomb explosion rings
+        for _bp in bomb_pops:
+            _prog = 1.0 - _bp['t'] / 25
+            _r = max(1, int(15 + _prog * 165))
+            _a = max(0, int(220 * (1.0 - _prog)))
+            _bsurf = pygame.Surface((_r*2+4, _r*2+4), pygame.SRCALPHA)
+            pygame.draw.circle(_bsurf, (255, 140, 20, _a), (_r+2, _r+2), _r, 5)
+            screen.blit(_bsurf, (int(_bp['x']) - _r - 2, int(_bp['y']) - _r - 2))
         for sn in jungle_snakes:
             sn.draw(screen)
         for sk in falling_skulls:
@@ -1047,9 +1216,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 else:
                     if p1.attacking and not p1.attack_hit:
                         p1.check_hit(p1_hit, cf)
-            # draw clone timer above each clone (ink clones get no label)
+            # draw clone timer above each clone (ink clones and permanent clones get no label)
             for cd in clones:
-                if cd.get('ink'):
+                if cd.get('ink') or cd.get('permanent'):
                     continue
                 cf = cd['fighter']
                 secs = cd['timer'] // FPS
@@ -1146,6 +1315,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     portals_obj_s[0].partner = portals_obj_s[1]
     portals_obj_s[1].partner = portals_obj_s[0]
 
+    # Cloned: spawn permanent AI clones alongside players at survival start
+    for _sp in list(players):
+        if _sp.char.get("cloned"):
+            _scx = _sp.x + 80 if _sp.facing == 1 else _sp.x - 80
+            _scf = AIFighter(_scx, dict(_sp.char), _sp.facing, 'medium')
+            _scf.hp = 999999; _scf.max_hp = 999999
+            ink_clones.append({'fighter': _scf, 'timer': 999999, 'target': None, 'permanent': True})
+
     enemies           = []
     death_pops        = []   # [{x,y,color,t}] death burst particles
     kamikaze_pops     = []   # [{x,y,t}] kamikaze explosion ring
@@ -1156,6 +1333,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     pumpkins          = []   # Pumpkin (pumpkin_kick)
     whips             = []   # Whip (whip_punch)
     ink_clones        = []   # Ink Brush clones
+    survival_bombs    = []   # Bomb character active bombs
+    survival_bomb_pops = []  # explosion rings
     en_balls          = []
     en_orbs           = []
     en_bounce_balls   = []
@@ -1229,6 +1408,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         hint = font_small.render("R — restart     C — menu     Q — quit", True, (200,200,200))
         screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT*2//3 + 30))
 
+    _survival_screentime = any(p.char.get("screentime") for p in players)
+
     while True:
         clock.tick(FPS)
 
@@ -1248,6 +1429,10 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('select', enemies_killed)
 
         if not game_over:
+            # Screentime 2x speed: advance an extra tick
+            if _survival_screentime:
+                survival_timer += 1
+                enemy_spawn_timer = max(0, enemy_spawn_timer - 1)
             survival_timer += 1
             max_en, diff = wave_info()
 
@@ -1600,9 +1785,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     ink_clones.append({'fighter': cf2, 'timer': FPS * 8, 'target': tgt2})
             new_ink = []
             for ic in ink_clones:
-                ic['timer'] -= 1
+                if not ic.get('permanent'):
+                    ic['timer'] -= 1
+                # Permanent clones (Cloned char) target nearest enemy
+                _ic_tgt = ic['target']
+                if ic.get('permanent') and enemies:
+                    _ic_tgt = min(enemies, key=lambda e: abs(e.x - ic['fighter'].x))
                 if ic['timer'] > 0 and ic['fighter'].hp > 0:
-                    ic['fighter'].update(None, ic['target'], platforms)
+                    ic['fighter'].update(None, _ic_tgt, platforms)
                     new_ink.append(ic)
             ink_clones = new_ink
 
@@ -1734,6 +1924,29 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 kp['t'] -= 1
             kamikaze_pops = [kp for kp in kamikaze_pops if kp['t'] > 0]
 
+            # Bomb character: spawn center-screen bomb every 5 seconds (survival)
+            for _sp in players:
+                if _sp.char.get("bomb_character") and _sp.hp > 0:
+                    _sp.bomb_spawn_timer -= 1
+                    if _sp.bomb_spawn_timer <= 0:
+                        survival_bombs.append({'x': float(WIDTH // 2), 'y': float(GROUND_Y - 80), 'fuse': 120})
+                        _sp.bomb_spawn_timer = FPS * 5
+            _new_sbombs = []
+            for _sb in survival_bombs:
+                _sb['fuse'] -= 1
+                if _sb['fuse'] <= 0:
+                    for _victim in list(players) + enemies:
+                        if math.hypot(_victim.x - _sb['x'], (_victim.y - 60) - _sb['y']) < 180:
+                            _victim.hp = max(0, _victim.hp - 100)
+                            _victim.flash_timer = 20
+                    survival_bomb_pops.append({'x': _sb['x'], 'y': _sb['y'], 't': 25})
+                else:
+                    _new_sbombs.append(_sb)
+            survival_bombs = _new_sbombs
+            for _sbp in survival_bomb_pops:
+                _sbp['t'] -= 1
+            survival_bomb_pops = [bp for bp in survival_bomb_pops if bp['t'] > 0]
+
             # Game over when all players dead
             if all(p.hp <= 0 for p in players):
                 game_over = True
@@ -1806,6 +2019,23 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             if prog < 0.35:
                 inner = max(1, int(28 * (0.35 - prog) / 0.35))
                 pygame.draw.circle(screen, (255, 255, 180), (int(kp['x']), int(kp['y'])), inner)
+        # Draw survival bombs and explosion rings
+        for _sb in survival_bombs:
+            _pulse = abs(math.sin(_sb['fuse'] * 0.13)) * 8
+            _br = int(16 + _pulse)
+            pygame.draw.circle(screen, (200, 80, 20), (int(_sb['x']), int(_sb['y'])), _br)
+            pygame.draw.circle(screen, (255, 220, 60), (int(_sb['x']), int(_sb['y'])), _br, 3)
+            _fuse_pct = _sb['fuse'] / 120
+            _fc = (int(255 * (1 - _fuse_pct)), int(255 * _fuse_pct), 0)
+            _ft = font_tiny.render(f"BOMB {_sb['fuse']//FPS+1}s", True, _fc)
+            screen.blit(_ft, (int(_sb['x']) - _ft.get_width()//2, int(_sb['y']) - _br - 16))
+        for _sbp in survival_bomb_pops:
+            _prog = 1.0 - _sbp['t'] / 25
+            _r = max(1, int(15 + _prog * 165))
+            _a = max(0, int(220 * (1.0 - _prog)))
+            _bsurf2 = pygame.Surface((_r*2+4, _r*2+4), pygame.SRCALPHA)
+            pygame.draw.circle(_bsurf2, (255, 140, 20, _a), (_r+2, _r+2), _r, 5)
+            screen.blit(_bsurf2, (int(_sbp['x']) - _r - 2, int(_sbp['y']) - _r - 2))
 
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen) if two_player else None
@@ -2513,7 +2743,8 @@ def run_relay_fight(lobby, is_host, p1_char_idx, p2_char_idx,
 
 def main():
     unlocked, stats = load_save()
-    hints = {name: cond[3] for name, cond in UNLOCK_CONDITIONS.items()}
+    hints = {name: ("???" if (len(cond) > 4 and cond[4]) else cond[3])
+             for name, cond in UNLOCK_CONDITIONS.items()}
     while True:
         mode = mode_select()
 
@@ -2553,6 +2784,18 @@ def main():
                 stats["survival_kills"] += kills
                 stats["survival_runs"] = stats.get("survival_runs", 0) + 1
                 stats["survival_best_kills"] = max(stats.get("survival_best_kills", 0), kills)
+                # Track daily date and 3:33pm for survival too
+                _today = datetime.date.today().isoformat()
+                _dates = stats.get("daily_play_dates", [])
+                if _today not in _dates:
+                    _dates.append(_today)
+                    stats["daily_play_dates"] = _dates
+                _now = datetime.datetime.now()
+                if _now.hour == 15 and _now.minute == 33:
+                    stats["played_at_333pm"] = True
+                if _konami_flag[0]:
+                    stats["konami_unlocked"] = True
+                    _konami_flag[0] = False
                 new_unlocks = check_and_unlock(unlocked, stats)
                 if new_unlocks:
                     _save_data(unlocked, stats)
@@ -2575,13 +2818,27 @@ def main():
         s_idx = stage_select()
         while True:
             result = run_fight(p1_idx, p2_idx, vs_ai=vs_ai, ai_difficulty=difficulty, stage_idx=s_idx)
-            action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None))
-            p1_won, p1_char, stage, is_perfect, is_clutch, p2_char, ai_diff = info
+            action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0))
+            p1_won, p1_char, stage, is_perfect, is_clutch, p2_char, ai_diff, p1_void_falls = (
+                info if len(info) == 8 else info + (0,))
             if vs_ai:
-                update_stats(stats, p1_won, p1_char, stage, is_perfect, is_clutch, p2_char, ai_diff)
+                update_stats(stats, p1_won, p1_char, stage, is_perfect, is_clutch, p2_char, ai_diff, p1_void_falls)
             else:
                 if p1_won:
                     stats["wins_2p"] = stats.get("wins_2p", 0) + 1
+                stats["void_deaths"] = stats.get("void_deaths", 0) + p1_void_falls
+            # Track daily date and 3:33pm even outside vs-AI fights
+            today = datetime.date.today().isoformat()
+            dates = stats.get("daily_play_dates", [])
+            if today not in dates:
+                dates.append(today)
+                stats["daily_play_dates"] = dates
+            now = datetime.datetime.now()
+            if now.hour == 15 and now.minute == 33:
+                stats["played_at_333pm"] = True
+            if _konami_flag[0]:
+                stats["konami_unlocked"] = True
+                _konami_flag[0] = False
             new_unlocks = check_and_unlock(unlocked, stats)
             if new_unlocks:
                 _save_data(unlocked, stats)
