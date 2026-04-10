@@ -145,6 +145,7 @@ class Fighter:
         self.punch_seven_count  = 0       # 777: count punch hits for bonus
         self.void_falls         = 0       # Void Master / void death tracking
         self._in_void           = False   # prevent counting same fall multiple times
+        self.chainsaw_cd        = 0       # Chainsaw Man: proximity damage cooldown
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -711,11 +712,13 @@ class Fighter:
                         dmg += 7
             else:
                 dmg = self.char["kick_dmg"] + self.kick_boost
+            if self.char.get("lucky_strike") and random.random() < 0.25:
+                dmg *= 3
             if other.shield:
                 dmg = max(1, int(dmg * 0.5))
             if self._berserker_active:
                 dmg = int(dmg * 1.5)
-            if other.blocking:
+            if other.blocking and not (self.char.get("crush_punch") and self.action == 'punch'):
                 bsk = other.char.get("block", 5)
                 perfect_p = bsk * 0.025   # block=10 → 25%, block=1 → 2.5%
                 partial_p = bsk * 0.05    # block=10 → 50%, block=1 → 5%
@@ -803,6 +806,13 @@ class Fighter:
                     stolen_name = next(iter(other.active_powerups))
                     stolen_t    = other.active_powerups.pop(stolen_name)
                     self.active_powerups[stolen_name] = stolen_t
+            if self.char.get("drain_punch") and self.action == 'punch':
+                self.hp = min(self.max_hp, self.hp + 15)
+            if self.char.get("sleep_punch") and self.action == 'punch':
+                other.hurt_timer = max(other.hurt_timer, 90)
+            if self.char.get("reaper_kick") and self.action == 'kick':
+                if other.hp > 0 and other.hp <= int(other.max_hp * 0.20):
+                    other.hp = 0
 
     def draw(self, surface):
         _scale = self.draw_scale

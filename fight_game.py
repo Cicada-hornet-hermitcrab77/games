@@ -164,12 +164,24 @@ UNLOCK_CONDITIONS = {
                             "Win with Stalker, Laser Eyes, Elemental, Medusa, Wizard, Dark Mage, Sticker, Bomb & Vampire"),
     "Godslayer":           ("win_mega_hard",       None,            1,  "Win 1 match vs Mega Hard AI"),
     "Scrollmaster":        ("secret_chars",         None,            3,  "Unlock 3 secret characters"),
+    "Boulder":             ("win_on_stage",         "Volcano Core",  2,  "Win 2 matches on Volcano Core"),
+    "Wisp":                ("win_streak",           None,            8,  "Win 8 matches in a row"),
+    "Sandman":             ("matches_played",       None,           60,  "Play 60 matches"),
+    "Reaper":              ("clutch_wins",          None,           10,  "Win 10 matches with ≤10 HP"),
+    "Chainsaw Man":        ("survival_kills",       None,           40,  "Get 40 kills in survival"),
+    "Crusher":             ("beat_char",            "Boxer",         7,  "Beat Boxer 7 times"),
+    "Storm Witch":         ("win_on_stage",         "Arctic Tundra", 5,  "Win 5 matches on Arctic Tundra"),
+    "Blood Baron":         ("win_with",             "Vamp Lord",     3,  "Win 3 matches as Vamp Lord"),
+    "Drifter":             ("unique_wins",          None,           20,  "Win with 20 different characters"),
+    "Warlock":             ("win_hard_ai",          None,           15,  "Win 15 matches vs Hard AI"),
     # ── Secret characters (hint hidden in UI) ───────────────────────────────
     "777":                 ("daily_streak",        None,            7,  "Play for 7 consecutive days",        True),
     "Scratch":             ("konami_unlock",        None,            1,  "Enter the secret code",              True),
     "Void Master":         ("void_deaths",          None,           50,  "Fall into the void 50 times",        True),
     "Screentime":          ("played_at_333pm",      None,            1,  "Play at a specific time of day",     True),
     "God":                 ("iddqd_win",             None,            1,  "Type IDDQD and win the match",       True),
+    "Nightfall":           ("played_at_midnight",   None,            1,  "Play at a very specific time",       True),
+    "Lucky":               ("lucky_win",            None,            1,  "Win a match with exactly 7 HP",      True),
 }
 
 def _default_stats():
@@ -199,6 +211,8 @@ def _default_stats():
         "konami_unlocked":          False,
         "iddqd_win":                False,
         "secret_chars_unlocked":    0,
+        "played_at_midnight":       False,
+        "lucky_win":                False,
     }
 
 def load_save():
@@ -290,6 +304,10 @@ def _meets_condition(cond, stats):
         return stats.get("iddqd_win", False)
     if kind == "secret_chars":
         return stats.get("secret_chars_unlocked", 0) >= n
+    if kind == "played_at_midnight":
+        return stats.get("played_at_midnight", False)
+    if kind == "lucky_win":
+        return stats.get("lucky_win", False)
     return False
 
 def _unlock_progress(stats):
@@ -345,7 +363,7 @@ def check_and_unlock(unlocked, stats):
         _save_data(unlocked, stats)
     return newly
 
-def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=None, ai_difficulty=None, p1_void_falls=0):
+def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=None, ai_difficulty=None, p1_void_falls=0, p1_hp_remaining=None):
     """Update stats dict after a vs-AI fight."""
     stats["matches_played"] = stats.get("matches_played", 0) + 1
     # Track daily play date
@@ -358,6 +376,9 @@ def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=N
     now = datetime.datetime.now()
     if now.hour == 15 and now.minute == 33:
         stats["played_at_333pm"] = True
+    # Track midnight (12am–4am)
+    if now.hour < 4:
+        stats["played_at_midnight"] = True
     # Accumulate void deaths
     stats["void_deaths"] = stats.get("void_deaths", 0) + p1_void_falls
     if p1_won:
@@ -368,6 +389,8 @@ def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=N
             stats["perfect_wins"] += 1
         if p1_low_hp:
             stats["clutch_wins"]  += 1
+        if p1_hp_remaining is not None and p1_hp_remaining == 7:
+            stats["lucky_win"] = True
         stats["current_streak"] += 1
         stats["best_streak"] = max(stats["best_streak"], stats["current_streak"])
         if ai_difficulty in ('hard', 'super_hard', 'super_super_hard', 'mega_hard'):
@@ -581,7 +604,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         _iddqd_flag[0] = True
                     _info = (_p1w, p1.char["name"], _stage_name,
                              not p1_ever_below_max, p1.hp <= 10,
-                             p2.char["name"], ai_difficulty, p1.void_falls)
+                             p2.char["name"], ai_difficulty, p1.void_falls,
+                             p1.hp)
                     if event.key == pygame.K_r:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('rematch', _info)
                     if event.key == pygame.K_c:
@@ -960,6 +984,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             victim.flash_timer = 8
                             snake.snake_contact_cd = 60
                             break
+
+            # Chainsaw Man: rapid proximity damage
+            for attacker, victim in [(p1, p2), (p2, p1)]:
+                if attacker.char.get("chainsaw") and attacker.hp > 0:
+                    if attacker.chainsaw_cd > 0:
+                        attacker.chainsaw_cd -= 1
+                    elif abs(attacker.x - victim.x) < 50:
+                        victim.hp = max(0, victim.hp - 4)
+                        victim.flash_timer = 4
+                        attacker.chainsaw_cd = 15
 
             # Necromancer: revive on first death
             for f in (p1, p2):
@@ -1895,6 +1929,28 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     ic['fighter'].update(None, _ic_tgt, platforms)
                     new_ink.append(ic)
             ink_clones = new_ink
+
+            # Chainsaw Man: rapid proximity damage (survival)
+            for attacker in [p for p in players if p.char.get("chainsaw") and p.hp > 0]:
+                if attacker.chainsaw_cd > 0:
+                    attacker.chainsaw_cd -= 1
+                else:
+                    for en in enemies:
+                        if abs(attacker.x - en.x) < 50:
+                            en.hp = max(0, en.hp - 4)
+                            en.flash_timer = 4
+                            attacker.chainsaw_cd = 15
+                            break
+            for en in [e for e in enemies if e.char.get("chainsaw") and e.hp > 0]:
+                if en.chainsaw_cd > 0:
+                    en.chainsaw_cd -= 1
+                else:
+                    for p in living:
+                        if abs(en.x - p.x) < 50:
+                            p.hp = max(0, p.hp - 4)
+                            p.flash_timer = 4
+                            en.chainsaw_cd = 15
+                            break
 
             # Death pops: spawn burst when enemy hp hits 0, then remove enemy
             for en in enemies:
@@ -2922,11 +2978,11 @@ def main():
         s_idx = stage_select()
         while True:
             result = run_fight(p1_idx, p2_idx, vs_ai=vs_ai, ai_difficulty=difficulty, stage_idx=s_idx)
-            action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0))
-            p1_won, p1_char, stage, is_perfect, is_clutch, p2_char, ai_diff, p1_void_falls = (
-                info if len(info) == 8 else info + (0,))
+            action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
+            p1_won, p1_char, stage, is_perfect, is_clutch, p2_char, ai_diff, p1_void_falls = info[:8]
+            p1_hp_rem = info[8] if len(info) > 8 else 0
             if vs_ai:
-                update_stats(stats, p1_won, p1_char, stage, is_perfect, is_clutch, p2_char, ai_diff, p1_void_falls)
+                update_stats(stats, p1_won, p1_char, stage, is_perfect, is_clutch, p2_char, ai_diff, p1_void_falls, p1_hp_rem)
             else:
                 if p1_won:
                     stats["wins_2p"] = stats.get("wins_2p", 0) + 1
