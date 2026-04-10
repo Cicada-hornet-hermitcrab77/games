@@ -421,6 +421,11 @@ CHARACTERS = [
      "punch_dmg": 9, "kick_dmg": 10, "max_hp": 100, "block": 4,
      "desc": "Distorts time — slows 1v1 to half speed, doubles survival speed",
      "double_jump": False, "screentime": True},
+    {"name": "God", "color": (255, 255, 200), "speed": 7, "jump": -15,
+     "punch_dmg": 14, "kick_dmg": 12, "max_hp": 120, "block": 6,
+     "desc": "Thunder punch, flame punch, shock kick, and poison aura — all at once",
+     "double_jump": True,
+     "thunder_punch": True, "fire_punch": True, "shock_kick": True, "toxic_aura": True},
 ]
 
 POWERUPS = [

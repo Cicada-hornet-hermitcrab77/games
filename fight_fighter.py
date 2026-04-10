@@ -748,6 +748,8 @@ class Fighter:
                     other.freeze_frames = 180  # 3 seconds
                 if self.char.get("shock_punch") and self.action == 'punch':
                     other.shock_frames = 480   # 8 seconds
+                if self.char.get("shock_kick") and self.action == 'kick':
+                    other.shock_frames = max(other.shock_frames, 480)   # 8 seconds
                 if self.char.get("hammer_punch") and self.action == 'punch':
                     other.squish_frames = 240  # 4 seconds
                 if self.char.get("confuse_kick") and self.action == 'kick':

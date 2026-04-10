@@ -28,6 +28,7 @@ from fight_ui import stage_select, mode_select, character_select, online_menu
 _UNLOCK_FILE    = os.path.join(os.path.dirname(__file__), "unlocks.json")
 _DEFAULT_UNLOCK = {"Brawler", "Boxer", "Ninja", "Phantom"}
 _konami_flag    = [False]   # set True when Konami code entered on Computer stage
+_iddqd_flag     = [False]   # set True when IDDQD typed and match won
 
 # Each entry: (type, param, n, hint_text[, secret=True])
 # types: wins_total | matches_played | win_with | beat_char | win_on_stage |
@@ -167,6 +168,7 @@ UNLOCK_CONDITIONS = {
     "Scratch":             ("konami_unlock",        None,            1,  "Enter the secret code",              True),
     "Void Master":         ("void_deaths",          None,           50,  "Fall into the void 50 times",        True),
     "Screentime":          ("played_at_333pm",      None,            1,  "Play at a specific time of day",     True),
+    "God":                 ("iddqd_win",             None,            1,  "Type IDDQD and win the match",       True),
 }
 
 def _default_stats():
@@ -194,6 +196,7 @@ def _default_stats():
         "daily_play_dates":         [],
         "played_at_333pm":          False,
         "konami_unlocked":          False,
+        "iddqd_win":                False,
     }
 
 def load_save():
@@ -281,6 +284,8 @@ def _meets_condition(cond, stats):
         return stats.get("void_deaths", 0) >= n
     if kind == "played_at_333pm":
         return stats.get("played_at_333pm", False)
+    if kind == "iddqd_win":
+        return stats.get("iddqd_win", False)
     return False
 
 def check_and_unlock(unlocked, stats):
@@ -502,6 +507,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     _konami_idx = 0
     _konami_unlocked_this_fight = False
 
+    # IDDQD tracking (for God unlock: type IDDQD and win the match)
+    _IDDQD = [pygame.K_i, pygame.K_d, pygame.K_d, pygame.K_q, pygame.K_d]
+    _iddqd_idx  = 0
+    _iddqd_done = False
+
     # Screentime: track whether a Screentime fighter is playing
     _screentime_active = (p1.char.get("screentime") or p2.char.get("screentime"))
     _screentime_skip = False  # toggle for slow-mode frame skip
@@ -524,6 +534,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             if event.type == pygame.KEYDOWN:
                 if game_over:
                     _p1w  = vs_ai and winner is p1
+                    if _p1w and _iddqd_done:
+                        _iddqd_flag[0] = True
                     _info = (_p1w, p1.char["name"], _stage_name,
                              not p1_ever_below_max, p1.hp <= 10,
                              p2.char["name"], ai_difficulty, p1.void_falls)
@@ -547,6 +559,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                                 _konami_flag[0] = True
                         else:
                             _konami_idx = 1 if event.key == _KONAMI[0] else 0
+                    # IDDQD tracking (any stage, any time during the match)
+                    if not _iddqd_done:
+                        if event.key == _IDDQD[_iddqd_idx]:
+                            _iddqd_idx += 1
+                            if _iddqd_idx == len(_IDDQD):
+                                _iddqd_done = True
+                        else:
+                            _iddqd_idx = 1 if event.key == _IDDQD[0] else 0
 
         if not game_over:
             for portal in portals_obj:
@@ -2839,6 +2859,9 @@ def main():
             if _konami_flag[0]:
                 stats["konami_unlocked"] = True
                 _konami_flag[0] = False
+            if _iddqd_flag[0]:
+                stats["iddqd_win"] = True
+                _iddqd_flag[0] = False
             new_unlocks = check_and_unlock(unlocked, stats)
             if new_unlocks:
                 _save_data(unlocked, stats)
