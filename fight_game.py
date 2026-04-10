@@ -292,6 +292,41 @@ def _meets_condition(cond, stats):
         return stats.get("secret_chars_unlocked", 0) >= n
     return False
 
+def _unlock_progress(stats):
+    """Return {char_name: (current, total)} for non-secret locked chars only."""
+    result = {}
+    for name, cond in UNLOCK_CONDITIONS.items():
+        if len(cond) > 4 and cond[4]:   # secret — no progress bar
+            continue
+        kind = cond[0]; param = cond[1]; n = cond[2]
+        if kind == "wins_total":          cur = stats["wins_total"]
+        elif kind == "win_with":          cur = stats["wins_with"].get(param, 0)
+        elif kind == "win_on_stage":      cur = stats["wins_on_stage"].get(param, 0)
+        elif kind == "survival_kills":    cur = stats["survival_kills"]
+        elif kind == "perfect_wins":      cur = stats["perfect_wins"]
+        elif kind == "clutch_wins":       cur = stats["clutch_wins"]
+        elif kind == "win_streak":        cur = stats["best_streak"]
+        elif kind == "matches_played":    cur = stats.get("matches_played", 0)
+        elif kind == "losses":            cur = stats.get("losses", 0)
+        elif kind == "win_hard_ai":       cur = stats.get("wins_hard_ai", 0)
+        elif kind == "beat_char":         cur = stats.get("beaten_chars", {}).get(param, 0)
+        elif kind == "unique_wins":       cur = len(stats.get("unique_wins_chars", []))
+        elif kind == "play_survival":     cur = stats.get("survival_runs", 0)
+        elif kind == "survival_best":     cur = stats.get("survival_best_kills", 0)
+        elif kind == "win_2p":            cur = stats.get("wins_2p", 0)
+        elif kind == "win_super_hard":    cur = stats.get("wins_super_hard", 0)
+        elif kind == "win_super_super_hard": cur = stats.get("wins_super_super_hard", 0)
+        elif kind == "win_mega_hard":     cur = stats.get("wins_mega_hard", 0)
+        elif kind == "secret_chars":      cur = stats.get("secret_chars_unlocked", 0)
+        elif kind == "win_with_all":
+            chars = [c.strip() for c in param.split(',')]
+            cur = sum(1 for c in chars if stats.get("wins_with", {}).get(c, 0) >= 1)
+            n   = len(chars)   # override n to show X/total-chars, not X/1
+        else:
+            cur = 0
+        result[name] = (min(cur, n), n)
+    return result
+
 def check_and_unlock(unlocked, stats):
     """Check conditions for all locked chars. Returns list of newly unlocked names."""
     newly = []
@@ -2811,6 +2846,7 @@ def main():
     unlocked, stats = load_save()
     hints = {name: ("???" if (len(cond) > 4 and cond[4]) else cond[3])
              for name, cond in UNLOCK_CONDITIONS.items()}
+
     while True:
         mode = mode_select()
 
@@ -2839,7 +2875,8 @@ def main():
         if mode in ('survival_1p', 'survival_2p'):
             two_player = (mode == 'survival_2p')
             p1_idx, p2_idx = character_select(vs_ai=not two_player,
-                                              unlocked=unlocked, unlock_hints=hints)
+                                              unlocked=unlocked, unlock_hints=hints,
+                                              unlock_progress=_unlock_progress(stats))
             if p1_idx is None:
                 continue
             s_idx = stage_select()
@@ -2877,7 +2914,8 @@ def main():
         else:
             vs_ai, difficulty = True, mode[1]
 
-        p1_idx, p2_idx = character_select(vs_ai=vs_ai, unlocked=unlocked, unlock_hints=hints)
+        p1_idx, p2_idx = character_select(vs_ai=vs_ai, unlocked=unlocked, unlock_hints=hints,
+                                          unlock_progress=_unlock_progress(stats))
         if p1_idx is None:
             continue
 

@@ -168,12 +168,14 @@ def mode_select():
 # Character select screen
 # ---------------------------------------------------------------------------
 
-def character_select(vs_ai=False, unlocked=None, unlock_hints=None):
+def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progress=None):
     """Returns (p1_idx, p2_idx). P2 is random if vs_ai."""
     if unlocked is None:
         unlocked = {ch["name"] for ch in CHARACTERS}
     if unlock_hints is None:
         unlock_hints = {}
+    if unlock_progress is None:
+        unlock_progress = {}
     n     = len(CHARACTERS)
     COLS  = 7
     ROWS  = (n + COLS - 1) // COLS
@@ -333,6 +335,26 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None):
             cond_text = unlock_hints.get(detail_ch["name"], "???")
             hint2 = font_tiny.render(cond_text, True, YELLOW)
             screen.blit(hint2, (PX + PW//2 - hint2.get_width()//2, PY + PH//2 + 5))
+            # Progress bar (only for non-secret chars)
+            if detail_ch["name"] in unlock_progress:
+                cur, total = unlock_progress[detail_ch["name"]]
+                pct = cur / total if total else 0
+                bw = PW - 48
+                bx = PX + 24
+                by = PY + PH//2 + 28
+                bh = 10
+                pygame.draw.rect(screen, (40, 40, 60),  (bx, by, bw, bh), border_radius=5)
+                if pct > 0:
+                    fill_col = (
+                        (80, 220, 80)  if pct >= 0.75 else
+                        (220, 200, 60) if pct >= 0.40 else
+                        (220, 90, 60)
+                    )
+                    pygame.draw.rect(screen, fill_col,
+                                     (bx, by, int(bw * pct), bh), border_radius=5)
+                pygame.draw.rect(screen, (120, 120, 160), (bx, by, bw, bh), 1, border_radius=5)
+                prog_lbl = font_tiny.render(f"{cur}/{total}", True, (200, 200, 200))
+                screen.blit(prog_lbl, (PX + PW//2 - prog_lbl.get_width()//2, by + bh + 3))
             # Draw a big padlock shape
             lkcx, lkcy = PX + PW//2, PY + PH//2 - 80
             pygame.draw.rect(screen, (80, 80, 100), (lkcx - 22, lkcy + 8, 44, 34), border_radius=5)
