@@ -147,6 +147,7 @@ class Fighter:
         self._in_void           = False   # prevent counting same fall multiple times
         self.chainsaw_cd        = 0       # Chainsaw Man: proximity damage cooldown
         self.pending_totem      = False   # Great Totem Spirit: spawn 5 falling totem poles
+        self.pending_portal     = False   # Portal Maker: replace the 2 stage portals
         self.prime_index        = 0       # Prime Time: index into prime sequence
         self.pending_remote     = False   # Rage Quitter: fire remote controller
         self.pending_apple      = False   # Gravity: drop 20 apples
@@ -543,6 +544,8 @@ class Fighter:
                     self.pending_scroll = True
                 if self.char.get("totem_kick"):
                     self.pending_totem = True
+                if self.char.get("portal_kick"):
+                    self.pending_portal = True
                 if self.char.get("apple_kick"):
                     self.pending_apple = True
                 if self.char.get("remote_kick"):

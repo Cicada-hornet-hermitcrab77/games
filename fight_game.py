@@ -693,6 +693,20 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             _iddqd_idx = 1 if event.key == _IDDQD[0] else 0
 
         if not game_over:
+            # Portal Maker: replace portals on kick
+            for shooter in (p1, p2):
+                if shooter.pending_portal:
+                    shooter.pending_portal = False
+                    _cols = _portal_cols if shooter is p1 else list(reversed(_portal_cols))
+                    _new1 = Portal(shooter.x, shooter.y - 80, _cols[0])
+                    _new2 = Portal(
+                        random.randint(100, WIDTH - 100),
+                        random.randint(GROUND_Y - 280, GROUND_Y - 60),
+                        _cols[1])
+                    _new1.partner = _new2
+                    _new2.partner = _new1
+                    portals_obj[:] = [_new1, _new2]
+
             for portal in portals_obj:
                 portal.update()
             for fighter in (p1, p2):
