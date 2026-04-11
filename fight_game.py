@@ -17,7 +17,8 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             Projectile, Orb, BouncingBall, Whip, HotPotato,
                             FallingPot, RollingCoin, FallingMerlin,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
-                            FireBall, ThunderBolt, Scroll)
+                            FireBall, ThunderBolt, Scroll, TotemPole,
+                            RemoteController, Apple)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu
 
@@ -27,8 +28,12 @@ from fight_ui import stage_select, mode_select, character_select, online_menu
 
 _UNLOCK_FILE    = os.path.join(os.path.dirname(__file__), "unlocks.json")
 _DEFAULT_UNLOCK = {"Brawler", "Boxer", "Ninja", "Phantom"}
-_konami_flag    = [False]   # set True when Konami code entered on Computer stage
-_iddqd_flag     = [False]   # set True when IDDQD typed and match won
+_konami_flag      = [False]   # set True when Konami code entered on Computer stage
+_iddqd_flag       = [False]   # set True when IDDQD typed and match won
+_ragequit_flag    = [False]   # set True when *@#!$%%! typed on lose screen after conditions met
+
+_PRIMES_60 = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59}
+def _is_prime(n): return n in _PRIMES_60
 
 # Each entry: (type, param, n, hint_text[, secret=True])
 # types: wins_total | matches_played | win_with | beat_char | win_on_stage |
@@ -182,6 +187,13 @@ UNLOCK_CONDITIONS = {
     "God":                 ("iddqd_win",             None,            1,  "Type IDDQD and win the match",       True),
     "Nightfall":           ("played_at_midnight",   None,            1,  "Play at a very specific time",       True),
     "Lucky":               ("lucky_win",            None,            1,  "Win a match with exactly 7 HP",      True),
+    "Great Totem Spirit":  ("died_on_void_totem",   None,            1,  "Die on Under the Void stage",        True),
+    # ── Regular new characters ──────────────────────────────────────────────
+    "Flash":               ("win_streak",           None,            6,  "Win 6 matches in a row"),
+    "Portal Maker":        ("win_on_stage",         "The Void",      3,  "Win on The Void 3 times"),
+    "Gravity":             ("matches_played",       None,           90,  "Play 90 matches"),
+    "Prime Time":          ("prime_time_win",       None,            1,  "Win at a prime number second",       True),
+    "Rage Quitter":        ("rage_quit_typed",      None,            1,  "Enter the secret sequence",          True),
 }
 
 def _default_stats():
@@ -213,6 +225,11 @@ def _default_stats():
         "secret_chars_unlocked":    0,
         "played_at_midnight":       False,
         "lucky_win":                False,
+        "died_on_void_totem":       False,
+        "prime_time_win":           False,
+        "rage_quit_typed":          False,
+        "wins_mega_hard_for_rage":  0,    # tracks wins_mega_hard at rage unlock point
+        "lost_to_easy_after_mega":  False,
     }
 
 def load_save():
@@ -308,6 +325,12 @@ def _meets_condition(cond, stats):
         return stats.get("played_at_midnight", False)
     if kind == "lucky_win":
         return stats.get("lucky_win", False)
+    if kind == "died_on_void_totem":
+        return stats.get("died_on_void_totem", False)
+    if kind == "prime_time_win":
+        return stats.get("prime_time_win", False)
+    if kind == "rage_quit_typed":
+        return stats.get("rage_quit_typed", False)
     return False
 
 def _unlock_progress(stats):
@@ -379,6 +402,18 @@ def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=N
     # Track midnight (12am–4am)
     if now.hour < 4:
         stats["played_at_midnight"] = True
+    # Track prime-second win
+    if p1_won and _is_prime(now.second):
+        stats["prime_time_win"] = True
+    # Track death on Under the Void
+    if not p1_won and stage == "Under the Void":
+        stats["died_on_void_totem"] = True
+    # Track losing to easy after 10 mega hard wins
+    if p1_won and ai_difficulty == 'mega_hard':
+        stats["wins_mega_hard_for_rage"] = stats.get("wins_mega_hard_for_rage", 0) + 1
+    if (not p1_won and ai_difficulty == 'easy'
+            and stats.get("wins_mega_hard_for_rage", 0) >= 10):
+        stats["lost_to_easy_after_mega"] = True
     # Accumulate void deaths
     stats["void_deaths"] = stats.get("void_deaths", 0) + p1_void_falls
     if p1_won:
@@ -452,10 +487,16 @@ def _show_unlocks(new_names):
             else:
                 t1 = font_large.render("CHARACTER UNLOCKED!", True, YELLOW)
                 t2 = font_medium.render(char_name, True, col)
-                t3 = font_small.render("press any key to continue", True, (160, 160, 160))
-            screen.blit(t1, (WIDTH//2 - t1.get_width()//2, HEIGHT//2 - 60))
-            screen.blit(t2, (WIDTH//2 - t2.get_width()//2, HEIGHT//2 + 10))
-            screen.blit(t3, (WIDTH//2 - t3.get_width()//2, HEIGHT//2 + 70))
+                hint = cond[3] if cond else ""
+                t3 = font_small.render(hint, True, (180, 200, 160))
+                t4 = font_small.render("press any key to continue", True, (130, 130, 130))
+            screen.blit(t1, (WIDTH//2 - t1.get_width()//2, HEIGHT//2 - 70))
+            screen.blit(t2, (WIDTH//2 - t2.get_width()//2, HEIGHT//2))
+            if is_secret:
+                screen.blit(t3, (WIDTH//2 - t3.get_width()//2, HEIGHT//2 + 60))
+            else:
+                screen.blit(t3, (WIDTH//2 - t3.get_width()//2, HEIGHT//2 + 55))
+                screen.blit(t4, (WIDTH//2 - t4.get_width()//2, HEIGHT//2 + 90))
             pygame.display.flip()
 
 # ---------------------------------------------------------------------------
@@ -467,7 +508,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     _orig_gravity = constants.GRAVITY
     if _stage_name == "Space":
         constants.GRAVITY = 0.13   # floaty anti-gravity
-    constants.STAGE_VOID = (_stage_name == "The Void")
+    constants.STAGE_VOID    = (_stage_name == "The Void")
+    constants.STAGE_CEILING = (_stage_name == "Under the Void")
 
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
                    punch=pygame.K_f, kick=pygame.K_g, duck=pygame.K_s, block=pygame.K_r)
@@ -520,6 +562,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     active_bombs = []   # list of {'x': float, 'y': float, 'fuse': int}
     bomb_pops    = []   # list of {'x': float, 'y': float, 't': int}
     scrolls      = []   # active Scroll objects (Scrollmaster)
+    totems       = []   # active TotemPole objects (Great Totem Spirit)
+    remotes      = []   # active RemoteController objects (Rage Quitter)
+    apples       = []   # active Apple objects (Gravity)
     balls         = []   # active Projectile objects
     orbs          = []   # active Orb objects (bazooka)
     bounce_balls  = []   # active BouncingBall objects (Pinball)
@@ -578,6 +623,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     _iddqd_idx  = 0
     _iddqd_done = False
 
+    # Rage Quitter unlock: type *@#!$%%! on the lose screen
+    _RAGEQUIT_SEQ = "*@#!$%%!"
+    _ragequit_buf = ""
+
     # Screentime: track whether a Screentime fighter is playing
     _screentime_active = (p1.char.get("screentime") or p2.char.get("screentime"))
     _screentime_skip = False  # toggle for slow-mode frame skip
@@ -602,20 +651,28 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     _p1w  = vs_ai and winner is p1
                     if _p1w and _iddqd_done:
                         _iddqd_flag[0] = True
+                    # Rage Quitter: track *@#!$%%! typed while on lose screen
+                    if not _p1w and hasattr(event, 'unicode') and event.unicode:
+                        _ragequit_buf += event.unicode
+                        if _RAGEQUIT_SEQ in _ragequit_buf:
+                            _ragequit_flag[0] = True
+                            _ragequit_buf = ""
+                        if len(_ragequit_buf) > len(_RAGEQUIT_SEQ) + 5:
+                            _ragequit_buf = _ragequit_buf[-len(_RAGEQUIT_SEQ):]
                     _info = (_p1w, p1.char["name"], _stage_name,
                              not p1_ever_below_max, p1.hp <= 10,
                              p2.char["name"], ai_difficulty, p1.void_falls,
                              p1.hp)
                     if event.key == pygame.K_r:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('rematch', _info)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('rematch', _info)
                     if event.key == pygame.K_c:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('select',  _info)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('select',  _info)
                     if event.key == pygame.K_ESCAPE:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False
                         pygame.quit(); sys.exit()
                 else:
                     if event.key == pygame.K_ESCAPE:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False
                         return ('select', (False, p1.char["name"], _stage_name, False, False, p2.char["name"], ai_difficulty, p1.void_falls))
                     # Konami code tracking (only on Computer stage)
                     if is_computer and not _konami_unlocked_this_fight:
@@ -768,6 +825,56 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     shooter.pending_scroll = False
                     scrolls.append(Scroll(shooter.x + shooter.facing * 30,
                                           shooter.y - 60, shooter.facing, shooter))
+
+            # Spawn totem poles from totem_kick (Great Totem Spirit)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_totem:
+                    shooter.pending_totem = False
+                    for dx in (-160, -80, 0, 80, 160):
+                        totems.append(TotemPole(victim.x + dx))
+            for t in totems:
+                t.update()
+                if t.hit_cd == 0:
+                    for victim in (p1, p2):
+                        if t.collides(victim):
+                            victim.hp = max(0, victim.hp - TotemPole.DMG)
+                            victim.flash_timer = 8
+                            t.hit_cd = TotemPole.HIT_CD
+                            break
+            totems = [t for t in totems if t.alive]
+
+            # Spawn remote controllers from remote_kick (Rage Quitter)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_remote:
+                    shooter.pending_remote = False
+                    remotes.append(RemoteController(shooter.x + shooter.facing * 30,
+                                                    shooter.y - 60, shooter.facing))
+            for r in remotes:
+                r.update()
+                if not r.hit:
+                    for victim in (p1, p2):
+                        if r.collides(victim):
+                            victim.hp = max(0, victim.hp - RemoteController.DMG)
+                            victim.flash_timer = 20
+                            r.hit = True; r.alive = False; break
+            remotes = [r for r in remotes if r.alive]
+
+            # Spawn apples from apple_kick (Gravity)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_apple:
+                    shooter.pending_apple = False
+                    for i in range(20):
+                        apples.append(Apple(victim.x + random.randint(-200, 200)))
+            for ap in apples:
+                ap.update()
+                if ap.hit_cd == 0:
+                    for victim in (p1, p2):
+                        if ap.collides(victim):
+                            victim.hp = max(0, victim.hp - Apple.DMG)
+                            victim.flash_timer = 6
+                            ap.hit_cd = Apple.HIT_CD; break
+            apples = [ap for ap in apples if ap.alive]
+
             # Update scrolls and check collisions
             for sc in scrolls:
                 sc.update()
@@ -1208,6 +1315,12 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             bb.draw(screen)
         for sc in scrolls:
             sc.draw(screen)
+        for t in totems:
+            t.draw(screen)
+        for r in remotes:
+            r.draw(screen)
+        for ap in apples:
+            ap.draw(screen)
         for h in hooks:
             h.draw(screen)
         for pk in pumpkins:
@@ -1394,7 +1507,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     _orig_gravity = constants.GRAVITY
     if _stage_name == "Space":
         constants.GRAVITY = 0.13
-    constants.STAGE_VOID = (_stage_name == "The Void")
+    constants.STAGE_VOID    = (_stage_name == "The Void")
+    constants.STAGE_CEILING = (_stage_name == "Under the Void")
 
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
                    punch=pygame.K_f, kick=pygame.K_g, duck=pygame.K_s, block=pygame.K_r)
@@ -1452,6 +1566,9 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     survival_bombs    = []   # Bomb character active bombs
     survival_bomb_pops = []  # explosion rings
     survival_scrolls   = []  # Scroll projectiles (Scrollmaster)
+    survival_totems    = []  # TotemPole projectiles (Great Totem Spirit)
+    survival_remotes   = []  # RemoteController projectiles (Rage Quitter)
+    survival_apples    = []  # Apple projectiles (Gravity)
     en_balls          = []
     en_orbs           = []
     en_bounce_balls   = []
@@ -1536,14 +1653,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             if event.type == pygame.KEYDOWN:
                 if game_over:
                     if event.key == pygame.K_r:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('rematch', enemies_killed)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('rematch', enemies_killed)
                     if event.key == pygame.K_c:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('select',  enemies_killed)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('select',  enemies_killed)
                     if event.key == pygame.K_ESCAPE:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; pygame.quit(); sys.exit()
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; pygame.quit(); sys.exit()
                 else:
                     if event.key == pygame.K_ESCAPE:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; return ('select', enemies_killed)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('select', enemies_killed)
 
         if not game_over:
             # Screentime 2x speed: advance an extra tick
@@ -1765,6 +1882,57 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             sc.hit_cd = Scroll.HIT_CD
                             break
             survival_scrolls = [sc for sc in survival_scrolls if sc.alive]
+
+            # Player totems → enemies (Great Totem Spirit survival)
+            for p in players:
+                if p.pending_totem:
+                    p.pending_totem = False
+                    tgt = min(enemies, key=lambda e: abs(e.x - p.x)) if enemies else p
+                    for dx in (-160, -80, 0, 80, 160):
+                        survival_totems.append(TotemPole(tgt.x + dx))
+            for t in survival_totems:
+                t.update()
+                if t.hit_cd == 0:
+                    for en in enemies:
+                        if t.collides(en):
+                            en.hp = max(0, en.hp - TotemPole.DMG)
+                            en.flash_timer = 8
+                            t.hit_cd = TotemPole.HIT_CD
+                            break
+            survival_totems = [t for t in survival_totems if t.alive]
+
+            # Player remotes → enemies (Rage Quitter survival)
+            for p in players:
+                if p.pending_remote:
+                    p.pending_remote = False
+                    survival_remotes.append(RemoteController(p.x + p.facing * 30,
+                                                             p.y - 60, p.facing))
+            for r in survival_remotes:
+                r.update()
+                if not r.hit:
+                    for en in enemies:
+                        if r.collides(en):
+                            en.hp = max(0, en.hp - RemoteController.DMG)
+                            en.flash_timer = 20
+                            r.hit = True; r.alive = False; break
+            survival_remotes = [r for r in survival_remotes if r.alive]
+
+            # Player apples → enemies (Gravity survival)
+            for p in players:
+                if p.pending_apple:
+                    p.pending_apple = False
+                    tgt = min(enemies, key=lambda e: abs(e.x - p.x)) if enemies else p
+                    for i in range(20):
+                        survival_apples.append(Apple(tgt.x + random.randint(-200, 200)))
+            for ap in survival_apples:
+                ap.update()
+                if ap.hit_cd == 0:
+                    for en in enemies:
+                        if ap.collides(en):
+                            en.hp = max(0, en.hp - Apple.DMG)
+                            en.flash_timer = 6
+                            ap.hit_cd = Apple.HIT_CD; break
+            survival_apples = [ap for ap in survival_apples if ap.alive]
 
             # Player hooks → enemies
             for h in hooks:
@@ -2122,6 +2290,9 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for bb   in bounce_balls:  bb.draw(screen)
         for bb   in en_bounce_balls: bb.draw(screen)
         for sc   in survival_scrolls: sc.draw(screen)
+        for t    in survival_totems:  t.draw(screen)
+        for r    in survival_remotes: r.draw(screen)
+        for ap   in survival_apples:  ap.draw(screen)
         for h    in hooks:         h.draw(screen)
         for h    in en_hooks:      h.draw(screen)
         for pk   in pumpkins:      pk.draw(screen)
@@ -2316,7 +2487,8 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     _orig_gravity = constants.GRAVITY
     if _stage_name == "Space":
         constants.GRAVITY = 0.13
-    constants.STAGE_VOID = (_stage_name == "The Void")
+    constants.STAGE_VOID    = (_stage_name == "The Void")
+    constants.STAGE_CEILING = (_stage_name == "Under the Void")
 
     P1_CTRL = dict(left=pygame.K_a,     right=pygame.K_d,     jump=pygame.K_w,
                    punch=pygame.K_f,    kick=pygame.K_g,      duck=pygame.K_s,
@@ -2379,7 +2551,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 constants.GRAVITY = _orig_gravity
-                constants.STAGE_VOID = False
+                constants.STAGE_VOID = False; constants.STAGE_CEILING = False
                 net.close(); pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
                 if chat_active:
@@ -2399,7 +2571,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                     if game_over and event.key in (pygame.K_q, pygame.K_ESCAPE,
                                                    pygame.K_RETURN, pygame.K_r):
                         constants.GRAVITY = _orig_gravity
-                        constants.STAGE_VOID = False
+                        constants.STAGE_VOID = False; constants.STAGE_CEILING = False
                         net.close(); return 'select'
 
         if not net.connected and not game_over:
@@ -2848,7 +3020,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
         pygame.display.flip()
 
     constants.GRAVITY    = _orig_gravity
-    constants.STAGE_VOID = False
+    constants.STAGE_VOID = False; constants.STAGE_CEILING = False
     net.close()
     return 'select'
 
@@ -3002,6 +3174,9 @@ def main():
             if _iddqd_flag[0]:
                 stats["iddqd_win"] = True
                 _iddqd_flag[0] = False
+            if _ragequit_flag[0]:
+                stats["rage_quit_typed"] = True
+                _ragequit_flag[0] = False
             new_unlocks = check_and_unlock(unlocked, stats)
             if new_unlocks:
                 _save_data(unlocked, stats)

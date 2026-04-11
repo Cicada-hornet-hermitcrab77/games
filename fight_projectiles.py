@@ -1189,3 +1189,122 @@ class Scroll:
         # Outline
         pygame.draw.rect(surface, (160, 128, 65),
                          (cx - h, cy - h2, h * 2, h2 * 2), 2)
+
+
+class TotemPole:
+    """Falling totem pole projectile (Great Totem Spirit's kick)."""
+    HALF_W  = 10    # half-width
+    HEIGHT  = 72    # visual + hitbox height
+    SPEED   = 10    # pixels per frame downward
+    DMG     = 18
+    HIT_CD  = 20
+
+    def __init__(self, x):
+        self.x      = float(max(HALF_W + 5, min(WIDTH - HALF_W - 5, x)))
+        self.y      = float(-self.HEIGHT)   # start above screen
+        self.alive  = True
+        self.hit_cd = 0
+
+    def update(self):
+        self.y += self.SPEED
+        if self.hit_cd > 0:
+            self.hit_cd -= 1
+        if self.y > GROUND_Y + 30:
+            self.alive = False
+
+    def collides(self, fighter):
+        return (abs(self.x - fighter.x) < self.HALF_W + 26 and
+                abs((self.y + self.HEIGHT // 2) - (fighter.y - 60)) < self.HEIGHT // 2 + 38)
+
+    def draw(self, surface):
+        cx = int(self.x)
+        ty = int(self.y)
+        w  = self.HALF_W * 2
+        h  = self.HEIGHT
+        # Pole shaft
+        pygame.draw.rect(surface, (100, 62, 20), (cx - self.HALF_W, ty, w, h))
+        pygame.draw.rect(surface, (70,  44, 12), (cx - self.HALF_W, ty, w, h), 2)
+        # Two carved faces stacked
+        face_data = [(ty + 2,   (190, 70,  30)),
+                     (ty + h//2, (55,  140, 55))]
+        fh = h // 2 - 6
+        for fy, fc in face_data:
+            pygame.draw.rect(surface, fc, (cx - self.HALF_W + 1, fy, w - 2, fh), border_radius=2)
+            # eyes
+            pygame.draw.rect(surface, (255, 255, 200), (cx - 7, fy + 4,  5, 4))
+            pygame.draw.rect(surface, (255, 255, 200), (cx + 3, fy + 4,  5, 4))
+            pygame.draw.rect(surface, (0,   0,   0),   (cx - 6, fy + 5,  3, 2))
+            pygame.draw.rect(surface, (0,   0,   0),   (cx + 4, fy + 5,  3, 2))
+            # mouth
+            pygame.draw.rect(surface, (0, 0, 0), (cx - 5, fy + fh - 8, 10, 5), border_radius=1)
+            for tx in (cx - 4, cx - 1, cx + 2):
+                pygame.draw.rect(surface, (255, 255, 200), (tx, fy + fh - 7, 2, 4))
+        # Pointed top cap
+        pygame.draw.polygon(surface, (100, 62, 20),
+                            [(cx, ty - 10), (cx - self.HALF_W, ty), (cx + self.HALF_W, ty)])
+
+
+class RemoteController:
+    """Explosive remote controller (Rage Quitter's kick)."""
+    SPEED  = 11
+    DMG    = 100
+    RADIUS = 70   # explosion radius
+
+    def __init__(self, x, y, facing):
+        self.x      = float(x)
+        self.y      = float(y)
+        self.vx     = self.SPEED * facing
+        self.facing = facing
+        self.alive  = True
+        self.hit    = False
+
+    def update(self):
+        self.x += self.vx
+        if self.x < 0 or self.x > WIDTH:
+            self.alive = False
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        # Body
+        pygame.draw.rect(surface, (40, 40, 40),   (cx - 14, cy - 8,  28, 16), border_radius=3)
+        pygame.draw.rect(surface, (220, 40, 0),   (cx - 14, cy - 8,  28, 16), 2, border_radius=3)
+        # Buttons
+        for bx in (cx - 7, cx, cx + 7):
+            pygame.draw.circle(surface, (220, 40, 0),  (bx, cy - 1), 3)
+        # Antenna
+        pygame.draw.line(surface, (180, 180, 180), (cx + 10, cy - 8), (cx + 16, cy - 20), 2)
+        pygame.draw.circle(surface, (255, 80, 0),  (cx + 16, cy - 21), 3)
+
+
+class Apple:
+    """Falling apple (Gravity's kick — 20 drop down from above)."""
+    DMG    = 8
+    SPEED  = 9
+    HIT_CD = 10
+
+    def __init__(self, x):
+        self.x      = float(max(20, min(WIDTH - 20, x)))
+        self.y      = float(-random.randint(0, 80))   # staggered starts
+        self.alive  = True
+        self.hit_cd = 0
+
+    def update(self):
+        self.y += self.SPEED
+        if self.hit_cd > 0:
+            self.hit_cd -= 1
+        if self.y > GROUND_Y + 20:
+            self.alive = False
+
+    def collides(self, fighter):
+        return (abs(self.x - fighter.x) < 22 and
+                abs(self.y - (fighter.y - 60)) < 40)
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pygame.draw.circle(surface, (210, 40, 20),  (cx, cy), 9)
+        pygame.draw.circle(surface, (230, 80, 60),  (cx - 3, cy - 3), 4)
+        pygame.draw.line(surface,   (80, 50, 10),   (cx, cy - 9), (cx + 3, cy - 16), 2)
+        pygame.draw.ellipse(surface, (40, 140, 40), (cx + 2, cy - 18, 10, 7))

@@ -448,6 +448,18 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 10, "max_hp": 95, "block": 5,
      "desc": "Punch drops targeted lightning; kick scrambles the opponent's controls",
      "double_jump": True, "thunder_punch": True, "confuse_kick": True},
+    {"name": "Flash", "color": (255, 200, 0), "speed": 9, "jump": -14,
+     "punch_dmg": 9, "kick_dmg": 9, "max_hp": 85, "block": 3,
+     "desc": "Kick teleports him instantly behind the opponent",
+     "double_jump": True, "flash_kick": True},
+    {"name": "Portal Maker", "color": (80, 200, 255), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 95, "block": 4,
+     "desc": "Kicks create 2 linked portals — step in one, come out the other",
+     "double_jump": False, "portal_kick": True},
+    {"name": "Gravity", "color": (120, 80, 200), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 11, "max_hp": 90, "block": 4,
+     "desc": "Kick drops 20 apples from above — each one deals damage",
+     "double_jump": False, "apple_kick": True},
     # ── Secret characters ────────────────────────────────────────────────────
     {"name": "777", "color": (255, 215, 0), "speed": 5, "jump": -13,
      "punch_dmg": 8, "kick_dmg": 9, "max_hp": 100, "block": 4,
@@ -478,6 +490,18 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100, "block": 4,
      "desc": "Every attack has a 25% chance to deal triple damage — pure chaos",
      "double_jump": False, "lucky_strike": True},
+    {"name": "Great Totem Spirit", "color": (190, 110, 30), "speed": 5, "jump": -13,
+     "punch_dmg": 11, "kick_dmg": 12, "max_hp": 105, "block": 5,
+     "desc": "Kick summons 5 totem poles that crash down from above",
+     "double_jump": False, "totem_kick": True},
+    {"name": "Prime Time", "color": (60, 180, 255), "speed": 6, "jump": -13,
+     "punch_dmg": 2, "kick_dmg": 2, "max_hp": 100, "block": 4,
+     "desc": "Each attack deals the next prime number: 2, 3, 5, 7, 11, 13...",
+     "double_jump": False, "prime_dmg": True},
+    {"name": "Rage Quitter", "color": (220, 40, 0), "speed": 7, "jump": -13,
+     "punch_dmg": 10, "kick_dmg": 8, "max_hp": 90, "block": 3,
+     "desc": "Kick fires an explosive remote controller — 100 damage on contact",
+     "double_jump": True, "remote_kick": True},
 ]
 
 POWERUPS = [
@@ -752,6 +776,12 @@ STAGES = [
         (55,  GROUND_Y, 210, -2.0),
         (635, GROUND_Y, 210,  2.0),
     ], "portals": [(150, GROUND_Y-165), (715, GROUND_Y-165)]},
+    # Under the Void
+    {"name": "Under the Void", "platforms": [
+        (80,  GROUND_Y-120, 180, 0,   0),
+        (640, GROUND_Y-120, 180, 0,   0),
+        (340, GROUND_Y-210, 160, 0,   0),
+    ], "springs": [], "conveyors": [], "portals": [(175, GROUND_Y-180), (700, GROUND_Y-180)]},
 ]
 
 # Stage-specific character advantages and disadvantages.
@@ -779,5 +809,6 @@ STAGE_MATCHUPS = {
     "Volcano Core":    {"adv": "Lava Man",       "dis": "Cryogenisist"},
     "Sky Island":      {"adv": "Angel",          "dis": "Sumo"},
     "Graveyard":       {"adv": "Ghost",       "dis": "Medic"},
+    "Under the Void":  {"adv": "Void Master", "dis": "Wisp"},
 }
 

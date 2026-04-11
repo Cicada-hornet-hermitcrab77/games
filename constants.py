@@ -32,7 +32,8 @@ font_small  = pygame.font.SysFont("Arial", 24)
 font_tiny   = pygame.font.SysFont("Arial", 13)
 
 GRAVITY = 0.55
-STAGE_VOID = False   # when True the ground floor is removed; falling off = instant death
+STAGE_VOID    = False   # when True the ground floor is removed; falling off = instant death
+STAGE_CEILING = False   # when True the ceiling is lethal; jumping into the top kills you
 
 
 HEAD_R   = 18

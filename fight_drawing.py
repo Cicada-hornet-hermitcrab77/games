@@ -2187,6 +2187,58 @@ def draw_bg(surface, stage_idx=0):
             pygame.draw.line(surface,(60,160,40),(gxt,GROUND_Y+2),(gxt-5,GROUND_Y-8),2)
             pygame.draw.line(surface,(60,160,40),(gxt,GROUND_Y+2),(gxt+5,GROUND_Y-10),2)
 
+    elif s == 22:  # Under the Void
+        surface.fill((5, 0, 20))
+        # Rocky ceiling stalactites
+        for rx, rh in [(0,55),(80,70),(170,42),(275,65),(390,50),(505,72),(615,48),(715,62),(820,55)]:
+            pygame.draw.polygon(surface, (35, 20, 55), [(rx, 0), (rx+80, 0), (rx+40, rh)])
+            pygame.draw.polygon(surface, (55, 35, 80), [(rx, 0), (rx+80, 0), (rx+40, rh)], 2)
+        # Void glow bleeding through ceiling
+        gsurf = pygame.Surface((WIDTH, 90), pygame.SRCALPHA)
+        for gi in range(80):
+            a = int(110 * (1 - gi / 80))
+            pygame.draw.line(gsurf, (130, 0, 230, a), (0, gi), (WIDTH, gi))
+        surface.blit(gsurf, (0, 0))
+        # Ceiling death-zone line
+        pygame.draw.line(surface, (200, 0, 255), (0, 3), (WIDTH, 3), 3)
+        # Totem pole background (centred)
+        tp = WIDTH // 2
+        pygame.draw.rect(surface, (80, 50, 18), (tp - 17, GROUND_Y - 310, 34, 312))
+        pygame.draw.rect(surface, (55, 35, 10), (tp - 17, GROUND_Y - 310, 34, 312), 2)
+        for i, (off, fc) in enumerate([
+            (310, (185, 65, 28)),
+            (230, ( 50, 135, 50)),
+            (150, (170, 105, 25)),
+            ( 70, ( 95,  55, 175)),
+        ]):
+            fy = GROUND_Y - off
+            pygame.draw.rect(surface, fc, (tp - 21, fy, 42, 56), border_radius=3)
+            pygame.draw.rect(surface, (0, 0, 0), (tp - 21, fy, 42, 56), 2, border_radius=3)
+            pygame.draw.rect(surface, (255, 255, 200), (tp - 14, fy +  9, 9, 7))
+            pygame.draw.rect(surface, (255, 255, 200), (tp +  5, fy +  9, 9, 7))
+            pygame.draw.rect(surface, (0,   0,   0),   (tp - 12, fy + 11, 5, 3))
+            pygame.draw.rect(surface, (0,   0,   0),   (tp +  7, fy + 11, 5, 3))
+            if i % 2 == 0:
+                pygame.draw.rect(surface, (0, 0, 0), (tp - 10, fy + 34, 20, 7), border_radius=2)
+                for tx in (tp - 9, tp - 3, tp + 3, tp + 8):
+                    pygame.draw.rect(surface, (255, 255, 200), (tx, fy + 34, 4, 5))
+            else:
+                pygame.draw.rect(surface, (0, 0, 0), (tp - 8, fy + 34, 16, 6), border_radius=2)
+        pygame.draw.polygon(surface, (185, 65, 28),
+                            [(tp, GROUND_Y - 330), (tp - 19, GROUND_Y - 310), (tp + 19, GROUND_Y - 310)])
+        # Eerie purple floor glow (void energy seeping from above, collecting below)
+        fsurf = pygame.Surface((WIDTH, 60), pygame.SRCALPHA)
+        for fi in range(50):
+            a2 = int(50 * (1 - fi / 50))
+            pygame.draw.line(fsurf, (100, 0, 180, a2), (0, 50 - fi), (WIDTH, 50 - fi))
+        surface.blit(fsurf, (0, GROUND_Y - 40))
+        # Dark rocky ground
+        pygame.draw.rect(surface, (25, 15, 45), (0, GROUND_Y + 2, WIDTH, HEIGHT - GROUND_Y - 2))
+        pygame.draw.line(surface, (80, 45, 120), (0, GROUND_Y + 2), (WIDTH, GROUND_Y + 2), 3)
+        # Rock chunks along ground
+        for rx2, rw2, rh2 in [(50,60,18),(200,45,14),(420,70,20),(600,50,16),(780,55,19)]:
+            pygame.draw.ellipse(surface, (45, 28, 70), (rx2, GROUND_Y + 2, rw2, rh2))
+
     elif s == 21:  # Graveyard
         # Dark blue-grey night sky
         for gy2 in range(HEIGHT):

@@ -146,6 +146,10 @@ class Fighter:
         self.void_falls         = 0       # Void Master / void death tracking
         self._in_void           = False   # prevent counting same fall multiple times
         self.chainsaw_cd        = 0       # Chainsaw Man: proximity damage cooldown
+        self.pending_totem      = False   # Great Totem Spirit: spawn 5 falling totem poles
+        self.prime_index        = 0       # Prime Time: index into prime sequence
+        self.pending_remote     = False   # Rage Quitter: fire remote controller
+        self.pending_apple      = False   # Gravity: drop 20 apples
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -387,6 +391,8 @@ class Fighter:
                 self._in_void = False
             else:
                 self.hp = 0   # fell into the void
+        elif constants.STAGE_CEILING and self.y < -30:
+            self.hp = 0   # hit the ceiling (Under the Void)
         elif not constants.STAGE_VOID and self.y >= GROUND_Y:
             self.y = GROUND_Y
             self.vy = 0
@@ -535,6 +541,12 @@ class Fighter:
                     self.pending_bounce = True
                 if self.char.get("scroll_kick"):
                     self.pending_scroll = True
+                if self.char.get("totem_kick"):
+                    self.pending_totem = True
+                if self.char.get("apple_kick"):
+                    self.pending_apple = True
+                if self.char.get("remote_kick"):
+                    self.pending_remote = True
                 if self.char.get("size_kick"):
                     self._size_state = (self._size_state + 1) % 3
                     self.draw_scale = (1.0, 2.0, 0.55)[self._size_state]
@@ -712,6 +724,13 @@ class Fighter:
                         dmg += 7
             else:
                 dmg = self.char["kick_dmg"] + self.kick_boost
+                if self.char.get("flash_kick"):
+                    # teleport behind the opponent on kick hit
+                    self.x = other.x - self.facing * 60
+            if self.char.get("prime_dmg"):
+                _PRIMES = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71]
+                dmg = _PRIMES[self.prime_index % len(_PRIMES)]
+                self.prime_index += 1
             if self.char.get("lucky_strike") and random.random() < 0.25:
                 dmg *= 3
             if other.shield:
@@ -1080,6 +1099,8 @@ class AIFighter(Fighter):
                 self._in_void = False
             else:
                 self.hp = 0   # fell into the void
+        elif constants.STAGE_CEILING and self.y < -30:
+            self.hp = 0   # hit the ceiling (Under the Void)
         elif not constants.STAGE_VOID and self.y >= GROUND_Y:
             self.y = GROUND_Y
             self.vy = 0
