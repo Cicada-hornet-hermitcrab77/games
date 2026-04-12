@@ -151,6 +151,7 @@ class Fighter:
         self.prime_index        = 0       # Prime Time: index into prime sequence
         self.pending_remote     = False   # Rage Quitter: fire remote controller
         self.pending_apple      = False   # Gravity: drop 20 apples
+        self._paradox_used      = False   # Paradox: HP swap used this life
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -364,6 +365,8 @@ class Fighter:
             if self.hurt_timer == 0 and self.action == 'hurt':
                 self.action = 'idle'
                 self.attacking = False
+            if self.hurt_timer == 0 and self.char.get("rage_build"):
+                self.punch_boost = min(self.punch_boost + 1, 15)
 
         if abs(self.knockback) > 0.1:
             self.x += self.knockback
@@ -716,6 +719,8 @@ class Fighter:
             if self.action == 'punch':
                 if self.char.get("halves_punch"):
                     dmg = max(1, other.hp // 2)
+                elif self.char.get("copy_punch"):
+                    dmg = other.char["punch_dmg"] + self.punch_boost
                 else:
                     dmg = self.char["punch_dmg"] + self.punch_boost
                     if self.is_crit:
@@ -728,14 +733,29 @@ class Fighter:
             else:
                 dmg = self.char["kick_dmg"] + self.kick_boost
                 if self.char.get("flash_kick"):
-                    # teleport behind the opponent on kick hit
-                    self.x = other.x - self.facing * 60
+                    self.x = max(30.0, min(float(WIDTH - 30), other.x - other.facing * 60))
+                    self.facing = other.facing   # face toward opponent's back
             if self.char.get("prime_dmg"):
                 _PRIMES = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71]
                 dmg = _PRIMES[self.prime_index % len(_PRIMES)]
                 self.prime_index += 1
+            if self.char.get("wild_attack"):
+                dmg = random.randint(1, 40)
             if self.char.get("lucky_strike") and random.random() < 0.25:
                 dmg *= 3
+            if other.char.get("stone_skin"):
+                dmg = int(dmg * 0.6)
+            # hp_swap (Paradox): swap both HP values once per life, skip normal damage
+            if self.char.get("hp_swap") and self.action == 'punch' and not self._paradox_used:
+                self.hp, other.hp = other.hp, self.hp
+                self._paradox_used = True
+                other.flash_timer = 20
+                other.action = 'hurt'
+                other.hurt_timer = 22
+                other.attacking = False
+                other.knockback = self.facing * 6
+                self.attack_hit = True
+                return
             if other.shield:
                 dmg = max(1, int(dmg * 0.5))
             if self._berserker_active:
@@ -835,6 +855,17 @@ class Fighter:
             if self.char.get("reaper_kick") and self.action == 'kick':
                 if other.hp > 0 and other.hp <= int(other.max_hp * 0.20):
                     other.hp = 0
+            if self.char.get("siphon_leech"):
+                self.hp = min(self.max_hp, self.hp + 10)
+            if self.char.get("swap_kick") and self.action == 'kick':
+                self.x, other.x = other.x, self.x
+            if self.char.get("grab_punch") and self.action == 'punch':
+                other.x = max(50.0, min(float(WIDTH - 50), self.x + self.facing * 50))
+            if not other.char.get("immune"):
+                if self.char.get("confuse_punch") and self.action == 'punch':
+                    other.confuse_frames = max(other.confuse_frames, 120)
+                if self.char.get("slow_punch") and self.action == 'punch':
+                    other.shock_frames = max(other.shock_frames, 360)
 
     def draw(self, surface):
         _scale = self.draw_scale
@@ -1074,6 +1105,8 @@ class AIFighter(Fighter):
             if self.hurt_timer == 0 and self.action == 'hurt':
                 self.action = 'idle'
                 self.attacking = False
+            if self.hurt_timer == 0 and self.char.get("rage_build"):
+                self.punch_boost = min(self.punch_boost + 1, 15)
 
         if abs(self.knockback) > 0.1:
             self.x += self.knockback

@@ -194,6 +194,19 @@ UNLOCK_CONDITIONS = {
     "Gravity":             ("matches_played",       None,           90,  "Play 90 matches"),
     "Prime Time":          ("prime_time_win",       None,            1,  "Win at a prime number second",       True),
     "Rage Quitter":        ("rage_quit_typed",      None,            1,  "Enter the secret sequence",          True),
+    # ── new regular characters ───────────────────────────────────────────────
+    "Swapper":             ("win_on_stage",         "The Void",      5,  "Win 5 matches on The Void"),
+    "Bruiser":             ("survival_kills",       None,           75,  "Get 75 kills in survival"),
+    "Grappler":            ("win_streak",           None,            5,  "Win 5 matches in a row"),
+    "Trickster":           ("beat_char",            "Clown",         3,  "Beat Clown 3 times"),
+    "Wildcard":            ("matches_played",       None,           45,  "Play 45 matches"),
+    "Ironclad":            ("win_hard_ai",          None,           10,  "Win 10 matches vs Hard AI"),
+    "Siphon":              ("win_with",             "Vamp Lord",     5,  "Win 5 matches as Vamp Lord"),
+    "Timekeeper":          ("win_on_stage",         "Space",         4,  "Win on Space 4 times"),
+    # ── new secret characters ────────────────────────────────────────────────
+    "The One":             ("unique_wins",          None,           50,  "Win with 50 different characters",   True),
+    "Mirror":              ("perfect_wins",         None,           30,  "Win 30 matches at full HP",          True),
+    "Paradox":             ("win_on_stage",  "Under the Void",       3,  "Win 3 times on Under the Void",      True),
 }
 
 def _default_stats():
