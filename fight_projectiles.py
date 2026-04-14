@@ -1200,7 +1200,7 @@ class TotemPole:
     HIT_CD  = 20
 
     def __init__(self, x):
-        self.x      = float(max(HALF_W + 5, min(WIDTH - HALF_W - 5, x)))
+        self.x      = float(max(self.HALF_W + 5, min(WIDTH - self.HALF_W - 5, x)))
         self.y      = float(-self.HEIGHT)   # start above screen
         self.alive  = True
         self.hit_cd = 0
@@ -1308,3 +1308,36 @@ class Apple:
         pygame.draw.circle(surface, (230, 80, 60),  (cx - 3, cy - 3), 4)
         pygame.draw.line(surface,   (80, 50, 10),   (cx, cy - 9), (cx + 3, cy - 16), 2)
         pygame.draw.ellipse(surface, (40, 140, 40), (cx + 2, cy - 18, 10, 7))
+
+
+class VenomBean:
+    """Horizontal venom projectile (Spitting Cobra's kick). Poisons on hit."""
+    SPEED  = 10
+    DMG    = 8
+    RADIUS = 12
+
+    def __init__(self, x, y, facing):
+        self.x      = float(x)
+        self.y      = float(y)
+        self.facing = facing
+        self.alive  = True
+        self.hit    = False
+
+    def update(self):
+        self.x += self.SPEED * self.facing
+        if self.x < -20 or self.x > WIDTH + 20:
+            self.alive = False
+
+    def collides(self, fighter):
+        return (abs(self.x - fighter.x) < self.RADIUS + 20 and
+                abs(self.y - (fighter.y - 60)) < self.RADIUS + 28)
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        # Oval green bean body
+        pygame.draw.ellipse(surface, (60, 180, 40),  (cx - 10, cy - 6, 20, 12))
+        pygame.draw.ellipse(surface, (100, 220, 60), (cx - 10, cy - 6, 20, 12), 2)
+        # Poison drip
+        pygame.draw.circle(surface, (180, 255, 80), (cx + self.facing * 10, cy), 4)
+        pygame.draw.circle(surface, (220, 255, 120), (cx + self.facing * 10, cy), 2)
+

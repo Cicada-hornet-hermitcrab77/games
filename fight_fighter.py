@@ -151,7 +151,10 @@ class Fighter:
         self.prime_index        = 0       # Prime Time: index into prime sequence
         self.pending_remote     = False   # Rage Quitter: fire remote controller
         self.pending_apple      = False   # Gravity: drop 20 apples
+        self.pending_venom      = False   # Spitting Cobra: shoot a venom bean
         self._paradox_used      = False   # Paradox: HP swap used this life
+        self.rainbow_poop_timer = FPS * 4 if char_data.get("rainbow_poop") else 0
+        self.pending_rainbow_poop = False  # Rainbow Man: drop a random powerup this frame
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -278,6 +281,13 @@ class Fighter:
             else:
                 self.pending_kitsune = True
                 self.kitsune_timer   = FPS * 9
+        # Rainbow Man — drops a random powerup every 4 seconds
+        if self.char.get("rainbow_poop"):
+            if self.rainbow_poop_timer > 0:
+                self.rainbow_poop_timer -= 1
+            else:
+                self.pending_rainbow_poop = True
+                self.rainbow_poop_timer   = FPS * 4
         # Freeze laser (Medusa) — same timer logic as laser_eyes
         if self.char.get("freeze_laser"):
             if self.laser_active > 0:
@@ -419,6 +429,9 @@ class Fighter:
             self.wall_cling_active = False
             if self.char.get("quake_land") and self._prev_vy > 9:
                 self.quake_pending = True
+        # Jetpack: always has at least 1 jump available
+        if self.char.get("jetpack") and not self.on_ground:
+            self.jumps_left = max(self.jumps_left, 1)
         # Conveyor belt push — runs every frame while standing on one
         if self.on_ground:
             for plat in platforms:
@@ -553,6 +566,8 @@ class Fighter:
                     self.pending_apple = True
                 if self.char.get("remote_kick"):
                     self.pending_remote = True
+                if self.char.get("venom_kick"):
+                    self.pending_venom = True
                 if self.char.get("size_kick"):
                     self._size_state = (self._size_state + 1) % 3
                     self.draw_scale = (1.0, 2.0, 0.55)[self._size_state]
@@ -1186,6 +1201,14 @@ class AIFighter(Fighter):
                 self.action_t = 0.0
                 self.attacking = False
 
+        # Rainbow Man passive poop timer (AI version)
+        if self.char.get("rainbow_poop"):
+            if self.rainbow_poop_timer > 0:
+                self.rainbow_poop_timer -= 1
+            else:
+                self.pending_rainbow_poop = True
+                self.rainbow_poop_timer   = FPS * 4
+
         if self.hurt_timer > 0 or self.freeze_frames > 0:
             return  # don't make decisions while staggered or frozen
 
@@ -1233,6 +1256,8 @@ class AIFighter(Fighter):
                         self.boomerang_angle = 0.0
                     if self.char.get("shoot_kick"):
                         self.pending_ball = True
+                    if self.char.get("venom_kick"):
+                        self.pending_venom = True
                     if self.char.get("bazooka_kick") and self.bazooka_cooldown == 0:
                         self.pending_orb      = True
                         self.bazooka_cooldown = FPS * 5

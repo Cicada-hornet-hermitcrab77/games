@@ -18,7 +18,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             FallingPot, RollingCoin, FallingMerlin,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
                             FireBall, ThunderBolt, Scroll, TotemPole,
-                            RemoteController, Apple)
+                            RemoteController, Apple, VenomBean)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu
 
@@ -31,6 +31,8 @@ _DEFAULT_UNLOCK = {"Brawler", "Boxer", "Ninja", "Phantom"}
 _konami_flag      = [False]   # set True when Konami code entered on Computer stage
 _iddqd_flag       = [False]   # set True when IDDQD typed and match won
 _ragequit_flag    = [False]   # set True when *@#!$%%! typed on lose screen after conditions met
+_everything_flag  = [0]       # count of 'Everything' powerups collected by p1
+_void_fall_timer_flag = [False]  # set True when p1 falls in void with 2-7s remaining
 
 _PRIMES_60 = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59}
 def _is_prime(n): return n in _PRIMES_60
@@ -180,12 +182,12 @@ UNLOCK_CONDITIONS = {
     "Drifter":             ("unique_wins",          None,           20,  "Win with 20 different characters"),
     "Warlock":             ("win_hard_ai",          None,           15,  "Win 15 matches vs Hard AI"),
     # ── Secret characters (hint hidden in UI) ───────────────────────────────
-    "777":                 ("daily_streak",        None,            7,  "Play for 7 consecutive days",        True),
+    "777":                 ("wins_divisible_by_7",  None,            1,  "Something about the number 7...",    True),
     "Scratch":             ("konami_unlock",        None,            1,  "Enter the secret code",              True),
-    "Void Master":         ("void_deaths",          None,           50,  "Fall into the void 50 times",        True),
-    "Screentime":          ("played_at_333pm",      None,            1,  "Play at a specific time of day",     True),
-    "God":                 ("iddqd_win",             None,            1,  "Type IDDQD and win the match",       True),
-    "Nightfall":           ("played_at_midnight",   None,            1,  "Play at a very specific time",       True),
+    "Void Master":         ("win_on_stage",         "The Void",      5,  "Master the void to own it",          True),
+    "Screentime":          ("played_at_noon",       None,            1,  "Play at a very specific time",       True),
+    "God":                 ("perfect_mega_hard_win",None,            1,  "A godlike feat of perfection",       True),
+    "Nightfall":           ("midnight_wins",        None,            3,  "Win matches late into the night",    True),
     "Lucky":               ("lucky_win",            None,            1,  "Win a match with exactly 7 HP",      True),
     "Great Totem Spirit":  ("died_on_void_totem",   None,            1,  "Die on Under the Void stage",        True),
     # ── Regular new characters ──────────────────────────────────────────────
@@ -203,10 +205,15 @@ UNLOCK_CONDITIONS = {
     "Ironclad":            ("win_hard_ai",          None,           10,  "Win 10 matches vs Hard AI"),
     "Siphon":              ("win_with",             "Vamp Lord",     5,  "Win 5 matches as Vamp Lord"),
     "Timekeeper":          ("win_on_stage",         "Space",         4,  "Win on Space 4 times"),
+    "Rainbow Man":         ("everything_collected", None,           10,  "Collect 10 'Everything' powerups"),
     # ── new secret characters ────────────────────────────────────────────────
-    "The One":             ("unique_wins",          None,           50,  "Win with 50 different characters",   True),
-    "Mirror":              ("perfect_wins",         None,           30,  "Win 30 matches at full HP",          True),
+    "The One":             ("win_with_all", "777,Scratch,Void Master,Screentime,God,Nightfall,Lucky,Great Totem Spirit,Prime Time,Rage Quitter,Mirror,Paradox", 1, "Win with every other secret character", True),
+    "Mirror":              ("win_with",             "Mirror Man",    3,  "Something about reflections...",     True),
     "Paradox":             ("win_on_stage",  "Under the Void",       3,  "Win 3 times on Under the Void",      True),
+    "Rainbow Man":         ("everything_collected", None,           10,  "Collect 10 'Everything' powerups"),
+    "Spitting Cobra":      ("beat_char",     "Snake",               100, "Beat Snake 100 times"),
+    "Jetpack":             ("void_fall_at_2_7", None,                1,  "Fall into the void at just the right moment", True),
+    "The Impossible Victor": ("win_with",    "Impossible",           1,  "Win 1 match as Impossible"),
 }
 
 def _default_stats():
@@ -243,6 +250,17 @@ def _default_stats():
         "rage_quit_typed":          False,
         "wins_mega_hard_for_rage":  0,    # tracks wins_mega_hard at rage unlock point
         "lost_to_easy_after_mega":  False,
+        # new secret unlock stats
+        "wins_divisible_by_7":      False,
+        "played_at_noon":           False,
+        "perfect_mega_hard_win":    False,
+        "midnight_wins":            0,
+        # evaluated_chars: prevents all new characters unlocking instantly on update
+        "evaluated_chars":          [],
+        # Rainbow Man: times Everything powerup collected
+        "everything_collected":     0,
+        # Jetpack: fell into void with 2-7 seconds remaining
+        "void_fall_at_2_7":         False,
     }
 
 def load_save():
@@ -254,6 +272,10 @@ def load_save():
         s.update(_DEFAULT_UNLOCK)
         stats = _default_stats()
         stats.update(data.get("stats", {}))
+        # Seed evaluated_chars on first load so existing characters can still unlock normally.
+        # Only new characters added in future updates will be gated by the one-fight delay.
+        if not stats.get("evaluated_chars"):
+            stats["evaluated_chars"] = [ch["name"] for ch in CHARACTERS if ch["name"] in UNLOCK_CONDITIONS]
         return s, stats
     except Exception:
         return set(_DEFAULT_UNLOCK), _default_stats()
@@ -344,6 +366,18 @@ def _meets_condition(cond, stats):
         return stats.get("prime_time_win", False)
     if kind == "rage_quit_typed":
         return stats.get("rage_quit_typed", False)
+    if kind == "wins_divisible_by_7":
+        return stats.get("wins_divisible_by_7", False)
+    if kind == "played_at_noon":
+        return stats.get("played_at_noon", False)
+    if kind == "perfect_mega_hard_win":
+        return stats.get("perfect_mega_hard_win", False)
+    if kind == "midnight_wins":
+        return stats.get("midnight_wins", 0) >= n
+    if kind == "everything_collected":
+        return stats.get("everything_collected", 0) >= n
+    if kind == "void_fall_at_2_7":
+        return stats.get("void_fall_at_2_7", False)
     return False
 
 def _unlock_progress(stats):
@@ -384,17 +418,27 @@ def _unlock_progress(stats):
 def check_and_unlock(unlocked, stats):
     """Check conditions for all locked chars. Returns list of newly unlocked names."""
     newly = []
+    evaluated = set(stats.get("evaluated_chars", []))
     for ch in CHARACTERS:
         name = ch["name"]
         if name in unlocked:
             continue
         cond = UNLOCK_CONDITIONS.get(name)
-        if cond and _meets_condition(cond, stats):
+        if not cond:
+            continue
+        if name not in evaluated:
+            # First time this character has ever been seen — register it without unlocking.
+            # This prevents a batch of new characters from all unlocking the moment an
+            # update is loaded (because conditions were already met before the chars existed).
+            evaluated.add(name)
+            continue
+        if _meets_condition(cond, stats):
             unlocked.add(name)
             newly.append(name)
             # Track secret character unlocks for Scrollmaster condition
             if len(cond) > 4 and cond[4]:
                 stats["secret_chars_unlocked"] = stats.get("secret_chars_unlocked", 0) + 1
+    stats["evaluated_chars"] = list(evaluated)
     if newly:
         _save_data(unlocked, stats)
     return newly
@@ -408,16 +452,25 @@ def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=N
     if today not in dates:
         dates.append(today)
     stats["daily_play_dates"] = dates
-    # Track 3:33 PM
+    # Track 3:33 PM (legacy)
     now = datetime.datetime.now()
     if now.hour == 15 and now.minute == 33:
         stats["played_at_333pm"] = True
+    # Track noon (12:xx)
+    if now.hour == 12:
+        stats["played_at_noon"] = True
     # Track midnight (12am–4am)
     if now.hour < 4:
         stats["played_at_midnight"] = True
     # Track prime-second win
     if p1_won and _is_prime(now.second):
         stats["prime_time_win"] = True
+    # Track wins when total is divisible by 7
+    if p1_won and stats["wins_total"] % 7 == 0:
+        stats["wins_divisible_by_7"] = True
+    # Track midnight wins
+    if p1_won and now.hour < 4:
+        stats["midnight_wins"] = stats.get("midnight_wins", 0) + 1
     # Track death on Under the Void
     if not p1_won and stage == "Under the Void":
         stats["died_on_void_totem"] = True
@@ -449,6 +502,8 @@ def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=N
             stats["wins_super_super_hard"] = stats.get("wins_super_super_hard", 0) + 1
         if ai_difficulty == 'mega_hard':
             stats["wins_mega_hard"] = stats.get("wins_mega_hard", 0) + 1
+        if p1_full_hp and ai_difficulty == 'mega_hard':
+            stats["perfect_mega_hard_win"] = True
         if p2_char:
             bc = stats.get("beaten_chars", {})
             bc[p2_char] = bc.get(p2_char, 0) + 1
@@ -578,6 +633,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     totems       = []   # active TotemPole objects (Great Totem Spirit)
     remotes      = []   # active RemoteController objects (Rage Quitter)
     apples       = []   # active Apple objects (Gravity)
+    venoms       = []   # active VenomBean objects (Spitting Cobra)
     balls         = []   # active Projectile objects
     orbs          = []   # active Orb objects (bazooka)
     bounce_balls  = []   # active BouncingBall objects (Pinball)
@@ -901,6 +957,25 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             victim.flash_timer = 6
                             ap.hit_cd = Apple.HIT_CD; break
             apples = [ap for ap in apples if ap.alive]
+
+            # Spawn venom beans from venom_kick (Spitting Cobra)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_venom:
+                    shooter.pending_venom = False
+                    venoms.append(VenomBean(shooter.x + shooter.facing * 30,
+                                            shooter.y - 60, shooter.facing))
+            for vb in venoms:
+                vb.update()
+                if not vb.hit:
+                    for victim in (p1, p2):
+                        if vb.collides(victim):
+                            victim.hp = max(0, victim.hp - VenomBean.DMG)
+                            victim.flash_timer = 8
+                            if not victim.char.get("immune"):
+                                if victim.poison_frames == 0: victim.poison_tick = 180
+                                victim.poison_frames = max(victim.poison_frames, 360)
+                            vb.hit = True; vb.alive = False; break
+            venoms = [vb for vb in venoms if vb.alive]
 
             # Update scrolls and check collisions
             for sc in scrolls:
@@ -1273,6 +1348,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
 
             timer -= 1
             if timer <= 0 or p1.hp <= 0 or p2.hp <= 0:
+                # Jetpack unlock: p1 fell into void with 2–7 seconds remaining
+                if p1.hp <= 0 and constants.STAGE_VOID and FPS * 2 <= timer <= FPS * 7:
+                    _void_fall_timer_flag[0] = True
                 game_over = True
                 winner = p1 if p1.hp >= p2.hp else p2
 
@@ -1290,6 +1368,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     pu.y = float(GROUND_Y - 14)
                     powerups.append(pu)
                     f.poop_cd = 30   # one poop every 0.5 seconds
+            # Rainbow Man — drop a random powerup every 4 seconds
+            for f in (p1, p2):
+                if f.pending_rainbow_poop:
+                    f.pending_rainbow_poop = False
+                    pu = Powerup()
+                    pu.x = f.x + random.choice((-30, 30))
+                    pu.y = float(GROUND_Y - 14)
+                    powerups.append(pu)
 
             # Magician attraction: pull all powerups slowly toward Magician fighters
             for f in (p1, p2):
@@ -1319,6 +1405,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         if fighter.char.get("snake"):
                             fighter.snake_length += 2
                             fighter.kick_boost   += 2
+                        # Track Everything powerup collections for Rainbow Man unlock
+                        if pu.spec['name'] == 'Everything' and fighter is p1:
+                            _everything_flag[0] += 1
                         pu.picked_up = True
                         break
             powerups = [pu for pu in powerups if not pu.picked_up]
@@ -1348,6 +1437,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             r.draw(screen)
         for ap in apples:
             ap.draw(screen)
+        for vb in venoms:
+            vb.draw(screen)
         for h in hooks:
             h.draw(screen)
         for pk in pumpkins:
@@ -3204,6 +3295,12 @@ def main():
             if _ragequit_flag[0]:
                 stats["rage_quit_typed"] = True
                 _ragequit_flag[0] = False
+            if _everything_flag[0]:
+                stats["everything_collected"] = stats.get("everything_collected", 0) + _everything_flag[0]
+                _everything_flag[0] = 0
+            if _void_fall_timer_flag[0]:
+                stats["void_fall_at_2_7"] = True
+                _void_fall_timer_flag[0] = False
             new_unlocks = check_and_unlock(unlocked, stats)
             if new_unlocks:
                 _save_data(unlocked, stats)

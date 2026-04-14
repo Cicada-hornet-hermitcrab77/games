@@ -492,6 +492,14 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 9, "max_hp": 105, "block": 5,
      "desc": "Punch slows the opponent to half speed for 6 seconds",
      "double_jump": False, "slow_punch": True},
+    {"name": "Rainbow Man", "color": (255, 100, 180), "speed": 6, "jump": -14,
+     "punch_dmg": 8, "kick_dmg": 9, "max_hp": 100, "block": 4,
+     "desc": "Poops out random powerups every 4 seconds — for everyone",
+     "double_jump": True, "rainbow_poop": True},
+    {"name": "Spitting Cobra", "color": (60, 180, 40), "speed": 7, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 9, "max_hp": 95, "block": 4,
+     "desc": "Kick spits a venom bean — deals damage and poisons the opponent",
+     "double_jump": False, "venom_kick": True},
     # ── Secret characters ────────────────────────────────────────────────────
     {"name": "777", "color": (255, 215, 0), "speed": 5, "jump": -13,
      "punch_dmg": 8, "kick_dmg": 9, "max_hp": 100, "block": 4,
@@ -550,6 +558,14 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 12, "max_hp": 100, "block": 5,
      "desc": "First punch swaps both fighters' HP — use it at the right moment",
      "double_jump": True, "hp_swap": True},
+    {"name": "Jetpack", "color": (200, 100, 255), "speed": 6, "jump": -16,
+     "punch_dmg": 10, "kick_dmg": 11, "max_hp": 95, "block": 4,
+     "desc": "Unlimited jumps + slow fall — floats anywhere he pleases",
+     "double_jump": True, "slow_fall": True, "jetpack": True},
+    {"name": "The Impossible Victor", "color": (0, 255, 180), "speed": 8, "jump": -15,
+     "punch_dmg": 700, "kick_dmg": 700, "max_hp": 2, "block": 0,
+     "desc": "Born from Impossible — hits like a truck, dies from a sneeze",
+     "double_jump": True},
 ]
 
 POWERUPS = [
