@@ -33,6 +33,7 @@ _iddqd_flag       = [False]   # set True when IDDQD typed and match won
 _ragequit_flag    = [False]   # set True when *@#!$%%! typed on lose screen after conditions met
 _everything_flag  = [0]       # count of 'Everything' powerups collected by p1
 _void_fall_timer_flag = [False]  # set True when p1 falls in void with 2-7s remaining
+_jungle_kills_flag    = [0]      # count of JungleSnakes killed this session
 
 _PRIMES_60 = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59}
 def _is_prime(n): return n in _PRIMES_60
@@ -211,7 +212,7 @@ UNLOCK_CONDITIONS = {
     "Mirror":              ("win_with",             "Mirror Man",    3,  "Something about reflections...",     True),
     "Paradox":             ("win_on_stage",  "Under the Void",       3,  "Win 3 times on Under the Void",      True),
     "Rainbow Man":         ("everything_collected", None,           10,  "Collect 10 'Everything' powerups"),
-    "Spitting Cobra":      ("beat_char",     "Snake",               100, "Beat Snake 100 times"),
+    "Spitting Cobra":      ("jungle_snake_kills", None,              100, "Kill 100 snakes in the Jungle"),
     "Jetpack":             ("void_fall_at_2_7", None,                1,  "Fall into the void at just the right moment", True),
     "The Impossible Victor": ("win_with",    "Impossible",           1,  "Win 1 match as Impossible"),
 }
@@ -261,6 +262,8 @@ def _default_stats():
         "everything_collected":     0,
         # Jetpack: fell into void with 2-7 seconds remaining
         "void_fall_at_2_7":         False,
+        # Spitting Cobra: jungle snake kills
+        "jungle_snake_kills":       0,
     }
 
 def load_save():
@@ -378,6 +381,8 @@ def _meets_condition(cond, stats):
         return stats.get("everything_collected", 0) >= n
     if kind == "void_fall_at_2_7":
         return stats.get("void_fall_at_2_7", False)
+    if kind == "jungle_snake_kills":
+        return stats.get("jungle_snake_kills", 0) >= n
     return False
 
 def _unlock_progress(stats):
@@ -410,6 +415,9 @@ def _unlock_progress(stats):
             chars = [c.strip() for c in param.split(',')]
             cur = sum(1 for c in chars if stats.get("wins_with", {}).get(c, 0) >= 1)
             n   = len(chars)   # override n to show X/total-chars, not X/1
+        elif kind == "everything_collected": cur = stats.get("everything_collected", 0)
+        elif kind == "jungle_snake_kills":   cur = stats.get("jungle_snake_kills", 0)
+        elif kind == "midnight_wins":        cur = stats.get("midnight_wins", 0)
         else:
             cur = 0
         result[name] = (min(cur, n), n)
@@ -1299,7 +1307,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     snake_spawn_timer = random.randint(300, 480)
                 for sn in jungle_snakes:
                     sn.update(p1, p2)
+                _prev_sn = len(jungle_snakes)
                 jungle_snakes = [sn for sn in jungle_snakes if sn.alive]
+                _jungle_kills_flag[0] += _prev_sn - len(jungle_snakes)
 
             # Computer bugs
             if is_computer:
@@ -3301,6 +3311,9 @@ def main():
             if _void_fall_timer_flag[0]:
                 stats["void_fall_at_2_7"] = True
                 _void_fall_timer_flag[0] = False
+            if _jungle_kills_flag[0]:
+                stats["jungle_snake_kills"] = stats.get("jungle_snake_kills", 0) + _jungle_kills_flag[0]
+                _jungle_kills_flag[0] = 0
             new_unlocks = check_and_unlock(unlocked, stats)
             if new_unlocks:
                 _save_data(unlocked, stats)
