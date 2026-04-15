@@ -572,7 +572,7 @@ CHARACTERS = [
      "double_jump": True},
     {"name": "ChickenBanana", "color": (255, 200, 0), "speed": 6, "jump": -13,
      "punch_dmg": 11, "kick_dmg": 11, "max_hp": 100, "block": 5,
-     "desc": "Stand still for 10 seconds and then ram the opponent — instant kill on contact",
+     "desc": "Automatically rams in facing direction every 8 seconds — instant kill on contact, wall = 10 self dmg",
      "double_jump": False, "chicken_banana": True},
     {"name": "Soul Master", "color": (80, 0, 160), "speed": 6, "jump": -14,
      "punch_dmg": 10, "kick_dmg": 12, "max_hp": 110, "block": 6,

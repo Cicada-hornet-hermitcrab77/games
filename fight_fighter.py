@@ -156,7 +156,7 @@ class Fighter:
         self.rainbow_poop_timer = FPS * 4 if char_data.get("rainbow_poop") else 0
         self.pending_rainbow_poop = False  # Rainbow Man: drop a random powerup this frame
         self.chomp_cooldown     = 0       # Pacman: cooldown between chomps
-        self.cb_idle_timer      = 0       # ChickenBanana: frames standing still
+        self.cb_idle_timer      = FPS * 8 if char_data.get("chicken_banana") else 0  # ChickenBanana: countdown to next ram
         self.cb_ramming         = False   # ChickenBanana: currently ramming
         self.cb_ram_timer       = 0       # ChickenBanana: ram duration frames
         self.soul_switch_timer  = FPS * 5 if char_data.get("soul_master") else 0  # Soul Master
@@ -248,7 +248,9 @@ class Fighter:
             self.ink_clone_cooldown -= 1
         if self.whip_cooldown > 0:
             self.whip_cooldown -= 1
-        if self.poop_timer > 0:
+        if self.char.get("rainbow_poop"):
+            self.poop_timer = FPS * 999  # Rainbow Man: always active
+        elif self.poop_timer > 0:
             self.poop_timer -= 1
         if self.poop_cd > 0:
             self.poop_cd -= 1
@@ -706,7 +708,7 @@ class Fighter:
                 self.draw_scale = min(2.5, self.draw_scale + 0.2)
                 self.chomp_cooldown = FPS * 2
 
-        # ChickenBanana: ram after 10 seconds standing still
+        # ChickenBanana: automatically rams in facing direction every 8 seconds
         if self.char.get("chicken_banana"):
             if self.cb_ramming:
                 self.x += self.facing * 22
@@ -714,22 +716,22 @@ class Fighter:
                 if abs(self.x - other.x) <= 55:
                     other.hp = 0
                     self.cb_ramming = False
+                    self.cb_idle_timer = FPS * 8  # cooldown before next ram
                 elif self.x <= 50 or self.x >= WIDTH - 50:
                     self.hp = max(0, self.hp - 10)
                     self.flash_timer = 15
                     self.cb_ramming = False
                     self.x = max(60.0, min(float(WIDTH - 60), self.x))
+                    self.cb_idle_timer = FPS * 8
                 elif self.cb_ram_timer <= 0:
                     self.cb_ramming = False
+                    self.cb_idle_timer = FPS * 8
             else:
-                if abs(self.vx) < 2 and self.on_ground and self.action not in ('punch', 'kick', 'hurt'):
-                    self.cb_idle_timer += 1
+                if self.cb_idle_timer > 0:
+                    self.cb_idle_timer -= 1
                 else:
-                    self.cb_idle_timer = 0
-                if self.cb_idle_timer >= FPS * 10:
                     self.cb_ramming = True
-                    self.cb_ram_timer = FPS * 2
-                    self.cb_idle_timer = 0
+                    self.cb_ram_timer = FPS // 2  # ram lasts 0.5 seconds
 
         # Soul Master: soul hops to a new position every 5 seconds
         if self.char.get("soul_master"):
@@ -1285,7 +1287,7 @@ class AIFighter(Fighter):
                 elif self.cb_ram_timer <= 0:
                     self.cb_ramming = False
             else:
-                if abs(self.vx) < 2 and self.on_ground and self.action not in ('punch', 'kick', 'hurt'):
+                if self.action == 'idle' and self.on_ground:
                     self.cb_idle_timer += 1
                 else:
                     self.cb_idle_timer = 0
