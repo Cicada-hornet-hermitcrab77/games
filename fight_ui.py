@@ -460,7 +460,6 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("water_kick"):      badges.append(("WATER BALL",    (0,  180, 240)))
             if detail_ch.get("momentum"):        badges.append(("MOMENTUM",      (0,  160, 220)))
             if detail_ch.get("smoke_trail"):     badges.append(("SMOKE TRAIL",   (180, 180, 220)))
-            if detail_ch.get("ascii_fighter"):   badges.append(("ASCII BODY",    (0,  255, 120)))
             if detail_ch.get("snake"):           badges.append(("SNAKE BODY",    (20, 200, 60)))
             if detail_ch.get("always_berserk"):  badges.append(("ALWAYS ENRAGED",(220, 50,  0)))
             if detail_ch.get("bee_punch"):       badges.append(("BEE SWARM",     (220,180,  0)))
@@ -523,6 +522,9 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("rainbow_poop"):    badges.append(("POOP POWERUPS", (255,100,180)))
             if detail_ch.get("venom_kick"):      badges.append(("VENOM KICK",    ( 60,180, 40)))
             if detail_ch.get("jetpack"):         badges.append(("JETPACK",       (200,100,255)))
+            if detail_ch.get("chomp"):           badges.append(("CHOMP",         (255,220,  0)))
+            if detail_ch.get("chicken_banana"):  badges.append(("RAM CHARGE",    (255,180,  0)))
+            if detail_ch.get("soul_master"):     badges.append(("SOUL HOP",      ( 80,  0,160)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)

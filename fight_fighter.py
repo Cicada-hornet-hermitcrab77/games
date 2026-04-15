@@ -155,6 +155,11 @@ class Fighter:
         self._paradox_used      = False   # Paradox: HP swap used this life
         self.rainbow_poop_timer = FPS * 4 if char_data.get("rainbow_poop") else 0
         self.pending_rainbow_poop = False  # Rainbow Man: drop a random powerup this frame
+        self.chomp_cooldown     = 0       # Pacman: cooldown between chomps
+        self.cb_idle_timer      = 0       # ChickenBanana: frames standing still
+        self.cb_ramming         = False   # ChickenBanana: currently ramming
+        self.cb_ram_timer       = 0       # ChickenBanana: ram duration frames
+        self.soul_switch_timer  = FPS * 5 if char_data.get("soul_master") else 0  # Soul Master
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -690,6 +695,52 @@ class Fighter:
             if len(self.snake_segs) > max_segs:
                 self.snake_segs = self.snake_segs[:max_segs]
 
+        # Pacman: chomp nearby enemy for 50 dmg, grow bigger
+        if self.char.get("chomp"):
+            if self.chomp_cooldown > 0:
+                self.chomp_cooldown -= 1
+            elif abs(self.x - other.x) <= 55:
+                other.hp = max(0, other.hp - 50)
+                other.flash_timer = 12
+                other.knockback = self.facing * 4
+                self.draw_scale = min(2.5, self.draw_scale + 0.2)
+                self.chomp_cooldown = FPS * 2
+
+        # ChickenBanana: ram after 10 seconds standing still
+        if self.char.get("chicken_banana"):
+            if self.cb_ramming:
+                self.x += self.facing * 22
+                self.cb_ram_timer -= 1
+                if abs(self.x - other.x) <= 55:
+                    other.hp = 0
+                    self.cb_ramming = False
+                elif self.x <= 50 or self.x >= WIDTH - 50:
+                    self.hp = max(0, self.hp - 10)
+                    self.flash_timer = 15
+                    self.cb_ramming = False
+                    self.x = max(60.0, min(float(WIDTH - 60), self.x))
+                elif self.cb_ram_timer <= 0:
+                    self.cb_ramming = False
+            else:
+                if abs(self.vx) < 2 and self.on_ground and self.action not in ('punch', 'kick', 'hurt'):
+                    self.cb_idle_timer += 1
+                else:
+                    self.cb_idle_timer = 0
+                if self.cb_idle_timer >= FPS * 10:
+                    self.cb_ramming = True
+                    self.cb_ram_timer = FPS * 2
+                    self.cb_idle_timer = 0
+
+        # Soul Master: soul hops to a new position every 5 seconds
+        if self.char.get("soul_master"):
+            if self.soul_switch_timer > 0:
+                self.soul_switch_timer -= 1
+            else:
+                self.x = float(random.randint(120, WIDTH - 120))
+                self.vy = -5
+                self.flash_timer = 20
+                self.soul_switch_timer = FPS * 5
+
         if self.attacking and self.action in ('punch', 'kick'):
             self.action_t = min(1.0, self.action_t + self._attack_speed)
             if self.action_t >= 1.0:
@@ -1208,6 +1259,49 @@ class AIFighter(Fighter):
             else:
                 self.pending_rainbow_poop = True
                 self.rainbow_poop_timer   = FPS * 4
+        # Pacman chomp (AI version)
+        if self.char.get("chomp"):
+            if self.chomp_cooldown > 0:
+                self.chomp_cooldown -= 1
+            elif abs(self.x - other.x) <= 55:
+                other.hp = max(0, other.hp - 50)
+                other.flash_timer = 12
+                other.knockback = self.facing * 4
+                self.draw_scale = min(2.5, self.draw_scale + 0.2)
+                self.chomp_cooldown = FPS * 2
+        # ChickenBanana ram (AI version)
+        if self.char.get("chicken_banana"):
+            if self.cb_ramming:
+                self.x += self.facing * 22
+                self.cb_ram_timer -= 1
+                if abs(self.x - other.x) <= 55:
+                    other.hp = 0
+                    self.cb_ramming = False
+                elif self.x <= 50 or self.x >= WIDTH - 50:
+                    self.hp = max(0, self.hp - 10)
+                    self.flash_timer = 15
+                    self.cb_ramming = False
+                    self.x = max(60.0, min(float(WIDTH - 60), self.x))
+                elif self.cb_ram_timer <= 0:
+                    self.cb_ramming = False
+            else:
+                if abs(self.vx) < 2 and self.on_ground and self.action not in ('punch', 'kick', 'hurt'):
+                    self.cb_idle_timer += 1
+                else:
+                    self.cb_idle_timer = 0
+                if self.cb_idle_timer >= FPS * 10:
+                    self.cb_ramming = True
+                    self.cb_ram_timer = FPS * 2
+                    self.cb_idle_timer = 0
+        # Soul Master soul hop (AI version)
+        if self.char.get("soul_master"):
+            if self.soul_switch_timer > 0:
+                self.soul_switch_timer -= 1
+            else:
+                self.x = float(random.randint(120, WIDTH - 120))
+                self.vy = -5
+                self.flash_timer = 20
+                self.soul_switch_timer = FPS * 5
 
         if self.hurt_timer > 0 or self.freeze_frames > 0:
             return  # don't make decisions while staggered or frozen

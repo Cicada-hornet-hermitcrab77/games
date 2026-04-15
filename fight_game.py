@@ -30,7 +30,9 @@ _UNLOCK_FILE    = os.path.join(os.path.dirname(__file__), "unlocks.json")
 _DEFAULT_UNLOCK = {"Brawler", "Boxer", "Ninja", "Phantom"}
 _konami_flag      = [False]   # set True when Konami code entered on Computer stage
 _iddqd_flag       = [False]   # set True when IDDQD typed and match won
-_ragequit_flag    = [False]   # set True when *@#!$%%! typed on lose screen after conditions met
+_ragequit_flag    = [False]   # set True when @#!#*%$ typed on lose screen
+_paradox_portals_flag = [False]  # set True when p1 goes through 10 portals in one fight
+_totem_kill_flag  = [False]   # set True when a TotemPole kills p1
 _everything_flag  = [0]       # count of 'Everything' powerups collected by p1
 _void_fall_timer_flag = [False]  # set True when p1 falls in void with 2-7s remaining
 _jungle_kills_flag    = [0]      # count of JungleSnakes killed this session
@@ -183,20 +185,20 @@ UNLOCK_CONDITIONS = {
     "Drifter":             ("unique_wins",          None,           20,  "Win with 20 different characters"),
     "Warlock":             ("win_hard_ai",          None,           15,  "Win 15 matches vs Hard AI"),
     # ── Secret characters (hint hidden in UI) ───────────────────────────────
-    "777":                 ("wins_divisible_by_7",  None,            1,  "Something about the number 7...",    True),
+    "777":                 ("daily_streak",          None,            7,  "Play 7 days in a row",               True),
     "Scratch":             ("konami_unlock",        None,            1,  "Enter the secret code",              True),
     "Void Master":         ("win_on_stage",         "The Void",      5,  "Master the void to own it",          True),
     "Screentime":          ("played_at_noon",       None,            1,  "Play at a very specific time",       True),
     "God":                 ("perfect_mega_hard_win",None,            1,  "A godlike feat of perfection",       True),
     "Nightfall":           ("midnight_wins",        None,            3,  "Win matches late into the night",    True),
     "Lucky":               ("lucky_win",            None,            1,  "Win a match with exactly 7 HP",      True),
-    "Great Totem Spirit":  ("died_on_void_totem",   None,            1,  "Die on Under the Void stage",        True),
+    "Great Totem Spirit":  ("died_from_totem",       None,            1,  "Die in front of the totem pole",     True),
     # ── Regular new characters ──────────────────────────────────────────────
     "Flash":               ("win_streak",           None,            6,  "Win 6 matches in a row"),
     "Portal Maker":        ("win_on_stage",         "The Void",      3,  "Win on The Void 3 times"),
     "Gravity":             ("matches_played",       None,           90,  "Play 90 matches"),
     "Prime Time":          ("prime_time_win",       None,            1,  "Win at a prime number second",       True),
-    "Rage Quitter":        ("rage_quit_typed",      None,            1,  "Enter the secret sequence",          True),
+    "Rage Quitter":        ("rage_quit_typed",      None,            1,  "Type something on the lose screen",  True),
     # ── new regular characters ───────────────────────────────────────────────
     "Swapper":             ("win_on_stage",         "The Void",      5,  "Win 5 matches on The Void"),
     "Bruiser":             ("survival_kills",       None,           75,  "Get 75 kills in survival"),
@@ -209,12 +211,14 @@ UNLOCK_CONDITIONS = {
     "Rainbow Man":         ("everything_collected", None,           10,  "Collect 10 'Everything' powerups"),
     # ── new secret characters ────────────────────────────────────────────────
     "The One":             ("win_with_all", "777,Scratch,Void Master,Screentime,God,Nightfall,Lucky,Great Totem Spirit,Prime Time,Rage Quitter,Mirror,Paradox", 1, "Win with every other secret character", True),
-    "Mirror":              ("win_with",             "Mirror Man",    3,  "Something about reflections...",     True),
-    "Paradox":             ("win_on_stage",  "Under the Void",       3,  "Win 3 times on Under the Void",      True),
-    "Rainbow Man":         ("everything_collected", None,           10,  "Collect 10 'Everything' powerups"),
+    "Mirror":              ("win_half_hp",           None,            1,  "Win with half your starting health", True),
+    "Paradox":             ("paradox_portals_done", None,            1,  "Go through portals... a lot",        True),
     "Spitting Cobra":      ("jungle_snake_kills", None,              100, "Kill 100 snakes in the Jungle"),
     "Jetpack":             ("void_fall_at_2_7", None,                1,  "Fall into the void at just the right moment", True),
     "The Impossible Victor": ("win_with",    "Impossible",           1,  "Win 1 match as Impossible"),
+    "Pacman":              ("survival_kills",        None,           15,  "Get 15 kills in survival"),
+    "ChickenBanana":       ("win_on_stage",          "Computer",      3,  "Something... glitchy",               True),
+    "Soul Master":         ("secret_chars",          None,            5,  "Master many secrets...",             True),
 }
 
 def _default_stats():
@@ -247,6 +251,7 @@ def _default_stats():
         "played_at_midnight":       False,
         "lucky_win":                False,
         "died_on_void_totem":       False,
+        "died_from_totem":          False,
         "prime_time_win":           False,
         "rage_quit_typed":          False,
         "wins_mega_hard_for_rage":  0,    # tracks wins_mega_hard at rage unlock point
@@ -264,6 +269,10 @@ def _default_stats():
         "void_fall_at_2_7":         False,
         # Spitting Cobra: jungle snake kills
         "jungle_snake_kills":       0,
+        # Mirror: wins with <= half HP
+        "win_half_hp":              0,
+        # Paradox: went through 10 portals in one fight
+        "paradox_portals_done":     False,
     }
 
 def load_save():
@@ -383,6 +392,12 @@ def _meets_condition(cond, stats):
         return stats.get("void_fall_at_2_7", False)
     if kind == "jungle_snake_kills":
         return stats.get("jungle_snake_kills", 0) >= n
+    if kind == "win_half_hp":
+        return stats.get("win_half_hp", 0) >= n
+    if kind == "paradox_portals_done":
+        return stats.get("paradox_portals_done", False)
+    if kind == "died_from_totem":
+        return stats.get("died_from_totem", False)
     return False
 
 def _unlock_progress(stats):
@@ -451,7 +466,7 @@ def check_and_unlock(unlocked, stats):
         _save_data(unlocked, stats)
     return newly
 
-def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=None, ai_difficulty=None, p1_void_falls=0, p1_hp_remaining=None):
+def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=None, ai_difficulty=None, p1_void_falls=0, p1_hp_remaining=None, p1_half_hp=False):
     """Update stats dict after a vs-AI fight."""
     stats["matches_played"] = stats.get("matches_played", 0) + 1
     # Track daily play date
@@ -498,6 +513,8 @@ def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=N
             stats["perfect_wins"] += 1
         if p1_low_hp:
             stats["clutch_wins"]  += 1
+        if p1_half_hp:
+            stats["win_half_hp"] = stats.get("win_half_hp", 0) + 1
         if p1_hp_remaining is not None and p1_hp_remaining == 7:
             stats["lucky_win"] = True
         stats["current_streak"] += 1
@@ -671,6 +688,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
         stage_pencil = StagePencil()
         stage_eraser = StageEraser()
 
+    _p1_portals_this_fight = [0]   # count of portals p1 travels through this fight
     _portal_cols = [(80, 100, 220), (220, 120, 20)]
     _px1 = random.randint(80, WIDTH // 2 - 60)
     _px2 = random.randint(WIDTH // 2 + 60, WIDTH - 80)
@@ -700,8 +718,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     _iddqd_idx  = 0
     _iddqd_done = False
 
-    # Rage Quitter unlock: type *@#!$%%! on the lose screen
-    _RAGEQUIT_SEQ = "*@#!$%%!"
+    # Rage Quitter unlock: type @#!#*%$ on the lose screen
+    _RAGEQUIT_SEQ = "@#!#*%$"
     _ragequit_buf = ""
 
     # Screentime: track whether a Screentime fighter is playing
@@ -739,7 +757,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     _info = (_p1w, p1.char["name"], _stage_name,
                              not p1_ever_below_max, p1.hp <= 10,
                              p2.char["name"], ai_difficulty, p1.void_falls,
-                             p1.hp)
+                             p1.hp, p1.hp <= p1.max_hp // 2)
                     if event.key == pygame.K_r:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('rematch', _info)
                     if event.key == pygame.K_c:
@@ -793,6 +811,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         fighter.y = portal.partner.y
                         fighter.vy = 0
                         fighter.portal_cooldown = FPS * 2
+                        if fighter is p1:
+                            _p1_portals_this_fight[0] += 1
+                            if _p1_portals_this_fight[0] >= 10:
+                                _paradox_portals_flag[0] = True
                         break
 
             for plat in platforms:
@@ -931,6 +953,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             victim.hp = max(0, victim.hp - TotemPole.DMG)
                             victim.flash_timer = 8
                             t.hit_cd = TotemPole.HIT_CD
+                            if victim is p1 and p1.hp <= 0:
+                                _totem_kill_flag[0] = True
                             break
             totems = [t for t in totems if t.alive]
 
@@ -3280,9 +3304,10 @@ def main():
             result = run_fight(p1_idx, p2_idx, vs_ai=vs_ai, ai_difficulty=difficulty, stage_idx=s_idx)
             action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
             p1_won, p1_char, stage, is_perfect, is_clutch, p2_char, ai_diff, p1_void_falls = info[:8]
-            p1_hp_rem = info[8] if len(info) > 8 else 0
+            p1_hp_rem   = info[8] if len(info) > 8 else 0
+            p1_half_hp  = info[9] if len(info) > 9 else False
             if vs_ai:
-                update_stats(stats, p1_won, p1_char, stage, is_perfect, is_clutch, p2_char, ai_diff, p1_void_falls, p1_hp_rem)
+                update_stats(stats, p1_won, p1_char, stage, is_perfect, is_clutch, p2_char, ai_diff, p1_void_falls, p1_hp_rem, p1_half_hp)
             else:
                 if p1_won:
                     stats["wins_2p"] = stats.get("wins_2p", 0) + 1
@@ -3314,6 +3339,12 @@ def main():
             if _jungle_kills_flag[0]:
                 stats["jungle_snake_kills"] = stats.get("jungle_snake_kills", 0) + _jungle_kills_flag[0]
                 _jungle_kills_flag[0] = 0
+            if _paradox_portals_flag[0]:
+                stats["paradox_portals_done"] = True
+                _paradox_portals_flag[0] = False
+            if _totem_kill_flag[0]:
+                stats["died_from_totem"] = True
+                _totem_kill_flag[0] = False
             new_unlocks = check_and_unlock(unlocked, stats)
             if new_unlocks:
                 _save_data(unlocked, stats)

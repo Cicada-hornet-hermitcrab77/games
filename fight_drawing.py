@@ -1844,6 +1844,83 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                          (hx - int(hd*0.9), trophy_y), (hx + int(hd*0.9), trophy_y),
                          max(2, int(3*s)))
 
+    elif char_name == "Pacman":
+        # Large yellow circle body with animated chomping mouth
+        t_pac = pygame.time.get_ticks()
+        mouth_angle = abs(math.sin(t_pac * 0.008)) * 35 + 5  # 5–40 degrees, oscillating
+        body_r = max(hd + int(6*s), int(22*s))
+        # Draw filled yellow body circle
+        pygame.draw.circle(surface, (255, 220, 0) if not col == (255, 255, 255) else col,
+                           (hx, hy), body_r)
+        # Draw mouth wedge cutout (black)
+        mouth_start = -mouth_angle if facing == 1 else 180 - mouth_angle
+        mouth_end   =  mouth_angle if facing == 1 else 180 + mouth_angle
+        pygame.draw.polygon(surface, (0, 0, 0), [
+            (hx, hy),
+            (hx + int(math.cos(math.radians(mouth_start)) * body_r),
+             hy + int(math.sin(math.radians(mouth_start)) * body_r)),
+            (hx + int(math.cos(math.radians(mouth_start / 2 + mouth_end / 2)) * body_r),
+             hy + int(math.sin(math.radians(mouth_start / 2 + mouth_end / 2)) * body_r)),
+            (hx + int(math.cos(math.radians(mouth_end)) * body_r),
+             hy + int(math.sin(math.radians(mouth_end)) * body_r)),
+        ])
+        # Eye
+        eye_x = hx + int(facing * int(hd*0.35))
+        eye_y = hy - int(hd*0.5)
+        pygame.draw.circle(surface, (0, 0, 0), (eye_x, eye_y), max(2, int(3*s)))
+
+    elif char_name == "ChickenBanana":
+        # Glitches between a chicken visual and banana visual based on time
+        t_cb = pygame.time.get_ticks()
+        is_chicken = (t_cb // 500) % 2 == 0   # flips every 500ms
+        if is_chicken:
+            # Chicken: red comb on top of head, orange beak, white feather tufts
+            comb_pts = [(hx - int(hd*0.3), hy - hd),
+                        (hx - int(hd*0.1), hy - hd - int(8*s)),
+                        (hx + int(hd*0.1), hy - hd),
+                        (hx + int(hd*0.3), hy - hd - int(5*s)),
+                        (hx + int(hd*0.5), hy - hd)]
+            pygame.draw.polygon(surface, (220, 0, 0), comb_pts)
+            # Beak
+            beak_x = hx + int(facing * hd)
+            pygame.draw.polygon(surface, (255, 140, 0), [
+                (beak_x, hy - int(hd*0.1)),
+                (beak_x + int(facing * int(8*s)), hy),
+                (beak_x, hy + int(hd*0.1))])
+            # Feather tufts at shoulders
+            for side in (-1, 1):
+                fx = sx + int(side * int(hd*0.9))
+                pygame.draw.circle(surface, (240, 240, 240), (fx, sy), max(3, int(5*s)))
+        else:
+            # Banana: yellow curved shape arcing from head to waist
+            ban_pts = []
+            steps = 8
+            for bi in range(steps + 1):
+                t2 = bi / steps
+                bx2 = hx + int(math.sin(t2 * math.pi) * int(hd*1.2) * facing)
+                by2 = hy + int((wy - hy) * t2)
+                ban_pts.append((bx2, by2))
+            if len(ban_pts) >= 2:
+                pygame.draw.lines(surface, (255, 220, 0), False, ban_pts, max(4, int(6*s)))
+            # Banana tips
+            pygame.draw.circle(surface, (200, 160, 0), (hx, hy), max(4, int(6*s)))
+            pygame.draw.circle(surface, (200, 160, 0), (ban_pts[-1][0], ban_pts[-1][1]), max(3, int(5*s)))
+
+    elif char_name == "Soul Master":
+        # Purple soul aura around head + ink brush trail effect
+        t_sm = pygame.time.get_ticks()
+        for si2 in range(6):
+            sa3 = math.radians(t_sm * 0.15 + si2 * 60)
+            sr3 = hd + int(4*s) + int(math.sin(t_sm * 0.008 + si2) * 3*s)
+            sc3 = (80 + (si2 * 20) % 100, 0, 160)
+            pygame.draw.circle(surface, sc3,
+                               (hx + int(math.cos(sa3)*sr3), hy + int(math.sin(sa3)*sr3)),
+                               max(2, int(3*s)))
+        # Soul wisp floating above head
+        wisp_y = hy - hd - int((6 + 4*math.sin(t_sm*0.006))*s)
+        pygame.draw.circle(surface, (180, 80, 255), (hx, wisp_y), max(3, int(5*s)))
+        pygame.draw.circle(surface, (255, 200, 255), (hx, wisp_y), max(1, int(2*s)))
+
 
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color
@@ -1904,8 +1981,6 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
     rf = (waist[0] + rx, y)
     lk = (waist[0] + lx * 0.5, waist[1] + 20 * s)
     rk = (waist[0] + rx * 0.5, waist[1] + 20 * s)
-    ln(waist, lk); ln(lk, lf)
-    ln(waist, rk); ln(rk, rf)
 
     # Arms
     if action == 'punch':
@@ -1942,6 +2017,54 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
         ra = (shoulder[0] + 10 * s, shoulder[1] + 10 * s)
         rh = (ra[0] + 5 * s,  ra[1] + al * 0.8)
 
+    # ── ASCII fighter: render body as ASCII art text chars ────────────────────
+    if char_name == "ASCII":
+        _asc_col = WHITE if flash else col
+        _af = pygame.font.SysFont("Courier", max(9, int(13 * s)), bold=True)
+        def _achar(ch, cx, cy):
+            _t = _af.render(ch, True, _asc_col)
+            surface.blit(_t, (int(cx) - _t.get_width()//2, int(cy) - _t.get_height()//2))
+        # Head
+        _achar("O", head_c[0], head_c[1])
+        # Torso
+        for _i in range(1, 5):
+            _ty = shoulder[1] + (waist[1] - shoulder[1]) * _i / 4
+            _achar("|", shoulder[0], _ty)
+        # Arms
+        if action == 'punch':
+            _achar("\\", la[0], la[1]); _achar("|", lh[0], lh[1])
+            _achar("-",  ra[0], ra[1]); _achar(">", rh[0], rh[1])
+        elif action == 'hurt':
+            _achar("<", la[0], la[1]); _achar("*", lh[0], lh[1])
+            _achar(">", ra[0], ra[1]); _achar("*", rh[0], rh[1])
+        elif action == 'duck':
+            _achar("-", la[0], la[1]); _achar("_", lh[0], lh[1])
+            _achar("-", ra[0], ra[1]); _achar("_", rh[0], rh[1])
+        else:
+            _achar("/",  la[0], la[1]); _achar("|", lh[0], lh[1])
+            _achar("\\", ra[0], ra[1]); _achar("|", rh[0], rh[1])
+        # Legs
+        if action == 'kick':
+            _achar("/",  lk[0], lk[1]); _achar("|", lf[0], lf[1])
+            _achar("=",  rk[0], rk[1]); _achar(">", rf[0] + facing * 5, rf[1])
+        elif action == 'jump':
+            _achar("/",  lk[0], lk[1]); _achar("/",  lf[0], lf[1])
+            _achar("\\", rk[0], rk[1]); _achar("\\", rf[0], rf[1])
+        elif action == 'duck':
+            _achar("/",  lk[0], lk[1]); _achar("_", lf[0], lf[1])
+            _achar("\\", rk[0], rk[1]); _achar("_", rf[0], rf[1])
+        else:
+            _achar("/",  lk[0], lk[1]); _achar("|", lf[0], lf[1])
+            _achar("\\", rk[0], rk[1]); _achar("|", rf[0], rf[1])
+        draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing, s, col)
+        if action == 'punch':
+            return (int(ra[0] + facing * 10 * s), int(ra[1]))
+        if action == 'kick':
+            return (int(waist[0] + facing * int(action_t * 80 * s)), int(y - 20 * s))
+        return None
+
+    ln(waist, lk); ln(lk, lf)
+    ln(waist, rk); ln(rk, rf)
     ln(shoulder, la); ln(la, lh)
     ln(shoulder, ra); ln(ra, rh)
     ln(waist, shoulder, 4)
@@ -2673,7 +2796,14 @@ def draw_health_bars_labeled(surface, p1, p2, p2_label):
         ht = font_tiny.render(f"{max(0,hp)}/{max_hp}", True, WHITE)
         surface.blit(ht, (x + bar_w//2 - ht.get_width()//2, y + 3))
 
-    bar(20, 40, p1.hp, p1.max_hp, p1.char["color"], f"P1 — {p1.char['name']}")
+    def _char_display_name(ch):
+        n = ch["name"]
+        if n == "ChickenBanana":
+            t_cb2 = pygame.time.get_ticks()
+            return "Chicken" if (t_cb2 // 500) % 2 == 0 else "Banana"
+        return n
+    p1_name = f"P1 — {_char_display_name(p1.char)}"
+    bar(20, 40, p1.hp, p1.max_hp, p1.char["color"], p1_name)
     bar(WIDTH-bar_w-20, 40, p2.hp, p2.max_hp, p2.char["color"], p2_label, flip=True)
     vs = font_medium.render("VS", True, YELLOW)
     surface.blit(vs, (WIDTH//2 - vs.get_width()//2, 35))

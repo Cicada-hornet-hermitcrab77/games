@@ -500,6 +500,10 @@ CHARACTERS = [
      "punch_dmg": 9, "kick_dmg": 9, "max_hp": 95, "block": 4,
      "desc": "Kick spits a venom bean — deals damage and poisons the opponent",
      "double_jump": False, "venom_kick": True},
+    {"name": "Pacman", "color": (255, 220, 0), "speed": 6, "jump": -13,
+     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100, "block": 5,
+     "desc": "Chomps enemies on contact — deals 50 damage and grows bigger",
+     "double_jump": False, "chomp": True},
     # ── Secret characters ────────────────────────────────────────────────────
     {"name": "777", "color": (255, 215, 0), "speed": 5, "jump": -13,
      "punch_dmg": 8, "kick_dmg": 9, "max_hp": 100, "block": 4,
@@ -566,6 +570,14 @@ CHARACTERS = [
      "punch_dmg": 700, "kick_dmg": 700, "max_hp": 2, "block": 0,
      "desc": "Born from Impossible — hits like a truck, dies from a sneeze",
      "double_jump": True},
+    {"name": "ChickenBanana", "color": (255, 200, 0), "speed": 6, "jump": -13,
+     "punch_dmg": 11, "kick_dmg": 11, "max_hp": 100, "block": 5,
+     "desc": "Stand still for 10 seconds and then ram the opponent — instant kill on contact",
+     "double_jump": False, "chicken_banana": True},
+    {"name": "Soul Master", "color": (80, 0, 160), "speed": 6, "jump": -14,
+     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 110, "block": 6,
+     "desc": "Every 5 seconds his soul jumps to a new clone — sudden teleport across the stage",
+     "double_jump": True, "ink_kick": True, "soul_master": True},
 ]
 
 POWERUPS = [
