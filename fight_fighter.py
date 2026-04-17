@@ -160,6 +160,8 @@ class Fighter:
         self.cb_ramming         = False   # ChickenBanana: currently ramming
         self.cb_ram_timer       = 0       # ChickenBanana: ram duration frames
         self.soul_switch_timer  = FPS * 5 if char_data.get("soul_master") else 0  # Soul Master
+        self.dementor_timer     = FPS * 20 if char_data.get("dementor_heal") else 0  # Dementor
+        self.pending_plant      = False   # Druid: spawn a rising plant spike this frame
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -371,6 +373,14 @@ class Fighter:
             else:
                 self.pending_time_freeze = True
                 self.time_freeze_timer   = FPS * 18
+        # Dementor: full heal every 20 seconds
+        if self.char.get("dementor_heal"):
+            if self.dementor_timer > 0:
+                self.dementor_timer -= 1
+            else:
+                self.hp = self.max_hp
+                self.dementor_timer = FPS * 20
+                self.flash_timer = max(self.flash_timer, 15)
 
     def update(self, keys, other, platforms=()):
         self.tick_powerups()
@@ -575,6 +585,8 @@ class Fighter:
                     self.pending_remote = True
                 if self.char.get("venom_kick"):
                     self.pending_venom = True
+                if self.char.get("plant_kick"):
+                    self.pending_plant = True
                 if self.char.get("size_kick"):
                     self._size_state = (self._size_state + 1) % 3
                     self.draw_scale = (1.0, 2.0, 0.55)[self._size_state]
@@ -701,7 +713,7 @@ class Fighter:
         if self.char.get("chomp"):
             if self.chomp_cooldown > 0:
                 self.chomp_cooldown -= 1
-            elif abs(self.x - other.x) <= 55:
+            elif other is not self and abs(self.x - other.x) <= 55:
                 other.hp = max(0, other.hp - 50)
                 other.flash_timer = 12
                 other.knockback = self.facing * 4
@@ -813,6 +825,12 @@ class Fighter:
                 dmg *= 3
             if other.char.get("stone_skin"):
                 dmg = int(dmg * 0.6)
+            # Big Bad Critter Clad: only critical punch hits deal full damage
+            if other.char.get("crit_only"):
+                if self.action == 'punch' and not self.is_crit:
+                    dmg = 1
+                elif self.action == 'kick':
+                    dmg = 1
             # hp_swap (Paradox): swap both HP values once per life, skip normal damage
             if self.char.get("hp_swap") and self.action == 'punch' and not self._paradox_used:
                 self.hp, other.hp = other.hp, self.hp
@@ -862,6 +880,10 @@ class Fighter:
                     other.fire_frames = max(other.fire_frames, 960)  # 16 sec burn
                 if self.char.get("freeze_kick") and self.action == 'kick':
                     other.freeze_frames = 180  # 3 seconds
+                if self.char.get("scorpio_kick") and self.action == 'kick':
+                    other.freeze_frames = 180
+                    if other.poison_frames == 0: other.poison_tick = 180
+                    other.poison_frames = max(other.poison_frames, 180)
                 if self.char.get("shock_punch") and self.action == 'punch':
                     other.shock_frames = 480   # 8 seconds
                 if self.char.get("shock_kick") and self.action == 'kick':
@@ -1265,7 +1287,7 @@ class AIFighter(Fighter):
         if self.char.get("chomp"):
             if self.chomp_cooldown > 0:
                 self.chomp_cooldown -= 1
-            elif abs(self.x - other.x) <= 55:
+            elif other is not self and abs(self.x - other.x) <= 55:
                 other.hp = max(0, other.hp - 50)
                 other.flash_timer = 12
                 other.knockback = self.facing * 4
@@ -1368,6 +1390,8 @@ class AIFighter(Fighter):
                     if self.char.get("ink_kick") and self.ink_clone_cooldown == 0:
                         self.pending_ink_clone  = True
                         self.ink_clone_cooldown = FPS * 5
+                    if self.char.get("plant_kick"):
+                        self.pending_plant = True
             self.ai_attack = None
         elif self.ai_move != 0:
             _ai_spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)

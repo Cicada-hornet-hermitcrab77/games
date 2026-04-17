@@ -8,6 +8,9 @@ from constants import *
 from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS
 from fight_drawing import draw_bg, draw_stickman
 
+# Shared flag: set True when player types "42" on the main menu
+_type42_typed = [False]
+
 # ---------------------------------------------------------------------------
 # Stage select screen
 # ---------------------------------------------------------------------------
@@ -72,6 +75,7 @@ def mode_select():
     START = WIDTH // 2 - (4 * card_w + 3 * GAP) // 2
     card_xs = [START + i * (card_w + GAP) for i in range(4)]
 
+    _type42_buf = ""
     while True:
         clock.tick(FPS)
         preview_t = (preview_t + 0.02) % 1.0
@@ -80,6 +84,14 @@ def mode_select():
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
+                # Track "42" typed anywhere on main menu
+                if hasattr(event, 'unicode') and event.unicode in ('4', '2'):
+                    _type42_buf += event.unicode
+                    if _type42_buf.endswith('42'):
+                        _type42_typed[0] = True
+                        _type42_buf = ""
+                elif hasattr(event, 'unicode') and event.unicode:
+                    _type42_buf = ""
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit(); sys.exit()
                 if event.key in (pygame.K_LEFT, pygame.K_a):

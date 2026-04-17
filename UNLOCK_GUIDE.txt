@@ -63,6 +63,7 @@ Their real conditions are listed here for your reference.
   Phantom Thief     Win 5 matches as Rogue
   Siphon            Win 5 matches as Vamp Lord
   The Impossible Victor  Win 1 match as Impossible
+  Nuke                  Win 1 match as Bomb
 
 
 ────────────────────────────────────────────────────────────
@@ -111,6 +112,7 @@ Their real conditions are listed here for your reference.
   Pyro                  Win on Volcano 3 times
   Banshee               Win on Haunted House 3 times
   Swamp Thing           Win on Jungle 3 times
+  Druid                 Win on Jungle 3 times
   Levitator             Win on Sky Island 3 times
   Polar Bear            Win on Arctic Tundra 3 times
   Boulder               Win on Volcano Core 2 times
@@ -175,6 +177,7 @@ Their real conditions are listed here for your reference.
   Sticker           Get 300 total survival kills
 
   Spitting Cobra    Kill 100 jungle snakes (on Jungle stage) — cumulative
+  Scorpio           Kill 100 computer bugs (on Computer stage) — cumulative
 
 
 ────────────────────────────────────────────────────────────
@@ -215,9 +218,17 @@ Their real conditions are listed here for your reference.
 
 
 ────────────────────────────────────────────────────────────
+  CRITICAL HITS
+────────────────────────────────────────────────────────────
+  Big Bad Critter Clad  Win a match landing only critical hits
+                        (every punch must be moving toward opponent)
+
+
+────────────────────────────────────────────────────────────
   SECRET CHARACTERS UNLOCKED
 ────────────────────────────────────────────────────────────
   Scrollmaster      Unlock 3 secret characters
+  Soul Master       Unlock 5 secret characters
 
 
 ────────────────────────────────────────────────────────────
@@ -263,7 +274,10 @@ Their real conditions are listed here for your reference.
 
   ChickenBanana   [SECRET]  Win 3 matches on the Computer stage
 
-  Soul Master     [SECRET]  Unlock 5 secret characters
+  Life the Universe Everything [SECRET]  Type "42" on the main menu screen
+
+  Dementor        [SECRET]  Lose a match without the opponent
+                            landing a single hit on you
 
   The One         [SECRET]  Win a match as every other secret
                             character first:

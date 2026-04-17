@@ -1341,3 +1341,40 @@ class VenomBean:
         pygame.draw.circle(surface, (180, 255, 80), (cx + self.facing * 10, cy), 4)
         pygame.draw.circle(surface, (220, 255, 120), (cx + self.facing * 10, cy), 2)
 
+
+class PlantSpike:
+    """Rising plant spike that sprouts from the ground at the opponent (Druid kick)."""
+    DMG    = 18
+    SPEED  = 9
+    RADIUS = 12
+
+    def __init__(self, x, owner):
+        self.x     = float(x)
+        self.y     = float(GROUND_Y)
+        self.vy    = -self.SPEED
+        self.owner = owner
+        self.alive = True
+
+    def update(self):
+        self.y += self.vy
+        if self.y < GROUND_Y - 240:
+            self.alive = False
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+    def draw(self, surface):
+        tip_x  = int(self.x)
+        tip_y  = int(self.y)
+        base_y = min(GROUND_Y, tip_y + 55)
+        # Stem
+        pygame.draw.line(surface, (30, 140, 40), (tip_x, base_y), (tip_x, tip_y), 5)
+        # Spike tip
+        pygame.draw.polygon(surface, (50, 220, 60), [
+            (tip_x - 10, tip_y + 22),
+            (tip_x + 10, tip_y + 22),
+            (tip_x, tip_y - 2),
+        ])
+        # Side leaf
+        pygame.draw.ellipse(surface, (40, 180, 50), (tip_x + 4, tip_y + 10, 18, 9))
+

@@ -18,9 +18,9 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             FallingPot, RollingCoin, FallingMerlin,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
                             FireBall, ThunderBolt, Scroll, TotemPole,
-                            RemoteController, Apple, VenomBean)
+                            RemoteController, Apple, VenomBean, PlantSpike)
 import fight_network as _net
-from fight_ui import stage_select, mode_select, character_select, online_menu
+from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed
 
 # ---------------------------------------------------------------------------
 # Unlock system
@@ -36,6 +36,9 @@ _totem_kill_flag  = [False]   # set True when a TotemPole kills p1
 _everything_flag  = [0]       # count of 'Everything' powerups collected by p1
 _void_fall_timer_flag = [False]  # set True when p1 falls in void with 2-7s remaining
 _jungle_kills_flag    = [0]      # count of JungleSnakes killed this session
+_computer_bug_kills_flag = [0]   # count of ComputerBugs killed this fight
+_p1_non_crit_flag = [False]      # True if p1 landed any non-crit punch this fight
+_p1_opp_hit_flag  = [False]      # True if opponent ever successfully hit p1 this fight
 
 _PRIMES_60 = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59}
 def _is_prime(n): return n in _PRIMES_60
@@ -218,7 +221,15 @@ UNLOCK_CONDITIONS = {
     "The Impossible Victor": ("win_with",    "Impossible",           1,  "Win 1 match as Impossible"),
     "Pacman":              ("survival_kills",        None,           15,  "Get 15 kills in survival"),
     "ChickenBanana":       ("win_on_stage",          "Computer",      3,  "Something... glitchy",               True),
-    "Soul Master":         ("secret_chars",          None,            5,  "Master many secrets...",             True),
+    "Soul Master":         ("secret_chars",          None,            5,  "Unlock 5 secret characters"),
+    # ── new regular characters ───────────────────────────────────────────────
+    "Scorpio":             ("computer_bug_kills",   None,          100,  "Kill 100 computer bugs"),
+    "Nuke":                ("win_with",             "Bomb",          1,  "Win 1 match as Bomb"),
+    "Druid":               ("win_on_stage",          "Jungle",        3,  "Win 3 matches on Jungle"),
+    "Big Bad Critter Clad": ("crit_only_win",        None,            1,  "Win a match landing only critical hits"),
+    "Life the Universe Everything": ("type42",       None,            1,  "Type the answer to life",            True),
+    # ── new secret characters ────────────────────────────────────────────────
+    "Dementor":            ("lost_no_opp_hits",     None,            1,  "Lose without the opponent hitting you", True),
 }
 
 def _default_stats():
@@ -273,6 +284,14 @@ def _default_stats():
         "win_half_hp":              0,
         # Paradox: went through 10 portals in one fight
         "paradox_portals_done":     False,
+        # Scorpio: computer bugs killed
+        "computer_bug_kills":       0,
+        # Big Bad Critter Clad: wins where every punch was a crit
+        "crit_only_wins":           0,
+        # Dementor: lost without opponent landing a hit
+        "lost_no_opp_hits":         False,
+        # Life the Universe Everything: typed "42" on main screen
+        "type42_done":              False,
     }
 
 def load_save():
@@ -398,6 +417,14 @@ def _meets_condition(cond, stats):
         return stats.get("paradox_portals_done", False)
     if kind == "died_from_totem":
         return stats.get("died_from_totem", False)
+    if kind == "computer_bug_kills":
+        return stats.get("computer_bug_kills", 0) >= n
+    if kind == "crit_only_win":
+        return stats.get("crit_only_wins", 0) >= n
+    if kind == "lost_no_opp_hits":
+        return stats.get("lost_no_opp_hits", False)
+    if kind == "type42":
+        return stats.get("type42_done", False)
     return False
 
 def _unlock_progress(stats):
@@ -433,6 +460,8 @@ def _unlock_progress(stats):
         elif kind == "everything_collected": cur = stats.get("everything_collected", 0)
         elif kind == "jungle_snake_kills":   cur = stats.get("jungle_snake_kills", 0)
         elif kind == "midnight_wins":        cur = stats.get("midnight_wins", 0)
+        elif kind == "computer_bug_kills":   cur = stats.get("computer_bug_kills", 0)
+        elif kind == "crit_only_win":        cur = stats.get("crit_only_wins", 0)
         else:
             cur = 0
         result[name] = (min(cur, n), n)
@@ -494,8 +523,8 @@ def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=N
     # Track midnight wins
     if p1_won and now.hour < 4:
         stats["midnight_wins"] = stats.get("midnight_wins", 0) + 1
-    # Track death on Under the Void
-    if not p1_won and stage == "Under the Void":
+    # Track death on The Nether
+    if not p1_won and stage == "The Nether":
         stats["died_on_void_totem"] = True
     # Track losing to easy after 10 mega hard wins
     if p1_won and ai_difficulty == 'mega_hard':
@@ -602,7 +631,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     if _stage_name == "Space":
         constants.GRAVITY = 0.13   # floaty anti-gravity
     constants.STAGE_VOID    = (_stage_name == "The Void")
-    constants.STAGE_CEILING = (_stage_name == "Under the Void")
+    constants.STAGE_CEILING = (_stage_name == "The Nether")
 
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
                    punch=pygame.K_f, kick=pygame.K_g, duck=pygame.K_s, block=pygame.K_r)
@@ -646,6 +675,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     p2_stag, p2_stag_col = _stage_tag(p2)
     announce_timer = 180   # 3 seconds
 
+    _p1_non_crit_flag[0] = False
+    _p1_opp_hit_flag[0]  = False
+    _computer_bug_kills_flag[0] = 0
+
     game_over          = False
     winner             = None
     timer              = 90 * FPS
@@ -671,6 +704,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     snipe_shots   = []   # active SnipeShot objects (Shifter)
     fire_balls    = []   # active FireBall objects (Pyro)
     thunder_bolts = []   # active ThunderBolt objects (Thunder God)
+    plant_spikes  = []   # active PlantSpike objects (Druid)
     spawn_timer   = 300   # first spawn after 5 seconds
     is_jungle      = stage_data["name"] == "Jungle"
     is_computer    = stage_data["name"] == "Computer"
@@ -1300,12 +1334,28 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         tb.hit = True
             thunder_bolts = [tb for tb in thunder_bolts if tb.alive]
 
+            # Druid plant spikes
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_plant:
+                    shooter.pending_plant = False
+                    plant_spikes.append(PlantSpike(victim.x, shooter))
+            for ps in plant_spikes:
+                ps.update()
+                if ps.alive:
+                    victim = p2 if ps.owner is p1 else p1
+                    if ps.collides(victim):
+                        victim.hp = max(0, victim.hp - PlantSpike.DMG)
+                        victim.flash_timer = 12
+                        ps.alive = False
+            plant_spikes = [ps for ps in plant_spikes if ps.alive]
+
             # Bomb character: spawn a center-screen bomb every 5 seconds
             for _p in (p1, p2):
                 if _p.char.get("bomb_character") and _p.hp > 0:
                     _p.bomb_spawn_timer -= 1
                     if _p.bomb_spawn_timer <= 0:
-                        active_bombs.append({'x': float(WIDTH // 2), 'y': float(GROUND_Y - 80), 'fuse': 120})
+                        _bdmg = 200 if _p.char.get("nuke_bomb") else 100
+                        active_bombs.append({'x': float(WIDTH // 2), 'y': float(GROUND_Y - 80), 'fuse': 120, 'dmg': _bdmg})
                         _p.bomb_spawn_timer = FPS * 5
             new_bombs = []
             for _bom in active_bombs:
@@ -1313,7 +1363,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if _bom['fuse'] <= 0:
                     for _victim in (p1, p2):
                         if math.hypot(_victim.x - _bom['x'], (_victim.y - 60) - _bom['y']) < 180:
-                            _victim.hp = max(0, _victim.hp - 100)
+                            _victim.hp = max(0, _victim.hp - _bom.get('dmg', 100))
                             _victim.flash_timer = 20
                     bomb_pops.append({'x': _bom['x'], 'y': _bom['y'], 't': 25})
                 else:
@@ -1344,7 +1394,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 for b in computer_bugs:
                     target = min([p1, p2], key=lambda p: abs(p.x - b.x))
                     b.update(target)
+                _prev_cb = len(computer_bugs)
                 computer_bugs = [b for b in computer_bugs if b.alive]
+                _computer_bug_kills_flag[0] += _prev_cb - len(computer_bugs)
                 # Pencil: draw new platforms
                 stage_pencil.update()
                 drawn_count = sum(1 for p in platforms if isinstance(p, DrawnPlatform))
@@ -1491,6 +1543,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             fb.draw(screen)
         for tb in thunder_bolts:
             tb.draw(screen)
+        for ps in plant_spikes:
+            ps.draw(screen)
         # Draw active bombs (pulsing circle)
         for _bom in active_bombs:
             pulse = abs(math.sin(_bom['fuse'] * 0.13)) * 8
@@ -1566,8 +1620,12 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
         if not game_over:
             if p1.attacking and not p1.attack_hit:
                 p1.check_hit(p1_hit, p2)
+                if p1.attack_hit and p1.action == 'punch' and not p1.is_crit:
+                    _p1_non_crit_flag[0] = True
             if p2.attacking and not p2.attack_hit:
                 p2.check_hit(p2_hit, p1)
+                if p2.attack_hit:
+                    _p1_opp_hit_flag[0] = True
             # Fighter attacks hit jungle snakes
             for attacker, hit_pos in [(p1, p1_hit), (p2, p2_hit)]:
                 if attacker.attacking and hit_pos:
@@ -1660,7 +1718,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     if _stage_name == "Space":
         constants.GRAVITY = 0.13
     constants.STAGE_VOID    = (_stage_name == "The Void")
-    constants.STAGE_CEILING = (_stage_name == "Under the Void")
+    constants.STAGE_CEILING = (_stage_name == "The Nether")
 
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
                    punch=pygame.K_f, kick=pygame.K_g, duck=pygame.K_s, block=pygame.K_r)
@@ -1721,6 +1779,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     survival_totems    = []  # TotemPole projectiles (Great Totem Spirit)
     survival_remotes   = []  # RemoteController projectiles (Rage Quitter)
     survival_apples    = []  # Apple projectiles (Gravity)
+    survival_plants    = []  # PlantSpike projectiles (Druid)
     en_balls          = []
     en_orbs           = []
     en_bounce_balls   = []
@@ -2086,6 +2145,23 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             ap.hit_cd = Apple.HIT_CD; break
             survival_apples = [ap for ap in survival_apples if ap.alive]
 
+            # Player plant spikes → enemies (Druid survival)
+            for p in players:
+                if p.pending_plant:
+                    p.pending_plant = False
+                    tgt = min(enemies, key=lambda e: abs(e.x - p.x)) if enemies else None
+                    if tgt:
+                        survival_plants.append(PlantSpike(tgt.x, p))
+            for ps in survival_plants:
+                ps.update()
+                if ps.alive:
+                    for en in enemies:
+                        if ps.collides(en):
+                            en.hp = max(0, en.hp - PlantSpike.DMG)
+                            en.flash_timer = 10
+                            ps.alive = False; break
+            survival_plants = [ps for ps in survival_plants if ps.alive]
+
             # Player hooks → enemies
             for h in hooks:
                 h.update()
@@ -2405,7 +2481,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 if _sp.char.get("bomb_character") and _sp.hp > 0:
                     _sp.bomb_spawn_timer -= 1
                     if _sp.bomb_spawn_timer <= 0:
-                        survival_bombs.append({'x': float(WIDTH // 2), 'y': float(GROUND_Y - 80), 'fuse': 120})
+                        _sbdmg = 200 if _sp.char.get("nuke_bomb") else 100
+                        survival_bombs.append({'x': float(WIDTH // 2), 'y': float(GROUND_Y - 80), 'fuse': 120, 'dmg': _sbdmg})
                         _sp.bomb_spawn_timer = FPS * 5
             _new_sbombs = []
             for _sb in survival_bombs:
@@ -2413,7 +2490,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 if _sb['fuse'] <= 0:
                     for _victim in list(players) + enemies:
                         if math.hypot(_victim.x - _sb['x'], (_victim.y - 60) - _sb['y']) < 180:
-                            _victim.hp = max(0, _victim.hp - 100)
+                            _victim.hp = max(0, _victim.hp - _sb.get('dmg', 100))
                             _victim.flash_timer = 20
                     survival_bomb_pops.append({'x': _sb['x'], 'y': _sb['y'], 't': 25})
                 else:
@@ -2445,6 +2522,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for t    in survival_totems:  t.draw(screen)
         for r    in survival_remotes: r.draw(screen)
         for ap   in survival_apples:  ap.draw(screen)
+        for ps   in survival_plants:  ps.draw(screen)
         for h    in hooks:         h.draw(screen)
         for h    in en_hooks:      h.draw(screen)
         for pk   in pumpkins:      pk.draw(screen)
@@ -2640,7 +2718,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     if _stage_name == "Space":
         constants.GRAVITY = 0.13
     constants.STAGE_VOID    = (_stage_name == "The Void")
-    constants.STAGE_CEILING = (_stage_name == "Under the Void")
+    constants.STAGE_CEILING = (_stage_name == "The Nether")
 
     P1_CTRL = dict(left=pygame.K_a,     right=pygame.K_d,     jump=pygame.K_w,
                    punch=pygame.K_f,    kick=pygame.K_g,      duck=pygame.K_s,
@@ -3229,6 +3307,13 @@ def main():
 
     while True:
         mode = mode_select()
+        if _type42_typed[0]:
+            stats["type42_done"] = True
+            _type42_typed[0] = False
+            new_unlocks = check_and_unlock(unlocked, stats)
+            if new_unlocks:
+                _save_data(unlocked, stats)
+                _show_unlocks(new_unlocks)
 
         # --- Online path ---
         if mode == 'online':
@@ -3345,6 +3430,16 @@ def main():
             if _totem_kill_flag[0]:
                 stats["died_from_totem"] = True
                 _totem_kill_flag[0] = False
+            if _computer_bug_kills_flag[0]:
+                stats["computer_bug_kills"] = stats.get("computer_bug_kills", 0) + _computer_bug_kills_flag[0]
+                _computer_bug_kills_flag[0] = 0
+            if vs_ai and p1_won and not _p1_non_crit_flag[0]:
+                stats["crit_only_wins"] = stats.get("crit_only_wins", 0) + 1
+            if vs_ai and not p1_won and not _p1_opp_hit_flag[0]:
+                stats["lost_no_opp_hits"] = True
+            if _type42_typed[0]:
+                stats["type42_done"] = True
+                _type42_typed[0] = False
             new_unlocks = check_and_unlock(unlocked, stats)
             if new_unlocks:
                 _save_data(unlocked, stats)

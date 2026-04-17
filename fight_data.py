@@ -578,6 +578,25 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 12, "max_hp": 110, "block": 6,
      "desc": "Every 5 seconds his soul jumps to a new clone — sudden teleport across the stage",
      "double_jump": True, "ink_kick": True, "soul_master": True},
+    {"name": "Scorpio", "color": (160, 70, 10), "speed": 5, "jump": -13,
+     "punch_dmg": 12, "kick_dmg": 10, "max_hp": 105, "block": 5,
+     "desc": "Half scorpion — kicks freeze AND poison for 3s", "double_jump": False, "scorpio_kick": True},
+    {"name": "Nuke", "color": (40, 40, 40), "speed": 4, "jump": -12,
+     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 110, "block": 4,
+     "desc": "Every 5s a 200-damage bomb spawns at center-screen", "double_jump": False,
+     "bomb_character": True, "nuke_bomb": True},
+    {"name": "Druid", "color": (30, 120, 30), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 11, "max_hp": 110, "block": 6,
+     "desc": "Kick sprouts a plant spike from the ground at opponent", "double_jump": False, "plant_kick": True},
+    {"name": "Big Bad Critter Clad", "color": (75, 50, 25), "speed": 3, "jump": -11,
+     "punch_dmg": 15, "kick_dmg": 13, "max_hp": 250, "block": 8,
+     "desc": "Armored beast — only critical hits deal real damage", "double_jump": False, "crit_only": True},
+    {"name": "Dementor", "color": (20, 10, 40), "speed": 5, "jump": -14,
+     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 100, "block": 5,
+     "desc": "Restores to full HP every 20 seconds", "double_jump": True, "dementor_heal": True},
+    {"name": "Life the Universe Everything", "color": (0, 180, 200), "speed": 6, "jump": -14,
+     "punch_dmg": 42, "kick_dmg": 42, "max_hp": 100, "block": 6,
+     "desc": "The answer. 42 damage every hit.", "double_jump": False},
 ]
 
 POWERUPS = [
@@ -852,8 +871,8 @@ STAGES = [
         (55,  GROUND_Y, 210, -2.0),
         (635, GROUND_Y, 210,  2.0),
     ], "portals": [(150, GROUND_Y-165), (715, GROUND_Y-165)]},
-    # Under the Void
-    {"name": "Under the Void", "platforms": [
+    # The Nether
+    {"name": "The Nether", "platforms": [
         (80,  GROUND_Y-120, 180, 0,   0),
         (640, GROUND_Y-120, 180, 0,   0),
         (340, GROUND_Y-210, 160, 0,   0),
@@ -885,6 +904,6 @@ STAGE_MATCHUPS = {
     "Volcano Core":    {"adv": "Lava Man",       "dis": "Cryogenisist"},
     "Sky Island":      {"adv": "Angel",          "dis": "Sumo"},
     "Graveyard":       {"adv": "Ghost",       "dis": "Medic"},
-    "Under the Void":  {"adv": "Void Master", "dis": "Wisp"},
+    "The Nether":      {"adv": "Void Master", "dis": "Wisp"},
 }
 

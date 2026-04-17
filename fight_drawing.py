@@ -1921,6 +1921,122 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.circle(surface, (180, 80, 255), (hx, wisp_y), max(3, int(5*s)))
         pygame.draw.circle(surface, (255, 200, 255), (hx, wisp_y), max(1, int(2*s)))
 
+    elif char_name == "Scorpio":
+        # Scorpion stinger tail arcing up from waist
+        t_sc = pygame.time.get_ticks()
+        tail_pts = [
+            (wx, wy),
+            (wx + facing * int(8*s), wy - int(18*s)),
+            (wx + facing * int(18*s), wy - int(36*s)),
+            (wx + facing * int(22*s), wy - int(52*s)),
+            (wx + facing * int(18*s), wy - int(66*s)),
+        ]
+        pygame.draw.lines(surface, (130, 55, 5), False, tail_pts, max(2, int(3*s)))
+        # Stinger tip
+        stx, sty = tail_pts[-1]
+        pygame.draw.polygon(surface, (200, 80, 10), [
+            (stx, sty - int(8*s)), (stx - int(4*s), sty + int(4*s)), (stx + int(4*s), sty + int(4*s))
+        ])
+        # Claws at hands
+        for (hndx, hndy) in [(lhx, lhy), (rhx, rhy)]:
+            pygame.draw.circle(surface, (140, 60, 10), (hndx, hndy), max(4, int(6*s)))
+            pygame.draw.circle(surface, (200, 90, 20), (hndx, hndy), max(4, int(6*s)), max(1, int(2*s)))
+            pygame.draw.line(surface, (140, 60, 10), (hndx, hndy),
+                             (hndx + facing * int(6*s), hndy - int(4*s)), max(2, int(3*s)))
+            pygame.draw.line(surface, (140, 60, 10), (hndx, hndy),
+                             (hndx + facing * int(6*s), hndy + int(4*s)), max(2, int(3*s)))
+
+    elif char_name == "Nuke":
+        # Nuclear hazard circle on torso
+        nuke_y = wy - int(bl * 0.45)
+        nuke_r = max(8, int(11*s))
+        pygame.draw.circle(surface, (30, 30, 30), (wx, nuke_y), nuke_r)
+        pygame.draw.circle(surface, (240, 200, 0), (wx, nuke_y), nuke_r, max(2, int(3*s)))
+        # Three hazard wedges
+        for ang_off in (0, 120, 240):
+            a1 = math.radians(ang_off + 30)
+            a2 = math.radians(ang_off + 90)
+            pts = [(wx, nuke_y),
+                   (wx + int(math.cos(a1)*nuke_r*0.8), nuke_y + int(math.sin(a1)*nuke_r*0.8)),
+                   (wx + int(math.cos(a2)*nuke_r*0.8), nuke_y + int(math.sin(a2)*nuke_r*0.8))]
+            pygame.draw.polygon(surface, (240, 200, 0), pts)
+        pygame.draw.circle(surface, (30, 30, 30), (wx, nuke_y), max(3, int(4*s)))
+        # Fuse/spark on head
+        fuse_x = hx + int(hd * 0.6)
+        fuse_y = hy - hd
+        pygame.draw.line(surface, (200, 160, 60), (fuse_x, fuse_y), (fuse_x + int(4*s), fuse_y - int(10*s)), max(2, int(2*s)))
+        t_nk = pygame.time.get_ticks()
+        if (t_nk // 120) % 2 == 0:
+            pygame.draw.circle(surface, (255, 200, 0), (fuse_x + int(4*s), fuse_y - int(10*s)), max(2, int(3*s)))
+
+    elif char_name == "Druid":
+        # Leaf crown on head
+        for li in range(5):
+            la = math.radians(-80 + li * 40)
+            lx = hx + int(math.cos(la) * hd)
+            ly = hy - hd + int(math.sin(la) * hd)
+            pygame.draw.ellipse(surface, (30, 160, 50),
+                                (lx - int(5*s), ly - int(8*s), int(10*s), int(16*s)))
+        # Wooden staff in leading hand
+        staff_x = rhx + facing * int(4*s)
+        pygame.draw.line(surface, (100, 65, 20), (staff_x, rhy - int(30*s)), (staff_x, rhy + int(25*s)), max(2, int(3*s)))
+        pygame.draw.circle(surface, (60, 200, 80), (staff_x, rhy - int(30*s)), max(3, int(5*s)))
+
+    elif char_name == "Big Bad Critter Clad":
+        # Thick armored shell on torso — ridged carapace
+        shell_w = int(24*s); shell_h = int(bl * 0.7)
+        pygame.draw.rect(surface, (55, 35, 15), (wx - shell_w//2, sy, shell_w, shell_h), border_radius=max(3, int(4*s)))
+        pygame.draw.rect(surface, (90, 60, 30), (wx - shell_w//2, sy, shell_w, shell_h), max(1, int(2*s)), border_radius=max(3, int(4*s)))
+        # Ridge lines
+        for ri in range(3):
+            ry = sy + int((ri + 1) * shell_h // 4)
+            pygame.draw.line(surface, (110, 75, 35), (wx - shell_w//2 + int(2*s), ry), (wx + shell_w//2 - int(2*s), ry), max(1, int(2*s)))
+        # Horns / spikes on shoulders
+        for side in (-1, 1):
+            hk_x = sx + side * int(10*s)
+            pygame.draw.polygon(surface, (70, 45, 20), [
+                (hk_x - int(3*s), sy + int(2*s)),
+                (hk_x + int(3*s), sy + int(2*s)),
+                (hk_x, sy - int(10*s)),
+            ])
+        # Heavy brow ridges on head
+        pygame.draw.arc(surface, (70, 45, 20), (hx - hd, hy - hd, hd*2, hd),
+                        math.radians(0), math.radians(180), max(2, int(3*s)))
+
+    elif char_name == "Dementor":
+        # Dark flowing hood/cloak
+        t_dm = pygame.time.get_ticks()
+        # Hood
+        hood_pts = [
+            (hx - hd - int(2*s), hy),
+            (hx - hd - int(6*s), hy - int(8*s)),
+            (hx - int(4*s), hy - hd - int(12*s)),
+            (hx + int(4*s), hy - hd - int(12*s)),
+            (hx + hd + int(6*s), hy - int(8*s)),
+            (hx + hd + int(2*s), hy),
+        ]
+        pygame.draw.polygon(surface, (15, 5, 30), hood_pts)
+        pygame.draw.polygon(surface, (40, 20, 70), hood_pts, max(1, int(2*s)))
+        # Wispy cloak trails at waist
+        for wi in range(4):
+            wt = t_dm * 0.004 + wi * 1.5
+            wx2 = wx + int(math.sin(wt) * 6*s) + (wi - 2) * int(5*s)
+            wbot = wy + int(bl * 0.5) + int(math.sin(wt + 1) * 4*s)
+            pygame.draw.line(surface, (25, 10, 50),
+                             (wx2, wy), (wx2, wbot), max(1, int(2*s)))
+        # Glowing eyes in hood
+        pygame.draw.circle(surface, (120, 0, 200), (hx - int(hd*0.3), hy - int(hd*0.1)), max(2, int(3*s)))
+        pygame.draw.circle(surface, (120, 0, 200), (hx + int(hd*0.3), hy - int(hd*0.1)), max(2, int(3*s)))
+
+    elif char_name == "Life the Universe Everything":
+        # "42" stamped on the chest
+        try:
+            _f42 = pygame.font.SysFont(None, max(10, int(18*s)))
+            _lbl = _f42.render("42", True, (0, 255, 255))
+            surface.blit(_lbl, (wx - _lbl.get_width()//2, wy - _lbl.get_height()//2 - int(bl*0.3)))
+        except Exception:
+            pass
+
 
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color
