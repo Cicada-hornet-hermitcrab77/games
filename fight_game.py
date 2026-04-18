@@ -799,8 +799,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     if event.key == pygame.K_c:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('select',  _info)
                     if event.key == pygame.K_ESCAPE:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False
-                        pygame.quit(); sys.exit()
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('select', _info)
                 else:
                     if event.key == pygame.K_ESCAPE:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False
@@ -1875,7 +1874,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     if event.key == pygame.K_c:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('select',  enemies_killed)
                     if event.key == pygame.K_ESCAPE:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; pygame.quit(); sys.exit()
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('select', enemies_killed)
                 else:
                     if event.key == pygame.K_ESCAPE:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('select', enemies_killed)
