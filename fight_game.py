@@ -39,6 +39,7 @@ _jungle_kills_flag    = [0]      # count of JungleSnakes killed this session
 _computer_bug_kills_flag = [0]   # count of ComputerBugs killed this fight
 _p1_non_crit_flag = [False]      # True if p1 landed any non-crit punch this fight
 _p1_opp_hit_flag  = [False]      # True if opponent ever successfully hit p1 this fight
+_p1_powerup_kill_flag = [False]  # True if a damaging powerup killed p1 this fight
 
 _PRIMES_60 = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59}
 def _is_prime(n): return n in _PRIMES_60
@@ -229,7 +230,7 @@ UNLOCK_CONDITIONS = {
     "Big Bad Critter Clad": ("crit_only_win",        None,            1,  "Win a match landing only critical hits"),
     "Life the Universe Everything": ("type42",       None,            1,  "Type the answer to life",            True),
     # ── new secret characters ────────────────────────────────────────────────
-    "Dementor":            ("lost_no_opp_hits",     None,            1,  "Lose without the opponent hitting you", True),
+    "Dementor":            ("died_by_powerup",       None,            1,  "A painful way to go",                  True),
 }
 
 def _default_stats():
@@ -288,8 +289,8 @@ def _default_stats():
         "computer_bug_kills":       0,
         # Big Bad Critter Clad: wins where every punch was a crit
         "crit_only_wins":           0,
-        # Dementor: lost without opponent landing a hit
-        "lost_no_opp_hits":         False,
+        # Dementor: killed by a damaging powerup without opponent hitting
+        "died_by_powerup":          False,
         # Life the Universe Everything: typed "42" on main screen
         "type42_done":              False,
     }
@@ -421,8 +422,8 @@ def _meets_condition(cond, stats):
         return stats.get("computer_bug_kills", 0) >= n
     if kind == "crit_only_win":
         return stats.get("crit_only_wins", 0) >= n
-    if kind == "lost_no_opp_hits":
-        return stats.get("lost_no_opp_hits", False)
+    if kind == "died_by_powerup":
+        return stats.get("died_by_powerup", False)
     if kind == "type42":
         return stats.get("type42_done", False)
     return False
@@ -675,8 +676,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     p2_stag, p2_stag_col = _stage_tag(p2)
     announce_timer = 180   # 3 seconds
 
-    _p1_non_crit_flag[0] = False
-    _p1_opp_hit_flag[0]  = False
+    _p1_non_crit_flag[0]     = False
+    _p1_opp_hit_flag[0]      = False
+    _p1_powerup_kill_flag[0] = False
     _computer_bug_kills_flag[0] = 0
 
     game_over          = False
@@ -1488,6 +1490,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             clones.append({'fighter': cf, 'timer': 30 * FPS, 'target': foe})
                         else:
                             fighter.apply_powerup(pu.spec)
+                            if (fighter is p1
+                                    and pu.spec['type'] == 'heal'
+                                    and pu.spec.get('amount', 0) < 0
+                                    and p1.hp <= 0):
+                                _p1_powerup_kill_flag[0] = True
                         if fighter.char.get("snake"):
                             fighter.snake_length += 2
                             fighter.kick_boost   += 2
@@ -3435,8 +3442,8 @@ def main():
                 _computer_bug_kills_flag[0] = 0
             if vs_ai and p1_won and not _p1_non_crit_flag[0]:
                 stats["crit_only_wins"] = stats.get("crit_only_wins", 0) + 1
-            if vs_ai and not p1_won and not _p1_opp_hit_flag[0]:
-                stats["lost_no_opp_hits"] = True
+            if vs_ai and not p1_won and not _p1_opp_hit_flag[0] and _p1_powerup_kill_flag[0]:
+                stats["died_by_powerup"] = True
             if _type42_typed[0]:
                 stats["type42_done"] = True
                 _type42_typed[0] = False
