@@ -4,6 +4,13 @@ import random
 from constants import *
 from fight_data import STAGES, STAGE_MATCHUPS, POWERUPS
 
+_font_cache = {}  # size → Font, avoids recreating fonts every frame
+
+def _get_font(size):
+    if size not in _font_cache:
+        _font_cache[size] = pygame.font.SysFont(None, size)
+    return _font_cache[size]
+
 # ---------------------------------------------------------------------------
 # Drawing helpers
 # ---------------------------------------------------------------------------
@@ -15,6 +22,7 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
     wx, wy = int(waist[0]), int(waist[1])
     lhx, lhy = int(lh[0]), int(lh[1])
     rhx, rhy = int(rh[0]), int(rh[1])
+    bl = max(1, wy - sy)
 
     def ln(p1, p2, w=2):
         pygame.draw.line(surface, col, (int(p1[0]), int(p1[1])), (int(p2[0]), int(p2[1])), max(1, int(w * s)))
@@ -2030,12 +2038,9 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
 
     elif char_name == "Life the Universe Everything":
         # "42" stamped on the chest
-        try:
-            _f42 = pygame.font.SysFont(None, max(10, int(18*s)))
-            _lbl = _f42.render("42", True, (0, 255, 255))
-            surface.blit(_lbl, (wx - _lbl.get_width()//2, wy - _lbl.get_height()//2 - int(bl*0.3)))
-        except Exception:
-            pass
+        _f42 = _get_font(max(10, int(18*s)))
+        _lbl = _f42.render("42", True, (0, 255, 255))
+        surface.blit(_lbl, (wx - _lbl.get_width()//2, wy - _lbl.get_height()//2 - int(bl*0.3)))
 
 
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
