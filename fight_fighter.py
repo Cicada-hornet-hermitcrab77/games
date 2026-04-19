@@ -162,6 +162,12 @@ class Fighter:
         self.soul_switch_timer  = FPS * 5 if char_data.get("soul_master") else 0  # Soul Master
         self.dementor_timer     = FPS * 20 if char_data.get("dementor_heal") else 0  # Dementor
         self.pending_plant      = False   # Druid: spawn a rising plant spike this frame
+        # New batch
+        self.overdrive_charge   = 0      # Overdrive: hits received toward charge
+        self.overdrive_ready    = False  # Overdrive: next attack is 3x
+        self.hypno_frames       = 0      # Hypnotist: frames of hypnosis remaining
+        self.hypno_source_x     = 0.0   # Hypnotist: x of the hypnotist
+        self.pending_quake_wave = False  # Fault Line: spawn ground shockwave this frame
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -260,7 +266,11 @@ class Fighter:
             self.squish_frames -= 1
         if self.confuse_frames > 0:
             self.confuse_frames -= 1
-        if self.stealth_frames > 0:
+        if self.hypno_frames > 0:
+            self.hypno_frames -= 1
+        if self.char.get("shade"):
+            self.stealth_frames = 0 if (self.action in ('punch', 'kick') and self.attacking) else 999
+        elif self.stealth_frames > 0:
             self.stealth_frames -= 1
         if self.char.get("berserker"):
             self._berserker_active = self.hp > 0 and self.hp <= self.max_hp // 2
@@ -533,6 +543,9 @@ class Fighter:
             # Confuse: swap left/right keys
             _lk = ctrl['right'] if self.confuse_frames > 0 else ctrl['left']
             _rk = ctrl['left']  if self.confuse_frames > 0 else ctrl['right']
+            if self.hypno_frames > 0:
+                _lk = self.x > self.hypno_source_x
+                _rk = self.x < self.hypno_source_x
 
             if can_atk and keys[ctrl['punch']] and self.punch_cooldown == 0:
                 moving_toward = ((keys[_rk] and self.facing == 1) or
@@ -823,14 +836,18 @@ class Fighter:
                 dmg = random.randint(1, 40)
             if self.char.get("lucky_strike") and random.random() < 0.25:
                 dmg *= 3
+            if self.char.get("overdrive") and self.overdrive_ready:
+                dmg *= 3
+                self.overdrive_ready  = False
+                self.overdrive_charge = 0
             if other.char.get("stone_skin"):
                 dmg = int(dmg * 0.6)
-            # Big Bad Critter Clad: only critical punch hits deal full damage
+            # Big Bad Critter Clad: only critical punch hits deal full damage; others get ~20%
             if other.char.get("crit_only"):
                 if self.action == 'punch' and not self.is_crit:
-                    dmg = 1
+                    dmg = max(1, int(dmg * 0.2))
                 elif self.action == 'kick':
-                    dmg = 1
+                    dmg = max(1, int(dmg * 0.2))
             # hp_swap (Paradox): swap both HP values once per life, skip normal damage
             if self.char.get("hp_swap") and self.action == 'punch' and not self._paradox_used:
                 self.hp, other.hp = other.hp, self.hp
@@ -847,15 +864,24 @@ class Fighter:
             if self._berserker_active:
                 dmg = int(dmg * 1.5)
             if other.blocking and not (self.char.get("crush_punch") and self.action == 'punch'):
-                bsk = other.char.get("block", 5)
-                perfect_p = bsk * 0.025   # block=10 → 25%, block=1 → 2.5%
-                partial_p = bsk * 0.05    # block=10 → 50%, block=1 → 5%
-                r = random.random()
-                if r < perfect_p:
+                if other.char.get("absorb_block"):
+                    other.hp = min(other.max_hp, other.hp + 6)
                     dmg = 0
-                elif r < perfect_p + partial_p:
-                    dmg = max(1, dmg // 2)
+                else:
+                    bsk = other.char.get("block", 5)
+                    perfect_p = bsk * 0.025
+                    partial_p = bsk * 0.05
+                    r = random.random()
+                    if r < perfect_p:
+                        dmg = 0
+                    elif r < perfect_p + partial_p:
+                        dmg = max(1, dmg // 2)
             other.hp = max(0, other.hp - dmg)
+            if other.char.get("overdrive") and dmg > 0 and not other.blocking:
+                other.overdrive_charge += 1
+                if other.overdrive_charge >= 4:
+                    other.overdrive_ready  = True
+                    other.overdrive_charge = 0
             if other.blocking and other.char.get("reflect_block") and dmg > 0:
                 self.hp = max(0, self.hp - dmg // 2)
             if self.leech:
@@ -956,6 +982,14 @@ class Fighter:
                     other.confuse_frames = max(other.confuse_frames, 120)
                 if self.char.get("slow_punch") and self.action == 'punch':
                     other.shock_frames = max(other.shock_frames, 360)
+                if self.char.get("hypno_kick") and self.action == 'kick':
+                    other.hypno_frames   = 120
+                    other.hypno_source_x = float(self.x)
+            if self.char.get("decay_punch") and self.action == 'punch':
+                other.max_hp = max(1, other.max_hp - 8)
+                other.hp     = min(other.hp, other.max_hp)
+            if self.char.get("quake_punch") and self.action == 'punch':
+                self.pending_quake_wave = True
 
     def draw(self, surface):
         _scale = self.draw_scale
@@ -1348,7 +1382,7 @@ class AIFighter(Fighter):
                 self._start(self.ai_attack, 0.07 if self.ai_attack == 'punch' else 0.06)
                 if self.ai_attack == 'punch':
                     self.punch_cooldown = 8 if self.char.get("rapid_fire") else FPS
-                    self.is_crit = (self.ai_move == self.facing) or bool(self.char.get("always_crit"))
+                    self.is_crit = (self.ai_move == self.facing and random.random() > 0.5) or bool(self.char.get("always_crit"))
                     if self.char.get("bounce_punch"):
                         self.pending_bounce = True
                     if self.char.get("whip_punch") and self.whip_cooldown == 0:

@@ -707,6 +707,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     fire_balls    = []   # active FireBall objects (Pyro)
     thunder_bolts = []   # active ThunderBolt objects (Thunder God)
     plant_spikes  = []   # active PlantSpike objects (Druid)
+    quake_waves   = []   # active ground shockwaves (Fault Line)
     spawn_timer   = 300   # first spawn after 5 seconds
     is_jungle      = stage_data["name"] == "Jungle"
     is_computer    = stage_data["name"] == "Computer"
@@ -1335,6 +1336,28 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         tb.hit = True
             thunder_bolts = [tb for tb in thunder_bolts if tb.alive]
 
+            # Fault Line ground shockwaves
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_quake_wave:
+                    shooter.pending_quake_wave = False
+                    quake_waves.append({'x': shooter.x + shooter.facing * 30,
+                                        'y': float(GROUND_Y), 'vx': shooter.facing * 7,
+                                        'life': 90, 'owner': shooter, 'hit_cd': 0})
+            new_qw = []
+            for qw in quake_waves:
+                qw['x'] += qw['vx']
+                qw['life'] -= 1
+                if qw['hit_cd'] > 0:
+                    qw['hit_cd'] -= 1
+                victim = p2 if qw['owner'] is p1 else p1
+                if qw['hit_cd'] == 0 and abs(qw['x'] - victim.x) < 32 and victim.hp > 0:
+                    victim.hp = max(0, victim.hp - 15)
+                    victim.flash_timer = 10
+                    qw['hit_cd'] = 30
+                if qw['life'] > 0 and 0 <= qw['x'] <= WIDTH:
+                    new_qw.append(qw)
+            quake_waves = new_qw
+
             # Druid plant spikes
             for shooter, victim in [(p1, p2), (p2, p1)]:
                 if shooter.pending_plant:
@@ -1551,6 +1574,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             tb.draw(screen)
         for ps in plant_spikes:
             ps.draw(screen)
+        for qw in quake_waves:
+            t = 1.0 - qw['life'] / 90
+            r = max(6, int(18 - t * 8))
+            col = (180 + int(t * 60), int(130 - t * 70), 30)
+            pygame.draw.ellipse(screen, col, (int(qw['x']) - r, GROUND_Y - r // 2, r * 2, r // 2 + 3))
         # Draw active bombs (pulsing circle)
         for _bom in active_bombs:
             pulse = abs(math.sin(_bom['fuse'] * 0.13)) * 8

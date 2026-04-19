@@ -2042,6 +2042,105 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         _lbl = _f42.render("42", True, (0, 255, 255))
         surface.blit(_lbl, (wx - _lbl.get_width()//2, wy - _lbl.get_height()//2 - int(bl*0.3)))
 
+    elif char_name == "Shade":
+        # Wispy dark energy silhouette — thin dark aura lines
+        t_sh = pygame.time.get_ticks()
+        for wi in range(5):
+            a = math.radians(wi * 72 + t_sh * 0.05)
+            ex = hx + int(math.cos(a) * (hd + int(4*s)))
+            ey = hy + int(math.sin(a) * (hd + int(4*s)))
+            pygame.draw.line(surface, (60, 20, 100), (hx, hy), (ex, ey), max(1, int(2*s)))
+        # Dark hood outline
+        pygame.draw.circle(surface, (40, 10, 70), (hx, hy), hd + max(2, int(3*s)), max(1, int(2*s)))
+        # Glowing purple eyes
+        pygame.draw.circle(surface, (180, 0, 255), (hx - int(hd*0.3), hy), max(2, int(3*s)))
+        pygame.draw.circle(surface, (180, 0, 255), (hx + int(hd*0.3), hy), max(2, int(3*s)))
+
+    elif char_name == "Decay":
+        # Rotting shoulder pads — dark brown splotches
+        for side in (-1, 1):
+            px = sx + side * int(7*s)
+            pygame.draw.circle(surface, (50, 35, 10), (px, sy), max(5, int(7*s)))
+            pygame.draw.circle(surface, (90, 60, 20), (px, sy), max(3, int(5*s)), max(1, int(2*s)))
+        # Decay speckles on torso
+        for di in range(5):
+            dangle = math.radians(di * 60 + 10)
+            dx = wx + int(math.cos(dangle) * int(6*s))
+            dy = sy + int(bl * (0.2 + di * 0.14))
+            pygame.draw.circle(surface, (60, 40, 10), (dx, dy), max(2, int(3*s)))
+        # Cracked skull motif on head
+        pygame.draw.arc(surface, (80, 55, 20), (hx - hd, hy - hd, hd*2, hd),
+                        math.radians(20), math.radians(160), max(1, int(2*s)))
+
+    elif char_name == "Fault Line":
+        # Crack pattern on torso
+        crack_pts = [(wx, sy + int(bl*0.1)), (wx - int(5*s), sy + int(bl*0.35)),
+                     (wx + int(4*s), sy + int(bl*0.55)), (wx - int(3*s), sy + int(bl*0.8))]
+        for i in range(len(crack_pts) - 1):
+            pygame.draw.line(surface, (100, 65, 25), crack_pts[i], crack_pts[i+1], max(2, int(3*s)))
+        # Rocky shoulder chunks
+        for side in (-1, 1):
+            rx = sx + side * int(8*s)
+            pygame.draw.polygon(surface, (120, 80, 40), [
+                (rx - int(4*s), sy),
+                (rx + int(4*s), sy),
+                (rx + int(2*s), sy - int(9*s)),
+                (rx - int(2*s), sy - int(9*s)),
+            ])
+        # Stone brow ridge
+        pygame.draw.line(surface, (100, 70, 35),
+                         (hx - hd, hy - int(hd*0.2)), (hx + hd, hy - int(hd*0.2)),
+                         max(2, int(3*s)))
+
+    elif char_name == "Buckler":
+        # Round shield on left hand
+        shld_r = max(8, int(12*s))
+        pygame.draw.circle(surface, (50, 130, 70), (lhx, lhy), shld_r)
+        pygame.draw.circle(surface, (30, 90, 50),  (lhx, lhy), shld_r, max(2, int(3*s)))
+        pygame.draw.line(surface, (30, 90, 50),
+                         (lhx - shld_r + int(2*s), lhy), (lhx + shld_r - int(2*s), lhy),
+                         max(1, int(2*s)))
+        pygame.draw.line(surface, (30, 90, 50),
+                         (lhx, lhy - shld_r + int(2*s)), (lhx, lhy + shld_r - int(2*s)),
+                         max(1, int(2*s)))
+        # Simple nasal helmet
+        pygame.draw.rect(surface, (60, 140, 80),
+                         (hx - hd, hy - hd, hd*2, hd), border_radius=max(2, int(3*s)))
+        pygame.draw.line(surface, (40, 110, 60),
+                         (hx, hy - hd), (hx, hy), max(2, int(3*s)))
+
+    elif char_name == "Overdrive":
+        # Orange energy rings around body
+        t_od = pygame.time.get_ticks()
+        for ri in range(3):
+            angle_off = t_od * 0.003 + ri * 2.09
+            rx = wx + int(math.cos(angle_off) * int(10*s))
+            ry = sy + int(bl * 0.5) + int(math.sin(angle_off) * int(5*s))
+            pygame.draw.circle(surface, (255, 160, 0), (rx, ry), max(3, int(4*s)))
+        # Charge lightning bolt on chest
+        bolt = [(wx, sy + int(bl*0.1)), (wx - int(4*s), sy + int(bl*0.45)),
+                (wx + int(2*s), sy + int(bl*0.45)), (wx - int(4*s), sy + int(bl*0.85))]
+        for i in range(len(bolt) - 1):
+            pygame.draw.line(surface, (255, 200, 0), bolt[i], bolt[i+1], max(2, int(3*s)))
+
+    elif char_name == "Hypnotist":
+        # Top hat
+        hat_w = int(hd * 1.6)
+        hat_h = int(hd * 1.2)
+        pygame.draw.rect(surface, (30, 10, 60),
+                         (hx - hat_w//2, hy - hd - hat_h, hat_w, hat_h))
+        pygame.draw.rect(surface, (60, 20, 100),
+                         (hx - int(hat_w*0.7), hy - hd - max(2, int(3*s)), int(hat_w*1.4), max(3, int(5*s))))
+        # Spiral eye pattern on face
+        t_hy = pygame.time.get_ticks()
+        for si in range(3):
+            sr = max(2, int((si + 1) * 3 * s))
+            pygame.draw.circle(surface, (200, 80, 255),
+                               (hx, hy + int(hd*0.15)), sr, max(1, int(s)))
+        # Swirling monocle hint
+        pygame.draw.circle(surface, (220, 100, 255), (hx + int(hd*0.35), hy + int(hd*0.1)),
+                           max(3, int(4*s)), max(1, int(2*s)))
+
 
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color
