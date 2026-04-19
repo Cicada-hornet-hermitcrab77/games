@@ -168,6 +168,9 @@ class Fighter:
         self.hypno_frames       = 0      # Hypnotist: frames of hypnosis remaining
         self.hypno_source_x     = 0.0   # Hypnotist: x of the hypnotist
         self.pending_quake_wave = False  # Fault Line: spawn ground shockwave this frame
+        self.revenant_count     = 0      # Revenant: revivals used (max 2)
+        self.shock_aura_timer   = FPS * 3 if char_data.get("shock_aura") else 0
+        self.pending_mine       = False  # Trap Master: plant a mine this frame
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -834,6 +837,15 @@ class Fighter:
                 self.prime_index += 1
             if self.char.get("wild_attack"):
                 dmg = random.randint(1, 40)
+            # Mirage: 35% dodge chance — sidestep and skip all damage
+            if other.char.get("mirage") and random.random() < 0.35:
+                other.flash_timer = 6
+                other.x = max(30.0, min(float(WIDTH - 30), other.x + random.choice([-55, 55])))
+                self.attack_hit = True
+                return
+            if self.char.get("phantom_strike") and self.action == 'punch':
+                self.x = max(30.0, min(float(WIDTH - 30), other.x - self.facing * 55))
+                self.flash_timer = 8
             if self.char.get("lucky_strike") and random.random() < 0.25:
                 dmg *= 3
             if self.char.get("overdrive") and self.overdrive_ready:
@@ -882,6 +894,9 @@ class Fighter:
                 if other.overdrive_charge >= 4:
                     other.overdrive_ready  = True
                     other.overdrive_charge = 0
+            if other.char.get("juggernaut"):
+                other.knockback  = 0
+                other.hurt_timer = min(other.hurt_timer, 8)
             if other.blocking and other.char.get("reflect_block") and dmg > 0:
                 self.hp = max(0, self.hp - dmg // 2)
             if self.leech:
@@ -990,6 +1005,8 @@ class Fighter:
                 other.hp     = min(other.hp, other.max_hp)
             if self.char.get("quake_punch") and self.action == 'punch':
                 self.pending_quake_wave = True
+            if self.char.get("mine_kick") and self.action == 'kick':
+                self.pending_mine = True
 
     def draw(self, surface):
         _scale = self.draw_scale

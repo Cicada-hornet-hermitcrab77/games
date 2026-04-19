@@ -2123,6 +2123,124 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         for i in range(len(bolt) - 1):
             pygame.draw.line(surface, (255, 200, 0), bolt[i], bolt[i+1], max(2, int(3*s)))
 
+    elif char_name == "Revenant":
+        # Ghostly purple aura wisps around body
+        t_rv = pygame.time.get_ticks()
+        for wi in range(4):
+            a = math.radians(wi * 90 + t_rv * 0.04)
+            rx = wx + int(math.cos(a) * int(12*s))
+            ry = sy + int(bl * 0.5) + int(math.sin(a) * int(6*s))
+            pygame.draw.circle(surface, (120, 40, 180), (rx, ry), max(3, int(4*s)))
+        # Dark hollow eyes
+        pygame.draw.circle(surface, (80, 0, 140), (hx - int(hd*0.3), hy), max(3, int(4*s)))
+        pygame.draw.circle(surface, (80, 0, 140), (hx + int(hd*0.3), hy), max(3, int(4*s)))
+        pygame.draw.circle(surface, (200, 100, 255), (hx - int(hd*0.3), hy), max(1, int(2*s)))
+        pygame.draw.circle(surface, (200, 100, 255), (hx + int(hd*0.3), hy), max(1, int(2*s)))
+        # Spectral collar
+        pygame.draw.arc(surface, (140, 60, 200), (hx - hd, hy, hd*2, hd//2),
+                        math.radians(0), math.radians(180), max(2, int(3*s)))
+
+    elif char_name == "Volt":
+        # Electric bolt on chest
+        bolt = [(wx, sy + int(bl*0.08)), (wx - int(5*s), sy + int(bl*0.42)),
+                (wx + int(3*s), sy + int(bl*0.42)), (wx - int(5*s), sy + int(bl*0.82))]
+        for i in range(len(bolt) - 1):
+            pygame.draw.line(surface, (220, 255, 40), bolt[i], bolt[i+1], max(2, int(3*s)))
+        # Sparks on shoulders
+        for side in (-1, 1):
+            sx2 = sx + side * int(6*s)
+            pygame.draw.circle(surface, (255, 255, 100), (sx2, sy), max(3, int(5*s)))
+            pygame.draw.circle(surface, (180, 220, 0), (sx2, sy), max(3, int(5*s)), max(1, int(2*s)))
+        # Electrical arcs on head
+        pygame.draw.arc(surface, (200, 255, 60), (hx - hd, hy - hd, hd*2, hd),
+                        math.radians(20), math.radians(160), max(2, int(3*s)))
+
+    elif char_name == "Phantom Strike":
+        # Dark blue cloak
+        cloak_pts = [
+            (hx - hd - int(3*s), hy + int(hd*0.5)),
+            (hx - int(8*s), wy + int(bl*0.4)),
+            (wx, wy + int(bl*0.55)),
+            (hx + int(8*s), wy + int(bl*0.4)),
+            (hx + hd + int(3*s), hy + int(hd*0.5)),
+        ]
+        pygame.draw.polygon(surface, (20, 20, 100), cloak_pts)
+        pygame.draw.polygon(surface, (60, 60, 180), cloak_pts, max(1, int(2*s)))
+        # Glowing blue eyes
+        pygame.draw.circle(surface, (80, 80, 255), (hx - int(hd*0.3), hy - int(hd*0.1)), max(2, int(3*s)))
+        pygame.draw.circle(surface, (80, 80, 255), (hx + int(hd*0.3), hy - int(hd*0.1)), max(2, int(3*s)))
+        # Trailing shadow on left hand
+        pygame.draw.circle(surface, (30, 30, 120), (lhx, lhy), max(4, int(6*s)), max(1, int(2*s)))
+
+    elif char_name == "Trap Master":
+        # Utility belt on waist
+        pygame.draw.rect(surface, (80, 60, 20),
+                         (wx - int(12*s), wy - int(4*s), int(24*s), int(7*s)))
+        # Belt pouches
+        for side in (-1, 1):
+            px = wx + side * int(7*s)
+            pygame.draw.rect(surface, (60, 45, 15),
+                             (px - int(3*s), wy - int(4*s), int(6*s), int(7*s)))
+        # Shovel/tool in right hand
+        pygame.draw.line(surface, (90, 65, 25), (rhx, rhy), (rhx + facing * int(6*s), rhy - int(18*s)),
+                         max(2, int(3*s)))
+        pygame.draw.ellipse(surface, (70, 50, 20),
+                            (rhx + facing * int(3*s) - int(4*s), rhy - int(22*s), int(8*s), int(6*s)))
+        # Hardhat
+        pygame.draw.arc(surface, (100, 75, 30), (hx - hd, hy - hd, hd*2, hd),
+                        math.radians(0), math.radians(180), max(3, int(4*s)))
+        pygame.draw.line(surface, (100, 75, 30),
+                         (hx - hd - int(3*s), hy), (hx + hd + int(3*s), hy), max(2, int(3*s)))
+
+    elif char_name == "Juggernaut":
+        # Massive shoulder armor
+        for side in (-1, 1):
+            ax = sx + side * int(9*s)
+            pygame.draw.rect(surface, (140, 50, 15),
+                             (ax - int(7*s), sy - int(10*s), int(14*s), int(18*s)),
+                             border_radius=max(2, int(3*s)))
+            pygame.draw.rect(surface, (200, 80, 30),
+                             (ax - int(7*s), sy - int(10*s), int(14*s), int(18*s)),
+                             max(1, int(2*s)), border_radius=max(2, int(3*s)))
+        # Thick chest plate
+        pygame.draw.rect(surface, (160, 60, 20),
+                         (wx - int(12*s), sy, int(24*s), bl),
+                         border_radius=max(2, int(3*s)))
+        pygame.draw.rect(surface, (210, 90, 40),
+                         (wx - int(12*s), sy, int(24*s), bl),
+                         max(1, int(2*s)), border_radius=max(2, int(3*s)))
+        # Horned visor helmet
+        helmet_top = hy - hd - int(6*s)
+        pygame.draw.polygon(surface, (150, 55, 15), [
+            (hx - hd, hy), (hx - hd, helmet_top), (hx, helmet_top - int(6*s)),
+            (hx + hd, helmet_top), (hx + hd, hy),
+        ])
+        for side in (-1, 1):
+            pygame.draw.polygon(surface, (180, 70, 20), [
+                (hx + side * hd, helmet_top),
+                (hx + side * (hd + int(3*s)), helmet_top - int(12*s)),
+                (hx + side * (hd - int(3*s)), helmet_top - int(6*s)),
+            ])
+
+    elif char_name == "Mirage":
+        # Shimmering heat-haze robes — pale wavy lines
+        t_mg = pygame.time.get_ticks()
+        for ri in range(4):
+            wave = math.sin(t_mg * 0.005 + ri * 1.1) * int(4*s)
+            ry = sy + int(bl * (0.15 + ri * 0.23))
+            pygame.draw.line(surface, (140, 200, 220),
+                             (wx - int(10*s) + int(wave), ry),
+                             (wx + int(10*s) + int(wave), ry),
+                             max(1, int(2*s)))
+        # Veil across lower face
+        pygame.draw.arc(surface, (120, 190, 215),
+                        (hx - hd + int(2*s), hy, hd*2 - int(4*s), hd - int(2*s)),
+                        math.radians(0), math.radians(180), max(1, int(2*s)))
+        # Glimmering eyes
+        for ex, ey in [(hx - int(hd*0.3), hy - int(hd*0.1)), (hx + int(hd*0.3), hy - int(hd*0.1))]:
+            pygame.draw.circle(surface, (200, 240, 255), (ex, ey), max(2, int(3*s)))
+            pygame.draw.circle(surface, (100, 200, 230), (ex, ey), max(1, int(2*s)))
+
     elif char_name == "Hypnotist":
         # Top hat
         hat_w = int(hd * 1.6)

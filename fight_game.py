@@ -236,6 +236,12 @@ UNLOCK_CONDITIONS = {
     "Buckler":             ("win_with",              "Knight",        5,  "Win 5 matches as Knight"),
     "Overdrive":           ("losses",                None,           20,  "Lose 20 matches"),
     "Hypnotist":           ("win_with",              "Clown",         3,  "Win 3 matches as Clown"),
+    "Revenant":            ("win_with",              "Necromancer",   3,  "Win 3 matches as Necromancer"),
+    "Volt":                ("win_on_stage",           "Space",         3,  "Win 3 matches on Space"),
+    "Phantom Strike":      ("win_with",              "Flash",         5,  "Win 5 matches as Flash"),
+    "Trap Master":         ("win_with",              "Headless Horseman", 3, "Win 3 matches as Headless Horseman"),
+    "Juggernaut":          ("win_with",              "Titan",         5,  "Win 5 matches as Titan"),
+    "Mirage":              ("win_with",              "Ghost",         3,  "Win 3 matches as Ghost"),
     # ── new secret characters ────────────────────────────────────────────────
     "Dementor":            ("died_by_powerup",       None,            1,  "A painful way to go",                  True),
 }
@@ -715,6 +721,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     thunder_bolts = []   # active ThunderBolt objects (Thunder God)
     plant_spikes  = []   # active PlantSpike objects (Druid)
     quake_waves   = []   # active ground shockwaves (Fault Line)
+    mines         = []   # active ground mines (Trap Master)
     spawn_timer   = 300   # first spawn after 5 seconds
     is_jungle      = stage_data["name"] == "Jungle"
     is_computer    = stage_data["name"] == "Computer"
@@ -1269,6 +1276,19 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             snake.snake_contact_cd = 60
                             break
 
+            # Volt: auto-shock nearby opponent every 3 seconds
+            for attacker, victim in [(p1, p2), (p2, p1)]:
+                if attacker.char.get("shock_aura") and attacker.hp > 0:
+                    if attacker.shock_aura_timer > 0:
+                        attacker.shock_aura_timer -= 1
+                    else:
+                        attacker.shock_aura_timer = FPS * 3
+                        if abs(attacker.x - victim.x) < 140:
+                            victim.hp = max(0, victim.hp - 8)
+                            victim.flash_timer = 10
+                            if not victim.char.get("immune"):
+                                victim.shock_frames = max(victim.shock_frames, 240)
+
             # Chainsaw Man: rapid proximity damage
             for attacker, victim in [(p1, p2), (p2, p1)]:
                 if attacker.char.get("chainsaw") and attacker.hp > 0:
@@ -1285,6 +1305,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     f.hp          = int(f.max_hp * 0.4)
                     f.undead_used = True
                     f.flash_timer = 30
+
+            # Revenant: revive up to 2 times at 30% HP
+            for f in (p1, p2):
+                if f.hp <= 0 and f.char.get("revenant") and f.revenant_count < 2:
+                    f.hp             = int(f.max_hp * 0.3)
+                    f.revenant_count += 1
+                    f.flash_timer    = 30
 
             # Kamikaze: explode on first death
             for kamikaze, victim in [(p1, p2), (p2, p1)]:
@@ -1342,6 +1369,26 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             victim.shock_frames = max(victim.shock_frames, 180)
                         tb.hit = True
             thunder_bolts = [tb for tb in thunder_bolts if tb.alive]
+
+            # Trap Master mines
+            for planter, victim in [(p1, p2), (p2, p1)]:
+                if planter.pending_mine:
+                    planter.pending_mine = False
+                    mines.append({'x': float(planter.x), 'y': float(GROUND_Y),
+                                  'owner': planter, 'life': FPS * 8, 'arm': 25})
+            new_mines = []
+            for mn in mines:
+                if mn['arm'] > 0: mn['arm'] -= 1
+                mn['life'] -= 1
+                if mn['arm'] == 0:
+                    victim = p2 if mn['owner'] is p1 else p1
+                    if abs(mn['x'] - victim.x) < 28 and victim.hp > 0:
+                        victim.hp = max(0, victim.hp - 25)
+                        victim.flash_timer = 15
+                        mn['life'] = 0
+                if mn['life'] > 0:
+                    new_mines.append(mn)
+            mines = new_mines
 
             # Fault Line ground shockwaves
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -1586,6 +1633,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             r = max(6, int(18 - t * 8))
             col = (180 + int(t * 60), int(130 - t * 70), 30)
             pygame.draw.ellipse(screen, col, (int(qw['x']) - r, GROUND_Y - r // 2, r * 2, r // 2 + 3))
+        for mn in mines:
+            armed = mn['arm'] == 0
+            blink = armed and (mn['life'] // 8) % 2 == 0
+            pygame.draw.circle(screen, (200, 60, 20) if armed else (130, 110, 60),
+                               (int(mn['x']), GROUND_Y - 7), 9)
+            if blink:
+                pygame.draw.circle(screen, (255, 220, 0), (int(mn['x']), GROUND_Y - 7), 5)
         # Draw active bombs (pulsing circle)
         for _bom in active_bombs:
             pulse = abs(math.sin(_bom['fuse'] * 0.13)) * 8
