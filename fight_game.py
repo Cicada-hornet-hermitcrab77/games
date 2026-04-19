@@ -229,6 +229,13 @@ UNLOCK_CONDITIONS = {
     "Druid":               ("win_on_stage",          "Jungle",        3,  "Win 3 matches on Jungle"),
     "Big Bad Critter Clad": ("crit_only_win",        None,            1,  "Win a match landing only critical hits"),
     "Life the Universe Everything": ("type42",       None,            1,  "Type the answer to life",            True),
+    # ── new regular characters ───────────────────────────────────────────────
+    "Shade":               ("win_with",              "Chameleon",     3,  "Win 3 matches as Chameleon"),
+    "Decay":               ("win_with",              "Toxic",         3,  "Win 3 matches as Toxic"),
+    "Fault Line":          ("win_with",              "Quaker",        3,  "Win 3 matches as Quaker"),
+    "Buckler":             ("win_with",              "Knight",        5,  "Win 5 matches as Knight"),
+    "Overdrive":           ("losses",                None,           20,  "Lose 20 matches"),
+    "Hypnotist":           ("win_with",              "Clown",         3,  "Win 3 matches as Clown"),
     # ── new secret characters ────────────────────────────────────────────────
     "Dementor":            ("died_by_powerup",       None,            1,  "A painful way to go",                  True),
 }
