@@ -718,7 +718,8 @@ class Fighter:
                     self.y -= snk_spd
                 elif dk and keys[dk]:
                     self.y += snk_spd
-            self.y = max(50.0, min(float(GROUND_Y), self.y))
+            _max_y = float(HEIGHT + 50) if constants.STAGE_VOID else float(GROUND_Y)
+            self.y = max(50.0, min(_max_y, self.y))
             self.x = max(50.0, min(float(WIDTH - 50), self.x))
             self.snake_segs.insert(0, [float(self.x), float(self.y)])
             max_segs = self.snake_length * 10
