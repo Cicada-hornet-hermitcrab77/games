@@ -18,7 +18,8 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             FallingPot, RollingCoin, FallingMerlin,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
                             FireBall, ThunderBolt, Scroll, TotemPole,
-                            RemoteController, Apple, VenomBean, PlantSpike)
+                            RemoteController, Apple, VenomBean, PlantSpike,
+                            ChargedOrb)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed
 
@@ -40,6 +41,9 @@ _computer_bug_kills_flag = [0]   # count of ComputerBugs killed this fight
 _p1_non_crit_flag = [False]      # True if p1 landed any non-crit punch this fight
 _p1_opp_hit_flag  = [False]      # True if opponent ever successfully hit p1 this fight
 _p1_powerup_kill_flag = [False]  # True if a damaging powerup killed p1 this fight
+_p1_proj_blocked      = [0]       # projectiles p1 blocked this fight
+_symbol_char_flag     = [False]   # True when <|-\||>+() typed on Computer stage
+_death_defyer_flag    = [False]   # True when death_does_not_exist typed on Graveyard as Reaper
 
 _PRIMES_60 = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59}
 def _is_prime(n): return n in _PRIMES_60
@@ -244,6 +248,9 @@ UNLOCK_CONDITIONS = {
     "Mirage":              ("win_with",              "Ghost",         3,  "Win 3 matches as Ghost"),
     # ── new secret characters ────────────────────────────────────────────────
     "Dementor":            ("died_by_powerup",       None,            1,  "A painful way to go",                  True),
+    "Orb Shooter":         ("projectiles_blocked",   None,          100,  "Block 100 projectiles"),
+    "<|-\\||>+()":         ("symbol_char_typed",     None,            1,  "???",                                  True),
+    "Death Defyer":        ("death_defyer_typed",    None,            1,  "???",                                  True),
 }
 
 def _default_stats():
@@ -306,6 +313,12 @@ def _default_stats():
         "died_by_powerup":          False,
         # Life the Universe Everything: typed "42" on main screen
         "type42_done":              False,
+        # Orb Shooter: cumulative projectiles blocked
+        "projectiles_blocked":      0,
+        # <|-\||>+(): typed on Computer stage
+        "symbol_char_typed":        False,
+        # Death Defyer: typed on Graveyard as Reaper
+        "death_defyer_typed":       False,
     }
 
 def load_save():
@@ -439,6 +452,12 @@ def _meets_condition(cond, stats):
         return stats.get("died_by_powerup", False)
     if kind == "type42":
         return stats.get("type42_done", False)
+    if kind == "projectiles_blocked":
+        return stats.get("projectiles_blocked", 0) >= n
+    if kind == "symbol_char_typed":
+        return stats.get("symbol_char_typed", False)
+    if kind == "death_defyer_typed":
+        return stats.get("death_defyer_typed", False)
     return False
 
 def _unlock_progress(stats):
@@ -476,6 +495,7 @@ def _unlock_progress(stats):
         elif kind == "midnight_wins":        cur = stats.get("midnight_wins", 0)
         elif kind == "computer_bug_kills":   cur = stats.get("computer_bug_kills", 0)
         elif kind == "crit_only_win":        cur = stats.get("crit_only_wins", 0)
+        elif kind == "projectiles_blocked":  cur = stats.get("projectiles_blocked", 0)
         else:
             cur = 0
         result[name] = (min(cur, n), n)
@@ -693,6 +713,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     _p1_opp_hit_flag[0]      = False
     _p1_powerup_kill_flag[0] = False
     _computer_bug_kills_flag[0] = 0
+    _p1_proj_blocked[0]      = 0
+    _symbol_char_flag[0]     = False
+    _death_defyer_flag[0]    = False
 
     game_over          = False
     winner             = None
@@ -709,6 +732,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     venoms       = []   # active VenomBean objects (Spitting Cobra)
     balls         = []   # active Projectile objects
     orbs          = []   # active Orb objects (bazooka)
+    charged_orbs  = []   # active ChargedOrb objects (Orb Shooter)
     bounce_balls  = []   # active BouncingBall objects (Pinball)
     hooks         = []   # active SnakeHook objects (Hooker)
     pumpkins      = []   # active Pumpkin objects (Headless Horseman)
@@ -773,6 +797,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     _RAGEQUIT_SEQ = "@#!#*%$"
     _ragequit_buf = ""
 
+    # <|-\||>+() unlock: type that string on Computer stage
+    _SYMBOL_SEQ = "<|-\\||>+()"
+    _symbol_buf = ""
+
+    # Death Defyer unlock: type death_does_not_exist on Graveyard as Reaper
+    _DEATH_SEQ   = "death_does_not_exist"
+    _death_buf   = ""
+    _is_graveyard = stage_data["name"] == "Graveyard"
+    _p1_is_reaper = p1.char["name"] == "Reaper"
+
     # Screentime: track whether a Screentime fighter is playing
     _screentime_active = (p1.char.get("screentime") or p2.char.get("screentime"))
     _screentime_skip = False  # toggle for slow-mode frame skip
@@ -836,6 +870,22 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                                 _iddqd_done = True
                         else:
                             _iddqd_idx = 1 if event.key == _IDDQD[0] else 0
+                    # <|-\||>+() tracking (Computer stage)
+                    if is_computer and hasattr(event, 'unicode') and event.unicode:
+                        _symbol_buf += event.unicode
+                        if _SYMBOL_SEQ in _symbol_buf:
+                            _symbol_char_flag[0] = True
+                            _symbol_buf = ""
+                        if len(_symbol_buf) > len(_SYMBOL_SEQ) + 5:
+                            _symbol_buf = _symbol_buf[-len(_SYMBOL_SEQ):]
+                    # Death Defyer: type death_does_not_exist on Graveyard as Reaper
+                    if _is_graveyard and _p1_is_reaper and hasattr(event, 'unicode') and event.unicode:
+                        _death_buf += event.unicode.lower()
+                        if _DEATH_SEQ in _death_buf:
+                            _death_defyer_flag[0] = True
+                            _death_buf = ""
+                        if len(_death_buf) > len(_DEATH_SEQ) + 5:
+                            _death_buf = _death_buf[-len(_DEATH_SEQ):]
 
         if not game_over:
             # Portal Maker: replace portals on kick
@@ -940,6 +990,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         if victim.blocking and victim.char.get("reflect_proj"):
                             b.vx    = -b.vx
                             b.owner = victim
+                        elif victim.blocking:
+                            b.alive = False
+                            if victim is p1:
+                                _p1_proj_blocked[0] += 1
                         else:
                             victim.hp = max(0, victim.hp - 10)
                             victim.flash_timer = 8
@@ -963,6 +1017,31 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         victim.hp = max(0, victim.hp - o.EXPLODE_DMG)
                         victim.flash_timer = 14
             orbs = [o for o in orbs if o.alive]
+
+            # Spawn charged orbs from Orb Shooter
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_charged_orb:
+                    charge = shooter.pending_charged_orb
+                    shooter.pending_charged_orb = 0
+                    charged_orbs.append(ChargedOrb(
+                        shooter.x + shooter.facing * 30,
+                        shooter.y - 60, shooter.facing, shooter, charge))
+
+            # Update charged orbs and check collisions
+            for co in charged_orbs:
+                co.update()
+                if co.alive:
+                    victim = p2 if co.owner is p1 else p1
+                    if co.collides(victim):
+                        if victim.blocking:
+                            co.alive = False
+                            if victim is p1:
+                                _p1_proj_blocked[0] += 1
+                        else:
+                            victim.hp = max(0, victim.hp - co.dmg)
+                            victim.flash_timer = max(victim.flash_timer, 12)
+                            co.alive = False
+            charged_orbs = [co for co in charged_orbs if co.alive]
 
             # Spawn bouncing balls from bounce_kick
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -1313,6 +1392,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     f.revenant_count += 1
                     f.flash_timer    = 30
 
+            # Death Defyer: 75% chance to respawn at full HP (once per life)
+            for f in (p1, p2):
+                if f.hp <= 0 and f.char.get("death_defyer") and not f.death_defyer_used:
+                    f.death_defyer_used = True
+                    if random.random() < 0.75:
+                        f.hp          = f.max_hp
+                        f.flash_timer = 40
+
             # Kamikaze: explode on first death
             for kamikaze, victim in [(p1, p2), (p2, p1)]:
                 if (kamikaze.char.get("explode_death") and kamikaze.hp <= 0
@@ -1596,6 +1683,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             b.draw(screen)
         for o in orbs:
             o.draw(screen)
+        for co in charged_orbs:
+            co.draw(screen)
         for bb in bounce_balls:
             bb.draw(screen)
         for sc in scrolls:
@@ -1703,6 +1792,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                                          (int(f.x), int(f.y - 60)), 1)
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen)
+        # Orb Shooter: draw charging orb on fighter
+        for _f in (p1, p2):
+            if _f.char.get("orb_shooter") and _f._kick_held and _f.orb_charge > 0:
+                _cr = max(8, 8 + _f.orb_charge // 8)
+                _cx = int(_f.x + _f.facing * (_cr + 20))
+                _cy = int(_f.y - 60)
+                pygame.draw.circle(screen, (60, 120, 255), (_cx, _cy), _cr)
+                pygame.draw.circle(screen, (160, 210, 255), (_cx, _cy), max(3, _cr // 2))
         # Bubble shield visuals
         for f in (p1, p2):
             if f.bubble_shield:
@@ -3535,6 +3632,15 @@ def main():
             if _type42_typed[0]:
                 stats["type42_done"] = True
                 _type42_typed[0] = False
+            if _p1_proj_blocked[0]:
+                stats["projectiles_blocked"] = stats.get("projectiles_blocked", 0) + _p1_proj_blocked[0]
+                _p1_proj_blocked[0] = 0
+            if _symbol_char_flag[0]:
+                stats["symbol_char_typed"] = True
+                _symbol_char_flag[0] = False
+            if _death_defyer_flag[0]:
+                stats["death_defyer_typed"] = True
+                _death_defyer_flag[0] = False
             new_unlocks = check_and_unlock(unlocked, stats)
             if new_unlocks:
                 _save_data(unlocked, stats)

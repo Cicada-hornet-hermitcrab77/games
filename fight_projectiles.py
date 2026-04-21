@@ -117,6 +117,38 @@ class Orb:
 
 
 # ---------------------------------------------------------------------------
+# ChargedOrb (Orb Shooter — variable size/damage based on hold time)
+# ---------------------------------------------------------------------------
+
+class ChargedOrb:
+    SPEED = 9
+
+    def __init__(self, x, y, facing, owner, charge):
+        self.x     = float(x)
+        self.y     = float(y)
+        self.vx    = self.SPEED * facing
+        self.owner = owner
+        self.r     = max(8, 8 + charge // 8)
+        self.dmg   = max(10, 10 + charge // 6)
+        self.alive = True
+
+    def update(self):
+        self.x += self.vx
+        if self.x < -self.r or self.x > WIDTH + self.r:
+            self.alive = False
+
+    def collides(self, other):
+        return (abs(self.x - other.x) < self.r + 22 and
+                abs(self.y - (other.y - 60)) < self.r + 35)
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pygame.draw.circle(surface, (60, 120, 255), (cx, cy), self.r)
+        pygame.draw.circle(surface, (160, 210, 255), (cx, cy), max(3, self.r // 2))
+        pygame.draw.circle(surface, (220, 240, 255), (cx, cy), max(2, self.r // 4))
+
+
+# ---------------------------------------------------------------------------
 # BouncingBall (Pinball character)
 # ---------------------------------------------------------------------------
 

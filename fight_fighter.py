@@ -171,6 +171,10 @@ class Fighter:
         self.revenant_count     = 0      # Revenant: revivals used (max 2)
         self.shock_aura_timer   = FPS * 3 if char_data.get("shock_aura") else 0
         self.pending_mine       = False  # Trap Master: plant a mine this frame
+        self.orb_charge         = 0      # Orb Shooter: frames kick held
+        self.pending_charged_orb = 0     # Orb Shooter: charge level to fire (0=none)
+        self._kick_held          = False  # Orb Shooter: was kick held last frame
+        self.death_defyer_used   = False  # Death Defyer: respawn used this life
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -550,6 +554,18 @@ class Fighter:
                 _lk = self.x > self.hypno_source_x
                 _rk = self.x < self.hypno_source_x
 
+            # Orb Shooter: charge/fire on kick hold → release
+            if self.char.get("orb_shooter"):
+                _ok = ctrl['kick']
+                if keys[_ok]:
+                    self.orb_charge  = min(self.orb_charge + 1, FPS * 3)
+                    self._kick_held  = True
+                elif self._kick_held:
+                    if self.orb_charge > 0:
+                        self.pending_charged_orb = self.orb_charge
+                    self.orb_charge = 0
+                    self._kick_held = False
+
             if can_atk and keys[ctrl['punch']] and self.punch_cooldown == 0:
                 moving_toward = ((keys[_rk] and self.facing == 1) or
                                  (keys[_lk] and self.facing == -1))
@@ -573,7 +589,7 @@ class Fighter:
                     self.pending_thunder = True
                 if self.char.get("storm_punch"):
                     self.pending_storm = True
-            elif can_atk and keys[ctrl['kick']] and self.kick_cooldown == 0:
+            elif can_atk and keys[ctrl['kick']] and self.kick_cooldown == 0 and not self.char.get("orb_shooter"):
                 self._start('kick', 0.06)
                 self.kick_cooldown = FPS * 2     # 2 seconds
                 if self.char.get("teleport_kick"):
@@ -849,6 +865,8 @@ class Fighter:
                 self.flash_timer = 8
             if self.char.get("lucky_strike") and random.random() < 0.25:
                 dmg *= 3
+            if self.char.get("glitch_strike"):
+                dmg = 1 if random.random() < 0.5 else dmg * 3
             if self.char.get("overdrive") and self.overdrive_ready:
                 dmg *= 3
                 self.overdrive_ready  = False

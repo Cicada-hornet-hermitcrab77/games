@@ -646,6 +646,18 @@ CHARACTERS = [
      "punch_dmg": 8, "kick_dmg": 9, "max_hp": 75, "block": 3,
      "desc": "35% chance to phase-dodge any incoming attack",
      "double_jump": True, "mirage": True},
+    {"name": "Orb Shooter", "color": (80, 160, 255), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 8, "max_hp": 100, "block": 5,
+     "desc": "Hold kick to charge an orb — release to fire. Longer hold = bigger & more damage",
+     "double_jump": False, "orb_shooter": True},
+    {"name": "<|-\\||>+()", "color": (0, 255, 180), "speed": 8, "jump": -15,
+     "punch_dmg": 12, "kick_dmg": 12, "max_hp": 90, "block": 4,
+     "desc": "Glitched existence — randomly deals 1 or triple damage each hit",
+     "double_jump": True, "glitch_strike": True},
+    {"name": "Death Defyer", "color": (200, 230, 255), "speed": 6, "jump": -14,
+     "punch_dmg": 10, "kick_dmg": 11, "max_hp": 100, "block": 5,
+     "desc": "75% chance to respawn at full HP when killed",
+     "double_jump": True, "death_defyer": True},
 ]
 
 POWERUPS = [
