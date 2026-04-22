@@ -19,7 +19,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
                             FireBall, ThunderBolt, Scroll, TotemPole,
                             RemoteController, Apple, VenomBean, PlantSpike,
-                            ChargedOrb)
+                            ChargedOrb, BubbleShot, PoisonOrb, BlackHole)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed
 
@@ -250,6 +250,18 @@ UNLOCK_CONDITIONS = {
     "Dementor":            ("died_by_powerup",       None,            1,  "A painful way to go",                  True),
     "Orb Shooter":         ("projectiles_blocked",   None,          100,  "Block 100 projectiles"),
     "Copycat":             ("win_with",              "Shapeshifter",  5,  "Win 5 matches as Shapeshifter"),
+    "Windshield Viper":   ("jungle_snake_kills",    None,           50,  "Kill 50 jungle snakes"),
+    "Rainbow Snake":      ("jungle_snake_kills",    None,          150,  "Kill 150 jungle snakes"),
+    "Inland Taipan":      ("jungle_snake_kills",    None,          200,  "Kill 200 jungle snakes"),
+    "Black Mamba":        ("jungle_snake_kills",    None,          300,  "Kill 300 jungle snakes"),
+    "King Cobra":         ("jungle_snake_kills",    None,          500,  "Kill 500 jungle snakes"),
+    "Entomologist":       ("computer_bug_kills",    None,           50,  "Kill 50 computer bugs"),
+    "Hacker":             ("computer_bug_kills",    None,          150,  "Kill 150 computer bugs"),
+    "8-Bit Wasp":         ("computer_bug_kills",    None,          200,  "Kill 200 computer bugs"),
+    "Black Widow":        ("computer_bug_kills",    None,          300,  "Kill 300 computer bugs"),
+    "AI":                 ("computer_bug_kills",    None,          500,  "Kill 500 computer bugs"),
+    "Forcefield":         ("projectiles_blocked",   None,           50,  "Block 50 projectiles"),
+    "Poltergeist":        ("projectiles_blocked",   None,          150,  "Block 150 projectiles"),
     "<|-\\||>+()":         ("symbol_char_typed",     None,            1,  "???",                                  True),
     "Death Defyer":        ("death_defyer_typed",    None,            1,  "???",                                  True),
 }
@@ -745,6 +757,12 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     balls         = []   # active Projectile objects
     orbs          = []   # active Orb objects (bazooka)
     charged_orbs  = []   # active ChargedOrb objects (Orb Shooter)
+    bubble_shots  = []   # active BubbleShot objects (Windshield Viper)
+    poison_orbs   = []   # active PoisonOrb objects (King Cobra)
+    giant_bugs    = []   # giant roaming bugs (Entomologist)
+    black_holes   = []   # active BlackHole objects (Hacker)
+    bug_spawners  = []   # static bug spawners (8-Bit Wasp)
+    spawned_bugs  = []   # {'bug': ComputerBug, 'target': Fighter} (8-Bit Wasp / Black Widow)
     bounce_balls  = []   # active BouncingBall objects (Pinball)
     hooks         = []   # active SnakeHook objects (Hooker)
     pumpkins      = []   # active Pumpkin objects (Headless Horseman)
@@ -792,6 +810,17 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             _cf = AIFighter(_cx, dict(_p.char), 1 if _p is p1 else -1, 'medium')
             _cf.hp = 999999; _cf.max_hp = 999999
             clones.append({'fighter': _cf, 'timer': 999999, 'target': _opp, 'permanent': True})
+
+    # AI character: spawn 5 mortal AI clones at fight start
+    for _p, _opp in [(p1, p2), (p2, p1)]:
+        if _p.char.get("ai_clones"):
+            _clone_char = {"name": "AI Clone", "color": (0, 180, 160),
+                           "speed": 4, "jump": -12, "punch_dmg": 6, "kick_dmg": 6,
+                           "max_hp": 40, "block": 2, "desc": "", "double_jump": False}
+            for _i in range(5):
+                _cx = random.randint(100, WIDTH - 100)
+                _cf = AIFighter(float(_cx), _clone_char, 1 if _p is p1 else -1, 'easy')
+                clones.append({'fighter': _cf, 'timer': 999999, 'target': _opp, 'permanent': True})
 
     # Konami code tracking (for Scratch unlock on Computer stage)
     _KONAMI = [pygame.K_UP, pygame.K_UP, pygame.K_DOWN, pygame.K_DOWN,
@@ -1054,6 +1083,129 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             victim.flash_timer = max(victim.flash_timer, 12)
                             co.alive = False
             charged_orbs = [co for co in charged_orbs if co.alive]
+
+            # Spawn bubble shots from bubble_kick (Windshield Viper)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_bubble_shot:
+                    shooter.pending_bubble_shot = False
+                    bubble_shots.append(BubbleShot(
+                        shooter.x + shooter.facing * 30,
+                        shooter.y - 60, shooter.facing, shooter))
+
+            # Update bubble shots
+            for bs in bubble_shots:
+                bs.update()
+                if bs.alive:
+                    victim = p2 if bs.owner is p1 else p1
+                    if bs.collides(victim):
+                        victim.bubble_shield = True
+                        victim.active_powerups['Bubble Kick'] = FPS * 3
+                        bs.alive = False
+            bubble_shots = [bs for bs in bubble_shots if bs.alive]
+
+            # Spawn poison orbs from cobra_orb (King Cobra)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_poison_orb:
+                    shooter.pending_poison_orb = False
+                    poison_orbs.append(PoisonOrb(
+                        shooter.x + shooter.facing * 30,
+                        shooter.y - 60, shooter.facing, shooter))
+
+            # Update poison orbs
+            for po in poison_orbs:
+                po.update()
+                if po.alive:
+                    victim = p2 if po.owner is p1 else p1
+                    if po.collides(victim):
+                        victim.hp = max(0, victim.hp - 15)
+                        victim.poison_frames = max(victim.poison_frames, FPS * 6)
+                        victim.poison_tick   = min(victim.poison_tick if victim.poison_tick > 0 else 999, 60)
+                        victim.flash_timer   = 15
+                        po.alive = False
+            poison_orbs = [po for po in poison_orbs if po.alive]
+
+            # Entomologist: spawn giant bug (once per fight)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_giant_bug and not shooter.entomologist_bug_used:
+                    shooter.pending_giant_bug    = False
+                    shooter.entomologist_bug_used = True
+                    giant_bugs.append({'x': float(shooter.x), 'y': float(GROUND_Y),
+                                       'vx': 0.0, 'life': FPS * 8, 'leg_t': 0.0,
+                                       'bite_cd': {id(p1): 0, id(p2): 0}})
+                else:
+                    shooter.pending_giant_bug = False
+
+            # Update giant bugs
+            for gb in giant_bugs:
+                gb['life'] -= 1
+                gb['leg_t'] += 0.2
+                nearest = min((p1, p2), key=lambda f: abs(f.x - gb['x']))
+                gb['vx'] = 3.0 if nearest.x > gb['x'] else -3.0
+                gb['x']   = max(30.0, min(float(WIDTH - 30), gb['x'] + gb['vx']))
+                for f in (p1, p2):
+                    fid = id(f)
+                    if gb['bite_cd'][fid] > 0:
+                        gb['bite_cd'][fid] -= 1
+                    if gb['bite_cd'][fid] == 0 and abs(f.x - gb['x']) < 52 and f.hp > 0:
+                        f.hp = max(0, f.hp - 25)
+                        f.flash_timer = 15
+                        gb['bite_cd'][fid] = 90
+            giant_bugs = [gb for gb in giant_bugs if gb['life'] > 0]
+
+            # Hacker: spawn black hole
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_black_hole:
+                    shooter.pending_black_hole = False
+                    black_holes.append(BlackHole(
+                        shooter.x + shooter.facing * 30,
+                        shooter.y - 60, shooter.facing, shooter))
+
+            # Update black holes
+            for bh in black_holes:
+                bh.update()
+                if bh.alive:
+                    victim = p2 if bh.owner is p1 else p1
+                    bh.pull_toward(victim)
+                    if bh.collides(victim):
+                        victim.hp = 0
+                        bh.alive  = False
+            black_holes = [bh for bh in black_holes if bh.alive]
+
+            # 8-Bit Wasp: place bug spawner
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_bug_spawner:
+                    shooter.pending_bug_spawner = False
+                    bug_spawners.append({'x': float(shooter.x), 'owner': shooter,
+                                         'life': FPS * 10, 'spawn_cd': FPS * 3})
+
+            # Update bug spawners
+            for bsp in bug_spawners:
+                bsp['life'] -= 1
+                if bsp['spawn_cd'] > 0:
+                    bsp['spawn_cd'] -= 1
+                elif bsp['life'] > 0:
+                    victim = p2 if bsp['owner'] is p1 else p1
+                    nb = ComputerBug()
+                    nb.x = float(bsp['x'])
+                    spawned_bugs.append({'bug': nb, 'target': victim})
+                    bsp['spawn_cd'] = FPS * 3
+            bug_spawners = [bsp for bsp in bug_spawners if bsp['life'] > 0]
+
+            # Black Widow: spawn wall-crawling bugs
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_widow_bugs:
+                    shooter.pending_widow_bugs = False
+                    for _wx in (40.0, float(WIDTH - 40)):
+                        nb = ComputerBug()
+                        nb.x = _wx
+                        spawned_bugs.append({'bug': nb, 'target': victim})
+
+            # Update spawned bugs
+            _prev_sb = len(spawned_bugs)
+            for sb in spawned_bugs:
+                sb['bug'].update(sb['target'])
+            spawned_bugs = [sb for sb in spawned_bugs if sb['bug'].alive]
+            _computer_bug_kills_flag[0] += _prev_sb - len(spawned_bugs)
 
             # Spawn bouncing balls from bounce_kick
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -1697,6 +1849,38 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             o.draw(screen)
         for co in charged_orbs:
             co.draw(screen)
+        for bs in bubble_shots:
+            bs.draw(screen)
+        for po in poison_orbs:
+            po.draw(screen)
+        for bh in black_holes:
+            bh.draw(screen)
+        for gb in giant_bugs:
+            gx, gy = int(gb['x']), GROUND_Y
+            lt = gb['leg_t']
+            pygame.draw.ellipse(screen, (0, 180, 40),  (gx - 30, gy - 28, 50, 24))
+            pygame.draw.ellipse(screen, (0, 140, 30),  (gx - 12, gy - 32, 34, 28))
+            _fx = 1 if gb['vx'] >= 0 else -1
+            pygame.draw.circle(screen, (0, 200, 50),   (gx + _fx * 26, gy - 20), 13)
+            pygame.draw.circle(screen, (255, 30, 30),  (gx + _fx * 31, gy - 25), 5)
+            pygame.draw.circle(screen, (255, 30, 30),  (gx + _fx * 31, gy - 15), 5)
+            for _i in range(3):
+                _w = int(math.sin(lt + _i * 1.1) * 10)
+                _ly = gy - 20 + _i * 7
+                pygame.draw.line(screen, (0, 140, 30), (gx - 5, _ly), (gx - 34, _ly + _w + 14), 2)
+                pygame.draw.line(screen, (0, 140, 30), (gx + 5, _ly), (gx + 34, _ly - _w + 14), 2)
+            _lp = gb['life'] / (FPS * 8)
+            pygame.draw.rect(screen, (40, 40, 40), (gx - 24, gy - 46, 48, 6))
+            pygame.draw.rect(screen, (0, 220, 60),  (gx - 24, gy - 46, int(48 * _lp), 6))
+        for bsp in bug_spawners:
+            _bx, _by = int(bsp['x']), GROUND_Y - 10
+            pygame.draw.rect(screen, (40, 160, 60),  (_bx - 14, _by - 18, 28, 28), border_radius=4)
+            pygame.draw.rect(screen, (80, 220, 100), (_bx - 14, _by - 18, 28, 28), 2, border_radius=4)
+            _lp = bsp['life'] / (FPS * 10)
+            pygame.draw.rect(screen, (40, 40, 40), (_bx - 14, _by - 24, 28, 4))
+            pygame.draw.rect(screen, (0, 220, 60),  (_bx - 14, _by - 24, int(28 * _lp), 4))
+        for sb in spawned_bugs:
+            sb['bug'].draw(screen)
         for bb in bounce_balls:
             bb.draw(screen)
         for sc in scrolls:

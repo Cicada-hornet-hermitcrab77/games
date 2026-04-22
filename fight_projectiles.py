@@ -149,6 +149,119 @@ class ChargedOrb:
 
 
 # ---------------------------------------------------------------------------
+# BubbleShot (Windshield Viper — slow bubble that encases opponent in a shield)
+# ---------------------------------------------------------------------------
+
+class BubbleShot:
+    RADIUS = 14
+    SPEED  = 4
+
+    def __init__(self, x, y, facing, owner):
+        self.x     = float(x)
+        self.y     = float(y)
+        self.vx    = self.SPEED * facing
+        self.owner = owner
+        self.alive = True
+
+    def update(self):
+        self.x += self.vx
+        if self.x < 0 or self.x > WIDTH:
+            self.alive = False
+
+    def collides(self, other):
+        return (abs(self.x - other.x) < self.RADIUS + 22 and
+                abs(self.y - (other.y - 60)) < self.RADIUS + 35)
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        bsurf = pygame.Surface((self.RADIUS * 2 + 4, self.RADIUS * 2 + 4), pygame.SRCALPHA)
+        pygame.draw.circle(bsurf, (100, 200, 255, 80),  (self.RADIUS + 2, self.RADIUS + 2), self.RADIUS)
+        pygame.draw.circle(bsurf, (180, 230, 255, 200), (self.RADIUS + 2, self.RADIUS + 2), self.RADIUS, 2)
+        surface.blit(bsurf, (cx - self.RADIUS - 2, cy - self.RADIUS - 2))
+
+
+# ---------------------------------------------------------------------------
+# PoisonOrb (King Cobra — giant slow poison orb)
+# ---------------------------------------------------------------------------
+
+class PoisonOrb:
+    RADIUS = 22
+    SPEED  = 5
+
+    def __init__(self, x, y, facing, owner):
+        self.x     = float(x)
+        self.y     = float(y)
+        self.vx    = self.SPEED * facing
+        self.owner = owner
+        self.alive = True
+        self._pulse = 0
+
+    def update(self):
+        self.x      += self.vx
+        self._pulse  = (self._pulse + 1) % 30
+        if self.x < 0 or self.x > WIDTH:
+            self.alive = False
+
+    def collides(self, other):
+        return (abs(self.x - other.x) < self.RADIUS + 22 and
+                abs(self.y - (other.y - 60)) < self.RADIUS + 35)
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pulse_r = self.RADIUS + int(math.sin(self._pulse / 30 * math.pi * 2) * 3)
+        pygame.draw.circle(surface, (60, 180, 60),   (cx, cy), pulse_r)
+        pygame.draw.circle(surface, (140, 240, 100), (cx, cy), max(6, pulse_r - 8))
+        pygame.draw.circle(surface, (200, 255, 160), (cx, cy), max(3, pulse_r - 16))
+
+
+# ---------------------------------------------------------------------------
+# BlackHole (Hacker — slow, pulls opponent in, instant kill on contact)
+# ---------------------------------------------------------------------------
+
+class BlackHole:
+    SPEED  = 2
+    RADIUS = 25
+    PULL   = 2.5
+
+    def __init__(self, x, y, facing, owner):
+        self.x     = float(x)
+        self.y     = float(y)
+        self.vx    = self.SPEED * facing
+        self.owner = owner
+        self.alive = True
+        self._rot  = 0
+
+    def update(self):
+        self.x    += self.vx
+        self._rot  = (self._rot + 4) % 360
+        if self.x < -self.RADIUS or self.x > WIDTH + self.RADIUS:
+            self.alive = False
+
+    def pull_toward(self, other):
+        dx = self.x - other.x
+        dy = self.y - (other.y - 60)
+        dist = max(1.0, math.hypot(dx, dy))
+        other.x = float(other.x + (dx / dist) * self.PULL)
+
+    def collides(self, other):
+        return (abs(self.x - other.x) < self.RADIUS + 18 and
+                abs(self.y - (other.y - 60)) < self.RADIUS + 30)
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pygame.draw.circle(surface, (5, 0, 10), (cx, cy), self.RADIUS)
+        for i in range(8):
+            a1 = math.radians(self._rot + i * 45)
+            a2 = math.radians(self._rot + i * 45 + 25)
+            p1x = cx + int(math.cos(a1) * (self.RADIUS - 4))
+            p1y = cy + int(math.sin(a1) * (self.RADIUS - 4))
+            p2x = cx + int(math.cos(a2) * (self.RADIUS + 5))
+            p2y = cy + int(math.sin(a2) * (self.RADIUS + 5))
+            pygame.draw.line(surface, (120, 0, 200), (p1x, p1y), (p2x, p2y), 2)
+        pygame.draw.circle(surface, (90, 0, 180), (cx, cy), self.RADIUS, 2)
+
+
+# ---------------------------------------------------------------------------
 # BouncingBall (Pinball character)
 # ---------------------------------------------------------------------------
 

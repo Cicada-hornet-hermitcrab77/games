@@ -541,6 +541,17 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("orb_shooter"):     badges.append(("CHARGE ORB",    ( 80,160,255)))
             if detail_ch.get("glitch_strike"):   badges.append(("GLITCH HIT",    (  0,255,180)))
             if detail_ch.get("death_defyer"):    badges.append(("DEATH DEFYER",  (200,230,255)))
+            if detail_ch.get("bubble_kick"):     badges.append(("BUBBLE KICK",   ( 80,200,160)))
+            if detail_ch.get("rainbow_snake"):   badges.append(("FOREVER POWER", (200,100,255)))
+            if detail_ch.get("taipan_punch"):    badges.append(("SUPPRESS PUNCH",(120, 80, 40)))
+            if detail_ch.get("cobra_orb"):       badges.append(("POISON ORB",    ( 30,100, 30)))
+            if detail_ch.get("giant_bug_kick"):  badges.append(("GIANT BUG",     ( 60,160, 60)))
+            if detail_ch.get("black_hole_kick"): badges.append(("BLACK HOLE",    ( 80,  0,180)))
+            if detail_ch.get("bug_spawner_kick"):badges.append(("BUG SPAWNER",   (255,200,  0)))
+            if detail_ch.get("widow_kick"):      badges.append(("WALL BUGS",     ( 10, 10, 10)))
+            if detail_ch.get("ai_clones"):       badges.append(("5 CLONES",      (  0,220,200)))
+            if detail_ch.get("auto_forcefield"): badges.append(("FORCEFIELD",    (100,180,255)))
+            if detail_ch.get("possess_kick"):    badges.append(("POSSESS",       (180, 80,255)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)

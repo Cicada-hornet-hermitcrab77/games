@@ -175,6 +175,17 @@ class Fighter:
         self.pending_charged_orb = 0     # Orb Shooter: charge level to fire (0=none)
         self._kick_held          = False  # Orb Shooter: was kick held last frame
         self.death_defyer_used   = False  # Death Defyer: respawn used this life
+        self.pending_bubble_shot     = False  # Windshield Viper: fire bubble this frame
+        self.pending_poison_orb      = False  # King Cobra: fire giant poison orb this frame
+        self.ability_suppress_timer  = 0      # Inland Taipan: frames of ability suppression remaining
+        self._suppressed_abilities   = {}     # Inland Taipan: backed-up ability flags
+        self.pending_giant_bug       = False  # Entomologist: spawn giant bug this frame
+        self.entomologist_bug_used   = False  # Entomologist: only once per fight
+        self.pending_black_hole      = False  # Hacker: fire black hole this frame
+        self.black_hole_cooldown     = 0      # Hacker: cooldown between black holes
+        self.pending_bug_spawner     = False  # 8-Bit Wasp: place bug spawner this frame
+        self.pending_widow_bugs      = False  # Black Widow: spawn wall bugs this frame
+        self.forcefield_timer        = FPS * 20 if char_data.get("auto_forcefield") else 0
 
     def _reinit_ability_timers(self):
         c = self.char
@@ -189,6 +200,18 @@ class Fighter:
         if c.get("rainbow_poop"):     self.rainbow_poop_timer  = FPS * 4
         if c.get("soul_master"):      self.soul_switch_timer   = FPS * 5
         if c.get("chicken_banana"):   self.cb_idle_timer       = FPS * 8
+        if c.get("auto_forcefield"):  self.forcefield_timer    = FPS * 20
+
+    def _suppress_abilities(self, duration_frames):
+        _BASE = {"name","color","speed","jump","punch_dmg","kick_dmg",
+                 "max_hp","block","desc","double_jump"}
+        if not self._suppressed_abilities:
+            self._suppressed_abilities = {k: v for k, v in self.char.items()
+                                          if k not in _BASE and v}
+            for k in self._suppressed_abilities:
+                self.char[k] = False
+        self.ability_suppress_timer = duration_frames
+        self.flash_timer = 20
 
     def apply_powerup(self, spec):
         t    = spec['type']
@@ -253,7 +276,8 @@ class Fighter:
         if self.contact_cooldown > 0: self.contact_cooldown  -= 1
         if self.punch_cooldown   > 0: self.punch_cooldown    -= 1
         if self.portal_cooldown  > 0: self.portal_cooldown   -= 1
-        if self.kick_cooldown    > 0: self.kick_cooldown    -= 1
+        if self.kick_cooldown        > 0: self.kick_cooldown        -= 1
+        if self.black_hole_cooldown  > 0: self.black_hole_cooldown  -= 1
         if self.regen_tick > 0:
             self.regen_tick -= 1
             if self.regen_tick == 0:
@@ -279,8 +303,22 @@ class Fighter:
             self.whip_cooldown -= 1
         if self.char.get("rainbow_poop"):
             self.poop_timer = FPS * 999  # Rainbow Man: always active
+        elif self.char.get("rainbow_snake") and self.poop_timer > 0:
+            pass  # Rainbow Snake: Everything powerup never expires
         elif self.poop_timer > 0:
             self.poop_timer -= 1
+        if self.ability_suppress_timer > 0:
+            self.ability_suppress_timer -= 1
+            if self.ability_suppress_timer == 0 and self._suppressed_abilities:
+                self.char.update(self._suppressed_abilities)
+                self._suppressed_abilities = {}
+        if self.char.get("auto_forcefield"):
+            if self.forcefield_timer > 0:
+                self.forcefield_timer -= 1
+            else:
+                self.bubble_shield        = True
+                self.active_powerups['Forcefield'] = FPS * 4
+                self.forcefield_timer     = FPS * 20
         if self.poop_cd > 0:
             self.poop_cd -= 1
         if self.squish_frames > 0:
@@ -649,6 +687,21 @@ class Fighter:
                 if self.char.get("creator_kick") and self.creator_cd == 0:
                     self.pending_creator_platform = True
                     self.creator_cd = FPS * 3   # 3-second cooldown
+                if self.char.get("bubble_kick"):
+                    self.pending_bubble_shot = True
+                if self.char.get("cobra_orb"):
+                    self.pending_poison_orb = True
+                if self.char.get("giant_bug_kick") and not self.entomologist_bug_used:
+                    self.pending_giant_bug = True
+                if self.char.get("black_hole_kick") and self.black_hole_cooldown == 0:
+                    self.pending_black_hole    = True
+                    self.black_hole_cooldown   = FPS * 20
+                if self.char.get("bug_spawner_kick"):
+                    self.pending_bug_spawner = True
+                if self.char.get("widow_kick"):
+                    self.pending_widow_bugs = True
+                if self.char.get("possess_kick"):
+                    pass  # effect applied in check_hit
             elif keys[ctrl['jump']]:
                 if self.wall_cling_active:
                     # wall jump: push away from wall and launch upward
@@ -1040,6 +1093,10 @@ class Fighter:
                 self.pending_quake_wave = True
             if self.char.get("mine_kick") and self.action == 'kick':
                 self.pending_mine = True
+            if self.char.get("taipan_punch") and self.action == 'punch':
+                other._suppress_abilities(FPS * 10)
+            if self.char.get("possess_kick") and self.action == 'kick':
+                other.confuse_frames = max(other.confuse_frames, FPS * 4)
 
     def draw(self, surface):
         _scale = self.draw_scale
