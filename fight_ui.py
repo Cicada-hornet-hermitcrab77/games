@@ -537,6 +537,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("chomp"):           badges.append(("CHOMP",         (255,220,  0)))
             if detail_ch.get("chicken_banana"):  badges.append(("RAM CHARGE",    (255,180,  0)))
             if detail_ch.get("soul_master"):     badges.append(("SOUL HOP",      ( 80,  0,160)))
+            if detail_ch.get("copycat"):         badges.append(("COPYCAT",       (180,180,180)))
             if detail_ch.get("orb_shooter"):     badges.append(("CHARGE ORB",    ( 80,160,255)))
             if detail_ch.get("glitch_strike"):   badges.append(("GLITCH HIT",    (  0,255,180)))
             if detail_ch.get("death_defyer"):    badges.append(("DEATH DEFYER",  (200,230,255)))

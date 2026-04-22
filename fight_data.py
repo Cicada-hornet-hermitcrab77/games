@@ -658,6 +658,10 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 11, "max_hp": 100, "block": 5,
      "desc": "75% chance to respawn at full HP when killed",
      "double_jump": True, "death_defyer": True},
+    {"name": "Copycat", "color": (180, 180, 180), "speed": 5, "jump": -13,
+     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100, "block": 5,
+     "desc": "Copies the opponent's special abilities at the start of every fight",
+     "double_jump": False, "copycat": True},
 ]
 
 POWERUPS = [

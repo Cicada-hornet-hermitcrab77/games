@@ -249,6 +249,7 @@ UNLOCK_CONDITIONS = {
     # ── new secret characters ────────────────────────────────────────────────
     "Dementor":            ("died_by_powerup",       None,            1,  "A painful way to go",                  True),
     "Orb Shooter":         ("projectiles_blocked",   None,          100,  "Block 100 projectiles"),
+    "Copycat":             ("win_with",              "Shapeshifter",  5,  "Win 5 matches as Shapeshifter"),
     "<|-\\||>+()":         ("symbol_char_typed",     None,            1,  "???",                                  True),
     "Death Defyer":        ("death_defyer_typed",    None,            1,  "???",                                  True),
 }
@@ -677,6 +678,17 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
         p2 = AIFighter(700, CHARACTERS[p2_idx], -1, ai_difficulty)
     else:
         p2 = Fighter(700, CHARACTERS[p2_idx], -1, P2_CTRL)
+
+    # Copycat: copy opponent's ability flags at fight start
+    _COPY_EXCLUDE = {"name", "color", "speed", "jump", "punch_dmg", "kick_dmg",
+                     "max_hp", "block", "desc", "double_jump", "copycat",
+                     "snake", "screentime", "chicken_banana", "cloned", "shapeshifter"}
+    for _copier, _source in [(p1, p2), (p2, p1)]:
+        if _copier.char.get("copycat"):
+            for k, v in _source.char.items():
+                if k not in _COPY_EXCLUDE and v:
+                    _copier.char[k] = v
+            _copier._reinit_ability_timers()
 
     if constants.STAGE_VOID:
         # Spawn on the central platform (GROUND_Y-70), not on the (absent) floor

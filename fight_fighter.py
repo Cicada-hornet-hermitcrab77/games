@@ -176,6 +176,20 @@ class Fighter:
         self._kick_held          = False  # Orb Shooter: was kick held last frame
         self.death_defyer_used   = False  # Death Defyer: respawn used this life
 
+    def _reinit_ability_timers(self):
+        c = self.char
+        if c.get("dementor_heal"):    self.dementor_timer      = FPS * 20
+        if c.get("shock_aura"):       self.shock_aura_timer    = FPS * 3
+        if c.get("kitsune_barrage"):  self.kitsune_timer       = FPS * 9
+        if c.get("chaos_timer"):      self.chaos_timer         = FPS * 12
+        if c.get("time_freeze"):      self.time_freeze_timer   = FPS * 18
+        if c.get("auto_fire"):        self.auto_fire_timer     = FPS * 5
+        if c.get("auto_teleport"):    self.auto_teleport_timer = FPS * 8
+        if c.get("bomb_character"):   self.bomb_spawn_timer    = FPS * 5
+        if c.get("rainbow_poop"):     self.rainbow_poop_timer  = FPS * 4
+        if c.get("soul_master"):      self.soul_switch_timer   = FPS * 5
+        if c.get("chicken_banana"):   self.cb_idle_timer       = FPS * 8
+
     def apply_powerup(self, spec):
         t    = spec['type']
         name = spec['name']
