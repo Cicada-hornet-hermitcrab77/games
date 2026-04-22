@@ -262,6 +262,9 @@ UNLOCK_CONDITIONS = {
     "AI":                 ("computer_bug_kills",    None,          500,  "Kill 500 computer bugs"),
     "Forcefield":         ("projectiles_blocked",   None,           50,  "Block 50 projectiles"),
     "Poltergeist":        ("projectiles_blocked",   None,          150,  "Block 150 projectiles"),
+    "Armor":              ("projectiles_blocked",   None,          200,  "Block 200 projectiles"),
+    "Deflector":          ("projectiles_blocked",   None,          300,  "Block 300 projectiles"),
+    "Unhittable":         ("projectiles_blocked",   None,          500,  "Block 500 projectiles"),
     "<|-\\||>+()":         ("symbol_char_typed",     None,            1,  "???",                                  True),
     "Death Defyer":        ("death_defyer_typed",    None,            1,  "???",                                  True),
 }
@@ -1028,7 +1031,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if b.alive:
                     victim = p2 if b.owner is p1 else p1
                     if b.collides(victim):
-                        if victim.blocking and victim.char.get("reflect_proj"):
+                        if victim.char.get("armor_proj"):
+                            b.alive = False
+                        elif victim.char.get("deflect_proj") or (victim.blocking and victim.char.get("reflect_proj")):
                             b.vx    = -b.vx
                             b.owner = victim
                         elif victim.blocking:
@@ -1074,7 +1079,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if co.alive:
                     victim = p2 if co.owner is p1 else p1
                     if co.collides(victim):
-                        if victim.blocking:
+                        if victim.char.get("armor_proj"):
+                            co.alive = False
+                        elif victim.char.get("deflect_proj"):
+                            co.vx = -co.vx; co.owner = victim
+                        elif victim.blocking:
                             co.alive = False
                             if victim is p1:
                                 _p1_proj_blocked[0] += 1
@@ -1098,9 +1107,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if bs.alive:
                     victim = p2 if bs.owner is p1 else p1
                     if bs.collides(victim):
-                        victim.bubble_shield = True
-                        victim.active_powerups['Bubble Kick'] = FPS * 3
-                        bs.alive = False
+                        if victim.char.get("armor_proj"):
+                            bs.alive = False
+                        elif victim.char.get("deflect_proj"):
+                            bs.vx = -bs.vx; bs.owner = victim
+                        else:
+                            victim.bubble_shield = True
+                            victim.active_powerups['Bubble Kick'] = FPS * 3
+                            bs.alive = False
             bubble_shots = [bs for bs in bubble_shots if bs.alive]
 
             # Spawn poison orbs from cobra_orb (King Cobra)
@@ -1117,11 +1131,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if po.alive:
                     victim = p2 if po.owner is p1 else p1
                     if po.collides(victim):
-                        victim.hp = max(0, victim.hp - 15)
-                        victim.poison_frames = max(victim.poison_frames, FPS * 6)
-                        victim.poison_tick   = min(victim.poison_tick if victim.poison_tick > 0 else 999, 60)
-                        victim.flash_timer   = 15
-                        po.alive = False
+                        if victim.char.get("armor_proj"):
+                            po.alive = False
+                        elif victim.char.get("deflect_proj"):
+                            po.vx = -po.vx; po.owner = victim
+                        else:
+                            victim.hp = max(0, victim.hp - 15)
+                            victim.poison_frames = max(victim.poison_frames, FPS * 6)
+                            victim.poison_tick   = min(victim.poison_tick if victim.poison_tick > 0 else 999, 60)
+                            victim.flash_timer   = 15
+                            po.alive = False
             poison_orbs = [po for po in poison_orbs if po.alive]
 
             # Entomologist: spawn giant bug (once per fight)
@@ -1167,8 +1186,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     victim = p2 if bh.owner is p1 else p1
                     bh.pull_toward(victim)
                     if bh.collides(victim):
-                        victim.hp = 0
-                        bh.alive  = False
+                        if victim.char.get("armor_proj"):
+                            bh.alive = False
+                        elif victim.char.get("deflect_proj"):
+                            bh.vx = -bh.vx; bh.owner = victim
+                        else:
+                            victim.hp = 0
+                            bh.alive  = False
             black_holes = [bh for bh in black_holes if bh.alive]
 
             # 8-Bit Wasp: place bug spawner
@@ -1450,9 +1474,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if b.alive:
                     victim = p2 if b.owner is p1 else p1
                     if b.collides(victim):
-                        victim.hp = max(0, victim.hp - BeeShot.DMG)
-                        victim.flash_timer = 6
-                        b.alive = False
+                        if victim.char.get("armor_proj"):
+                            b.alive = False
+                        elif victim.char.get("deflect_proj"):
+                            b.vx = -b.vx; b.owner = victim
+                        else:
+                            victim.hp = max(0, victim.hp - BeeShot.DMG)
+                            victim.flash_timer = 6
+                            b.alive = False
             bee_shots = [b for b in bee_shots if b.alive]
 
             # Shifter snipe shots

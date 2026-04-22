@@ -711,6 +711,18 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 11, "max_hp": 90, "block": 4,
      "desc": "Kick possesses the opponent — reverses their controls for 4 seconds",
      "double_jump": True, "possess_kick": True},
+    {"name": "Armor", "color": (160, 160, 180), "speed": 4, "jump": -12,
+     "punch_dmg": 11, "kick_dmg": 11, "max_hp": 130, "block": 6,
+     "desc": "Completely immune to all projectiles — they vanish on contact",
+     "double_jump": False, "armor_proj": True},
+    {"name": "Deflector", "color": (100, 220, 255), "speed": 5, "jump": -13,
+     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 105, "block": 5,
+     "desc": "All projectiles bounce back and target the shooter",
+     "double_jump": False, "deflect_proj": True},
+    {"name": "Unhittable", "color": (240, 240, 100), "speed": 7, "jump": -15,
+     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 80, "block": 3,
+     "desc": "60% of all attacks phase through — only 4 in 10 hits land",
+     "double_jump": True, "unhittable": True},
 ]
 
 POWERUPS = [

@@ -552,6 +552,9 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("ai_clones"):       badges.append(("5 CLONES",      (  0,220,200)))
             if detail_ch.get("auto_forcefield"): badges.append(("FORCEFIELD",    (100,180,255)))
             if detail_ch.get("possess_kick"):    badges.append(("POSSESS",       (180, 80,255)))
+            if detail_ch.get("armor_proj"):      badges.append(("PROJ IMMUNE",   (160,160,180)))
+            if detail_ch.get("deflect_proj"):    badges.append(("DEFLECT",       (100,220,255)))
+            if detail_ch.get("unhittable"):      badges.append(("60% DODGE",     (240,240,100)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)

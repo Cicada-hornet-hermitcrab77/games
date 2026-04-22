@@ -922,6 +922,10 @@ class Fighter:
             if self.char.get("wild_attack"):
                 dmg = random.randint(1, 40)
             # Mirage: 35% dodge chance — sidestep and skip all damage
+            if other.char.get("unhittable") and random.random() < 0.60:
+                other.flash_timer = 4
+                self.attack_hit   = True
+                return
             if other.char.get("mirage") and random.random() < 0.35:
                 other.flash_timer = 6
                 other.x = max(30.0, min(float(WIDTH - 30), other.x + random.choice([-55, 55])))
