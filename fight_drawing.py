@@ -23,6 +23,7 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
     lhx, lhy = int(lh[0]), int(lh[1])
     rhx, rhy = int(rh[0]), int(rh[1])
     bl = max(1, wy - sy)
+    al = int(ARM_LEN * s)
 
     def ln(p1, p2, w=2):
         pygame.draw.line(surface, col, (int(p1[0]), int(p1[1])), (int(p2[0]), int(p2[1])), max(1, int(w * s)))
@@ -2604,6 +2605,36 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.line(surface, (255, 255, 255),
                          (hx - int(hd*0.7), hy - int(hd*0.05)),
                          (hx + int(hd*0.7), hy - int(hd*0.05)), max(1, int(s)))
+
+    elif char_name == "Friday the 13th":
+        # Hockey mask — white oval with dark eye-slits and forehead stripes
+        pygame.draw.ellipse(surface, (230, 230, 230),
+                            (hx - hd, hy - hd, hd * 2, int(hd * 2.1)))
+        pygame.draw.ellipse(surface, (40, 40, 40),
+                            (hx - hd, hy - hd, hd * 2, int(hd * 2.1)), max(1, int(2 * s)))
+        # Eye slits
+        for _eo in (-1, 1):
+            pygame.draw.ellipse(surface, (20, 20, 20),
+                                (hx + _eo * int(hd * 0.38) - int(hd * 0.22),
+                                 hy - int(hd * 0.15),
+                                 int(hd * 0.44), int(hd * 0.22)))
+        # Vertical red stripes on forehead
+        for _si in range(3):
+            _sx = hx + (_si - 1) * int(hd * 0.38)
+            pygame.draw.line(surface, (180, 20, 20),
+                             (_sx, hy - hd + int(3 * s)),
+                             (_sx, hy - int(hd * 0.35)), max(1, int(2 * s)))
+        # Machete in right hand
+        _mx, _my = int(rh[0]), int(rh[1])
+        _blade_tip = (_mx + facing * int(36 * s), _my - int(28 * s))
+        pygame.draw.polygon(surface, (180, 180, 190),
+                            [(_mx, _my),
+                             (_mx + facing * int(10 * s), _my - int(4 * s)),
+                             _blade_tip,
+                             (_mx + facing * int(26 * s), _my + int(6 * s))])
+        pygame.draw.line(surface, (100, 70, 40),
+                         (_mx - facing * int(8 * s), _my + int(4 * s)),
+                         (_mx, _my), max(2, int(3 * s)))
 
     elif char_name == "Unhittable":
         # Phase/blur effect — ghosted offset outlines

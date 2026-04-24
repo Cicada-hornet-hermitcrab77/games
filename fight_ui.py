@@ -12,6 +12,214 @@ from fight_drawing import draw_bg, draw_stickman
 _type42_typed = [False]
 
 # ---------------------------------------------------------------------------
+# Secret menu cheat codes
+# ---------------------------------------------------------------------------
+
+CHEAT_CODES = {
+    # Starter
+    "punch_it":           "Brawler",
+    "float_sting":        "Boxer",
+    "shadow_step":        "Ninja",
+    "fade_out":           "Phantom",
+    # Win-based
+    "god_of_war":         "Ares",
+    "west_wind":          "Zephyr",
+    "twenty_wins":        "Unknown",
+    "flip_sumo":          "omuS",
+    "fifty_wins":         "Impossible",
+    # Play-based
+    "dance_floor":        "Dancing Man",
+    "chaos_roll":         "Ran-Doom",
+    "cecalia_secret":     "Cecalia",
+    "morph_shift":        "Morph",
+    "clean_up":           "Janitor",
+    # Win-with
+    "titan_fist":         "Titan",
+    "tank_armor":         "Tank",
+    "rogue_run":          "Rogue",
+    "flip_through":       "Acrobat",
+    "full_charge":        "Charger",
+    "giant_mode":         "Giant",
+    "body_slam":          "Wrestler",
+    "full_speed":         "Speedster",
+    "blood_drain":        "Vampire",
+    "sumo_slam":          "Sumo",
+    "whip_crack":         "Whipper",
+    "vamp_lord_rise":     "Vamp Lord",
+    "shapeshift_now":     "Shifter",
+    "shrink_ray_go":      "Shrink Ray",
+    "stalker_mode":       "Stalker",
+    # Beat-char
+    "outback_rules":      "Outbacker",
+    "gun_show":           "Gunner",
+    "bazooka_blast":      "Bazooka Man",
+    "pinball_wizard":     "Pinball",
+    "hammer_time":        "Hammerhead",
+    "nine_tails":         "Kitsune",
+    "rip_current":        "Riptide",
+    "iron_knuckles":      "Iron Fist",
+    # Stage-based
+    "castle_siege":       "Mighty Medieval Man",
+    "dojo_warrior":       "Samurai",
+    "bone_yard":          "Skeleton",
+    "arena_fighter":      "Gladiator",
+    "spring_loaded":      "Spring",
+    "jungle_lord":        "Scarecrow",
+    "burn_it_all":        "Arsonist",
+    "ice_cold":           "Cryogenisist",
+    "big_top_show":       "Magician",
+    "no_head_needed":     "Headless Horseman",
+    "launch_now":         "Astronaut",
+    "wall_swing":         "Spooderman",
+    "dream_weave":        "Wizard",
+    "lava_walk":          "Lava Man",
+    "angel_wings":        "Angel",
+    "demon_lord":         "Demon",
+    "dark_ritual":        "Dark Mage",
+    "sail_away":          "Pirate",
+    "stone_gaze":         "Medusa",
+    "build_mode":         "The Creator",
+    "ink_spill":          "Ink Brush",
+    "castle_wall":        "Knight",
+    "raise_dead":         "Necromancer",
+    "float_high":         "Levitator",
+    "pyro_man":           "Pyro",
+    # Hard AI
+    "hard_as_nails":      "Hardy",
+    "ascii_draw":         "ASCII",
+    "viking_fury":        "Viking",
+    "laser_sight":        "Laser Eyes",
+    "crit_hit_go":        "Mr. Crit",
+    "go_berserk":         "Enraged",
+    # Streaks
+    "three_peat":         "Psychopath",
+    "spinning_top":       "Whirlpool",
+    "phantom_horse":      "Shadowfax",
+    "thunder_clap":       "Thunder God",
+    # Misc
+    "seven_wins":         "Oni",
+    "door_slam":          "Bouncer",
+    "warp_now":           "Teleporter",
+    "harpy_screech":      "Harpy",
+    "joker_wild":         "Joker",
+    "reel_in":            "Hooker",
+    "chop_wood":          "Lumberjack",
+    "bee_hive":           "Beekeeper",
+    "plague_mask":        "Plague Doctor",
+    "full_blitz":         "Blitzer",
+    "acid_drop":          "Toxic",
+    "time_warp":          "Time Lord",
+    "sticky_tape":        "Sticker",
+    "snake_hiss":         "Snake",
+    "full_hp":            "Medic",
+    "haunt_mode":         "Ghost",
+    "mime_time":          "Mime",
+    "blend_in":           "Chameleon",
+    "looking_glass":      "Mirror Man",
+    "mouse_run":          "Mouse",
+    "self_destruct":      "Kamikaze",
+    "glass_jaw":          "Glass Cannon",
+    "keep_losing":        "Clown",
+    "dizzy_spin":         "Disorientated",
+    "change_form":        "Shapeshifter",
+    "four_elements":      "Elemental",
+    "stone_wings":        "Gargoyle",
+    "wail_loud":          "Banshee",
+    "lightning_call":     "Storm Caller",
+    "pull_force":         "Magnetar",
+    "bog_monster":        "Swamp Thing",
+    "duel_ready":         "Duelist",
+    "polar_plunge":       "Polar Bear",
+    "shake_ground":       "Quaker",
+    "echo_echo":          "Echo",
+    "clone_army":         "Cloned",
+    "tick_boom":          "Bomb",
+    "half_price":         "Halves",
+    "god_killer":         "Godslayer",
+    "scroll_power":       "Scrollmaster",
+    "rock_solid":         "Boulder",
+    "will_o_wisp":        "Wisp",
+    "sandstorm":          "Sandman",
+    "grim_reaper":        "Reaper",
+    "rev_up":             "Chainsaw Man",
+    "crushing_blow":      "Crusher",
+    "blizzard_mode":      "Storm Witch",
+    "blood_lord":         "Blood Baron",
+    "drift_away":         "Drifter",
+    "dark_warlock":       "Warlock",
+    "flash_run":          "Flash",
+    "open_portal":        "Portal Maker",
+    "apple_drop":         "Gravity",
+    "prime_number":       "Prime Time",
+    "rage_type":          "Rage Quitter",
+    "void_swap":          "Swapper",
+    "bruiser_hit":        "Bruiser",
+    "grip_tight":         "Grappler",
+    "trick_em":           "Trickster",
+    "wild_play":          "Wildcard",
+    "iron_wall":          "Ironclad",
+    "hp_drain":           "Siphon",
+    "tick_tock":          "Timekeeper",
+    "rainbow_run":        "Rainbow Man",
+    "shadow_walk":        "Shade",
+    "rot_away":           "Decay",
+    "fault_line":         "Fault Line",
+    "shield_bash":        "Buckler",
+    "overdrive_go":       "Overdrive",
+    "hypno_eyes":         "Hypnotist",
+    "back_again":         "Revenant",
+    "shock_wave":         "Volt",
+    "ghost_punch":        "Phantom Strike",
+    "mine_field":         "Trap Master",
+    "unstoppable":        "Juggernaut",
+    "desert_mirage":      "Mirage",
+    "dementor_kiss":      "Dementor",
+    "charge_orb":         "Orb Shooter",
+    "copycat_mode":       "Copycat",
+    "bubble_pop":         "Windshield Viper",
+    "rainbow_venom":      "Rainbow Snake",
+    "suppress_all":       "Inland Taipan",
+    "mamba_fast":         "Black Mamba",
+    "giant_venom":        "King Cobra",
+    "bug_expert":         "Entomologist",
+    "system_hack":        "Hacker",
+    "pixel_bug":          "8-Bit Wasp",
+    "widow_web":          "Black Widow",
+    "ai_army":            "AI",
+    "shield_auto":        "Forcefield",
+    "possess_kick":       "Poltergeist",
+    "armor_plated":       "Armor",
+    "mirror_shot":        "Deflector",
+    "phase_out":          "Unhittable",
+    "binary_code":        "<|-\\||>+()",
+    "still_alive":        "Death Defyer",
+    "friday_night":       "Friday the 13th",
+    # Secret characters
+    "triple_seven":       "777",
+    "up_up_down_down":    "Scratch",
+    "void_ruler":         "Void Master",
+    "high_noon":          "Screentime",
+    "all_mighty":         "God",
+    "dark_night":         "Nightfall",
+    "exact_seven_hp":     "Lucky",
+    "totem_power":        "Great Totem Spirit",
+    "void_jump":          "Jetpack",
+    "chicken_slip":       "ChickenBanana",
+    "soul_collector":     "Soul Master",
+    "the_one_true":       "The One",
+    "reflection":         "Mirror",
+    "portal_paradox":     "Paradox",
+    "cobra_spit":         "Spitting Cobra",
+    "pac_dots":           "Pacman",
+    "scorpio_rise":       "Scorpio",
+    "nuke_launch":        "Nuke",
+    "druid_grove":        "Druid",
+    "crits_only":         "Big Bad Critter Clad",
+    "the_answer":         "Life the Universe Everything",
+    "cactus_desert":      "Cactus",
+}
+
+# ---------------------------------------------------------------------------
 # Stage select screen
 # ---------------------------------------------------------------------------
 
@@ -76,6 +284,8 @@ def mode_select():
     card_xs = [START + i * (card_w + GAP) for i in range(4)]
 
     _type42_buf = ""
+    _secret_seq = "all_the_secrets_of_the_world"
+    _secret_buf = ""
     while True:
         clock.tick(FPS)
         preview_t = (preview_t + 0.02) % 1.0
@@ -92,6 +302,13 @@ def mode_select():
                         _type42_buf = ""
                 elif hasattr(event, 'unicode') and event.unicode:
                     _type42_buf = ""
+                # Secret menu sequence detection
+                if hasattr(event, 'unicode') and event.unicode:
+                    _secret_buf += event.unicode.lower()
+                    if _secret_seq in _secret_buf:
+                        return 'secret_menu'
+                    if len(_secret_buf) > len(_secret_seq) + 5:
+                        _secret_buf = _secret_buf[-len(_secret_seq):]
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit(); sys.exit()
                 if event.key in (pygame.K_LEFT, pygame.K_a):
@@ -1242,6 +1459,100 @@ def join_lobby(userdata):
 
     # (net, my_char=p2_char, host_char=p1_char, stage)
     return net, my_idx, p1_idx, s_idx
+
+
+def secret_menu(unlocked, stats):
+    """Terminal-style cheat code menu. Returns list of newly unlocked character names."""
+    newly = []
+    input_buf = ""
+    feedback = ""
+    feedback_col = (0, 255, 100)
+    feedback_timer = 0
+    history = []   # list of (code_str, response_str, col)
+
+    # Find char data for checking if char exists
+    from fight_data import CHARACTERS as _CHARS
+    _char_names = {ch["name"] for ch in _CHARS}
+    _UNLOCK_CONDITIONS_REF = None
+
+    while True:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return newly
+                elif event.key == pygame.K_RETURN:
+                    code = input_buf.strip().lower()
+                    input_buf = ""
+                    if code in CHEAT_CODES:
+                        name = CHEAT_CODES[code]
+                        if name in unlocked:
+                            feedback = f"{name} already unlocked"
+                            feedback_col = (180, 180, 60)
+                            history.append((f"> {code}", "already unlocked", (180, 180, 60)))
+                        else:
+                            unlocked.add(name)
+                            newly.append(name)
+                            # Ensure evaluated_chars bypass for this char
+                            ev = stats.get("evaluated_chars", [])
+                            if name not in ev:
+                                ev.append(name)
+                                stats["evaluated_chars"] = ev
+                            feedback = f"UNLOCKED: {name}!"
+                            feedback_col = (0, 255, 100)
+                            history.append((f"> {code}", f"UNLOCKED: {name}", (0, 255, 100)))
+                    elif code == "":
+                        pass
+                    else:
+                        feedback = "UNKNOWN CODE"
+                        feedback_col = (255, 80, 80)
+                        history.append((f"> {code}", "UNKNOWN CODE", (255, 80, 80)))
+                    feedback_timer = FPS * 3
+                elif event.key == pygame.K_BACKSPACE:
+                    input_buf = input_buf[:-1]
+                elif hasattr(event, 'unicode') and event.unicode and event.unicode.isprintable():
+                    input_buf += event.unicode
+
+        if feedback_timer > 0:
+            feedback_timer -= 1
+
+        # Draw terminal UI
+        screen.fill((4, 8, 4))
+        # Scanline overlay
+        for _sy in range(0, HEIGHT, 4):
+            pygame.draw.line(screen, (0, 15, 0), (0, _sy), (WIDTH, _sy), 1)
+        # Title
+        title = font_large.render("SECRET MENU", True, (0, 200, 0))
+        screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 20))
+        # Horizontal divider
+        pygame.draw.line(screen, (0, 120, 0), (40, 90), (WIDTH - 40, 90), 1)
+
+        # Command history (last 7 entries)
+        for hi, (inp_txt, resp_txt, resp_col) in enumerate(history[-7:]):
+            inp_s = font_small.render(inp_txt, True, (0, 160, 0))
+            resp_s = font_small.render("  " + resp_txt, True, resp_col)
+            base_y = 105 + hi * 46
+            screen.blit(inp_s, (50, base_y))
+            screen.blit(resp_s, (50, base_y + 22))
+
+        # Input line
+        prompt_y = HEIGHT - 100
+        pygame.draw.line(screen, (0, 100, 0), (40, prompt_y - 8), (WIDTH - 40, prompt_y - 8), 1)
+        cursor = "_" if (pygame.time.get_ticks() // 500) % 2 == 0 else " "
+        prompt_s = font_small.render(f"> {input_buf}{cursor}", True, (0, 255, 0))
+        screen.blit(prompt_s, (50, prompt_y))
+
+        # Feedback line
+        if feedback_timer > 0:
+            fb_s = font_medium.render(feedback, True, feedback_col)
+            screen.blit(fb_s, (WIDTH // 2 - fb_s.get_width() // 2, HEIGHT - 55))
+
+        # ESC hint
+        esc_s = font_tiny.render("ESC to exit", True, (0, 80, 0))
+        screen.blit(esc_s, (WIDTH - esc_s.get_width() - 10, HEIGHT - 18))
+        pygame.display.flip()
 
 
 def online_menu(userdata):

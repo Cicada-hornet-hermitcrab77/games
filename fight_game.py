@@ -21,7 +21,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             RemoteController, Apple, VenomBean, PlantSpike,
                             ChargedOrb, BubbleShot, PoisonOrb, BlackHole)
 import fight_network as _net
-from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed
+from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu
 
 # ---------------------------------------------------------------------------
 # Unlock system
@@ -44,6 +44,7 @@ _p1_powerup_kill_flag = [False]  # True if a damaging powerup killed p1 this fig
 _p1_proj_blocked      = [0]       # projectiles p1 blocked this fight
 _symbol_char_flag     = [False]   # True when <|-\||>+() typed on Computer stage
 _death_defyer_flag    = [False]   # True when death_does_not_exist typed on Graveyard as Reaper
+_friday13_flag        = [False]   # True when "13" typed on an actual Friday the 13th
 
 _PRIMES_60 = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59}
 def _is_prime(n): return n in _PRIMES_60
@@ -82,15 +83,14 @@ UNLOCK_CONDITIONS = {
     "Shifter":             ("win_with",       "Rogue",         1,  "Win 1 match as Rogue"),
     "Shrink Ray":          ("win_with",       "Mouse",         1,  "Win 1 match as Mouse"),
     "Stalker":             ("win_with",       "Rogue",         3,  "Win 3 matches as Rogue"),
-    # ── beat_char ───────────────────────────────────────────────────────────
-    "Outbacker":           ("beat_char",      "Boxer",         1,  "Beat Boxer in a match"),
-    "Gunner":              ("beat_char",      "Boxer",         3,  "Beat Boxer 3 times"),
-    "Bazooka Man":         ("beat_char",      "Brawler",       3,  "Beat Brawler 3 times"),
-    "Pinball":             ("beat_char",      "Ninja",         5,  "Beat Ninja 5 times"),
-    "Hammerhead":          ("beat_char",      "Brawler",       5,  "Beat Brawler 5 times"),
-    "Kitsune":             ("beat_char",      "Phantom",       3,  "Beat Phantom 3 times"),
-    "Riptide":             ("beat_char",      "Ninja",         3,  "Beat Ninja 3 times"),
-    "Iron Fist":           ("beat_char",      "Boxer",         5,  "Beat Boxer 5 times"),
+    "Outbacker":           ("win_on_stage",   "Desert",        1,  "Win on Desert stage"),
+    "Gunner":              ("win_hard_ai",    None,            2,  "Win 2 matches vs Hard AI"),
+    "Bazooka Man":         ("win_with",       "Titan",         1,  "Win 1 match as Titan"),
+    "Pinball":             ("win_on_stage",   "Circus",        2,  "Win on Circus 2 times"),
+    "Hammerhead":          ("wins_total",     None,           15,  "Win 15 matches vs AI"),
+    "Kitsune":             ("win_on_stage",   "Dream Land",    1,  "Win on Dream Land stage"),
+    "Riptide":             ("win_on_stage",   "Underwater",    1,  "Win on Underwater stage"),
+    "Iron Fist":           ("perfect_wins",   None,            3,  "Win 3 matches at full HP"),
     # ── win_on_stage ────────────────────────────────────────────────────────
     "Mighty Medieval Man": ("win_on_stage",   "Medieval Castle", 1, "Win on Medieval Castle"),
     "Samurai":             ("win_on_stage",   "Dojo",          1,  "Win on Dojo stage"),
@@ -187,7 +187,7 @@ UNLOCK_CONDITIONS = {
     "Sandman":             ("matches_played",       None,           60,  "Play 60 matches"),
     "Reaper":              ("clutch_wins",          None,           10,  "Win 10 matches with ≤10 HP"),
     "Chainsaw Man":        ("survival_kills",       None,           40,  "Get 40 kills in survival"),
-    "Crusher":             ("beat_char",            "Boxer",         7,  "Beat Boxer 7 times"),
+    "Crusher":             ("survival_kills",        None,           30,  "Get 30 kills in survival"),
     "Storm Witch":         ("win_on_stage",         "Arctic Tundra", 5,  "Win 5 matches on Arctic Tundra"),
     "Blood Baron":         ("win_with",             "Vamp Lord",     3,  "Win 3 matches as Vamp Lord"),
     "Drifter":             ("unique_wins",          None,           20,  "Win with 20 different characters"),
@@ -211,7 +211,7 @@ UNLOCK_CONDITIONS = {
     "Swapper":             ("win_on_stage",         "The Void",      5,  "Win 5 matches on The Void"),
     "Bruiser":             ("survival_kills",       None,           75,  "Get 75 kills in survival"),
     "Grappler":            ("win_streak",           None,            5,  "Win 5 matches in a row"),
-    "Trickster":           ("beat_char",            "Clown",         3,  "Beat Clown 3 times"),
+    "Trickster":           ("losses",                None,            7,  "Lose 7 matches"),
     "Wildcard":            ("matches_played",       None,           45,  "Play 45 matches"),
     "Ironclad":            ("win_hard_ai",          None,           10,  "Win 10 matches vs Hard AI"),
     "Siphon":              ("win_with",             "Vamp Lord",     5,  "Win 5 matches as Vamp Lord"),
@@ -267,6 +267,7 @@ UNLOCK_CONDITIONS = {
     "Unhittable":         ("projectiles_blocked",   None,          500,  "Block 500 projectiles"),
     "<|-\\||>+()":         ("symbol_char_typed",     None,            1,  "???",                                  True),
     "Death Defyer":        ("death_defyer_typed",    None,            1,  "???",                                  True),
+    "Friday the 13th":     ("friday13_typed",        None,            1,  "???",                                  True),
 }
 
 def _default_stats():
@@ -335,6 +336,8 @@ def _default_stats():
         "symbol_char_typed":        False,
         # Death Defyer: typed on Graveyard as Reaper
         "death_defyer_typed":       False,
+        # Friday the 13th: typed "13" on an actual Friday the 13th
+        "friday13_typed":           False,
     }
 
 def load_save():
@@ -474,6 +477,8 @@ def _meets_condition(cond, stats):
         return stats.get("symbol_char_typed", False)
     if kind == "death_defyer_typed":
         return stats.get("death_defyer_typed", False)
+    if kind == "friday13_typed":
+        return stats.get("friday13_typed", False)
     return False
 
 def _unlock_progress(stats):
@@ -743,6 +748,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     _p1_proj_blocked[0]      = 0
     _symbol_char_flag[0]     = False
     _death_defyer_flag[0]    = False
+    _friday13_flag[0]        = False
 
     game_over          = False
     winner             = None
@@ -850,6 +856,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     _death_buf   = ""
     _is_graveyard = stage_data["name"] == "Graveyard"
     _p1_is_reaper = p1.char["name"] == "Reaper"
+    # Friday the 13th unlock: type "13" on a real Friday the 13th
+    _f13_buf = ""
 
     # Screentime: track whether a Screentime fighter is playing
     _screentime_active = (p1.char.get("screentime") or p2.char.get("screentime"))
@@ -930,6 +938,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             _death_buf = ""
                         if len(_death_buf) > len(_DEATH_SEQ) + 5:
                             _death_buf = _death_buf[-len(_DEATH_SEQ):]
+                    # Friday the 13th: type "13" on an actual Friday the 13th
+                    if hasattr(event, 'unicode') and event.unicode:
+                        _f13_buf += event.unicode
+                        if "13" in _f13_buf:
+                            _now = datetime.datetime.now()
+                            if _now.weekday() == 4 and _now.day == 13:
+                                _friday13_flag[0] = True
+                            _f13_buf = ""
+                        if len(_f13_buf) > 4:
+                            _f13_buf = _f13_buf[-2:]
 
         if not game_over:
             # Portal Maker: replace portals on kick
@@ -3732,6 +3750,18 @@ def main():
                 _save_data(unlocked, stats)
                 _show_unlocks(new_unlocks)
 
+        # --- Secret menu path ---
+        if mode == 'secret_menu':
+            newly = secret_menu(unlocked, stats)
+            if newly:
+                for name in newly:
+                    cond = UNLOCK_CONDITIONS.get(name)
+                    if cond and len(cond) > 4 and cond[4]:
+                        stats["secret_chars_unlocked"] = stats.get("secret_chars_unlocked", 0) + 1
+                _save_data(unlocked, stats)
+                _show_unlocks(newly)
+            continue
+
         # --- Online path ---
         if mode == 'online':
             userdata = _net.load_userdata()
@@ -3866,6 +3896,9 @@ def main():
             if _death_defyer_flag[0]:
                 stats["death_defyer_typed"] = True
                 _death_defyer_flag[0] = False
+            if _friday13_flag[0]:
+                stats["friday13_typed"] = True
+                _friday13_flag[0] = False
             new_unlocks = check_and_unlock(unlocked, stats)
             if new_unlocks:
                 _save_data(unlocked, stats)

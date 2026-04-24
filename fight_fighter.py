@@ -186,6 +186,7 @@ class Fighter:
         self.pending_bug_spawner     = False  # 8-Bit Wasp: place bug spawner this frame
         self.pending_widow_bugs      = False  # Black Widow: spawn wall bugs this frame
         self.forcefield_timer        = FPS * 20 if char_data.get("auto_forcefield") else 0
+        self.f13_index               = 0      # Friday the 13th: hit counter for damage sequence
 
     def _reinit_ability_timers(self):
         c = self.char
@@ -919,6 +920,9 @@ class Fighter:
                 _PRIMES = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71]
                 dmg = _PRIMES[self.prime_index % len(_PRIMES)]
                 self.prime_index += 1
+            if self.char.get("f13_dmg"):
+                self.f13_index += 1
+                dmg = 13 * self.f13_index
             if self.char.get("wild_attack"):
                 dmg = random.randint(1, 40)
             # Mirage: 35% dodge chance — sidestep and skip all damage

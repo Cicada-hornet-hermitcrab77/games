@@ -723,6 +723,10 @@ CHARACTERS = [
      "punch_dmg": 9, "kick_dmg": 10, "max_hp": 80, "block": 3,
      "desc": "60% of all attacks phase through — only 4 in 10 hits land",
      "double_jump": True, "unhittable": True},
+    {"name": "Friday the 13th", "color": (20, 20, 20), "speed": 5, "jump": -13,
+     "punch_dmg": 13, "kick_dmg": 13, "max_hp": 130, "block": 4,
+     "desc": "Damage follows 13, 26, 39, 52… — each hit is a new multiple of 13",
+     "double_jump": False, "f13_dmg": True},
 ]
 
 POWERUPS = [
