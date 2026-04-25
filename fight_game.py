@@ -1053,10 +1053,12 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         stage_data   = STAGES[stage_idx]
                         platforms    = [Platform(*_p) for _p in stage_data["platforms"]]
                         springs      = [Spring(*_s)   for _s in stage_data["springs"]]
-                        is_jungle    = stage_data["name"] == "Jungle"
-                        is_computer  = stage_data["name"] == "Computer"
+                        is_jungle     = stage_data["name"] == "Jungle"
+                        is_computer   = stage_data["name"] == "Computer"
                         is_underworld = stage_data["name"] == "Underworld"
                         _is_graveyard = stage_data["name"] == "Graveyard"
+                        constants.STAGE_VOID    = (stage_data["name"] == "The Void")
+                        constants.STAGE_CEILING = (stage_data["name"] == "The Nether")
                         jungle_snakes.clear()
                         computer_bugs.clear()
                         falling_skulls.clear()
