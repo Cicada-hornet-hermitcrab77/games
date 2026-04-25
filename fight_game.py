@@ -21,7 +21,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             RemoteController, Apple, VenomBean, PlantSpike,
                             ChargedOrb, BubbleShot, PoisonOrb, BlackHole)
 import fight_network as _net
-from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag
+from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, TouchControls
 
 # ---------------------------------------------------------------------------
 # Unlock system
@@ -706,6 +706,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     else:
         p2 = Fighter(700, CHARACTERS[p2_idx], -1, P2_CTRL)
 
+    _touch = TouchControls(P1_CTRL)
+
     # Copycat: copy opponent's ability flags at fight start
     _COPY_EXCLUDE = {"name", "color", "speed", "jump", "punch_dmg", "kick_dmg",
                      "max_hp", "block", "desc", "double_jump", "copycat",
@@ -883,6 +885,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             p1_ever_below_max = True
 
         for event in pygame.event.get():
+            _touch.handle_event(event)
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
@@ -1039,7 +1042,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         victim.flash_timer = 4
                         shooter.laser_hit_cd = 15  # damage tick every 15 frames
 
-            keys = pygame.key.get_pressed()
+            keys = _touch.inject(pygame.key.get_pressed())
             p1.update(keys, p2, platforms)
             p2.update(keys, p1, platforms)
 
@@ -1357,18 +1360,25 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if shooter.pending_venom:
                     shooter.pending_venom = False
                     venoms.append(VenomBean(shooter.x + shooter.facing * 30,
-                                            shooter.y - 60, shooter.facing))
+                                            shooter.y - 60, shooter.facing, shooter))
             for vb in venoms:
                 vb.update()
                 if not vb.hit:
-                    for victim in (p1, p2):
-                        if vb.collides(victim):
+                    victim = p2 if vb.owner is p1 else p1
+                    if vb.collides(victim):
+                        if victim.char.get("mega_unhittable") and random.random() < 0.999:
+                            victim.flash_timer = 4; vb.alive = False
+                        elif victim.char.get("armor_proj"):
+                            vb.alive = False
+                        elif victim.char.get("deflect_proj"):
+                            vb.vx = -vb.vx; vb.owner = victim
+                        else:
                             victim.hp = max(0, victim.hp - VenomBean.DMG)
                             victim.flash_timer = 8
                             if not victim.char.get("immune"):
                                 if victim.poison_frames == 0: victim.poison_tick = 180
                                 victim.poison_frames = max(victim.poison_frames, 360)
-                            vb.hit = True; vb.alive = False; break
+                            vb.hit = True; vb.alive = False
             venoms = [vb for vb in venoms if vb.alive]
 
             # Update scrolls and check collisions
@@ -1464,9 +1474,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if ks.alive:
                     victim = p2 if ks.owner is p1 else p1
                     if ks.collides(victim):
-                        victim.hp = max(0, victim.hp - KitsuneShot.DMG)
-                        victim.flash_timer = 8
-                        ks.alive = False
+                        if victim.char.get("mega_unhittable") and random.random() < 0.999:
+                            victim.flash_timer = 4; ks.alive = False
+                        elif victim.char.get("armor_proj"):
+                            ks.alive = False
+                        elif victim.char.get("deflect_proj"):
+                            ks.vx = -ks.vx; ks.vy = -ks.vy; ks.owner = victim
+                        else:
+                            victim.hp = max(0, victim.hp - KitsuneShot.DMG)
+                            victim.flash_timer = 8
+                            ks.alive = False
             kitsune_shots = [ks for ks in kitsune_shots if ks.alive]
 
             # Riptide water balls
@@ -1480,9 +1497,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if wb.alive:
                     victim = p2 if wb.owner is p1 else p1
                     if wb.collides(victim):
-                        victim.hp = max(0, victim.hp - WaterBall.DMG)
-                        victim.flash_timer = 8
-                        wb.alive = False
+                        if victim.char.get("mega_unhittable") and random.random() < 0.999:
+                            victim.flash_timer = 4; wb.alive = False
+                        elif victim.char.get("armor_proj"):
+                            wb.alive = False
+                        elif victim.char.get("deflect_proj"):
+                            wb.vx = -wb.vx; wb.owner = victim
+                        else:
+                            victim.hp = max(0, victim.hp - WaterBall.DMG)
+                            victim.flash_timer = 8
+                            wb.alive = False
             water_balls = [wb for wb in water_balls if wb.alive]
 
             # The Creator — spawn timed platform on kick
@@ -1540,9 +1564,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if s.alive:
                     victim = p2 if s.owner is p1 else p1
                     if s.collides(victim):
-                        victim.hp = max(0, victim.hp - SnipeShot.DMG)
-                        victim.flash_timer = 10
-                        s.alive = False
+                        if victim.char.get("mega_unhittable") and random.random() < 0.999:
+                            victim.flash_timer = 4; s.alive = False
+                        elif victim.char.get("armor_proj"):
+                            s.alive = False
+                        elif victim.char.get("deflect_proj"):
+                            s.vx = -s.vx; s.owner = victim
+                        else:
+                            victim.hp = max(0, victim.hp - SnipeShot.DMG)
+                            victim.flash_timer = 10
+                            s.alive = False
             snipe_shots = [s for s in snipe_shots if s.alive]
 
             # Joker chaos effect
@@ -1659,12 +1690,19 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if fb.alive:
                     victim = p2 if fb.owner is p1 else p1
                     if fb.collides(victim):
-                        victim.hp = max(0, victim.hp - FireBall.DMG)
-                        victim.flash_timer = 8
-                        if not victim.char.get("immune"):
-                            if victim.fire_frames == 0: victim.fire_tick = 480
-                            victim.fire_frames = max(victim.fire_frames, 480)
-                        fb.alive = False
+                        if victim.char.get("mega_unhittable") and random.random() < 0.999:
+                            victim.flash_timer = 4; fb.alive = False
+                        elif victim.char.get("armor_proj"):
+                            fb.alive = False
+                        elif victim.char.get("deflect_proj"):
+                            fb.vx = -fb.vx; fb.owner = victim
+                        else:
+                            victim.hp = max(0, victim.hp - FireBall.DMG)
+                            victim.flash_timer = 8
+                            if not victim.char.get("immune"):
+                                if victim.fire_frames == 0: victim.fire_tick = 480
+                                victim.fire_frames = max(victim.fire_frames, 480)
+                            fb.alive = False
             fire_balls = [fb for fb in fire_balls if fb.alive]
 
             # Thunder God bolts + Storm Caller random bolts
@@ -1688,10 +1726,15 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if tb.alive and not tb.hit:
                     victim = p2 if tb.owner is p1 else p1
                     if tb.collides(victim):
-                        victim.hp = max(0, victim.hp - ThunderBolt.DMG)
-                        victim.flash_timer = 12
-                        if not victim.char.get("immune"):
-                            victim.shock_frames = max(victim.shock_frames, 180)
+                        if victim.char.get("mega_unhittable") and random.random() < 0.999:
+                            victim.flash_timer = 4
+                        elif victim.char.get("armor_proj"):
+                            pass
+                        else:
+                            victim.hp = max(0, victim.hp - ThunderBolt.DMG)
+                            victim.flash_timer = 12
+                            if not victim.char.get("immune"):
+                                victim.shock_frames = max(victim.shock_frames, 180)
                         tb.hit = True
             thunder_bolts = [tb for tb in thunder_bolts if tb.alive]
 
@@ -1747,9 +1790,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if ps.alive:
                     victim = p2 if ps.owner is p1 else p1
                     if ps.collides(victim):
-                        victim.hp = max(0, victim.hp - PlantSpike.DMG)
-                        victim.flash_timer = 12
-                        ps.alive = False
+                        if victim.char.get("mega_unhittable") and random.random() < 0.999:
+                            victim.flash_timer = 4; ps.alive = False
+                        elif victim.char.get("armor_proj"):
+                            ps.alive = False
+                        else:
+                            victim.hp = max(0, victim.hp - PlantSpike.DMG)
+                            victim.flash_timer = 12
+                            ps.alive = False
             plant_spikes = [ps for ps in plant_spikes if ps.alive]
 
             # Bomb character: spawn a center-screen bomb every 5 seconds
@@ -2166,6 +2214,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
 
         if game_over:
             draw_win_screen(screen, winner, p1, p2, vs_ai=vs_ai)
+
+        if not game_over:
+            _touch.draw(screen)
 
         pygame.display.flip()
 

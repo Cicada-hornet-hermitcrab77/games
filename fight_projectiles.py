@@ -1461,15 +1461,17 @@ class VenomBean:
     DMG    = 8
     RADIUS = 12
 
-    def __init__(self, x, y, facing):
+    def __init__(self, x, y, facing, owner=None):
         self.x      = float(x)
         self.y      = float(y)
+        self.vx     = self.SPEED * facing
         self.facing = facing
+        self.owner  = owner
         self.alive  = True
         self.hit    = False
 
     def update(self):
-        self.x += self.SPEED * self.facing
+        self.x += self.vx
         if self.x < -20 or self.x > WIDTH + 20:
             self.alive = False
 

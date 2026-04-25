@@ -14,6 +14,106 @@ _type42_typed = [False]
 _map_man_flag = [False]
 
 # ---------------------------------------------------------------------------
+# TouchControls — on-screen buttons for touch / no-keyboard play
+# ---------------------------------------------------------------------------
+
+class TouchControls:
+    """7-button on-screen overlay for P1. Supports multi-touch via FINGER events
+    and single-touch mouse fallback."""
+
+    _BTN_R = 28   # button radius in pixels
+
+    # (action, cx, cy)
+    _LAYOUT = [
+        ('jump',  90, 445),
+        ('left',  42, 490),
+        ('right', 138, 490),
+        ('duck',  90, 530),
+        ('punch', 755, 458),
+        ('kick',  820, 458),
+        ('block', 787, 515),
+    ]
+
+    _LABELS = {'left': '<', 'right': '>', 'jump': '^', 'duck': 'v',
+               'punch': 'P', 'kick': 'K', 'block': 'B'}
+    _COLORS = {
+        'left': (60, 80, 180), 'right': (60, 80, 180),
+        'jump': (60, 160, 80), 'duck':  (60, 140, 140),
+        'punch': (180, 60, 60), 'kick': (180, 120, 30),
+        'block': (120, 60, 180),
+    }
+
+    def __init__(self, ctrl):
+        self.ctrl = ctrl                # P1_CTRL dict (key_name -> pygame keycode)
+        self._finger = {}               # finger_id -> action_name or None
+        self._mouse_held = None         # action held by mouse
+        self.held = set()               # currently held action names
+
+    # ── hit-test ──────────────────────────────────────────────────────────────
+    def _hit(self, x, y):
+        r2 = self._BTN_R ** 2
+        for name, cx, cy in self._LAYOUT:
+            if (x - cx) ** 2 + (y - cy) ** 2 <= r2:
+                return name
+        return None
+
+    # ── event handler — call once per event in the game loop ─────────────────
+    def handle_event(self, event):
+        if event.type == pygame.FINGERDOWN:
+            fx, fy = int(event.x * WIDTH), int(event.y * HEIGHT)
+            btn = self._hit(fx, fy)
+            self._finger[event.finger_id] = btn
+            if btn:
+                self.held.add(btn)
+        elif event.type == pygame.FINGERUP:
+            btn = self._finger.pop(event.finger_id, None)
+            if btn and btn not in self._finger.values():
+                self.held.discard(btn)
+        elif event.type == pygame.FINGERMOTION:
+            fx, fy = int(event.x * WIDTH), int(event.y * HEIGHT)
+            old = self._finger.get(event.finger_id)
+            new = self._hit(fx, fy)
+            self._finger[event.finger_id] = new
+            self.held = {v for v in self._finger.values() if v}
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            btn = self._hit(*event.pos)
+            self._mouse_held = btn
+            if btn:
+                self.held.add(btn)
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            if self._mouse_held:
+                self.held.discard(self._mouse_held)
+            self._mouse_held = None
+
+    # ── inject touch state into a real keys snapshot ──────────────────────────
+    def inject(self, real_keys):
+        keys = list(real_keys)
+        for action in self.held:
+            kc = self.ctrl.get(action)
+            if kc is not None and kc < len(keys):
+                keys[kc] = 1
+        return keys
+
+    # ── draw buttons on surface ───────────────────────────────────────────────
+    def draw(self, surface):
+        r = self._BTN_R
+        for name, cx, cy in self._LAYOUT:
+            pressed = name in self.held
+            base = self._COLORS.get(name, (100, 100, 100))
+            fill = tuple(min(255, c + 60) for c in base) if pressed else base
+            alpha = 230 if pressed else 150
+
+            s = pygame.Surface((r * 2 + 4, r * 2 + 4), pygame.SRCALPHA)
+            pygame.draw.circle(s, (*fill, alpha),    (r + 2, r + 2), r)
+            pygame.draw.circle(s, (255, 255, 255, 90), (r + 2, r + 2), r, 2)
+            surface.blit(s, (cx - r - 2, cy - r - 2))
+
+            lbl = font_tiny.render(self._LABELS.get(name, '?'), True,
+                                   (255, 255, 255) if pressed else (200, 200, 200))
+            surface.blit(lbl, (cx - lbl.get_width() // 2,
+                                cy - lbl.get_height() // 2))
+
+# ---------------------------------------------------------------------------
 # Secret menu cheat codes
 # ---------------------------------------------------------------------------
 
@@ -232,6 +332,17 @@ def stage_select():
     idx = 0
     _map_man_flag[0] = False
     _start_ticks = pygame.time.get_ticks()
+
+    # Touch nav button rects
+    _r_left    = pygame.Rect(0,   0, 120, HEIGHT)
+    _r_right   = pygame.Rect(WIDTH - 120, 0, 120, HEIGHT)
+    _r_confirm = pygame.Rect(WIDTH//2 - 70, HEIGHT - 68, 140, 50)
+
+    def _touch_pos(event):
+        if event.type in (pygame.FINGERDOWN, pygame.FINGERMOTION):
+            return int(event.x * WIDTH), int(event.y * HEIGHT)
+        return event.pos
+
     while True:
         clock.tick(FPS)
         for event in pygame.event.get():
@@ -241,6 +352,11 @@ def stage_select():
                 if event.key in (pygame.K_LEFT,  pygame.K_a): idx = (idx - 1) % len(STAGES)
                 if event.key in (pygame.K_RIGHT, pygame.K_d): idx = (idx + 1) % len(STAGES)
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_ESCAPE): return idx
+            if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                pos = _touch_pos(event) if event.type == pygame.FINGERDOWN else event.pos
+                if _r_confirm.collidepoint(pos): return idx
+                if _r_left.collidepoint(pos):    idx = (idx - 1) % len(STAGES)
+                if _r_right.collidepoint(pos):   idx = (idx + 1) % len(STAGES)
         if not _map_man_flag[0] and pygame.time.get_ticks() - _start_ticks >= 30000:
             _map_man_flag[0] = True
 
@@ -266,8 +382,18 @@ def stage_select():
             col = WHITE if di == idx else GRAY
             pygame.draw.circle(screen, col, (WIDTH//2 + (di - len(STAGES)//2)*30, HEIGHT//2 + 40), 6)
 
-        hint = font_small.render("◄ ► to browse   ENTER to confirm", True, (180, 180, 180))
-        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 40))
+        # Touch nav arrows
+        for _arr, _txt, _rx in (('◄', '◄', 20), ('►', '►', WIDTH - 50)):
+            _as = font_large.render(_txt, True, (200, 200, 200))
+            screen.blit(_as, (_rx, HEIGHT // 2 - _as.get_height() // 2))
+        pygame.draw.rect(screen, (60, 120, 60), _r_confirm, border_radius=10)
+        pygame.draw.rect(screen, (120, 220, 120), _r_confirm, 2, border_radius=10)
+        _gs = font_medium.render("GO", True, WHITE)
+        screen.blit(_gs, (_r_confirm.centerx - _gs.get_width() // 2,
+                          _r_confirm.centery - _gs.get_height() // 2))
+
+        hint = font_small.render("◄ ► to browse   ENTER / tap GO to confirm", True, (180, 180, 180))
+        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 100))
         pygame.display.flip()
 
 
@@ -295,6 +421,14 @@ def mode_select():
     _type42_buf = ""
     _secret_seq = "all_the_secrets_of_the_world"
     _secret_buf = ""
+    _confirm_rect = pygame.Rect(WIDTH // 2 - 80, HEIGHT - 52, 160, 44)
+
+    def _mode_confirm():
+        if selected == 0:   return ('1p', difficulties[difficulty_idx])
+        elif selected == 1: return '2p'
+        elif selected == 2: return 'survival_2p' if survival_players else 'survival_1p'
+        else:               return 'online'
+
     while True:
         clock.tick(FPS)
         preview_t = (preview_t + 0.02) % 1.0
@@ -302,6 +436,27 @@ def mode_select():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
+            # Touch / click: tap a card to select it; tap confirm to enter
+            if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                _mp = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
+                if _confirm_rect.collidepoint(_mp):
+                    return _mode_confirm()
+                for _ci, _cx in enumerate(card_xs):
+                    if pygame.Rect(_cx, 140, card_w, card_h).collidepoint(_mp):
+                        selected = _ci
+                        break
+                # Difficulty ▲/▼ touch (drawn at list_x, list_y area)
+                if selected == 0:
+                    _lx, _ly = card_xs[0] + 10, 428
+                    if pygame.Rect(_lx, _ly - 26, 60, 22).collidepoint(_mp):
+                        difficulty_idx = (difficulty_idx - 1) % len(difficulties)
+                    if pygame.Rect(_lx, _ly + VISIBLE * 30 + 2, 60, 22).collidepoint(_mp):
+                        difficulty_idx = (difficulty_idx + 1) % len(difficulties)
+                if selected == 2:
+                    _lx2 = card_xs[2] + 8
+                    for _oi in range(2):
+                        if pygame.Rect(_lx2, 405 + _oi * 30, 120, 26).collidepoint(_mp):
+                            survival_players = _oi
             if event.type == pygame.KEYDOWN:
                 # Track "42" typed anywhere on main menu
                 if hasattr(event, 'unicode') and event.unicode in ('4', '2'):
@@ -400,6 +555,12 @@ def mode_select():
 
         nav = font_tiny.render("◄ ► to switch mode", True, GRAY)
         screen.blit(nav, (WIDTH//2 - nav.get_width()//2, HEIGHT - 24))
+        # Touch confirm button
+        pygame.draw.rect(screen, (60, 120, 60), _confirm_rect, border_radius=10)
+        pygame.draw.rect(screen, (120, 220, 120), _confirm_rect, 2, border_radius=10)
+        _ps = font_medium.render("PLAY", True, WHITE)
+        screen.blit(_ps, (_confirm_rect.centerx - _ps.get_width() // 2,
+                          _confirm_rect.centery - _ps.get_height() // 2))
         pygame.display.flip()
 
 # ---------------------------------------------------------------------------
@@ -454,6 +615,31 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
+            # Touch / click: tap a character cell to select, tap READY to confirm
+            if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                _tp = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
+                _tx, _ty = _tp
+                # Tap inside the character grid
+                if GX <= _tx < GX + GW and GY <= _ty < GY + GH:
+                    _col = (_tx - GX) // CW
+                    _row = (_ty - GY) // CH
+                    _ni  = min(_row * COLS + _col, n - 1)
+                    if not p1_ready:
+                        p1_idx = _ni
+                    elif not vs_ai and not p2_ready:
+                        p2_idx = _ni
+                # Tap READY button (drawn at bottom-right of detail panel)
+                _ready_rect = pygame.Rect(PX, PY + PH - 52, PW, 44)
+                if _ready_rect.collidepoint(_tp):
+                    if not p1_ready:
+                        if CHARACTERS[p1_idx]["name"] in unlocked:
+                            p1_ready = True
+                            if vs_ai:
+                                _ul = [i for i, c in enumerate(CHARACTERS) if c["name"] in unlocked]
+                                p2_idx = random.choice(_ul) if _ul else random.randint(0, n - 1)
+                    elif not vs_ai and not p2_ready:
+                        if CHARACTERS[p2_idx]["name"] in unlocked:
+                            p2_ready = True
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return None, None
@@ -792,18 +978,29 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 screen.blit(bs, (bx_off + 2, badge_y))
                 bx_off += bs.get_width() + 14
 
+        # READY touch button
+        _rdy_col = BLUE if not p1_ready else ORANGE
+        _rdy_rect = pygame.Rect(PX, PY + PH - 52, PW, 44)
+        pygame.draw.rect(screen, tuple(max(0, c - 80) for c in _rdy_col), _rdy_rect, border_radius=8)
+        pygame.draw.rect(screen, _rdy_col, _rdy_rect, 2, border_radius=8)
+        _rdy_lbl = "READY" if not p1_ready else ("PICK P2" if not vs_ai and not p2_ready else "")
+        if _rdy_lbl:
+            _rs = font_medium.render(_rdy_lbl, True, WHITE)
+            screen.blit(_rs, (_rdy_rect.centerx - _rs.get_width() // 2,
+                              _rdy_rect.centery - _rs.get_height() // 2))
+
         # Controls hint at bottom of panel
         if not p1_ready:
-            hint = "WASD / Arrows  move       F / ENTER  confirm"
+            hint = "tap char + READY   or   WASD + ENTER"
             hcol = BLUE
         elif not vs_ai and not p2_ready:
-            hint = "Arrows  move       K / ENTER  confirm"
+            hint = "tap char + PICK P2   or   Arrows + ENTER"
             hcol = ORANGE
         else:
             hint, hcol = "", WHITE
         if hint:
             hs = font_tiny.render(hint, True, hcol)
-            screen.blit(hs, (PX + PW//2 - hs.get_width()//2, PY + PH - 18))
+            screen.blit(hs, (PX + PW//2 - hs.get_width()//2, PY + PH - 58))
 
         # Ready flash on panel border
         if p1_ready and p2_ready:
