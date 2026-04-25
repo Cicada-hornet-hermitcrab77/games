@@ -2656,6 +2656,29 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.circle(surface, (255, 255, 0),
                                (hx + _eox*int(hd*0.35), hy), max(2, int(3*s)))
 
+    elif char_name == "Mega-Unhittable":
+        # Intense phase effect — 4 ghosted outlines with wider spread
+        for _ui, _uof in enumerate((-3, -1, 1, 3)):
+            _alpha = 30 + _ui * 20
+            _ucol = (255, 255, 180, _alpha)
+            _usurf = pygame.Surface((int(hd*2.6), int(hd*2.6)), pygame.SRCALPHA)
+            pygame.draw.circle(_usurf, _ucol,
+                               (int(hd*1.3) + _uof*int(5*s), int(hd*1.3)),
+                               hd, max(1, int(2*s)))
+            surface.blit(_usurf, (hx - int(hd*1.3), hy - int(hd*1.3)))
+        # Heavy blur streaks
+        for _ui in range(5):
+            pygame.draw.line(surface, (255, 255, 180),
+                             (sx - facing*int((3+_ui*6)*s), sy + int(bl*0.25*_ui)),
+                             (sx - facing*int((12+_ui*6)*s), sy + int(bl*0.25*_ui) - int(3*s)),
+                             max(1, int(s)))
+        # Bright white-hot eyes
+        for _ei, _eox in enumerate((-1, 1)):
+            pygame.draw.circle(surface, (255, 255, 255),
+                               (hx + _eox*int(hd*0.35), hy), max(3, int(4*s)))
+            pygame.draw.circle(surface, (255, 255, 100),
+                               (hx + _eox*int(hd*0.35), hy), max(1, int(2*s)))
+
 
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color

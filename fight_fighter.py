@@ -703,6 +703,9 @@ class Fighter:
                     self.pending_widow_bugs = True
                 if self.char.get("possess_kick"):
                     pass  # effect applied in check_hit
+                if self.char.get("sniper_shot"):
+                    self.pending_snipe = True
+                    self.kick_cooldown = FPS * 3   # 3-second reload
             elif keys[ctrl['jump']]:
                 if self.wall_cling_active:
                     # wall jump: push away from wall and launch upward
@@ -926,6 +929,10 @@ class Fighter:
             if self.char.get("wild_attack"):
                 dmg = random.randint(1, 40)
             # Mirage: 35% dodge chance — sidestep and skip all damage
+            if other.char.get("mega_unhittable") and random.random() < 0.999:
+                other.flash_timer = 4
+                self.attack_hit   = True
+                return
             if other.char.get("unhittable") and random.random() < 0.60:
                 other.flash_timer = 4
                 self.attack_hit   = True
@@ -1541,6 +1548,9 @@ class AIFighter(Fighter):
                         self.ink_clone_cooldown = FPS * 5
                     if self.char.get("plant_kick"):
                         self.pending_plant = True
+                    if self.char.get("sniper_shot"):
+                        self.pending_snipe = True
+                        self.kick_cooldown = FPS * 3
             self.ai_attack = None
         elif self.ai_move != 0:
             _ai_spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)

@@ -727,6 +727,14 @@ CHARACTERS = [
      "punch_dmg": 13, "kick_dmg": 13, "max_hp": 130, "block": 4,
      "desc": "Damage follows 13, 26, 39, 52… — each hit is a new multiple of 13",
      "double_jump": False, "f13_dmg": True},
+    {"name": "Sniper", "color": (180, 140, 60), "speed": 6, "jump": -13,
+     "punch_dmg": 7, "kick_dmg": 0, "max_hp": 95, "block": 4,
+     "desc": "Kick fires a fast long-range shot (22 dmg). 3-second reload",
+     "double_jump": False, "sniper_shot": True},
+    {"name": "Mega-Unhittable", "color": (255, 255, 150), "speed": 7, "jump": -15,
+     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 80, "block": 3,
+     "desc": "99.9% of all attacks phase through — only 1 in 1000 hits land",
+     "double_jump": True, "mega_unhittable": True},
 ]
 
 POWERUPS = [

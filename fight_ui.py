@@ -191,6 +191,8 @@ CHEAT_CODES = {
     "armor_plated":       "Armor",
     "mirror_shot":        "Deflector",
     "phase_out":          "Unhittable",
+    "long_shot":          "Sniper",
+    "ghost_mode":         "Mega-Unhittable",
     "binary_code":        "<|-\\||>+()",
     "still_alive":        "Death Defyer",
     "friday_night":       "Friday the 13th",
@@ -772,6 +774,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("armor_proj"):      badges.append(("PROJ IMMUNE",   (160,160,180)))
             if detail_ch.get("deflect_proj"):    badges.append(("DEFLECT",       (100,220,255)))
             if detail_ch.get("unhittable"):      badges.append(("60% DODGE",     (240,240,100)))
+            if detail_ch.get("mega_unhittable"): badges.append(("99.9% DODGE",   (255,255,150)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)

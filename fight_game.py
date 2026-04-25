@@ -265,6 +265,8 @@ UNLOCK_CONDITIONS = {
     "Armor":              ("projectiles_blocked",   None,          200,  "Block 200 projectiles"),
     "Deflector":          ("projectiles_blocked",   None,          300,  "Block 300 projectiles"),
     "Unhittable":         ("projectiles_blocked",   None,          500,  "Block 500 projectiles"),
+    "Sniper":             ("starter",               None,            0,  ""),
+    "Mega-Unhittable":    ("projectiles_blocked",   None,       100000,  "Block 100000 projectiles"),
     "<|-\\||>+()":         ("symbol_char_typed",     None,            1,  "???",                                  True),
     "Death Defyer":        ("death_defyer_typed",    None,            1,  "???",                                  True),
     "Friday the 13th":     ("friday13_typed",        None,            1,  "???",                                  True),
