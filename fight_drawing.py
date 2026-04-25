@@ -2656,6 +2656,22 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.circle(surface, (255, 255, 0),
                                (hx + _eox*int(hd*0.35), hy), max(2, int(3*s)))
 
+    elif char_name == "Map Man":
+        # Tan wide-brimmed explorer hat
+        brim_w = int(hd * 2.2)
+        pygame.draw.ellipse(surface, (160, 120, 60),
+                            (hx - brim_w // 2, hy - int(hd * 0.3), brim_w, int(hd * 0.55)))
+        pygame.draw.ellipse(surface, (180, 140, 80),
+                            (hx - hd + int(2*s), hy - hd, (hd - int(2*s)) * 2, int(hd * 1.1)))
+        # Compass rose on chest
+        _cx, _cy = int(shoulder[0] + (waist[0] - shoulder[0]) * 0.45), int(shoulder[1] + (waist[1] - shoulder[1]) * 0.45)
+        _cr = max(4, int(6 * s))
+        pygame.draw.circle(surface, (220, 200, 140), (_cx, _cy), _cr)
+        pygame.draw.circle(surface, (160, 120, 60),  (_cx, _cy), _cr, 1)
+        for _di, (_dx, _dy, _col) in enumerate([(0,-1,(220,40,40)), (0,1,(180,140,80)), (-1,0,(180,140,80)), (1,0,(180,140,80))]):
+            pygame.draw.line(surface, _col, (_cx, _cy),
+                             (_cx + _dx * _cr, _cy + _dy * _cr), max(1, int(s)))
+
     elif char_name == "Mega-Unhittable":
         # Intense phase effect — 4 ghosted outlines with wider spread
         for _ui, _uof in enumerate((-3, -1, 1, 3)):

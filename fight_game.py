@@ -21,7 +21,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             RemoteController, Apple, VenomBean, PlantSpike,
                             ChargedOrb, BubbleShot, PoisonOrb, BlackHole)
 import fight_network as _net
-from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu
+from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag
 
 # ---------------------------------------------------------------------------
 # Unlock system
@@ -265,8 +265,9 @@ UNLOCK_CONDITIONS = {
     "Armor":              ("projectiles_blocked",   None,          200,  "Block 200 projectiles"),
     "Deflector":          ("projectiles_blocked",   None,          300,  "Block 300 projectiles"),
     "Unhittable":         ("projectiles_blocked",   None,          500,  "Block 500 projectiles"),
-    "Sniper":             ("starter",               None,            0,  ""),
+    "Sniper":             ("win_hard_ai",            None,            5,  "Win 5 matches vs Hard AI"),
     "Mega-Unhittable":    ("projectiles_blocked",   None,       100000,  "Block 100000 projectiles"),
+    "Map Man":            ("map_man_unlocked",       None,            1,  "???",                                  True),
     "<|-\\||>+()":         ("symbol_char_typed",     None,            1,  "???",                                  True),
     "Death Defyer":        ("death_defyer_typed",    None,            1,  "???",                                  True),
     "Friday the 13th":     ("friday13_typed",        None,            1,  "???",                                  True),
@@ -340,6 +341,8 @@ def _default_stats():
         "death_defyer_typed":       False,
         # Friday the 13th: typed "13" on an actual Friday the 13th
         "friday13_typed":           False,
+        # Map Man: idled on stage select for 30 seconds
+        "map_man_unlocked":         False,
     }
 
 def load_save():
@@ -481,6 +484,8 @@ def _meets_condition(cond, stats):
         return stats.get("death_defyer_typed", False)
     if kind == "friday13_typed":
         return stats.get("friday13_typed", False)
+    if kind == "map_man_unlocked":
+        return stats.get("map_man_unlocked", False)
     return False
 
 def _unlock_progress(stats):
@@ -1037,6 +1042,24 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             keys = pygame.key.get_pressed()
             p1.update(keys, p2, platforms)
             p2.update(keys, p1, platforms)
+
+            # Map Man: swap to a random stage on kick
+            for _swapper in (p1, p2):
+                if _swapper.pending_stage_swap:
+                    _swapper.pending_stage_swap = False
+                    _new_stages = [i for i in range(len(STAGES)) if i != stage_idx]
+                    if _new_stages:
+                        stage_idx    = random.choice(_new_stages)
+                        stage_data   = STAGES[stage_idx]
+                        platforms    = [Platform(*_p) for _p in stage_data["platforms"]]
+                        springs      = [Spring(*_s)   for _s in stage_data["springs"]]
+                        is_jungle    = stage_data["name"] == "Jungle"
+                        is_computer  = stage_data["name"] == "Computer"
+                        is_underworld = stage_data["name"] == "Underworld"
+                        _is_graveyard = stage_data["name"] == "Graveyard"
+                        jungle_snakes.clear()
+                        computer_bugs.clear()
+                        falling_skulls.clear()
 
             # Spawn balls from shoot_kick
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -3813,6 +3836,9 @@ def main():
                 if _konami_flag[0]:
                     stats["konami_unlocked"] = True
                     _konami_flag[0] = False
+                if _map_man_flag[0]:
+                    stats["map_man_unlocked"] = True
+                    _map_man_flag[0] = False
                 new_unlocks = check_and_unlock(unlocked, stats)
                 if new_unlocks:
                     _save_data(unlocked, stats)
@@ -3901,6 +3927,9 @@ def main():
             if _friday13_flag[0]:
                 stats["friday13_typed"] = True
                 _friday13_flag[0] = False
+            if _map_man_flag[0]:
+                stats["map_man_unlocked"] = True
+                _map_man_flag[0] = False
             new_unlocks = check_and_unlock(unlocked, stats)
             if new_unlocks:
                 _save_data(unlocked, stats)

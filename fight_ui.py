@@ -10,6 +10,8 @@ from fight_drawing import draw_bg, draw_stickman
 
 # Shared flag: set True when player types "42" on the main menu
 _type42_typed = [False]
+# Shared flag: set True when player idles on stage select for 30 seconds
+_map_man_flag = [False]
 
 # ---------------------------------------------------------------------------
 # Secret menu cheat codes
@@ -193,6 +195,7 @@ CHEAT_CODES = {
     "phase_out":          "Unhittable",
     "long_shot":          "Sniper",
     "ghost_mode":         "Mega-Unhittable",
+    "change_the_map":     "Map Man",
     "binary_code":        "<|-\\||>+()",
     "still_alive":        "Death Defyer",
     "friday_night":       "Friday the 13th",
@@ -227,6 +230,8 @@ CHEAT_CODES = {
 
 def stage_select():
     idx = 0
+    _map_man_flag[0] = False
+    _start_ticks = pygame.time.get_ticks()
     while True:
         clock.tick(FPS)
         for event in pygame.event.get():
@@ -236,6 +241,8 @@ def stage_select():
                 if event.key in (pygame.K_LEFT,  pygame.K_a): idx = (idx - 1) % len(STAGES)
                 if event.key in (pygame.K_RIGHT, pygame.K_d): idx = (idx + 1) % len(STAGES)
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_ESCAPE): return idx
+        if not _map_man_flag[0] and pygame.time.get_ticks() - _start_ticks >= 30000:
+            _map_man_flag[0] = True
 
         draw_bg(screen, idx)
         ov = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)

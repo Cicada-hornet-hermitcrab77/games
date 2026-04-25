@@ -177,6 +177,7 @@ class Fighter:
         self.death_defyer_used   = False  # Death Defyer: respawn used this life
         self.pending_bubble_shot     = False  # Windshield Viper: fire bubble this frame
         self.pending_poison_orb      = False  # King Cobra: fire giant poison orb this frame
+        self.pending_stage_swap      = False  # Map Man: swap to a random stage this frame
         self.ability_suppress_timer  = 0      # Inland Taipan: frames of ability suppression remaining
         self._suppressed_abilities   = {}     # Inland Taipan: backed-up ability flags
         self.pending_giant_bug       = False  # Entomologist: spawn giant bug this frame
@@ -706,6 +707,8 @@ class Fighter:
                 if self.char.get("sniper_shot"):
                     self.pending_snipe = True
                     self.kick_cooldown = FPS * 3   # 3-second reload
+                if self.char.get("map_kick"):
+                    self.pending_stage_swap = True
             elif keys[ctrl['jump']]:
                 if self.wall_cling_active:
                     # wall jump: push away from wall and launch upward
@@ -1551,6 +1554,8 @@ class AIFighter(Fighter):
                     if self.char.get("sniper_shot"):
                         self.pending_snipe = True
                         self.kick_cooldown = FPS * 3
+                    if self.char.get("map_kick"):
+                        self.pending_stage_swap = True
             self.ai_attack = None
         elif self.ai_move != 0:
             _ai_spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)

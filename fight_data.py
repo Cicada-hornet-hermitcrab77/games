@@ -735,6 +735,10 @@ CHARACTERS = [
      "punch_dmg": 9, "kick_dmg": 10, "max_hp": 80, "block": 3,
      "desc": "99.9% of all attacks phase through — only 1 in 1000 hits land",
      "double_jump": True, "mega_unhittable": True},
+    {"name": "Map Man", "color": (180, 140, 80), "speed": 5, "jump": -14,
+     "punch_dmg": 8, "kick_dmg": 7, "max_hp": 110, "block": 5,
+     "desc": "Kick instantly swaps to a random new stage",
+     "double_jump": False, "map_kick": True},
 ]
 
 POWERUPS = [
