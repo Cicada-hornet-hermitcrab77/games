@@ -1535,3 +1535,46 @@ class PlantSpike:
         # Side leaf
         pygame.draw.ellipse(surface, (40, 180, 50), (tip_x + 4, tip_y + 10, 18, 9))
 
+
+class MusicNote:
+    """Bard's kick projectile — stuns the opponent on hit."""
+    SPEED  = 10
+    RADIUS = 10
+    DMG    = 5
+
+    def __init__(self, x, y, facing, owner):
+        self.x      = float(x)
+        self.y      = float(y)
+        self.vx     = self.SPEED * facing
+        self.vy     = -1.5           # gentle arc upward
+        self.owner  = owner
+        self.alive  = True
+        self._t     = 0              # wobble timer
+
+    def update(self):
+        self._t += 1
+        self.x += self.vx
+        self.y += self.vy
+        self.vy += 0.12              # light gravity
+        if self.x < 0 or self.x > WIDTH or self.y > GROUND_Y + 20:
+            self.alive = False
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        col  = (220, 80, 255)
+        col2 = (255, 180, 255)
+        # Note head — filled oval
+        pygame.draw.ellipse(surface, col,  (cx - 8, cy - 5, 16, 11))
+        pygame.draw.ellipse(surface, col2, (cx - 5, cy - 3, 10,  7))
+        # Stem
+        sx = cx + 7
+        pygame.draw.line(surface, col, (sx, cy), (sx, cy - 18), 3)
+        # Flag
+        pygame.draw.line(surface, col, (sx, cy - 18), (sx + 10, cy - 12), 2)
+        # Sparkle dots
+        off = self._t % 8
+        for dx, dy in [(-10 + off, -14), (12, -8 - off % 4)]:
+            pygame.draw.circle(surface, col2, (cx + dx, cy + dy), 2)

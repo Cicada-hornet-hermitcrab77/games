@@ -152,6 +152,7 @@ class Fighter:
         self.pending_remote     = False   # Rage Quitter: fire remote controller
         self.pending_apple      = False   # Gravity: drop 20 apples
         self.pending_venom      = False   # Spitting Cobra: shoot a venom bean
+        self.pending_note       = False   # Bard: shoot a music note
         self._paradox_used      = False   # Paradox: HP swap used this life
         self.rainbow_poop_timer = FPS * 4 if char_data.get("rainbow_poop") else 0
         self.pending_rainbow_poop = False  # Rainbow Man: drop a random powerup this frame
@@ -719,7 +720,7 @@ class Fighter:
                 if self.char.get("cleave_kick"):
                     self.kick_cooldown = FPS * 6   # 6-second reload for big cleave
                 if self.char.get("note_kick"):
-                    pass  # effect applied in combat_hit
+                    self.pending_note = True
                 if self.char.get("flash_kick"):
                     # Teleport behind opponent immediately on kick press
                     self.x = max(30.0, min(float(WIDTH - 30), other.x - other.facing * 60))
@@ -1138,9 +1139,6 @@ class Fighter:
                 other._suppress_abilities(FPS * 10)
             if self.char.get("possess_kick") and self.action == 'kick':
                 other.confuse_frames = max(other.confuse_frames, FPS * 4)
-            if self.char.get("note_kick") and self.action == 'kick':
-                if not other.char.get("immune"):
-                    other.hurt_timer = max(other.hurt_timer, 120)   # 2s musical stun
             if other.char.get("heavy"):
                 other.knockback *= 0.40
             if other.char.get("absorb_hit") and dmg > 0:

@@ -514,7 +514,7 @@ def mode_select():
                             survival_players = _oi
                 # Touch device toggles
                 for _ti, _tflag in enumerate([touch_p1_enabled, touch_p2_enabled]):
-                    _tr2 = pygame.Rect(8 + 58 + _ti * 56, HEIGHT - 54, 52, 22)
+                    _tr2 = pygame.Rect(8 + 70 + _ti * 64, HEIGHT - 54, 58, 22)
                     if _tr2.collidepoint(_mp):
                         _tflag[0] = not _tflag[0]
             if event.type == pygame.KEYDOWN:
@@ -620,10 +620,10 @@ def mode_select():
         nav = font_tiny.render("◄ ► to switch mode", True, GRAY)
         screen.blit(nav, (WIDTH//2 - nav.get_width()//2, HEIGHT - 24))
         # Touch device toggles — bottom left
-        _tl = font_tiny.render("Touch [T/Y]:", True, GRAY)
+        _tl = font_tiny.render("Device [T/Y]:", True, GRAY)
         screen.blit(_tl, (8, HEIGHT - 52))
-        for _ti, (_tflag, _tlbl) in enumerate([(touch_p1_enabled, "P1"), (touch_p2_enabled, "P2")]):
-            _tr = pygame.Rect(8 + 58 + _ti * 56, HEIGHT - 54, 52, 22)
+        for _ti, (_tflag, _tlbl) in enumerate([(touch_p1_enabled, "Dev 1"), (touch_p2_enabled, "Dev 2")]):
+            _tr = pygame.Rect(8 + 70 + _ti * 64, HEIGHT - 54, 58, 22)
             _ton = _tflag[0]
             pygame.draw.rect(screen, (40, 140, 60) if _ton else (80, 40, 40), _tr, border_radius=6)
             pygame.draw.rect(screen, (120, 220, 120) if _ton else (180, 80, 80), _tr, 1, border_radius=6)

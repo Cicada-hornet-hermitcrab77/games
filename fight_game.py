@@ -19,7 +19,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
                             FireBall, ThunderBolt, Scroll, TotemPole,
                             RemoteController, Apple, VenomBean, PlantSpike,
-                            ChargedOrb, BubbleShot, PoisonOrb, BlackHole)
+                            ChargedOrb, BubbleShot, PoisonOrb, BlackHole, MusicNote)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, TouchControls, touch_p1_enabled, touch_p2_enabled
 
@@ -793,6 +793,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     remotes      = []   # active RemoteController objects (Rage Quitter)
     apples       = []   # active Apple objects (Gravity)
     venoms       = []   # active VenomBean objects (Spitting Cobra)
+    notes        = []   # active MusicNote objects (Bard)
     balls         = []   # active Projectile objects
     orbs          = []   # active Orb objects (bazooka)
     charged_orbs  = []   # active ChargedOrb objects (Orb Shooter)
@@ -1403,6 +1404,29 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                                 victim.poison_frames = max(victim.poison_frames, 360)
                             vb.hit = True; vb.alive = False
             venoms = [vb for vb in venoms if vb.alive]
+
+            # Spawn and update music notes (Bard)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_note:
+                    shooter.pending_note = False
+                    notes.append(MusicNote(shooter.x + shooter.facing * 30,
+                                           shooter.y - 60, shooter.facing, shooter))
+            for nt in notes:
+                nt.update()
+                if nt.alive:
+                    victim = p2 if nt.owner is p1 else p1
+                    if nt.collides(victim):
+                        if victim.char.get("armor_proj"):
+                            nt.alive = False
+                        elif victim.char.get("deflect_proj"):
+                            nt.vx = -nt.vx; nt.owner = victim
+                        else:
+                            victim.hp = max(0, victim.hp - MusicNote.DMG)
+                            victim.flash_timer = 8
+                            if not victim.char.get("immune"):
+                                victim.hurt_timer = max(victim.hurt_timer, 120)
+                            nt.alive = False
+            notes = [nt for nt in notes if nt.alive]
 
             # Update scrolls and check collisions
             for sc in scrolls:
@@ -2049,6 +2073,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             ap.draw(screen)
         for vb in venoms:
             vb.draw(screen)
+        for nt in notes:
+            nt.draw(screen)
         for h in hooks:
             h.draw(screen)
         for pk in pumpkins:
