@@ -514,7 +514,7 @@ def mode_select():
                             survival_players = _oi
                 # Touch device toggles
                 for _ti, _tflag in enumerate([touch_p1_enabled, touch_p2_enabled]):
-                    _tr2 = pygame.Rect(8 + 70 + _ti * 64, HEIGHT - 54, 58, 22)
+                    _tr2 = pygame.Rect(8 + 70 + _ti * 80, HEIGHT - 54, 74, 22)
                     if _tr2.collidepoint(_mp):
                         _tflag[0] = not _tflag[0]
             if event.type == pygame.KEYDOWN:
@@ -619,15 +619,18 @@ def mode_select():
 
         nav = font_tiny.render("◄ ► to switch mode", True, GRAY)
         screen.blit(nav, (WIDTH//2 - nav.get_width()//2, HEIGHT - 24))
-        # Touch device toggles — bottom left
-        _tl = font_tiny.render("Device [T/Y]:", True, GRAY)
+        # Input mode toggles — bottom left (T = P1, Y = P2)
+        _tl = font_tiny.render("Input [T/Y]:", True, GRAY)
         screen.blit(_tl, (8, HEIGHT - 52))
-        for _ti, (_tflag, _tlbl) in enumerate([(touch_p1_enabled, "Buttons"), (touch_p2_enabled, "Keyboard")]):
-            _tr = pygame.Rect(8 + 70 + _ti * 64, HEIGHT - 54, 58, 22)
+        for _ti, _tflag in enumerate([touch_p1_enabled, touch_p2_enabled]):
+            _tr = pygame.Rect(8 + 70 + _ti * 80, HEIGHT - 54, 74, 22)
             _ton = _tflag[0]
-            pygame.draw.rect(screen, (40, 140, 60) if _ton else (80, 40, 40), _tr, border_radius=6)
-            pygame.draw.rect(screen, (120, 220, 120) if _ton else (180, 80, 80), _tr, 1, border_radius=6)
-            _tt = font_tiny.render(_tlbl + (" ON" if _ton else " OFF"), True, WHITE)
+            _mode_lbl = "Buttons" if _ton else "Keyboard"
+            _bg  = (40, 100, 180) if _ton else (80, 60, 20)
+            _brd = (100, 180, 255) if _ton else (200, 160, 60)
+            pygame.draw.rect(screen, _bg,  _tr, border_radius=6)
+            pygame.draw.rect(screen, _brd, _tr, 1, border_radius=6)
+            _tt = font_tiny.render(_mode_lbl, True, WHITE)
             screen.blit(_tt, (_tr.centerx - _tt.get_width()//2, _tr.centery - _tt.get_height()//2))
         # Touch confirm button
         pygame.draw.rect(screen, (60, 120, 60), _confirm_rect, border_radius=10)
