@@ -513,10 +513,10 @@ def mode_select():
                         if pygame.Rect(_lx2, 405 + _oi * 30, 120, 26).collidepoint(_mp):
                             survival_players = _oi
                 # Touch device toggles
-                for _ti, _tflag in enumerate([touch_p1_enabled, touch_p2_enabled]):
-                    _tr2 = pygame.Rect(8 + 70 + _ti * 80, HEIGHT - 54, 74, 22)
-                    if _tr2.collidepoint(_mp):
-                        _tflag[0] = not _tflag[0]
+                _tr2 = pygame.Rect(8 + 62, HEIGHT - 54, 74, 22)
+                if _tr2.collidepoint(_mp):
+                    touch_p1_enabled[0] = not touch_p1_enabled[0]
+                    touch_p2_enabled[0] = touch_p1_enabled[0]
             if event.type == pygame.KEYDOWN:
                 # Track "42" typed anywhere on main menu
                 if hasattr(event, 'unicode') and event.unicode in ('4', '2'):
@@ -553,8 +553,7 @@ def mode_select():
                         survival_players = 1 - survival_players
                 if event.key == pygame.K_t:
                     touch_p1_enabled[0] = not touch_p1_enabled[0]
-                if event.key == pygame.K_y:
-                    touch_p2_enabled[0] = not touch_p2_enabled[0]
+                    touch_p2_enabled[0] = touch_p1_enabled[0]
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     if selected == 0:
                         return ('1p', difficulties[difficulty_idx])
@@ -619,19 +618,18 @@ def mode_select():
 
         nav = font_tiny.render("◄ ► to switch mode", True, GRAY)
         screen.blit(nav, (WIDTH//2 - nav.get_width()//2, HEIGHT - 24))
-        # Input mode toggles — bottom left (T = P1, Y = P2)
-        _tl = font_tiny.render("Input [T/Y]:", True, GRAY)
+        # Single input mode toggle — bottom left (T to switch)
+        _tl = font_tiny.render("Input [T]:", True, GRAY)
         screen.blit(_tl, (8, HEIGHT - 52))
-        for _ti, _tflag in enumerate([touch_p1_enabled, touch_p2_enabled]):
-            _tr = pygame.Rect(8 + 70 + _ti * 80, HEIGHT - 54, 74, 22)
-            _ton = _tflag[0]
-            _mode_lbl = "Buttons" if _ton else "Keyboard"
-            _bg  = (40, 100, 180) if _ton else (80, 60, 20)
-            _brd = (100, 180, 255) if _ton else (200, 160, 60)
-            pygame.draw.rect(screen, _bg,  _tr, border_radius=6)
-            pygame.draw.rect(screen, _brd, _tr, 1, border_radius=6)
-            _tt = font_tiny.render(_mode_lbl, True, WHITE)
-            screen.blit(_tt, (_tr.centerx - _tt.get_width()//2, _tr.centery - _tt.get_height()//2))
+        _tr = pygame.Rect(8 + 62, HEIGHT - 54, 74, 22)
+        _ton = touch_p1_enabled[0]
+        _mode_lbl = "Buttons" if _ton else "Keyboard"
+        _bg  = (40, 100, 180) if _ton else (80, 60, 20)
+        _brd = (100, 180, 255) if _ton else (200, 160, 60)
+        pygame.draw.rect(screen, _bg,  _tr, border_radius=6)
+        pygame.draw.rect(screen, _brd, _tr, 1, border_radius=6)
+        _tt = font_tiny.render(_mode_lbl, True, WHITE)
+        screen.blit(_tt, (_tr.centerx - _tt.get_width()//2, _tr.centery - _tt.get_height()//2))
         # Touch confirm button
         pygame.draw.rect(screen, (60, 120, 60), _confirm_rect, border_radius=10)
         pygame.draw.rect(screen, (120, 220, 120), _confirm_rect, 2, border_radius=10)
