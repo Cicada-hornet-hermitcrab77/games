@@ -365,6 +365,18 @@ CHEAT_CODES = {
     "crits_only":         "Big Bad Critter Clad",
     "the_answer":         "Life the Universe Everything",
     "cactus_desert":      "Cactus",
+    # 11 new characters
+    "play_notes":         "Bard",
+    "meat_cleaver":       "Butcher",
+    "immovable":          "Stone Cold",
+    "money_money":        "Tycoon",
+    "glass_face":         "Glass Jaw",
+    "drain_life":         "Life Drain",
+    "lance_charge":       "Lancer",
+    "sponge_mode":        "Absorber",
+    "dark_curse":         "Hexer",
+    "double_or_nothing":  "Gambler",
+    "mirror_punch":       "Counter",
 }
 
 # ---------------------------------------------------------------------------
@@ -539,6 +551,10 @@ def mode_select():
                 if selected == 2:   # Survival: toggle 1P/2P
                     if event.key in (pygame.K_UP, pygame.K_w, pygame.K_DOWN, pygame.K_s):
                         survival_players = 1 - survival_players
+                if event.key == pygame.K_t:
+                    touch_p1_enabled[0] = not touch_p1_enabled[0]
+                if event.key == pygame.K_y:
+                    touch_p2_enabled[0] = not touch_p2_enabled[0]
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     if selected == 0:
                         return ('1p', difficulties[difficulty_idx])
@@ -604,7 +620,7 @@ def mode_select():
         nav = font_tiny.render("◄ ► to switch mode", True, GRAY)
         screen.blit(nav, (WIDTH//2 - nav.get_width()//2, HEIGHT - 24))
         # Touch device toggles — bottom left
-        _tl = font_tiny.render("Touch:", True, GRAY)
+        _tl = font_tiny.render("Touch [T/Y]:", True, GRAY)
         screen.blit(_tl, (8, HEIGHT - 52))
         for _ti, (_tflag, _tlbl) in enumerate([(touch_p1_enabled, "P1"), (touch_p2_enabled, "P2")]):
             _tr = pygame.Rect(8 + 58 + _ti * 56, HEIGHT - 54, 52, 22)
@@ -1026,6 +1042,18 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("deflect_proj"):    badges.append(("DEFLECT",       (100,220,255)))
             if detail_ch.get("unhittable"):      badges.append(("60% DODGE",     (240,240,100)))
             if detail_ch.get("mega_unhittable"): badges.append(("99.9% DODGE",   (255,255,150)))
+            # 11 new characters
+            if detail_ch.get("note_kick"):       badges.append(("NOTE KICK",     (180,100,200)))
+            if detail_ch.get("cleave_kick"):     badges.append(("CLEAVE KICK",   (140, 60, 40)))
+            if detail_ch.get("heavy"):           badges.append(("HEAVY",         (120,110,100)))
+            if detail_ch.get("money_hit"):       badges.append(("MONEY HIT",     (220,180,  0)))
+            if detail_ch.get("glass_jaw"):       badges.append(("GLASS JAW",     (200,160,200)))
+            if detail_ch.get("drain_aura"):      badges.append(("DRAIN AURA",    (160, 20, 80)))
+            if detail_ch.get("lance_punch"):     badges.append(("LANCE PUNCH",   (200,160, 60)))
+            if detail_ch.get("absorb_hit"):      badges.append(("ABSORB HIT",    (100,200,160)))
+            if detail_ch.get("hex_kick"):        badges.append(("HEX KICK",      ( 80, 30,120)))
+            if detail_ch.get("gamble_kick"):     badges.append(("GAMBLE KICK",   (100,200, 80)))
+            if detail_ch.get("auto_counter"):    badges.append(("AUTO COUNTER",  (180,100, 60)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)

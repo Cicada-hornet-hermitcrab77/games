@@ -271,6 +271,18 @@ UNLOCK_CONDITIONS = {
     "<|-\\||>+()":         ("symbol_char_typed",     None,            1,  "???",                                  True),
     "Death Defyer":        ("death_defyer_typed",    None,            1,  "???",                                  True),
     "Friday the 13th":     ("friday13_typed",        None,            1,  "???",                                  True),
+    # ── 11 new characters ───────────────────────────────────────────────────
+    "Bard":                ("win_on_stage",   "Circus",          3,  "Win 3 matches on Circus"),
+    "Butcher":             ("win_with",       "Wrestler",        1,  "Win 1 match as Wrestler"),
+    "Stone Cold":          ("win_hard_ai",    None,              6,  "Win 6 matches vs Hard AI"),
+    "Tycoon":              ("matches_played", None,             30,  "Play 30 matches"),
+    "Glass Jaw":           ("clutch_wins",    None,              8,  "Win 8 matches with ≤10 HP"),
+    "Life Drain":          ("survival_kills", None,             35,  "Get 35 kills in survival"),
+    "Lancer":              ("win_on_stage",   "Medieval Castle", 2,  "Win 2 matches on Medieval Castle"),
+    "Absorber":            ("perfect_wins",   None,              5,  "Win 5 matches at full HP"),
+    "Hexer":               ("win_on_stage",   "The Void",        2,  "Win 2 matches on The Void"),
+    "Gambler":             ("matches_played", None,             25,  "Play 25 matches"),
+    "Counter":             ("win_with",       "Bouncer",         2,  "Win 2 matches as Bouncer"),
 }
 
 def _default_stats():
