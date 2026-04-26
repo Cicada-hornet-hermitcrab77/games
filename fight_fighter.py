@@ -191,13 +191,18 @@ class Fighter:
         self.f13_index               = 0      # Friday the 13th: hit counter for damage sequence
         self.curse_frames            = 0      # Hexer: frames of curse applied to this fighter
         self.drain_aura_timer        = FPS * 2 if char_data.get("drain_aura") else 0
+        self.fire_aura_timer         = FPS * 2 if char_data.get("fire_aura")   else 0
         self.money_stacks            = 0      # Tycoon: speed stacks from hits landed
+        if char_data.get("colossus"):
+            self.draw_scale = 2.0
 
     def _reinit_ability_timers(self):
         c = self.char
         if c.get("dementor_heal"):    self.dementor_timer      = FPS * 20
         if c.get("shock_aura"):       self.shock_aura_timer    = FPS * 3
         if c.get("drain_aura"):       self.drain_aura_timer    = FPS * 2
+        if c.get("fire_aura"):        self.fire_aura_timer     = FPS * 2
+        if c.get("colossus"):         self.draw_scale          = 2.0
         self.money_stacks = 0
         if c.get("kitsune_barrage"):  self.kitsune_timer       = FPS * 9
         if c.get("chaos_timer"):      self.chaos_timer         = FPS * 12
@@ -569,6 +574,8 @@ class Fighter:
             self.angle_vel = 0.0
 
         spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
+        if self.char.get("berserk_low") and self.hp < self.max_hp * 0.25:
+            spd *= 2.0
         if self._berserker_active:
             spd *= 1.5
         # Whirlpool momentum: speed scales with consecutive running frames
@@ -978,6 +985,8 @@ class Fighter:
                 dmg = int(dmg * 0.6)
             if self.char.get("glass_jaw") or other.char.get("glass_jaw"):
                 dmg = int(dmg * 1.5)
+            if self.char.get("berserk_low") and self.hp < self.max_hp * 0.25:
+                dmg = int(dmg * 2.0)
             if self.char.get("gamble_kick") and self.action == 'kick':
                 dmg = 0 if random.random() < 0.5 else 65
             if other.curse_frames > 0:
@@ -1151,6 +1160,24 @@ class Fighter:
             if other.char.get("auto_counter") and dmg > 0 and not other.blocking:
                 self.hp = max(0, self.hp - max(1, dmg // 2))
                 self.flash_timer = max(self.flash_timer, 6)
+            if other.char.get("colossus") and dmg > 0:
+                other.draw_scale = max(0.5, other.draw_scale - 0.08)
+            if other.char.get("spike_body") and dmg > 0:
+                self.hp = max(0, self.hp - 8)
+                self.flash_timer = max(self.flash_timer, 6)
+            if other.char.get("anchor_body"):
+                other.knockback = 0
+            if other.char.get("sleep_body") and dmg > 0 and not self.char.get("immune"):
+                if random.random() < 0.20:
+                    self.hurt_timer = max(self.hurt_timer, 90)
+            if self.char.get("stomp_punch") and self.action == 'punch' and dmg > 0:
+                other.vy       = -18
+                other.knockback = 0
+            if self.char.get("twin_strike") and dmg > 0:
+                other.hp = max(0, other.hp - max(1, dmg // 2))
+            if self.char.get("sap_kick") and self.action == 'kick' and dmg > 0:
+                other.max_hp = max(1, other.max_hp - 10)
+                other.hp     = min(other.hp, other.max_hp)
 
     def draw(self, surface):
         _scale = self.draw_scale

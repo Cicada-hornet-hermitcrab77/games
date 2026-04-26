@@ -12,7 +12,7 @@ from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
                            draw_win_screen, draw_active_powerups)
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt,
-                            Spring, SnakeHook, Pumpkin, FallingSkull,
+                            Spring, SnakeHook, Pumpkin, FallingSkull, HazardZone,
                             JungleSnake, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall, Whip, HotPotato,
                             FallingPot, RollingCoin, FallingMerlin,
@@ -283,6 +283,17 @@ UNLOCK_CONDITIONS = {
     "Hexer":               ("win_on_stage",   "The Void",        2,  "Win 2 matches on The Void"),
     "Gambler":             ("matches_played", None,             25,  "Play 25 matches"),
     "Counter":             ("win_with",       "Bouncer",         2,  "Win 2 matches as Bouncer"),
+    # ── 10 new characters ───────────────────────────────────────────────────
+    "Blazer":              ("win_on_stage",   "Volcano",         3,  "Win 3 matches on Volcano"),
+    "Colossus":            ("win_hard_ai",    None,              8,  "Win 8 matches vs Hard AI"),
+    "Stomper":             ("win_with",       "Titan",           3,  "Win 3 matches as Titan"),
+    "Porcupine":           ("win_on_stage",   "Jungle",          4,  "Win 4 matches on Jungle"),
+    "Anchor":              ("win_streak",     None,              5,  "Win 5 matches in a row"),
+    "Sleeper":             ("matches_played", None,             35,  "Play 35 matches"),
+    "Rager":               ("clutch_wins",    None,             10,  "Win 10 matches with ≤10 HP"),
+    "Twin":                ("unique_wins",    None,             10,  "Win with 10 different characters"),
+    "Sapper":              ("survival_kills", None,             45,  "Get 45 kills in survival"),
+    "Mimic":               ("win_with",       "Copycat",         3,  "Win 3 matches as Copycat"),
 }
 
 def _default_stats():
@@ -740,6 +751,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     _copier.char[k] = v
             _copier._reinit_ability_timers()
 
+    # Mimic: copy opponent's speed and max HP at fight start
+    for _mimic, _target in [(p1, p2), (p2, p1)]:
+        if _mimic.char.get("mimic_stats"):
+            _mimic.char = dict(_mimic.char)
+            _mimic.char["speed"] = _target.char["speed"]
+            _mimic.max_hp = _target.char["max_hp"]
+            _mimic.hp     = _mimic.max_hp
+
     if constants.STAGE_VOID:
         # Spawn on the central platform (GROUND_Y-70), not on the (absent) floor
         p1.x = 380.0; p1.y = float(GROUND_Y - 70); p1.on_ground = True
@@ -748,6 +767,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     stage_data = STAGES[stage_idx % len(STAGES)]
     platforms  = [Platform(*p) for p in stage_data["platforms"]] + [ConveyorBelt(*c) for c in stage_data.get("conveyors", [])]
     springs    = [Spring(*s)   for s in stage_data["springs"]]
+    hazards    = [HazardZone(*h) for h in stage_data.get("hazards", [])]
 
     # Apply stage advantage / disadvantage stat modifiers
     matchup = STAGE_MATCHUPS.get(stage_data["name"], {})
@@ -1020,6 +1040,23 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 sp.trigger(p2)
                 for cd in clones:
                     sp.trigger(cd['fighter'])
+
+            # Update hazard zones and apply damage
+            for hz in hazards:
+                hz.update()
+                for fi, fighter in enumerate([p1, p2]):
+                    if not fighter.char.get("immune") and hz.contains(fighter):
+                        cd_attr = 'p1_cd' if fi == 0 else 'p2_cd'
+                        if getattr(hz, cd_attr) == 0:
+                            setattr(hz, cd_attr, HazardZone.TICK)
+                            dmg = 8 if hz.htype == "lava" else 6 if hz.htype == "electric" else 5
+                            fighter.hp = max(0, fighter.hp - dmg)
+                            fighter.flash_timer = max(fighter.flash_timer, 6)
+                            if hz.htype == "lava" and fighter.fire_frames == 0:
+                                fighter.fire_tick = 60
+                                fighter.fire_frames = max(fighter.fire_frames, 120)
+                            if hz.htype == "ice":
+                                fighter.shock_frames = max(fighter.shock_frames, 45)
 
             # Update clones
             new_clones = []
@@ -1682,6 +1719,18 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             victim.hp  = max(0, victim.hp - 1)
                             attacker.hp = min(attacker.max_hp, attacker.hp + 1)
 
+            # Blazer: fire aura burns nearby opponent every 2 seconds
+            for attacker, victim in [(p1, p2), (p2, p1)]:
+                if attacker.char.get("fire_aura") and attacker.hp > 0:
+                    if attacker.fire_aura_timer > 0:
+                        attacker.fire_aura_timer -= 1
+                    elif abs(attacker.x - victim.x) < 80:
+                        attacker.fire_aura_timer = FPS * 2
+                        if not victim.char.get("immune"):
+                            victim.hp = max(0, victim.hp - 6)
+                            if victim.fire_frames == 0: victim.fire_tick = 120
+                            victim.fire_frames = max(victim.fire_frames, 180)
+
             # Volt: auto-shock nearby opponent every 3 seconds
             for attacker, victim in [(p1, p2), (p2, p1)]:
                 if attacker.char.get("shock_aura") and attacker.hp > 0:
@@ -2021,6 +2070,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             plat.draw(screen, stage_idx)
         for sp in springs:
             sp.draw(screen)
+        for hz in hazards:
+            hz.draw(screen)
         for pu in powerups:
             pu.draw(screen)
         for b in balls:

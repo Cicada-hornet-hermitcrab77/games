@@ -784,6 +784,46 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 10, "max_hp": 110, "block": 5,
      "desc": "Auto-counters every hit — reflects 50% of damage back at attacker",
      "double_jump": False, "auto_counter": True},
+    {"name": "Blazer", "color": (220, 90, 20), "speed": 6, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 9, "max_hp": 95, "block": 4,
+     "desc": "Fire aura — burns nearby opponent for 6 damage every 2s",
+     "double_jump": False, "fire_aura": True},
+    {"name": "Colossus", "color": (100, 130, 70), "speed": 2, "jump": -10,
+     "punch_dmg": 16, "kick_dmg": 14, "max_hp": 220, "block": 6,
+     "desc": "Starts at 2x size — shrinks 8% each hit taken (min 50%)",
+     "double_jump": False, "colossus": True},
+    {"name": "Stomper", "color": (60, 70, 180), "speed": 5, "jump": -13,
+     "punch_dmg": 14, "kick_dmg": 8, "max_hp": 110, "block": 5,
+     "desc": "Punch launches opponent straight upward",
+     "double_jump": False, "stomp_punch": True},
+    {"name": "Porcupine", "color": (80, 160, 60), "speed": 4, "jump": -12,
+     "punch_dmg": 8, "kick_dmg": 9, "max_hp": 105, "block": 5,
+     "desc": "Spike body — anyone who hits you takes 8 damage",
+     "double_jump": False, "spike_body": True},
+    {"name": "Anchor", "color": (60, 60, 100), "speed": 2, "jump": -11,
+     "punch_dmg": 11, "kick_dmg": 12, "max_hp": 140, "block": 6,
+     "desc": "Completely immovable — zero knockback from any hit",
+     "double_jump": False, "anchor_body": True},
+    {"name": "Sleeper", "color": (120, 80, 180), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 9, "max_hp": 100, "block": 4,
+     "desc": "20% chance to put attacker to sleep for 1.5s when hit",
+     "double_jump": True, "sleep_body": True},
+    {"name": "Rager", "color": (200, 40, 20), "speed": 5, "jump": -14,
+     "punch_dmg": 9, "kick_dmg": 9, "max_hp": 70, "block": 3,
+     "desc": "Below 25% HP: double speed and double damage",
+     "double_jump": True, "berserk_low": True},
+    {"name": "Twin", "color": (80, 180, 200), "speed": 6, "jump": -13,
+     "punch_dmg": 7, "kick_dmg": 7, "max_hp": 90, "block": 4,
+     "desc": "Each attack hits twice — second hit at 50% damage",
+     "double_jump": False, "twin_strike": True},
+    {"name": "Sapper", "color": (120, 60, 30), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 11, "max_hp": 105, "block": 5,
+     "desc": "Kick permanently reduces opponent's max HP by 10",
+     "double_jump": False, "sap_kick": True},
+    {"name": "Mimic", "color": (150, 150, 160), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 9, "max_hp": 100, "block": 5,
+     "desc": "Copies opponent's speed and max HP at fight start",
+     "double_jump": False, "mimic_stats": True},
 ]
 
 POWERUPS = [
@@ -812,56 +852,68 @@ STAGES = [
         (60,  GROUND_Y-90,  200, 0,   0),
         (640, GROUND_Y-140, 140, 0,   0),
         (310, GROUND_Y-215, 210, 1.5, 140),
+        (430, GROUND_Y-320, 100, 0,   0),
     ], "springs": [
-        (310, -22), (620, -22),
+        (310, -22), (620, -22), (140, -22),
     ], "conveyors": [
         (50,  GROUND_Y, 180, 2.5),
         (650, GROUND_Y, 180, -2.5),
-    ], "portals": [(160, GROUND_Y-160), (700, GROUND_Y-160)]},
+    ], "portals": [(160, GROUND_Y-160), (700, GROUND_Y-160)],
+    "hazards": []},
     # Volcano
     {"name": "Volcano", "platforms": [
         (70,  GROUND_Y-120, 130, 2,   80),
         (630, GROUND_Y-150, 120, -2,  70),
         (395, GROUND_Y-240, 100, 0,   0),
+        (220, GROUND_Y-300, 90,  0,   0),
     ], "springs": [
-        (450, -30),
+        (450, -30), (150, -22),
     ], "conveyors": [
         (80,  GROUND_Y, 200, 3.5),
         (600, GROUND_Y, 200, -3.5),
-    ], "portals": [(140, GROUND_Y-180), (710, GROUND_Y-180)]},
+    ], "portals": [(140, GROUND_Y-180), (710, GROUND_Y-180)],
+    "hazards": [(370, 90, "lava")]},
     # Dojo
     {"name": "Dojo", "platforms": [
         (50,  GROUND_Y-115, 155, 0,   0),
         (695, GROUND_Y-115, 155, 0,   0),
         (355, GROUND_Y-205, 145, 2.5, 100),
+        (175, GROUND_Y-290, 110, 0,   0),
+        (610, GROUND_Y-290, 110, 0,   0),
     ], "springs": [
-        (230, -22), (670, -22),
+        (230, -22), (670, -22), (450, -22),
     ], "conveyors": [
         (200, GROUND_Y, 200, -2.0),
         (500, GROUND_Y, 200,  2.0),
-    ], "portals": [(130, GROUND_Y-170), (730, GROUND_Y-170)]},
+    ], "portals": [(130, GROUND_Y-170), (730, GROUND_Y-170)],
+    "hazards": []},
     # Desert
     {"name": "Desert", "platforms": [
         (80,  GROUND_Y-75,  220, 0,   0),
         (590, GROUND_Y-110, 190, 0,   0),
         (330, GROUND_Y-185, 180, 1,   160),
+        (460, GROUND_Y-275, 100, 0,   0),
     ], "springs": [
         (180, -20), (450, -20), (720, -20),
     ], "conveyors": [
         (50,  GROUND_Y, 260, 1.8),
         (570, GROUND_Y, 260, -1.8),
-    ], "portals": [(150, GROUND_Y-140), (700, GROUND_Y-140)]},
+    ], "portals": [(150, GROUND_Y-140), (700, GROUND_Y-140)],
+    "hazards": [(50, 60, "spike"), (790, 60, "spike")]},
     # Arena
     {"name": "Arena", "platforms": [
         (80,  GROUND_Y-110, 140, 2,   120),
         (620, GROUND_Y-110, 140, -2,  120),
         (350, GROUND_Y-210, 160, 3,   160),
+        (200, GROUND_Y-295, 100, 0,   0),
+        (600, GROUND_Y-295, 100, 0,   0),
     ], "springs": [
         (250, -24), (640, -24),
     ], "conveyors": [
         (50,  GROUND_Y, 350, 3.0),
         (500, GROUND_Y, 350, -3.0),
-    ], "portals": [(160, GROUND_Y-175), (690, GROUND_Y-175)]},
+    ], "portals": [(160, GROUND_Y-175), (690, GROUND_Y-175)],
+    "hazards": [(30, 55, "spike"), (815, 55, "spike")]},
     # Dream Land
     {"name": "Dream Land", "platforms": [
         (55,  GROUND_Y-95,  175, 0,   0),
@@ -881,43 +933,54 @@ STAGES = [
         (680, GROUND_Y-105, 165, 0,   0),
         (270, GROUND_Y-175, 135, 1.5, 110),
         (495, GROUND_Y-175, 135, -1.5,110),
+        (370, GROUND_Y-275, 110, 0,   0),
     ], "springs": [
         (200, -22), (450, -22), (700, -22),
     ], "conveyors": [
         (50,  GROUND_Y, 220, -2.5),
         (620, GROUND_Y, 220,  2.5),
-    ], "portals": [(170, GROUND_Y-165), (690, GROUND_Y-165)]},
+    ], "portals": [(170, GROUND_Y-165), (690, GROUND_Y-165)],
+    "hazards": [(260, 80, "lava"), (560, 80, "lava")]},
     # Space
     {"name": "Space", "platforms": [
         (80,  GROUND_Y-120, 150, 1.5, 110),
         (630, GROUND_Y-120, 150, -1.5,110),
         (355, GROUND_Y-230, 130, 2.5, 100),
+        (200, GROUND_Y-315, 100, 1.8, 80),
+        (600, GROUND_Y-315, 100, -1.8,80),
     ], "springs": [
-        (280, -26), (620, -26),
+        (280, -26), (620, -26), (450, -26),
     ], "conveyors": [
         (60,  GROUND_Y, 200, 2.0),
         (640, GROUND_Y, 200, -2.0),
-    ], "portals": [(155, GROUND_Y-190), (710, GROUND_Y-190)]},
+    ], "portals": [(155, GROUND_Y-190), (710, GROUND_Y-190)],
+    "hazards": [(370, 80, "electric")]},
     # Jungle
     {"name": "Jungle", "platforms": [
         (55,  GROUND_Y-110, 175, 0,   0),
         (670, GROUND_Y-110, 175, 0,   0),
         (340, GROUND_Y-210, 150, 1.2, 120),
+        (175, GROUND_Y-300, 110, 0,   0),
+        (615, GROUND_Y-300, 110, 0,   0),
     ], "springs": [
-        (450, -22),
+        (450, -22), (220, -22), (700, -22),
     ], "conveyors": [
         (50,  GROUND_Y, 240, 2.2),
         (600, GROUND_Y, 240, -2.2),
-    ], "portals": [(140, GROUND_Y-160), (720, GROUND_Y-160)]},
+    ], "portals": [(140, GROUND_Y-160), (720, GROUND_Y-160)],
+    "hazards": [(390, 70, "spike")]},
     # Computer
     {"name": "Computer", "platforms": [
         (60,  GROUND_Y-105, 160, 0,   0),
         (680, GROUND_Y-105, 160, 0,   0),
         (330, GROUND_Y-200, 140, 1.5, 120),
-    ], "springs": [], "conveyors": [
+        (195, GROUND_Y-285, 110, 0,   0),
+        (590, GROUND_Y-285, 110, 0,   0),
+    ], "springs": [(450, -22)], "conveyors": [
         (50,  GROUND_Y, 200, 2.8),
         (640, GROUND_Y, 200, -2.8),
-    ], "portals": [(160, GROUND_Y-170), (700, GROUND_Y-170)]},
+    ], "portals": [(160, GROUND_Y-170), (700, GROUND_Y-170)],
+    "hazards": [(50, 70, "electric"), (780, 70, "electric")]},
     # Ice Cave
     {"name": "Ice Cave", "platforms": [
         (50,  GROUND_Y-100, 180, 0,   0),
@@ -958,23 +1021,28 @@ STAGES = [
         (680, GROUND_Y-110, 165, 0,   0),
         (310, GROUND_Y-200, 145, 1.5, 120),
         (460, GROUND_Y-285, 110, 0,   0),
+        (175, GROUND_Y-285, 100, 0,   0),
     ], "springs": [
-        (350, -22), (600, -22),
+        (350, -22), (600, -22), (130, -22),
     ], "conveyors": [
         (70,  GROUND_Y, 200, 1.8),
         (620, GROUND_Y, 200, -1.8),
-    ], "portals": [(145, GROUND_Y-170), (715, GROUND_Y-170)]},
+    ], "portals": [(145, GROUND_Y-170), (715, GROUND_Y-170)],
+    "hazards": [(100, 60, "spike"), (740, 60, "spike")]},
     # Circus
     {"name": "Circus", "platforms": [
         (60,  GROUND_Y-100, 160, 2.0, 130),
         (670, GROUND_Y-140, 150, -2.0,130),
         (345, GROUND_Y-220, 170, 0,   0),
+        (190, GROUND_Y-295, 100, 1.5, 90),
+        (610, GROUND_Y-295, 100, -1.5,90),
     ], "springs": [
         (200, -22), (450, -22), (720, -22),
     ], "conveyors": [
         (55,  GROUND_Y, 240, 3.0),
         (590, GROUND_Y, 240, -3.0),
-    ], "portals": [(165, GROUND_Y-175), (695, GROUND_Y-175)]},
+    ], "portals": [(165, GROUND_Y-175), (695, GROUND_Y-175)],
+    "hazards": []},
     # The Void
     {"name": "The Void", "platforms": [
         (310, GROUND_Y-70,  280, 0,   0),    # large central platform (spawn zone)
@@ -985,41 +1053,50 @@ STAGES = [
         (380, GROUND_Y-360, 120, 0,   0),    # top centre
     ], "springs": [
         (430, -22), (580, -22),
-    ], "conveyors": [], "portals": [(160, GROUND_Y-230), (700, GROUND_Y-230)]},
+    ], "conveyors": [], "portals": [(160, GROUND_Y-230), (700, GROUND_Y-230)],
+    "hazards": [(190, 70, "electric"), (640, 70, "electric")]},
     # Underwater
     {"name": "Underwater", "platforms": [
         (60,  GROUND_Y-95,  175, 0.8, 100),
         (660, GROUND_Y-130, 165, -0.8,100),
         (330, GROUND_Y-210, 150, 1.2, 120),
+        (180, GROUND_Y-295, 110, 0,   0),
+        (610, GROUND_Y-295, 110, 0,   0),
     ], "springs": [
-        (300, -22), (600, -22),
+        (300, -22), (600, -22), (450, -22),
     ], "conveyors": [
         (60,  GROUND_Y, 210, 1.5),
         (620, GROUND_Y, 210, -1.5),
-    ], "portals": [(155, GROUND_Y-160), (705, GROUND_Y-185)]},
+    ], "portals": [(155, GROUND_Y-160), (705, GROUND_Y-185)],
+    "hazards": []},
     # Arctic Tundra
     {"name": "Arctic Tundra", "platforms": [
         (55,  GROUND_Y-100, 180, 0,   0),
         (665, GROUND_Y-130, 160, 0,   0),
         (335, GROUND_Y-220, 160, 0,   0),
+        (175, GROUND_Y-305, 110, 0,   0),
+        (615, GROUND_Y-305, 110, 0,   0),
     ], "springs": [
-        (220, -22), (680, -22),
+        (220, -22), (680, -22), (450, -22),
     ], "conveyors": [
         (50,  GROUND_Y, 320, 5.0),
         (530, GROUND_Y, 320, -5.0),
-    ], "portals": [(145, GROUND_Y-165), (720, GROUND_Y-165)]},
+    ], "portals": [(145, GROUND_Y-165), (720, GROUND_Y-165)],
+    "hazards": [(370, 80, "ice")]},
     # Haunted House
     {"name": "Haunted House", "platforms": [
         (60,  GROUND_Y-110, 160, 0,   0),
         (680, GROUND_Y-110, 160, 0,   0),
         (320, GROUND_Y-215, 150, 1.2, 110),
         (150, GROUND_Y-300, 120, 0,   0),
+        (630, GROUND_Y-300, 110, 0,   0),
     ], "springs": [
-        (390, -22),
+        (390, -22), (220, -22), (700, -22),
     ], "conveyors": [
         (60,  GROUND_Y, 200, -1.8),
         (640, GROUND_Y, 200,  1.8),
-    ], "portals": [(155, GROUND_Y-175), (710, GROUND_Y-175)]},
+    ], "portals": [(155, GROUND_Y-175), (710, GROUND_Y-175)],
+    "hazards": [(360, 80, "spike")]},
     # Volcano Core
     {"name": "Volcano Core", "platforms": [
         (55,  GROUND_Y-90,  170, 1.5, 100),
@@ -1028,11 +1105,12 @@ STAGES = [
         (200, GROUND_Y-295, 110, 2.0, 90),
         (590, GROUND_Y-295, 110, -2.0,90),
     ], "springs": [
-        (440, -22),
+        (440, -22), (280, -22), (620, -22),
     ], "conveyors": [
         (60,  GROUND_Y, 220, 3.2),
         (620, GROUND_Y, 220, -3.2),
-    ], "portals": [(160, GROUND_Y-210), (700, GROUND_Y-210)]},
+    ], "portals": [(160, GROUND_Y-210), (700, GROUND_Y-210)],
+    "hazards": [(90, 80, "lava"), (350, 70, "lava"), (730, 80, "lava")]},
     # Sky Island
     {"name": "Sky Island", "platforms": [
         (80,  GROUND_Y-150, 160, 0,   0),
@@ -1052,18 +1130,24 @@ STAGES = [
         (680, GROUND_Y-130, 155, 0,   0),
         (330, GROUND_Y-210, 145, 1.0, 100),
         (460, GROUND_Y-295, 115, 0,   0),
+        (185, GROUND_Y-295, 100, 0,   0),
     ], "springs": [
-        (300, -22), (620, -22),
+        (300, -22), (620, -22), (450, -22),
     ], "conveyors": [
         (55,  GROUND_Y, 210, -2.0),
         (635, GROUND_Y, 210,  2.0),
-    ], "portals": [(150, GROUND_Y-165), (715, GROUND_Y-165)]},
+    ], "portals": [(150, GROUND_Y-165), (715, GROUND_Y-165)],
+    "hazards": [(165, 60, "spike"), (675, 60, "spike")]},
     # The Nether
     {"name": "The Nether", "platforms": [
         (80,  GROUND_Y-120, 180, 0,   0),
         (640, GROUND_Y-120, 180, 0,   0),
         (340, GROUND_Y-210, 160, 0,   0),
-    ], "springs": [], "conveyors": [], "portals": [(175, GROUND_Y-180), (700, GROUND_Y-180)]},
+        (190, GROUND_Y-300, 110, 0,   0),
+        (600, GROUND_Y-300, 110, 0,   0),
+    ], "springs": [(450, -22)], "conveyors": [],
+    "portals": [(175, GROUND_Y-180), (700, GROUND_Y-180)],
+    "hazards": [(270, 80, "lava"), (550, 80, "lava")]},
 ]
 
 # Stage-specific character advantages and disadvantages.

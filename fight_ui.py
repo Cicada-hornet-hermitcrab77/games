@@ -379,6 +379,16 @@ CHEAT_CODES = {
     "dark_curse":         "Hexer",
     "double_or_nothing":  "Gambler",
     "mirror_punch":       "Counter",
+    "fire_ring":          "Blazer",
+    "big_guy":            "Colossus",
+    "ground_pound":       "Stomper",
+    "quill_spike":        "Porcupine",
+    "drop_anchor":        "Anchor",
+    "night_night":        "Sleeper",
+    "rage_mode":          "Rager",
+    "double_tap":         "Twin",
+    "drain_away":         "Sapper",
+    "copy_stats":         "Mimic",
 }
 
 # ---------------------------------------------------------------------------
@@ -1057,6 +1067,16 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("hex_kick"):        badges.append(("HEX KICK",      ( 80, 30,120)))
             if detail_ch.get("gamble_kick"):     badges.append(("GAMBLE KICK",   (100,200, 80)))
             if detail_ch.get("auto_counter"):    badges.append(("AUTO COUNTER",  (180,100, 60)))
+            if detail_ch.get("fire_aura"):       badges.append(("FIRE AURA",     (220, 90, 20)))
+            if detail_ch.get("colossus"):        badges.append(("COLOSSUS",      (100,130, 70)))
+            if detail_ch.get("stomp_punch"):     badges.append(("STOMP PUNCH",   ( 60, 70,180)))
+            if detail_ch.get("spike_body"):      badges.append(("SPIKE BODY",    ( 80,160, 60)))
+            if detail_ch.get("anchor_body"):     badges.append(("ANCHOR",        ( 60, 60,100)))
+            if detail_ch.get("sleep_body"):      badges.append(("SLEEP AURA",    (120, 80,180)))
+            if detail_ch.get("berserk_low"):     badges.append(("BERSERK MODE",  (200, 40, 20)))
+            if detail_ch.get("twin_strike"):     badges.append(("TWIN STRIKE",   ( 80,180,200)))
+            if detail_ch.get("sap_kick"):        badges.append(("SAP KICK",      (120, 60, 30)))
+            if detail_ch.get("mimic_stats"):     badges.append(("MIMIC STATS",   (150,150,160)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)

@@ -624,3 +624,60 @@ class TimedPlatform(DrawnPlatform):
         # Countdown bar beneath
         bar_w = int(self.w * frac)
         pygame.draw.rect(surface, (255, 255, 100), (rx, ry + self.H, bar_w, 3))
+
+
+# ---------------------------------------------------------------------------
+# HazardZone  (ground hazard — damages players standing on it)
+# ---------------------------------------------------------------------------
+
+class HazardZone:
+    """Spike, lava, electric, or ice zone on the ground. Damages on contact."""
+    TICK = 30   # damage every 30 frames
+
+    _STYLES = {
+        "spike":    ((140, 30, 30),  (220, 60,  60)),
+        "lava":     ((180, 60,  0),  (255, 140, 20)),
+        "electric": (( 30, 30, 80),  (200, 200, 60)),
+        "ice":      (( 60,140,200),  (180, 230,255)),
+    }
+
+    def __init__(self, x, w, htype="spike"):
+        self.x      = float(x)
+        self.w      = w
+        self.htype  = htype
+        self._t     = 0
+        self.p1_cd  = 0
+        self.p2_cd  = 0
+
+    def update(self):
+        self._t = (self._t + 1) % 60
+        if self.p1_cd > 0: self.p1_cd -= 1
+        if self.p2_cd > 0: self.p2_cd -= 1
+
+    def contains(self, fighter):
+        return (fighter.on_ground and
+                self.x <= fighter.x <= self.x + self.w)
+
+    def draw(self, surface):
+        col1, col2 = self._STYLES.get(self.htype, self._STYLES["spike"])
+        y = GROUND_Y - 12
+        pygame.draw.rect(surface, col1, (int(self.x), y, self.w, 12))
+        if self.htype == "spike":
+            n = self.w // 10
+            for i in range(n):
+                sx = int(self.x) + i * 10 + 5
+                pygame.draw.polygon(surface, col2,
+                    [(sx-4, y+12), (sx+4, y+12), (sx, y-4)])
+        elif self.htype == "lava":
+            t = self._t * 0.2
+            for i in range(0, self.w, 9):
+                fh = int(5 + 3 * math.sin(t + i * 0.35))
+                pygame.draw.ellipse(surface, col2,
+                    (int(self.x)+i, y - fh, 8, fh+4))
+        elif self.htype == "electric":
+            for i in range(0, self.w, 10):
+                if (self._t + i // 10) % 4 < 2:
+                    pygame.draw.line(surface, col2,
+                        (int(self.x)+i+4, y), (int(self.x)+i+1, y-8), 2)
+        elif self.htype == "ice":
+            pygame.draw.rect(surface, col2, (int(self.x), y, self.w, 4))
