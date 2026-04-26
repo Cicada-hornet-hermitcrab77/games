@@ -622,7 +622,7 @@ def mode_select():
         # Touch device toggles — bottom left
         _tl = font_tiny.render("Device [T/Y]:", True, GRAY)
         screen.blit(_tl, (8, HEIGHT - 52))
-        for _ti, (_tflag, _tlbl) in enumerate([(touch_p1_enabled, "Dev 1"), (touch_p2_enabled, "Dev 2")]):
+        for _ti, (_tflag, _tlbl) in enumerate([(touch_p1_enabled, "Buttons"), (touch_p2_enabled, "Keyboard")]):
             _tr = pygame.Rect(8 + 70 + _ti * 64, HEIGHT - 54, 58, 22)
             _ton = _tflag[0]
             pygame.draw.rect(screen, (40, 140, 60) if _ton else (80, 40, 40), _tr, border_radius=6)
