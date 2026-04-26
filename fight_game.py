@@ -746,6 +746,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                      "snake", "screentime", "chicken_banana", "cloned", "shapeshifter"}
     for _copier, _source in [(p1, p2), (p2, p1)]:
         if _copier.char.get("copycat"):
+            _copier.char = dict(_copier.char)  # don't mutate the shared CHARACTERS entry
             for k, v in _source.char.items():
                 if k not in _COPY_EXCLUDE and v:
                     _copier.char[k] = v
