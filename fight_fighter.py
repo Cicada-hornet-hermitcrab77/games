@@ -188,11 +188,16 @@ class Fighter:
         self.pending_widow_bugs      = False  # Black Widow: spawn wall bugs this frame
         self.forcefield_timer        = FPS * 20 if char_data.get("auto_forcefield") else 0
         self.f13_index               = 0      # Friday the 13th: hit counter for damage sequence
+        self.curse_frames            = 0      # Hexer: frames of curse applied to this fighter
+        self.drain_aura_timer        = FPS * 2 if char_data.get("drain_aura") else 0
+        self.money_stacks            = 0      # Tycoon: speed stacks from hits landed
 
     def _reinit_ability_timers(self):
         c = self.char
         if c.get("dementor_heal"):    self.dementor_timer      = FPS * 20
         if c.get("shock_aura"):       self.shock_aura_timer    = FPS * 3
+        if c.get("drain_aura"):       self.drain_aura_timer    = FPS * 2
+        self.money_stacks = 0
         if c.get("kitsune_barrage"):  self.kitsune_timer       = FPS * 9
         if c.get("chaos_timer"):      self.chaos_timer         = FPS * 12
         if c.get("time_freeze"):      self.time_freeze_timer   = FPS * 18
@@ -329,6 +334,8 @@ class Fighter:
             self.confuse_frames -= 1
         if self.hypno_frames > 0:
             self.hypno_frames -= 1
+        if self.curse_frames > 0:
+            self.curse_frames -= 1
         if self.char.get("shade"):
             self.stealth_frames = 0 if (self.action in ('punch', 'kick') and self.attacking) else 999
         elif self.stealth_frames > 0:
@@ -709,6 +716,14 @@ class Fighter:
                     self.kick_cooldown = FPS * 3   # 3-second reload
                 if self.char.get("map_kick"):
                     self.pending_stage_swap = True
+                if self.char.get("cleave_kick"):
+                    self.kick_cooldown = FPS * 6   # 6-second reload for big cleave
+                if self.char.get("note_kick"):
+                    pass  # effect applied in combat_hit
+                if self.char.get("flash_kick"):
+                    # Teleport behind opponent immediately on kick press
+                    self.x = max(30.0, min(float(WIDTH - 30), other.x - other.facing * 60))
+                    self.facing = other.facing
             elif keys[ctrl['jump']]:
                 if self.wall_cling_active:
                     # wall jump: push away from wall and launch upward
@@ -742,9 +757,9 @@ class Fighter:
                     self.action_t = self.walk_t
                 if self.char.get("momentum"):
                     self.run_streak = min(240, self.run_streak + 1)
-                if self.char.get("smoke_trail") and random.random() < 0.5:
-                    self.smoke_particles.append([self.x + random.randint(-8, 8),
-                                                 self.y - 40 + random.randint(-15, 15), 42, 42])
+                if self.char.get("smoke_trail") and random.random() < 0.85:
+                    self.smoke_particles.append([self.x + random.randint(-10, 10),
+                                                 self.y - 50 + random.randint(-20, 20), 70, 70])
             elif keys[_rk]:
                 # Double-tap right = dash right
                 if not self._prev_right and self.dash_cd == 0 and self.dash_frames == 0:
@@ -763,9 +778,9 @@ class Fighter:
                     self.action_t = self.walk_t
                 if self.char.get("momentum"):
                     self.run_streak = min(240, self.run_streak + 1)
-                if self.char.get("smoke_trail") and random.random() < 0.5:
-                    self.smoke_particles.append([self.x + random.randint(-8, 8),
-                                                 self.y - 40 + random.randint(-15, 15), 42, 42])
+                if self.char.get("smoke_trail") and random.random() < 0.85:
+                    self.smoke_particles.append([self.x + random.randint(-10, 10),
+                                                 self.y - 50 + random.randint(-20, 20), 70, 70])
             else:
                 if self.on_ground and not self.attacking:
                     self.action = 'idle'
@@ -889,6 +904,8 @@ class Fighter:
         hit_r  = 58 * other.draw_scale
         if self.char.get("wide_punch") and self.action == 'punch':
             hit_r *= 2.2
+        if self.char.get("lance_punch") and self.action == 'punch':
+            hit_pos = (hit_pos[0] + self.facing * 70, hit_pos[1])
         dist = math.hypot(hit_pos[0] - other.x, hit_pos[1] - hit_cy)
         if dist < hit_r:
             # Godslayer one-shot fires before normal damage calc
@@ -958,6 +975,12 @@ class Fighter:
                 self.overdrive_charge = 0
             if other.char.get("stone_skin"):
                 dmg = int(dmg * 0.6)
+            if self.char.get("glass_jaw") or other.char.get("glass_jaw"):
+                dmg = int(dmg * 1.5)
+            if self.char.get("gamble_kick") and self.action == 'kick':
+                dmg = 0 if random.random() < 0.5 else 65
+            if other.curse_frames > 0:
+                dmg = int(dmg * 1.35)
             # Big Bad Critter Clad: only critical punch hits deal full damage; others get ~20%
             if other.char.get("crit_only"):
                 if self.action == 'punch' and not self.is_crit:
@@ -1115,6 +1138,21 @@ class Fighter:
                 other._suppress_abilities(FPS * 10)
             if self.char.get("possess_kick") and self.action == 'kick':
                 other.confuse_frames = max(other.confuse_frames, FPS * 4)
+            if self.char.get("note_kick") and self.action == 'kick':
+                if not other.char.get("immune"):
+                    other.hurt_timer = max(other.hurt_timer, 120)   # 2s musical stun
+            if other.char.get("heavy"):
+                other.knockback *= 0.40
+            if other.char.get("absorb_hit") and dmg > 0:
+                other.hp = min(other.max_hp, other.hp + max(1, dmg // 3))
+            if self.char.get("money_hit") and dmg > 0:
+                self.speed_boost = min(self.speed_boost + 0.25, 3.0)
+            if self.char.get("hex_kick") and self.action == 'kick':
+                if not other.char.get("immune"):
+                    other.curse_frames = max(other.curse_frames, FPS * 5)
+            if other.char.get("auto_counter") and dmg > 0 and not other.blocking:
+                self.hp = max(0, self.hp - max(1, dmg // 2))
+                self.flash_timer = max(self.flash_timer, 6)
 
     def draw(self, surface):
         _scale = self.draw_scale
@@ -1136,10 +1174,13 @@ class Fighter:
 
         # Shadowfax smoke trail — drawn behind everything
         for sp in self.smoke_particles:
-            frac = sp[2] / max(1, sp[3])
-            gray = int(55 + 130 * frac)
-            r    = max(2, int(3 + 9 * frac))
-            pygame.draw.circle(surface, (gray, gray, min(255, gray + 25)), (int(sp[0]), int(sp[1])), r)
+            frac  = sp[2] / max(1, sp[3])
+            gray  = int(30 + 80 * frac)      # darker range: 30–110
+            r     = max(3, int(8 + 18 * frac))  # bigger: 8–26
+            alpha = int(180 * frac)
+            ssurf = pygame.Surface((r*2+2, r*2+2), pygame.SRCALPHA)
+            pygame.draw.circle(ssurf, (gray, gray, gray + 15, alpha), (r+1, r+1), r)
+            surface.blit(ssurf, (int(sp[0]) - r - 1, int(sp[1]) - r - 1))
 
         # Speedster: draw afterimage trail before main body
         if self.char.get("speedster"):

@@ -21,7 +21,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             RemoteController, Apple, VenomBean, PlantSpike,
                             ChargedOrb, BubbleShot, PoisonOrb, BlackHole)
 import fight_network as _net
-from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, TouchControls
+from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, TouchControls, touch_p1_enabled, touch_p2_enabled
 
 # ---------------------------------------------------------------------------
 # Unlock system
@@ -352,6 +352,10 @@ def load_save():
             data = json.load(f)
         s     = set(data.get("unlocked", []))
         s.update(_DEFAULT_UNLOCK)
+        # Characters with no unlock condition are always available
+        for _ch in CHARACTERS:
+            if _ch["name"] not in UNLOCK_CONDITIONS:
+                s.add(_ch["name"])
         stats = _default_stats()
         stats.update(data.get("stats", {}))
         # Seed evaluated_chars on first load so existing characters can still unlock normally.
@@ -360,7 +364,11 @@ def load_save():
             stats["evaluated_chars"] = [ch["name"] for ch in CHARACTERS if ch["name"] in UNLOCK_CONDITIONS]
         return s, stats
     except Exception:
-        return set(_DEFAULT_UNLOCK), _default_stats()
+        s = set(_DEFAULT_UNLOCK)
+        for _ch in CHARACTERS:
+            if _ch["name"] not in UNLOCK_CONDITIONS:
+                s.add(_ch["name"])
+        return s, _default_stats()
 
 def _save_data(unlocked, stats):
     with open(_UNLOCK_FILE, 'w') as f:
@@ -706,7 +714,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     else:
         p2 = Fighter(700, CHARACTERS[p2_idx], -1, P2_CTRL)
 
-    _touch = TouchControls(P1_CTRL)
+    _touch  = TouchControls(P1_CTRL, player=1, two_player=not vs_ai) if touch_p1_enabled[0] else None
+    _touch2 = TouchControls(P2_CTRL, player=2, two_player=True) if (not vs_ai and touch_p2_enabled[0]) else None
 
     # Copycat: copy opponent's ability flags at fight start
     _COPY_EXCLUDE = {"name", "color", "speed", "jump", "punch_dmg", "kick_dmg",
@@ -885,7 +894,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             p1_ever_below_max = True
 
         for event in pygame.event.get():
-            _touch.handle_event(event)
+            if _touch: _touch.handle_event(event)
+            if _touch2: _touch2.handle_event(event)
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
@@ -1042,7 +1052,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         victim.flash_timer = 4
                         shooter.laser_hit_cd = 15  # damage tick every 15 frames
 
-            keys = _touch.inject(pygame.key.get_pressed())
+            keys = _touch.inject(pygame.key.get_pressed()) if _touch else pygame.key.get_pressed()
+            if _touch2: keys = _touch2.inject(keys)
             p1.update(keys, p2, platforms)
             p2.update(keys, p1, platforms)
 
@@ -1623,6 +1634,17 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             victim.flash_timer = 8
                             snake.snake_contact_cd = 60
                             break
+
+            # Life Drain: passive HP drain from nearby opponent every 2 seconds
+            for attacker, victim in [(p1, p2), (p2, p1)]:
+                if attacker.char.get("drain_aura") and attacker.hp > 0:
+                    if attacker.drain_aura_timer > 0:
+                        attacker.drain_aura_timer -= 1
+                    elif abs(attacker.x - victim.x) < 130:
+                        attacker.drain_aura_timer = FPS * 2
+                        if not victim.char.get("immune"):
+                            victim.hp  = max(0, victim.hp - 1)
+                            attacker.hp = min(attacker.max_hp, attacker.hp + 1)
 
             # Volt: auto-shock nearby opponent every 3 seconds
             for attacker, victim in [(p1, p2), (p2, p1)]:
@@ -2216,7 +2238,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             draw_win_screen(screen, winner, p1, p2, vs_ai=vs_ai)
 
         if not game_over:
-            _touch.draw(screen)
+            if _touch:  _touch.draw(screen)
+            if _touch2: _touch2.draw(screen)
 
         pygame.display.flip()
 

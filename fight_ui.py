@@ -12,19 +12,38 @@ from fight_drawing import draw_bg, draw_stickman
 _type42_typed = [False]
 # Shared flag: set True when player idles on stage select for 30 seconds
 _map_man_flag = [False]
+# Touch-control device flags: which players use on-screen buttons (default: both)
+touch_p1_enabled = [True]
+touch_p2_enabled = [True]
 
 # ---------------------------------------------------------------------------
 # TouchControls — on-screen buttons for touch / no-keyboard play
 # ---------------------------------------------------------------------------
 
+class _KeysProxy:
+    """Wraps pygame's ScancodeWrapper so touch-injected keycodes work alongside
+    large SDL arrow-key constants (K_LEFT = 1073741904 etc.) without converting
+    to a plain list that would be out-of-bounds."""
+    __slots__ = ('_real', '_overrides')
+
+    def __init__(self, real_keys, overrides):
+        self._real      = real_keys
+        self._overrides = overrides
+
+    def __getitem__(self, key):
+        v = self._overrides.get(key)
+        return v if v is not None else self._real[key]
+
+
 class TouchControls:
-    """7-button on-screen overlay for P1. Supports multi-touch via FINGER events
-    and single-touch mouse fallback."""
+    """7-button on-screen overlay. Supports multi-touch via FINGER events
+    and single-touch mouse fallback. player=1 or 2; two_player reshuffles P1
+    attacks inward so P2 controls fit on the right side."""
 
     _BTN_R = 28   # button radius in pixels
 
-    # (action, cx, cy)
-    _LAYOUT = [
+    # Single-player P1 layout (attacks on far right)
+    _LAYOUT_1P = [
         ('jump',  90, 445),
         ('left',  42, 490),
         ('right', 138, 490),
@@ -32,6 +51,26 @@ class TouchControls:
         ('punch', 755, 458),
         ('kick',  820, 458),
         ('block', 787, 515),
+    ]
+    # 2-player P1 layout (attacks moved to center-left)
+    _LAYOUT_2P_P1 = [
+        ('jump',  80, 445),
+        ('left',  35, 490),
+        ('right', 125, 490),
+        ('duck',  80, 530),
+        ('punch', 235, 462),
+        ('kick',  300, 462),
+        ('block', 267, 510),
+    ]
+    # 2-player P2 layout (attacks center-right, movement far right)
+    _LAYOUT_2P_P2 = [
+        ('punch', 600, 462),
+        ('kick',  665, 462),
+        ('block', 632, 510),
+        ('jump',  820, 445),
+        ('left',  775, 490),
+        ('right', 865, 490),
+        ('duck',  820, 530),
     ]
 
     _LABELS = {'left': '<', 'right': '>', 'jump': '^', 'duck': 'v',
@@ -43,16 +82,22 @@ class TouchControls:
         'block': (120, 60, 180),
     }
 
-    def __init__(self, ctrl):
-        self.ctrl = ctrl                # P1_CTRL dict (key_name -> pygame keycode)
-        self._finger = {}               # finger_id -> action_name or None
-        self._mouse_held = None         # action held by mouse
-        self.held = set()               # currently held action names
+    def __init__(self, ctrl, player=1, two_player=False):
+        self.ctrl = ctrl
+        if two_player and player == 2:
+            self._layout = self._LAYOUT_2P_P2
+        elif two_player:
+            self._layout = self._LAYOUT_2P_P1
+        else:
+            self._layout = self._LAYOUT_1P
+        self._finger     = {}
+        self._mouse_held = None
+        self.held        = set()
 
     # ── hit-test ──────────────────────────────────────────────────────────────
     def _hit(self, x, y):
         r2 = self._BTN_R ** 2
-        for name, cx, cy in self._LAYOUT:
+        for name, cx, cy in self._layout:
             if (x - cx) ** 2 + (y - cy) ** 2 <= r2:
                 return name
         return None
@@ -87,17 +132,15 @@ class TouchControls:
 
     # ── inject touch state into a real keys snapshot ──────────────────────────
     def inject(self, real_keys):
-        keys = list(real_keys)
-        for action in self.held:
-            kc = self.ctrl.get(action)
-            if kc is not None and kc < len(keys):
-                keys[kc] = 1
-        return keys
+        if not self.held:
+            return real_keys
+        overrides = {self.ctrl[a]: True for a in self.held if a in self.ctrl}
+        return _KeysProxy(real_keys, overrides)
 
     # ── draw buttons on surface ───────────────────────────────────────────────
     def draw(self, surface):
         r = self._BTN_R
-        for name, cx, cy in self._LAYOUT:
+        for name, cx, cy in self._layout:
             pressed = name in self.held
             base = self._COLORS.get(name, (100, 100, 100))
             fill = tuple(min(255, c + 60) for c in base) if pressed else base
@@ -457,6 +500,11 @@ def mode_select():
                     for _oi in range(2):
                         if pygame.Rect(_lx2, 405 + _oi * 30, 120, 26).collidepoint(_mp):
                             survival_players = _oi
+                # Touch device toggles
+                for _ti, _tflag in enumerate([touch_p1_enabled, touch_p2_enabled]):
+                    _tr2 = pygame.Rect(8 + 58 + _ti * 56, HEIGHT - 54, 52, 22)
+                    if _tr2.collidepoint(_mp):
+                        _tflag[0] = not _tflag[0]
             if event.type == pygame.KEYDOWN:
                 # Track "42" typed anywhere on main menu
                 if hasattr(event, 'unicode') and event.unicode in ('4', '2'):
@@ -555,6 +603,16 @@ def mode_select():
 
         nav = font_tiny.render("◄ ► to switch mode", True, GRAY)
         screen.blit(nav, (WIDTH//2 - nav.get_width()//2, HEIGHT - 24))
+        # Touch device toggles — bottom left
+        _tl = font_tiny.render("Touch:", True, GRAY)
+        screen.blit(_tl, (8, HEIGHT - 52))
+        for _ti, (_tflag, _tlbl) in enumerate([(touch_p1_enabled, "P1"), (touch_p2_enabled, "P2")]):
+            _tr = pygame.Rect(8 + 58 + _ti * 56, HEIGHT - 54, 52, 22)
+            _ton = _tflag[0]
+            pygame.draw.rect(screen, (40, 140, 60) if _ton else (80, 40, 40), _tr, border_radius=6)
+            pygame.draw.rect(screen, (120, 220, 120) if _ton else (180, 80, 80), _tr, 1, border_radius=6)
+            _tt = font_tiny.render(_tlbl + (" ON" if _ton else " OFF"), True, WHITE)
+            screen.blit(_tt, (_tr.centerx - _tt.get_width()//2, _tr.centery - _tt.get_height()//2))
         # Touch confirm button
         pygame.draw.rect(screen, (60, 120, 60), _confirm_rect, border_radius=10)
         pygame.draw.rect(screen, (120, 220, 120), _confirm_rect, 2, border_radius=10)

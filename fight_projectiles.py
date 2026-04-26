@@ -1456,37 +1456,47 @@ class Apple:
 
 
 class VenomBean:
-    """Horizontal venom projectile (Spitting Cobra's kick). Poisons on hit."""
-    SPEED  = 10
-    DMG    = 8
-    RADIUS = 12
+    """Arcing venom projectile (Spitting Cobra's kick). Poisons on hit."""
+    SPEED   = 12
+    GRAVITY = 0.35
+    DMG     = 8
+    RADIUS  = 14
 
     def __init__(self, x, y, facing, owner=None):
         self.x      = float(x)
         self.y      = float(y)
         self.vx     = self.SPEED * facing
+        self.vy     = -3.0          # slight upward arc on launch
         self.facing = facing
         self.owner  = owner
         self.alive  = True
         self.hit    = False
 
     def update(self):
-        self.x += self.vx
-        if self.x < -20 or self.x > WIDTH + 20:
+        self.vy += self.GRAVITY
+        self.x  += self.vx
+        self.y  += self.vy
+        if self.x < -20 or self.x > WIDTH + 20 or self.y > GROUND_Y + 20:
             self.alive = False
 
     def collides(self, fighter):
-        return (abs(self.x - fighter.x) < self.RADIUS + 20 and
-                abs(self.y - (fighter.y - 60)) < self.RADIUS + 28)
+        return (abs(self.x - fighter.x) < self.RADIUS + 18 and
+                abs(self.y - (fighter.y - 60)) < self.RADIUS + 26)
 
     def draw(self, surface):
         cx, cy = int(self.x), int(self.y)
-        # Oval green bean body
-        pygame.draw.ellipse(surface, (60, 180, 40),  (cx - 10, cy - 6, 20, 12))
-        pygame.draw.ellipse(surface, (100, 220, 60), (cx - 10, cy - 6, 20, 12), 2)
-        # Poison drip
-        pygame.draw.circle(surface, (180, 255, 80), (cx + self.facing * 10, cy), 4)
-        pygame.draw.circle(surface, (220, 255, 120), (cx + self.facing * 10, cy), 2)
+        # Outer glow
+        gsurf = pygame.Surface((52, 52), pygame.SRCALPHA)
+        pygame.draw.circle(gsurf, (60, 220, 40, 70), (26, 26), 22)
+        surface.blit(gsurf, (cx - 26, cy - 26))
+        # Main venom drop — large green circle
+        pygame.draw.circle(surface, (40, 190, 30),  (cx, cy), 14)
+        pygame.draw.circle(surface, (120, 255, 80), (cx, cy), 14, 3)
+        # Bright inner core
+        pygame.draw.circle(surface, (180, 255, 120), (cx, cy), 7)
+        # Drip tail (elongated back)
+        tail_x = cx - int(self.facing) * 12
+        pygame.draw.ellipse(surface, (30, 160, 20), (tail_x - 8, cy - 5, 16, 10))
 
 
 class PlantSpike:
