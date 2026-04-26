@@ -23,16 +23,20 @@ touch_p2_enabled = [True]
 class _KeysProxy:
     """Wraps pygame's ScancodeWrapper so touch-injected keycodes work alongside
     large SDL arrow-key constants (K_LEFT = 1073741904 etc.) without converting
-    to a plain list that would be out-of-bounds."""
-    __slots__ = ('_real', '_overrides')
+    to a plain list that would be out-of-bounds.
+    When block_real=True, only touch-injected keys register (Buttons mode)."""
+    __slots__ = ('_real', '_overrides', '_block_real')
 
-    def __init__(self, real_keys, overrides):
-        self._real      = real_keys
-        self._overrides = overrides
+    def __init__(self, real_keys, overrides, block_real=False):
+        self._real       = real_keys
+        self._overrides  = overrides
+        self._block_real = block_real
 
     def __getitem__(self, key):
         v = self._overrides.get(key)
-        return v if v is not None else self._real[key]
+        if v is not None:
+            return v
+        return False if self._block_real else self._real[key]
 
 
 class TouchControls:
@@ -132,10 +136,8 @@ class TouchControls:
 
     # ── inject touch state into a real keys snapshot ──────────────────────────
     def inject(self, real_keys):
-        if not self.held:
-            return real_keys
         overrides = {self.ctrl[a]: True for a in self.held if a in self.ctrl}
-        return _KeysProxy(real_keys, overrides)
+        return _KeysProxy(real_keys, overrides, block_real=True)
 
     # ── draw buttons on surface ───────────────────────────────────────────────
     def draw(self, surface):
