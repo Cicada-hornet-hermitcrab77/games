@@ -389,6 +389,23 @@ CHEAT_CODES = {
     "double_tap":         "Twin",
     "drain_away":         "Sapper",
     "copy_stats":         "Mimic",
+    # new characters
+    "throw_rang":         "Boomerang",
+    "parry_now":          "Parry",
+    "heal_up":            "Healer",
+    "iron_fortress":      "Iron Wall",
+    "kick_through":       "Pierce",
+    "stack_rage":         "Rage Stack",
+    "rise_again":         "Phoenix",
+    "three_chain":        "Chain Fighter",
+    "break_guard":        "Breaker",
+    "grip_tight_titan":   "Titan Grip",
+    # secret
+    "max_everything":     "Overload",
+    "system_glitch":      "Glitch",
+    "mirror_damage":      "Reflect",
+    "one_hit_ko":         "One Punch",
+    "last_second":        "Nick of Time",
 }
 
 # ---------------------------------------------------------------------------
@@ -1077,6 +1094,21 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("twin_strike"):     badges.append(("TWIN STRIKE",   ( 80,180,200)))
             if detail_ch.get("sap_kick"):        badges.append(("SAP KICK",      (120, 60, 30)))
             if detail_ch.get("mimic_stats"):     badges.append(("MIMIC STATS",   (150,150,160)))
+            if detail_ch.get("boomerang_kick"):  badges.append(("BOOMERANG",     (200,110, 30)))
+            if detail_ch.get("parry_strike"):    badges.append(("PARRY STRIKE",  ( 60,120,200)))
+            if detail_ch.get("combat_regen"):    badges.append(("COMBAT REGEN",  (100,200,120)))
+            if detail_ch.get("iron_block"):      badges.append(("IRON BLOCK",    ( 80, 80,100)))
+            if detail_ch.get("pierce_kick"):     badges.append(("PIERCE KICK",   (160,160,180)))
+            if detail_ch.get("rage_stack"):      badges.append(("RAGE STACK",    (180, 50, 50)))
+            if detail_ch.get("phoenix_revive"):  badges.append(("PHOENIX",       (220,120, 20)))
+            if detail_ch.get("chain_hits"):      badges.append(("CHAIN HITS",    ( 60,160,160)))
+            if detail_ch.get("block_break"):     badges.append(("BLOCK BREAK",   (100, 80,160)))
+            if detail_ch.get("titan_grip"):      badges.append(("TITAN GRIP",    ( 90, 60,130)))
+            if detail_ch.get("overload"):        badges.append(("OVERLOAD",      (255, 80,220)))
+            if detail_ch.get("glitch_char"):     badges.append(("GLITCH",        ( 60,255,120)))
+            if detail_ch.get("reflect_dmg"):     badges.append(("REFLECT DMG",   (200,200, 80)))
+            if detail_ch.get("one_punch_man"):   badges.append(("ONE PUNCH",     (255,255,255)))
+            if detail_ch.get("nick_of_time"):    badges.append(("NICK OF TIME",  ( 60,200,255)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)

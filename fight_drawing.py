@@ -3053,6 +3053,208 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                          (_cx, _cy + int(2*s)), (_cx, _cy + int(5*s)), max(2, int(2*s)))
         pygame.draw.circle(surface, (150, 150, 160), (_cx, _cy + int(8*s)), max(1, int(2*s)))
 
+    elif char_name == "Boomerang":
+        # Curved boomerang weapon held in right hand
+        pygame.draw.arc(surface, (200, 110, 30),
+                        (rhx - int(14*s), rhy - int(10*s), int(28*s), int(20*s)),
+                        0, math.pi, max(2, int(3*s)))
+        pygame.draw.arc(surface, (230, 150, 60),
+                        (rhx - int(10*s), rhy - int(7*s), int(20*s), int(14*s)),
+                        0, math.pi, max(1, int(2*s)))
+        # Orange arm-band on upper arm
+        _bmx = (rhx + sx) // 2
+        _bmy = (rhy + sy) // 2
+        pygame.draw.circle(surface, (200, 110, 30), (_bmx, _bmy), max(3, int(5*s)))
+
+    elif char_name == "Parry":
+        # Blue buckler shield strapped to left arm
+        pygame.draw.circle(surface, (60, 120, 200), (lhx, lhy), max(5, int(9*s)))
+        pygame.draw.circle(surface, (100, 160, 240), (lhx, lhy), max(5, int(9*s)), max(1, int(2*s)))
+        pygame.draw.circle(surface, (200, 220, 255), (lhx, lhy), max(2, int(3*s)))
+        # Silver visor line across head
+        pygame.draw.line(surface, (180, 200, 240),
+                         (hx - hd + 2, hy), (hx + hd - 2, hy), max(2, int(3*s)))
+
+    elif char_name == "Healer":
+        # Green cross on chest
+        _hcx, _hcy = sx, sy + int(bl * 0.35)
+        pygame.draw.line(surface, (60, 200, 80),
+                         (_hcx, _hcy - int(8*s)), (_hcx, _hcy + int(8*s)), max(2, int(3*s)))
+        pygame.draw.line(surface, (60, 200, 80),
+                         (_hcx - int(8*s), _hcy), (_hcx + int(8*s), _hcy), max(2, int(3*s)))
+        # Small halo above head
+        pygame.draw.arc(surface, (100, 230, 120),
+                        (hx - hd, hy - hd - int(6*s), hd * 2, int(8*s)),
+                        0, math.pi, max(2, int(2*s)))
+
+    elif char_name == "Iron Wall":
+        # Full-face iron visor/helmet
+        pygame.draw.rect(surface, (80, 80, 100),
+                         (hx - hd, hy - hd // 2, hd * 2, hd + 2))
+        # Horizontal visor slit
+        pygame.draw.rect(surface, (160, 180, 200),
+                         (hx - hd + 2, hy - int(4*s), hd * 2 - 4, max(3, int(4*s))))
+        # Chest plate
+        pygame.draw.rect(surface, (100, 100, 120),
+                         (sx - int(8*s), sy + int(4*s), int(16*s), int(bl // 2)))
+
+    elif char_name == "Pierce":
+        # Long silver lance tip extending from right hand
+        _tip_x = rhx + facing * int(28*s)
+        pygame.draw.line(surface, (180, 180, 200), (rhx, rhy), (_tip_x, rhy), max(2, int(3*s)))
+        # Arrow head
+        pygame.draw.polygon(surface, (220, 220, 240), [
+            (_tip_x + facing * int(8*s), rhy),
+            (_tip_x - facing * int(4*s), rhy - int(5*s)),
+            (_tip_x - facing * int(4*s), rhy + int(5*s)),
+        ])
+        # Silver eye glint
+        pygame.draw.circle(surface, (220, 220, 240), (hx + facing * int(hd * 0.35), hy - int(2*s)),
+                           max(2, int(3*s)))
+
+    elif char_name == "Rage Stack":
+        # Jagged red flames around fists when stacking
+        for _fx, _fy in [(lhx, lhy), (rhx, rhy)]:
+            for _fi in range(4):
+                _fa = _fi * 1.57
+                _fdx = int(math.cos(_fa) * 9 * s)
+                _fdy = int(math.sin(_fa) * 9 * s)
+                pygame.draw.line(surface, (200, 40, 20),
+                                 (_fx, _fy), (_fx + _fdx, _fy + _fdy), max(1, int(2*s)))
+        # Red headband
+        band_y = hy + int(hd * 0.2)
+        pygame.draw.line(surface, (200, 20, 20), (hx - hd, band_y), (hx + hd, band_y),
+                         max(2, int(3*s)))
+
+    elif char_name == "Phoenix":
+        # Flame crest on top of head
+        for _pi in range(3):
+            _poff = (_pi - 1) * int(hd * 0.55)
+            _ph = int((6 - abs(_pi - 1) * 2) * s) + hd
+            pygame.draw.line(surface, (220, 120, 20),
+                             (hx + _poff, hy - hd), (hx + _poff, hy - _ph),
+                             max(1, int(2*s)))
+            pygame.draw.circle(surface, (255, 180, 60), (hx + _poff, hy - _ph),
+                                max(2, int(3*s)))
+        # Wing hints behind torso
+        pygame.draw.arc(surface, (220, 100, 20),
+                        (sx - int(20*s) + int(10*s * facing), sy, int(20*s), int(bl // 2)),
+                        math.pi * 0.1, math.pi * 0.9, max(2, int(3*s)))
+
+    elif char_name == "Chain Fighter":
+        # Chain links on both wrists
+        for _cx2, _cy2 in [(lhx, lhy), (rhx, rhy)]:
+            pygame.draw.circle(surface, (60, 160, 160), (_cx2, _cy2), max(4, int(7*s)), max(1, int(2*s)))
+            pygame.draw.circle(surface, (100, 200, 200), (_cx2, _cy2), max(2, int(4*s)), max(1, int(2*s)))
+        # Chain across chest
+        for _ci in range(4):
+            _cpx = sx - int(6*s) + _ci * int(4*s)
+            _cpy = sy + int(bl * 0.4)
+            pygame.draw.circle(surface, (60, 160, 160), (_cpx, _cpy), max(1, int(3*s)))
+
+    elif char_name == "Breaker":
+        # Heavy purple gauntlets
+        for _gx, _gy in [(lhx, lhy), (rhx, rhy)]:
+            pygame.draw.rect(surface, (100, 80, 160),
+                             (_gx - int(6*s), _gy - int(5*s), int(12*s), int(10*s)))
+            pygame.draw.rect(surface, (140, 110, 200),
+                             (_gx - int(6*s), _gy - int(5*s), int(12*s), int(10*s)), max(1, int(2*s)))
+        # Cracked forehead line
+        pygame.draw.line(surface, (100, 80, 160),
+                         (hx - int(5*s), hy - int(hd * 0.5)),
+                         (hx + int(3*s), hy + int(hd * 0.3)),
+                         max(1, int(2*s)))
+
+    elif char_name == "Titan Grip":
+        # Large dark purple claw hands
+        for _gx2, _gy2 in [(lhx, lhy), (rhx, rhy)]:
+            pygame.draw.circle(surface, (90, 60, 130), (_gx2, _gy2), max(5, int(10*s)))
+            # Claw lines
+            for _ci2 in range(3):
+                _ca = (_ci2 - 1) * 0.4
+                pygame.draw.line(surface, (140, 100, 190),
+                                 (_gx2, _gy2),
+                                 (_gx2 + int(math.cos(_ca) * 10*s * (-facing)),
+                                  _gy2 - int(abs(math.sin(_ca)) * 8*s)),
+                                 max(1, int(2*s)))
+
+    elif char_name == "Overload":
+        # Glowing rainbow aura dots around entire body
+        for _oi in range(12):
+            _oa = _oi * 0.524
+            _orx = hx + int(math.cos(_oa) * (hd + int(8*s)))
+            _ory = hy + int(math.sin(_oa) * (hd + int(8*s)))
+            _ocol = [(255,60,60),(255,160,0),(255,255,0),(60,255,60),(0,200,255),(180,0,255)][_oi % 6]
+            pygame.draw.circle(surface, _ocol, (_orx, _ory), max(2, int(4*s)))
+        # Crown
+        for _ki in range(5):
+            _kx = hx - hd + _ki * (hd // 2)
+            pygame.draw.line(surface, (255, 220, 0),
+                             (_kx, hy - hd), (_kx, hy - hd - int((5 - abs(_ki - 2)) * 4 * s)),
+                             max(1, int(2*s)))
+
+    elif char_name == "Glitch":
+        # Glitchy pixel scatter around head
+        for _gli in range(6):
+            _glx = hx + random.randint(-hd - 4, hd + 4)
+            _gly = hy + random.randint(-hd - 4, hd + 4)
+            _glc = [(60,255,60),(255,60,255),(60,200,255)][_gli % 3]
+            pygame.draw.rect(surface, _glc, (_glx, _gly, max(2, int(4*s)), max(2, int(4*s))))
+        # Glitch bar across face
+        pygame.draw.rect(surface, (60, 255, 120),
+                         (hx - hd, hy - int(3*s), hd * 2, max(2, int(4*s))))
+
+    elif char_name == "Reflect":
+        # Mirror shards around body
+        for _ri in range(6):
+            _ra = _ri * 1.047
+            _rrx = sx + int(math.cos(_ra) * int(12*s))
+            _rry = sy + int(bl * 0.3) + int(math.sin(_ra) * int(8*s))
+            pygame.draw.line(surface, (200, 200, 80),
+                             (sx, sy + int(bl * 0.3)), (_rrx, _rry), max(1, int(2*s)))
+        # Reflective visor
+        pygame.draw.arc(surface, (220, 220, 100),
+                        (hx - hd, hy - hd // 2, hd * 2, hd),
+                        math.pi * 0.1, math.pi * 0.9, max(2, int(3*s)))
+
+    elif char_name == "Nick of Time":
+        # Hourglass on chest
+        _ncx, _ncy = sx, sy + int(bl * 0.3)
+        pygame.draw.polygon(surface, (60, 200, 255), [
+            (_ncx - int(7*s), _ncy - int(8*s)),
+            (_ncx + int(7*s), _ncy - int(8*s)),
+            (_ncx, _ncy),
+        ])
+        pygame.draw.polygon(surface, (60, 200, 255), [
+            (_ncx - int(7*s), _ncy + int(8*s)),
+            (_ncx + int(7*s), _ncy + int(8*s)),
+            (_ncx, _ncy),
+        ])
+        pygame.draw.rect(surface, (100, 220, 255),
+                         (_ncx - int(7*s), _ncy - int(9*s), int(14*s), max(2, int(3*s))))
+        pygame.draw.rect(surface, (100, 220, 255),
+                         (_ncx - int(7*s), _ncy + int(6*s), int(14*s), max(2, int(3*s))))
+        # Clock hand on head
+        pygame.draw.circle(surface, (60, 200, 255), (hx, hy), hd, max(1, int(2*s)))
+        pygame.draw.line(surface, (200, 240, 255),
+                         (hx, hy), (hx + facing * int(hd * 0.8), hy - int(hd * 0.5)),
+                         max(1, int(2*s)))
+
+    elif char_name == "One Punch":
+        # White glowing power fist on right hand
+        pygame.draw.circle(surface, (255, 255, 255), (rhx, rhy), max(6, int(11*s)))
+        pygame.draw.circle(surface, (200, 200, 255), (rhx, rhy), max(4, int(8*s)))
+        # Power lines radiating from fist
+        for _pi2 in range(6):
+            _pa = _pi2 * 1.047
+            _px = rhx + int(math.cos(_pa) * int(14*s))
+            _py = rhy + int(math.sin(_pa) * int(14*s))
+            pygame.draw.line(surface, (255, 255, 200), (rhx, rhy), (_px, _py), max(1, int(2*s)))
+        # Bold white headband
+        pygame.draw.line(surface, (255, 255, 255),
+                         (hx - hd, hy + int(hd * 0.15)), (hx + hd, hy + int(hd * 0.15)),
+                         max(2, int(4*s)))
+
 
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color
@@ -3908,6 +4110,48 @@ def draw_bg(surface, stage_idx=0):
                 ex4 = tx4 + int(math.cos(math.radians(ang4))*bl4)
                 ey4 = (GROUND_Y-80) + int(math.sin(math.radians(ang4-90))*bl4)
                 pygame.draw.line(surface,(40,38,35),(tx4,GROUND_Y-80),(ex4,ey4),2)
+
+    elif s == 23:  # Portal World
+        # Deep void background gradient (dark purple → black)
+        for _gy in range(0, HEIGHT, 3):
+            _t = _gy / HEIGHT
+            _r = int(10 + _t * 8)
+            _g = int(5  + _t * 5)
+            _b = int(30 + _t * 20)
+            pygame.draw.line(surface, (_r, _g, _b), (0, _gy), (WIDTH, _gy))
+        # Swirling portal aura rings scattered in background
+        _portal_bg = [
+            ((80, 100, 220),  110, 220),   # blue
+            ((220, 120,  20), 450,  60),   # orange
+            ((20,  200,  80), 170, 350),   # green
+            ((180,  40, 220), 240, 110),   # purple
+            ((220,  40,  40), 290, GROUND_Y-280),  # red
+        ]
+        for _pc, _px2, _py2 in _portal_bg:
+            for _pr in range(28, 6, -7):
+                _alpha = max(20, 60 - _pr * 2)
+                _psurf = pygame.Surface((_pr*2+2, _pr*2+2), pygame.SRCALPHA)
+                pygame.draw.circle(_psurf, (_pc[0], _pc[1], _pc[2], _alpha), (_pr+1, _pr+1), _pr, 2)
+                surface.blit(_psurf, (_px2 - _pr - 1, _py2 - _pr - 1))
+        # Stars / floating particles
+        for _sx, _sy in [(50,40),(130,90),(220,25),(350,70),(470,15),(590,50),(720,30),(840,80),
+                          (90,150),(320,130),(600,110),(800,160),(160,260),(500,240),(750,280)]:
+            pygame.draw.circle(surface, (160, 140, 200), (_sx, _sy), 1)
+        # Floating platform glow (subtle teal glow under each platform)
+        for _fpx, _fpy, _fpw in [(80,GROUND_Y-110,130),(690,GROUND_Y-110,130),(380,GROUND_Y-200,140),
+                                   (190,GROUND_Y-310,100),(610,GROUND_Y-310,100),(370,GROUND_Y-380,120)]:
+            _gsurf = pygame.Surface((_fpw+20, 12), pygame.SRCALPHA)
+            for _gi in range(6):
+                pygame.draw.rect(_gsurf, (80, 220, 200, 18 - _gi * 3), (0, _gi, _fpw+20, 2))
+            surface.blit(_gsurf, (_fpx - 10, _fpy + 10))
+        # Void ground
+        pygame.draw.rect(surface, (18, 10, 35), (0, GROUND_Y+2, WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.line(surface, (80, 40, 160), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+        # Ground energy pulses (horizontal glow lines)
+        for _gl in range(3):
+            _glsurf = pygame.Surface((WIDTH, 4), pygame.SRCALPHA)
+            pygame.draw.line(_glsurf, (120, 60, 200, 60 - _gl * 18), (0, 0), (WIDTH, 0), 2)
+            surface.blit(_glsurf, (0, GROUND_Y + 4 + _gl * 5))
 
 
 def draw_health_bars(surface, p1, p2):

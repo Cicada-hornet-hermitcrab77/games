@@ -332,6 +332,7 @@ class Spring:
         self.bounce_vy = bounce_vy
         self.anim      = 0   # counts down after trigger; > 12 = compressed
         self.cooldown  = 0
+        self.possessed = False   # Poltergeist: next trigger launches 3x
 
     def update(self):
         if self.anim     > 0: self.anim     -= 1
@@ -341,13 +342,15 @@ class Spring:
         if self.cooldown > 0:
             return
         if fighter.on_ground and fighter.y >= GROUND_Y - 2 and abs(fighter.x - self.x) < self.W:
-            fighter.vy        = self.bounce_vy
+            bvy = self.bounce_vy * (3.0 if self.possessed else 1.0)
+            fighter.vy        = bvy
             fighter.on_ground = False
             fighter.jumps_left = 2 if fighter.char["double_jump"] else 1
             fighter.action    = 'jump'
             fighter.attacking = False
             self.anim     = 25
             self.cooldown = self.COOLDOWN
+            self.possessed = False
 
     def draw(self, surface):
         compressed = self.anim > 12
@@ -389,13 +392,15 @@ class JungleSnake:
     BITE_RANGE   = 45
 
     def __init__(self):
-        self.x       = float(random.choice([80, WIDTH - 80]))
-        self.y       = float(GROUND_Y)
-        self.facing  = 1
-        self.bite_cd = 0
-        self.hp      = self.MAX_HP
-        self.alive   = True
-        self.t       = 0
+        self.x                = float(random.choice([80, WIDTH - 80]))
+        self.y                = float(GROUND_Y)
+        self.facing           = 1
+        self.bite_cd          = 0
+        self.hp               = self.MAX_HP
+        self.alive            = True
+        self.t                = 0
+        self.possessed_timer  = 0
+        self.possessed_target = None
 
     def update(self, p1, p2):
         if not self.alive:
@@ -403,22 +408,29 @@ class JungleSnake:
         self.t += 1
         if self.bite_cd > 0:
             self.bite_cd -= 1
+        if self.possessed_timer > 0:
+            self.possessed_timer -= 1
 
-        # Chase closest living player
-        d1 = abs(self.x - p1.x) if p1.hp > 0 else 99999
-        d2 = abs(self.x - p2.x) if p2.hp > 0 else 99999
-        target = p1 if d1 <= d2 else p2
+        # Possessed: always chase the possessed target; normal: chase closest
+        if self.possessed_timer > 0 and self.possessed_target is not None:
+            target = self.possessed_target
+        else:
+            d1 = abs(self.x - p1.x) if p1.hp > 0 else 99999
+            d2 = abs(self.x - p2.x) if p2.hp > 0 else 99999
+            target = p1 if d1 <= d2 else p2
 
         dx = target.x - self.x
         self.facing = 1 if dx > 0 else -1
+        spd = self.SPEED * (2.0 if self.possessed_timer > 0 else 1.0)
         if abs(dx) > self.BITE_RANGE - 5:
-            self.x += self.facing * self.SPEED
+            self.x += self.facing * spd
         self.x = max(30.0, min(float(WIDTH - 30), self.x))
 
         # Bite when in range
         if (abs(self.x - target.x) < self.BITE_RANGE and
                 abs(self.y - target.y) < 70 and self.bite_cd == 0):
-            target.hp = max(0, target.hp - self.BITE_DMG)
+            dmg = self.BITE_DMG * (3 if self.possessed_timer > 0 else 1)
+            target.hp = max(0, target.hp - dmg)
             target.flash_timer = 6
             self.bite_cd = self.BITE_COOLDOWN
 
@@ -469,30 +481,37 @@ class ComputerBug:
     BITE_RANGE   = 42
 
     def __init__(self):
-        self.x         = float(random.choice([80, WIDTH - 80]))
-        self.y         = float(GROUND_Y)
-        self.vx        = random.choice([-1, 1]) * self.SPEED
-        self.hp        = self.MAX_HP
-        self.bite_timer = 0
-        self.leg_t     = 0.0
-        self.alive     = True
+        self.x                = float(random.choice([80, WIDTH - 80]))
+        self.y                = float(GROUND_Y)
+        self.vx               = random.choice([-1, 1]) * self.SPEED
+        self.hp               = self.MAX_HP
+        self.bite_timer       = 0
+        self.leg_t            = 0.0
+        self.alive            = True
+        self.possessed_timer  = 0
+        self.possessed_target = None
 
     def update(self, target):
         if not self.alive:
             return
         self.leg_t += 0.2
-        if target:
-            self.vx = self.SPEED if target.x > self.x else -self.SPEED
+        if self.possessed_timer > 0:
+            self.possessed_timer -= 1
+        actual_target = self.possessed_target if self.possessed_timer > 0 and self.possessed_target else target
+        spd = self.SPEED * (2.0 if self.possessed_timer > 0 else 1.0)
+        if actual_target:
+            self.vx = spd if actual_target.x > self.x else -spd
         self.x += self.vx
         if self.x < 30:          self.x = 30;          self.vx =  abs(self.vx)
         if self.x > WIDTH - 30:  self.x = WIDTH - 30;  self.vx = -abs(self.vx)
         if self.bite_timer > 0:
             self.bite_timer -= 1
-        if (target and self.bite_timer == 0
-                and abs(target.x - self.x) < self.BITE_RANGE
-                and abs(target.y - self.y) < 60):
-            target.hp = max(0, target.hp - self.BITE_DMG)
-            target.flash_timer = 8
+        if (actual_target and self.bite_timer == 0
+                and abs(actual_target.x - self.x) < self.BITE_RANGE
+                and abs(actual_target.y - self.y) < 60):
+            dmg = self.BITE_DMG * (3 if self.possessed_timer > 0 else 1)
+            actual_target.hp = max(0, actual_target.hp - dmg)
+            actual_target.flash_timer = 8
             self.bite_timer = self.BITE_COOLDOWN
 
     def take_damage(self, dmg):

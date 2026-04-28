@@ -45,6 +45,7 @@ _p1_proj_blocked      = [0]       # projectiles p1 blocked this fight
 _symbol_char_flag     = [False]   # True when <|-\||>+() typed on Computer stage
 _death_defyer_flag    = [False]   # True when death_does_not_exist typed on Graveyard as Reaper
 _friday13_flag        = [False]   # True when "13" typed on an actual Friday the 13th
+_nick_of_time_flag    = [False]   # True when p1 KO'd p2 with ≤1 second on the clock
 
 _PRIMES_60 = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59}
 def _is_prime(n): return n in _PRIMES_60
@@ -193,20 +194,20 @@ UNLOCK_CONDITIONS = {
     "Drifter":             ("unique_wins",          None,           20,  "Win with 20 different characters"),
     "Warlock":             ("win_hard_ai",          None,           15,  "Win 15 matches vs Hard AI"),
     # ── Secret characters (hint hidden in UI) ───────────────────────────────
-    "777":                 ("daily_streak",          None,            7,  "Play 7 days in a row",               True),
-    "Scratch":             ("konami_unlock",        None,            1,  "Enter the secret code",              True),
-    "Void Master":         ("win_on_stage",         "The Void",      5,  "Master the void to own it",          True),
-    "Screentime":          ("played_at_noon",       None,            1,  "Play at a very specific time",       True),
-    "God":                 ("perfect_mega_hard_win",None,            1,  "A godlike feat of perfection",       True),
-    "Nightfall":           ("midnight_wins",        None,            3,  "Win matches late into the night",    True),
-    "Lucky":               ("lucky_win",            None,            1,  "Win a match with exactly 7 HP",      True),
-    "Great Totem Spirit":  ("died_from_totem",       None,            1,  "Die in front of the totem pole",     True),
+    "777":                 ("daily_streak",          None,            7,  "The lucky triple",                   True),
+    "Scratch":             ("konami_unlock",        None,            1,  "???",                                True),
+    "Void Master":         ("win_on_stage",         "The Void",      5,  "Some masters fear no darkness",      True),
+    "Screentime":          ("played_at_noon",       None,            1,  "Timing is everything",               True),
+    "God":                 ("perfect_mega_hard_win",None,            1,  "A feat only gods achieve",           True),
+    "Nightfall":           ("midnight_wins",        None,            3,  "The night is young",                 True),
+    "Lucky":               ("lucky_win",            None,            1,  "Hanging by a thread",                True),
+    "Great Totem Spirit":  ("died_from_totem",       None,            1,  "Respect the ancient power",          True),
     # ── Regular new characters ──────────────────────────────────────────────
     "Flash":               ("win_streak",           None,            6,  "Win 6 matches in a row"),
     "Portal Maker":        ("win_on_stage",         "The Void",      3,  "Win on The Void 3 times"),
     "Gravity":             ("matches_played",       None,           90,  "Play 90 matches"),
-    "Prime Time":          ("prime_time_win",       None,            1,  "Win at a prime number second",       True),
-    "Rage Quitter":        ("rage_quit_typed",      None,            1,  "Type something on the lose screen",  True),
+    "Prime Time":          ("prime_time_win",       None,            1,  "Numbers hold secrets",               True),
+    "Rage Quitter":        ("rage_quit_typed",      None,            1,  "Express yourself",                   True),
     # ── new regular characters ───────────────────────────────────────────────
     "Swapper":             ("win_on_stage",         "The Void",      5,  "Win 5 matches on The Void"),
     "Bruiser":             ("survival_kills",       None,           75,  "Get 75 kills in survival"),
@@ -218,11 +219,11 @@ UNLOCK_CONDITIONS = {
     "Timekeeper":          ("win_on_stage",         "Space",         4,  "Win on Space 4 times"),
     "Rainbow Man":         ("everything_collected", None,           10,  "Collect 10 'Everything' powerups"),
     # ── new secret characters ────────────────────────────────────────────────
-    "The One":             ("win_with_all", "777,Scratch,Void Master,Screentime,God,Nightfall,Lucky,Great Totem Spirit,Prime Time,Rage Quitter,Mirror,Paradox", 1, "Win with every other secret character", True),
-    "Mirror":              ("win_half_hp",           None,            1,  "Win with half your starting health", True),
-    "Paradox":             ("paradox_portals_done", None,            1,  "Go through portals... a lot",        True),
+    "The One":             ("win_with_all", "777,Scratch,Void Master,Screentime,God,Nightfall,Lucky,Great Totem Spirit,Prime Time,Rage Quitter,Mirror,Paradox", 1, "Collect them all first",               True),
+    "Mirror":              ("win_half_hp",           None,            1,  "Survive on less",                    True),
+    "Paradox":             ("paradox_portals_done", None,            1,  "Keep going through...",              True),
     "Spitting Cobra":      ("jungle_snake_kills", None,              100, "Kill 100 snakes in the Jungle"),
-    "Jetpack":             ("void_fall_at_2_7", None,                1,  "Fall into the void at just the right moment", True),
+    "Jetpack":             ("void_fall_at_2_7", None,                1,  "Some falls are perfectly timed",      True),
     "The Impossible Victor": ("win_with",    "Impossible",           1,  "Win 1 match as Impossible"),
     "Pacman":              ("survival_kills",        None,           15,  "Get 15 kills in survival"),
     "ChickenBanana":       ("win_on_stage",          "Computer",      3,  "Something... glitchy",               True),
@@ -247,7 +248,7 @@ UNLOCK_CONDITIONS = {
     "Juggernaut":          ("win_with",              "Titan",         5,  "Win 5 matches as Titan"),
     "Mirage":              ("win_with",              "Ghost",         3,  "Win 3 matches as Ghost"),
     # ── new secret characters ────────────────────────────────────────────────
-    "Dementor":            ("died_by_powerup",       None,            1,  "A painful way to go",                  True),
+    "Dementor":            ("died_by_powerup",       None,            1,  "Not all gifts are gifts",              True),
     "Orb Shooter":         ("projectiles_blocked",   None,          100,  "Block 100 projectiles"),
     "Copycat":             ("win_with",              "Shapeshifter",  5,  "Win 5 matches as Shapeshifter"),
     "Windshield Viper":   ("jungle_snake_kills",    None,           50,  "Kill 50 jungle snakes"),
@@ -294,6 +295,23 @@ UNLOCK_CONDITIONS = {
     "Twin":                ("unique_wins",    None,             10,  "Win with 10 different characters"),
     "Sapper":              ("survival_kills", None,             45,  "Get 45 kills in survival"),
     "Mimic":               ("win_with",       "Copycat",         3,  "Win 3 matches as Copycat"),
+    # ── new regular characters ───────────────────────────────────────────────
+    "Boomerang":           ("win_with",       "Whipper",         3,  "Win 3 matches as Whipper"),
+    "Parry":               ("win_hard_ai",    None,             12,  "Win 12 matches vs Hard AI"),
+    "Healer":              ("perfect_wins",   None,              8,  "Win 8 matches at full HP"),
+    "Iron Wall":           ("win_with",       "Anchor",          3,  "Win 3 matches as Anchor"),
+    "Pierce":              ("win_on_stage",   "Medieval Castle", 4,  "Win 4 matches on Medieval Castle"),
+    "Rage Stack":          ("clutch_wins",    None,             12,  "Win 12 matches with ≤10 HP"),
+    "Phoenix":             ("win_with",       "Revenant",        3,  "Win 3 matches as Revenant"),
+    "Chain Fighter":       ("win_streak",     None,              9,  "Win 9 matches in a row"),
+    "Breaker":             ("win_with",       "Stone Cold",      3,  "Win 3 matches as Stone Cold"),
+    "Titan Grip":          ("win_with",       "Colossus",        3,  "Win 3 matches as Colossus"),
+    # ── new secret characters ────────────────────────────────────────────────
+    "Overload":            ("wins_total",     None,            100,  "Power beyond all limits",         True),
+    "Glitch":              ("matches_played", None,            150,  "???",                             True),
+    "Reflect":             ("win_with",       "Deflector",       5,  "Turn it back around",             True),
+    "One Punch":           ("win_with",       "Godslayer",       3,  "Legends say one blow is enough",  True),
+    "Nick of Time":        ("nick_of_time_win", None,            1,  "A win against the clock",         True),
 }
 
 def _default_stats():
@@ -366,6 +384,8 @@ def _default_stats():
         "friday13_typed":           False,
         # Map Man: idled on stage select for 30 seconds
         "map_man_unlocked":         False,
+        # Nick of Time: won by landing final hit with ≤1 second left
+        "nick_of_time_win":         False,
     }
 
 def load_save():
@@ -517,6 +537,8 @@ def _meets_condition(cond, stats):
         return stats.get("friday13_typed", False)
     if kind == "map_man_unlocked":
         return stats.get("map_man_unlocked", False)
+    if kind == "nick_of_time_win":
+        return stats.get("nick_of_time_win", False)
     return False
 
 def _unlock_progress(stats):
@@ -800,6 +822,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     _symbol_char_flag[0]     = False
     _death_defyer_flag[0]    = False
     _friday13_flag[0]        = False
+    _nick_of_time_flag[0]    = False
 
     game_over          = False
     winner             = None
@@ -855,14 +878,32 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
         stage_eraser = StageEraser()
 
     _p1_portals_this_fight = [0]   # count of portals p1 travels through this fight
-    _portal_cols = [(80, 100, 220), (220, 120, 20)]
-    _px1 = random.randint(80, WIDTH // 2 - 60)
-    _px2 = random.randint(WIDTH // 2 + 60, WIDTH - 80)
-    _py1 = random.randint(GROUND_Y - 280, GROUND_Y - 80)
-    _py2 = random.randint(GROUND_Y - 280, GROUND_Y - 80)
-    portals_obj  = [Portal(_px1, _py1, _portal_cols[0]), Portal(_px2, _py2, _portal_cols[1])]
-    portals_obj[0].partner = portals_obj[1]
-    portals_obj[1].partner = portals_obj[0]
+    if stage_data["name"] == "Portal World":
+        _pw_cols = [
+            (80, 100, 220),   # pair 0 — blue
+            (220, 120, 20),   # pair 1 — orange
+            (20, 200, 80),    # pair 2 — green
+            (180, 40, 220),   # pair 3 — purple
+            (220, 40, 40),    # pair 4 — red
+        ]
+        _pw_pos = stage_data.get("portals", [])
+        portals_obj = []
+        for _pi in range(0, min(len(_pw_pos), 10), 2):
+            _col = _pw_cols[_pi // 2]
+            _pa = Portal(_pw_pos[_pi][0],   _pw_pos[_pi][1],   _col)
+            _pb = Portal(_pw_pos[_pi+1][0], _pw_pos[_pi+1][1], _col)
+            _pa.partner = _pb
+            _pb.partner = _pa
+            portals_obj.extend([_pa, _pb])
+    else:
+        _portal_cols = [(80, 100, 220), (220, 120, 20)]
+        _px1 = random.randint(80, WIDTH // 2 - 60)
+        _px2 = random.randint(WIDTH // 2 + 60, WIDTH - 80)
+        _py1 = random.randint(GROUND_Y - 280, GROUND_Y - 80)
+        _py2 = random.randint(GROUND_Y - 280, GROUND_Y - 80)
+        portals_obj  = [Portal(_px1, _py1, _portal_cols[0]), Portal(_px2, _py2, _portal_cols[1])]
+        portals_obj[0].partner = portals_obj[1]
+        portals_obj[1].partner = portals_obj[0]
 
     # Cloned: spawn permanent AI clones at fight start
     for _p, _opp in [(p1, p2), (p2, p1)]:
@@ -1341,6 +1382,51 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             spawned_bugs = [sb for sb in spawned_bugs if sb['bug'].alive]
             _computer_bug_kills_flag[0] += _prev_sb - len(spawned_bugs)
 
+            # Poltergeist: possess nearest entity (snake, bug, spring, platform, clone)
+            for _possessor, _victim in [(p1, p2), (p2, p1)]:
+                if not _possessor.pending_possess:
+                    continue
+                _possessor.pending_possess = False
+                _possessed = False
+                # Snakes
+                for _sn in jungle_snakes:
+                    if _sn.alive:
+                        _sn.possessed_timer  = FPS * 5
+                        _sn.possessed_target = _victim
+                        _possessed = True
+                        break
+                if not _possessed:
+                    # Bugs
+                    for _bug_entry in spawned_bugs + [{'bug': b, 'target': _victim} for b in computer_bugs if b.alive]:
+                        _bug_entry['bug'].possessed_timer  = FPS * 5
+                        _bug_entry['bug'].possessed_target = _victim
+                        _possessed = True
+                        break
+                if not _possessed:
+                    # Clones
+                    for _cl in clones:
+                        _cl['fighter'].char = dict(_cl['fighter'].char)
+                        _cl['fighter'].char['punch_dmg'] = _cl['fighter'].char.get('punch_dmg', 8) * 3
+                        _cl['fighter'].char['kick_dmg']  = _cl['fighter'].char.get('kick_dmg',  8) * 3
+                        _cl['target'] = _victim
+                        _possessed = True
+                        break
+                if not _possessed:
+                    # Springs — possess nearest spring
+                    _sp_list = sorted(springs, key=lambda s: abs(s.x - _victim.x))
+                    if _sp_list:
+                        _sp_list[0].possessed = True
+                        _possessed = True
+                if not _possessed:
+                    # Platforms — teleport nearest one under victim
+                    if platforms:
+                        _plat = min(platforms, key=lambda p: abs(p.x - _victim.x))
+                        _plat.x = _victim.x - _plat.w // 2
+                        _possessed = True
+                if not _possessed:
+                    # Fallback: confuse the opponent
+                    _victim.confuse_frames = max(_victim.confuse_frames, FPS * 3)
+
             # Spawn bouncing balls from bounce_kick
             for shooter, victim in [(p1, p2), (p2, p1)]:
                 if shooter.pending_bounce:
@@ -1745,6 +1831,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             if not victim.char.get("immune"):
                                 victim.shock_frames = max(victim.shock_frames, 240)
 
+            # Nick of Time: becomes mega-unhittable with 10 seconds remaining
+            for f in (p1, p2):
+                if f.char.get("nick_of_time"):
+                    f.nick_dodge_active = (timer <= FPS * 10)
+
             # Chainsaw Man: rapid proximity damage
             for attacker, victim in [(p1, p2), (p2, p1)]:
                 if attacker.char.get("chainsaw") and attacker.hp > 0:
@@ -1768,6 +1859,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     f.hp             = int(f.max_hp * 0.3)
                     f.revenant_count += 1
                     f.flash_timer    = 30
+
+            # Phoenix: revive once at 30 HP
+            for f in (p1, p2):
+                if f.hp <= 0 and f.char.get("phoenix_revive") and not f.phoenix_used:
+                    f.hp          = 30
+                    f.phoenix_used = True
+                    f.flash_timer = 40
 
             # Death Defyer: 75% chance to respawn at full HP (once per life)
             for f in (p1, p2):
@@ -1996,6 +2094,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 # Jetpack unlock: p1 fell into void with 2–7 seconds remaining
                 if p1.hp <= 0 and constants.STAGE_VOID and FPS * 2 <= timer <= FPS * 7:
                     _void_fall_timer_flag[0] = True
+                # Nick of Time: p1 KO'd p2 with ≤1 second remaining
+                if p2.hp <= 0 and p1.hp > 0 and 0 < timer <= FPS:
+                    _nick_of_time_flag[0] = True
                 game_over = True
                 winner = p1 if p1.hp >= p2.hp else p2
 
@@ -4096,6 +4197,9 @@ def main():
             if _map_man_flag[0]:
                 stats["map_man_unlocked"] = True
                 _map_man_flag[0] = False
+            if _nick_of_time_flag[0]:
+                stats["nick_of_time_win"] = True
+                _nick_of_time_flag[0] = False
             new_unlocks = check_and_unlock(unlocked, stats)
             if new_unlocks:
                 _save_data(unlocked, stats)

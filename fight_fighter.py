@@ -193,8 +193,16 @@ class Fighter:
         self.drain_aura_timer        = FPS * 2 if char_data.get("drain_aura") else 0
         self.fire_aura_timer         = FPS * 2 if char_data.get("fire_aura")   else 0
         self.money_stacks            = 0      # Tycoon: speed stacks from hits landed
+        self.pending_possess         = False  # Poltergeist: possess nearby entity this frame
+        self.nick_dodge_active       = False  # Nick of Time: mega-dodge when ≤10s remain
         if char_data.get("colossus"):
             self.draw_scale = 2.0
+        self.parry_frames            = 0      # Parry: frames of triple-dmg buff after blocking
+        self.phoenix_used            = False  # Phoenix: has the one-time revive been used
+        self.chain_count             = 0      # Chain Fighter: consecutive hit count
+        self.chain_timer             = 0      # Chain Fighter: frames until streak resets
+        self.glitch_timer            = FPS * 5 if char_data.get("glitch_char") else 0
+        self.one_punch_count         = 0      # One Punch: punch counter toward 7th
 
     def _reinit_ability_timers(self):
         c = self.char
@@ -204,6 +212,13 @@ class Fighter:
         if c.get("fire_aura"):        self.fire_aura_timer     = FPS * 2
         if c.get("colossus"):         self.draw_scale          = 2.0
         self.money_stacks = 0
+        self.parry_frames = 0
+        self.phoenix_used = False
+        self.chain_count = 0
+        self.chain_timer = 0
+        self.one_punch_count = 0
+        if c.get("glitch_char"):      self.glitch_timer        = FPS * 5
+        if c.get("rage_stack"):       self.punch_boost = 0;    self.kick_boost = 0
         if c.get("kitsune_barrage"):  self.kitsune_timer       = FPS * 9
         if c.get("chaos_timer"):      self.chaos_timer         = FPS * 12
         if c.get("time_freeze"):      self.time_freeze_timer   = FPS * 18
@@ -435,6 +450,26 @@ class Fighter:
             self.combo_timer -= 1
             if self.combo_timer == 0:
                 self.combo_count = 0
+        # Parry: count down buff window
+        if self.parry_frames > 0:
+            self.parry_frames -= 1
+        # Chain Fighter: reset streak if window expires
+        if self.chain_timer > 0:
+            self.chain_timer -= 1
+            if self.chain_timer == 0:
+                self.chain_count = 0
+        # Glitch: randomise stats every 5 seconds
+        if self.char.get("glitch_char"):
+            if self.glitch_timer > 0:
+                self.glitch_timer -= 1
+            else:
+                self.char = dict(self.char)
+                self.char["speed"]     = random.randint(3, 10)
+                self.char["punch_dmg"] = random.randint(4, 25)
+                self.char["kick_dmg"]  = random.randint(4, 25)
+                self.char["max_hp"]    = self.max_hp   # keep actual HP intact
+                self.flash_timer = 8
+                self.glitch_timer = FPS * 5
         # Pyro auto fire
         if self.char.get("auto_fire"):
             if self.auto_fire_timer > 0:
@@ -512,7 +547,7 @@ class Fighter:
             self.y = GROUND_Y
             self.vy = 0
             landed = True
-        elif self.y <= 20:
+        elif self.y <= 20 and not constants.STAGE_CEILING:
             self.y = 20
             self.vy = abs(self.vy) * 0.4   # bounce back down
         elif not self.char.get("phase"):
@@ -718,7 +753,7 @@ class Fighter:
                 if self.char.get("widow_kick"):
                     self.pending_widow_bugs = True
                 if self.char.get("possess_kick"):
-                    pass  # effect applied in check_hit
+                    self.pending_possess = True
                 if self.char.get("sniper_shot"):
                     self.pending_snipe = True
                     self.kick_cooldown = FPS * 3   # 3-second reload
@@ -961,6 +996,10 @@ class Fighter:
                 other.flash_timer = 4
                 self.attack_hit   = True
                 return
+            if other.char.get("nick_of_time") and other.nick_dodge_active and random.random() < 0.999:
+                other.flash_timer = 4
+                self.attack_hit   = True
+                return
             if other.char.get("unhittable") and random.random() < 0.60:
                 other.flash_timer = 4
                 self.attack_hit   = True
@@ -977,6 +1016,13 @@ class Fighter:
                 dmg *= 3
             if self.char.get("glitch_strike"):
                 dmg = 1 if random.random() < 0.5 else dmg * 3
+            if self.char.get("parry_strike") and self.parry_frames > 0:
+                dmg *= 3
+                self.parry_frames = 0
+            if self.char.get("one_punch_man") and self.action == 'punch':
+                self.one_punch_count += 1
+                if self.one_punch_count % 7 == 0:
+                    dmg = 999
             if self.char.get("overdrive") and self.overdrive_ready:
                 dmg *= 3
                 self.overdrive_ready  = False
@@ -1012,10 +1058,15 @@ class Fighter:
                 dmg = max(1, int(dmg * 0.5))
             if self._berserker_active:
                 dmg = int(dmg * 1.5)
-            if other.blocking and not (self.char.get("crush_punch") and self.action == 'punch'):
+            if (other.blocking
+                    and not (self.char.get("crush_punch") and self.action == 'punch')
+                    and not (self.char.get("pierce_kick") and self.action == 'kick')):
                 if other.char.get("absorb_block"):
                     other.hp = min(other.max_hp, other.hp + 6)
                     dmg = 0
+                elif other.char.get("iron_block"):
+                    dmg = 1
+                    other.parry_frames = 90
                 else:
                     bsk = other.char.get("block", 5)
                     perfect_p = bsk * 0.025
@@ -1025,6 +1076,8 @@ class Fighter:
                         dmg = 0
                     elif r < perfect_p + partial_p:
                         dmg = max(1, dmg // 2)
+                    if other.char.get("parry_strike") and dmg > 0:
+                        other.parry_frames = 90
             other.hp = max(0, other.hp - dmg)
             if other.char.get("overdrive") and dmg > 0 and not other.blocking:
                 other.overdrive_charge += 1
@@ -1146,8 +1199,7 @@ class Fighter:
                 self.pending_mine = True
             if self.char.get("taipan_punch") and self.action == 'punch':
                 other._suppress_abilities(FPS * 10)
-            if self.char.get("possess_kick") and self.action == 'kick':
-                other.confuse_frames = max(other.confuse_frames, FPS * 4)
+            # possess_kick: handled in fight_game.py via pending_possess
             if other.char.get("heavy"):
                 other.knockback *= 0.40
             if other.char.get("absorb_hit") and dmg > 0:
@@ -1178,6 +1230,26 @@ class Fighter:
             if self.char.get("sap_kick") and self.action == 'kick' and dmg > 0:
                 other.max_hp = max(1, other.max_hp - 10)
                 other.hp     = min(other.hp, other.max_hp)
+            if self.char.get("combat_regen") and dmg > 0:
+                self.hp = min(self.max_hp, self.hp + 5)
+            if other.char.get("rage_stack") and dmg > 0 and not other.blocking:
+                other.punch_boost = min(other.punch_boost + 4, 32)
+                other.kick_boost  = min(other.kick_boost  + 4, 32)
+            if self.char.get("chain_hits") and dmg > 0:
+                self.chain_count += 1
+                self.chain_timer = 90
+                if self.chain_count % 3 == 0:
+                    other.hp = max(0, other.hp - dmg)
+                    other.flash_timer = max(other.flash_timer, 12)
+            if self.char.get("block_break") and self.action == 'punch' and dmg > 0:
+                other.char = dict(other.char)
+                other.char["block"] = max(0, other.char.get("block", 5) - 2)
+            if self.char.get("titan_grip") and self.action == 'punch' and dmg > 0:
+                other.knockback  = 0
+                other.hurt_timer = max(other.hurt_timer, 120)
+            if other.char.get("reflect_dmg") and dmg > 0 and not other.blocking:
+                self.hp = max(0, self.hp - int(dmg * 0.4))
+                self.flash_timer = max(self.flash_timer, 6)
 
     def draw(self, surface):
         _scale = self.draw_scale
@@ -1456,7 +1528,7 @@ class AIFighter(Fighter):
             self.y = GROUND_Y
             self.vy = 0
             landed = True
-        elif self.y <= 20:
+        elif self.y <= 20 and not constants.STAGE_CEILING:
             self.y = 20
             self.vy = abs(self.vy) * 0.4   # bounce back down
         elif not self.char.get("phase"):

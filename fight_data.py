@@ -709,7 +709,7 @@ CHARACTERS = [
      "double_jump": False, "auto_forcefield": True},
     {"name": "Poltergeist", "color": (180, 80, 255), "speed": 6, "jump": -15,
      "punch_dmg": 10, "kick_dmg": 11, "max_hp": 90, "block": 4,
-     "desc": "Kick possesses the opponent — reverses their controls for 4 seconds",
+     "desc": "Kick possesses nearby entities — snakes, bugs, clones, springs, and platforms",
      "double_jump": True, "possess_kick": True},
     {"name": "Armor", "color": (160, 160, 180), "speed": 4, "jump": -12,
      "punch_dmg": 11, "kick_dmg": 11, "max_hp": 130, "block": 6,
@@ -824,6 +824,68 @@ CHARACTERS = [
      "punch_dmg": 9, "kick_dmg": 9, "max_hp": 100, "block": 5,
      "desc": "Copies opponent's speed and max HP at fight start",
      "double_jump": False, "mimic_stats": True},
+    # ── new regular characters ───────────────────────────────────────────────
+    {"name": "Boomerang", "color": (200, 110, 30), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 8, "max_hp": 100, "block": 4,
+     "desc": "Kick launches an orbiting boomerang that hits for 4 seconds",
+     "double_jump": False, "boomerang_kick": True},
+    {"name": "Parry", "color": (60, 120, 200), "speed": 5, "jump": -13,
+     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100, "block": 5,
+     "desc": "Block a hit — next attack within 1.5s deals triple damage",
+     "double_jump": False, "parry_strike": True},
+    {"name": "Healer", "color": (100, 200, 120), "speed": 5, "jump": -13,
+     "punch_dmg": 8, "kick_dmg": 8, "max_hp": 110, "block": 5,
+     "desc": "Restores 5 HP every time you land a hit",
+     "double_jump": False, "combat_regen": True},
+    {"name": "Iron Wall", "color": (80, 80, 100), "speed": 4, "jump": -11,
+     "punch_dmg": 9, "kick_dmg": 9, "max_hp": 130, "block": 6,
+     "desc": "Blocking reduces all incoming damage to 1",
+     "double_jump": False, "iron_block": True},
+    {"name": "Pierce", "color": (160, 160, 180), "speed": 6, "jump": -14,
+     "punch_dmg": 8, "kick_dmg": 12, "max_hp": 90, "block": 4,
+     "desc": "Kicks completely bypass opponent's block",
+     "double_jump": True, "pierce_kick": True},
+    {"name": "Rage Stack", "color": (180, 50, 50), "speed": 5, "jump": -13,
+     "punch_dmg": 7, "kick_dmg": 7, "max_hp": 80, "block": 3,
+     "desc": "Each hit received adds +4 damage (stacks up to +32)",
+     "double_jump": True, "rage_stack": True},
+    {"name": "Phoenix", "color": (220, 120, 20), "speed": 5, "jump": -14,
+     "punch_dmg": 9, "kick_dmg": 9, "max_hp": 90, "block": 4,
+     "desc": "Revives once with 30 HP when knocked out",
+     "double_jump": False, "phoenix_revive": True},
+    {"name": "Chain Fighter", "color": (60, 160, 160), "speed": 6, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 9, "max_hp": 95, "block": 4,
+     "desc": "Every 3rd consecutive hit deals double damage",
+     "double_jump": False, "chain_hits": True},
+    {"name": "Breaker", "color": (100, 80, 160), "speed": 5, "jump": -13,
+     "punch_dmg": 11, "kick_dmg": 9, "max_hp": 100, "block": 5,
+     "desc": "Punch permanently reduces opponent's block by 2",
+     "double_jump": False, "block_break": True},
+    {"name": "Titan Grip", "color": (90, 60, 130), "speed": 4, "jump": -11,
+     "punch_dmg": 12, "kick_dmg": 10, "max_hp": 130, "block": 5,
+     "desc": "Punch locks opponent in place with a 2-second stun",
+     "double_jump": False, "titan_grip": True},
+    # ── new secret characters ────────────────────────────────────────────────
+    {"name": "Overload", "color": (255, 80, 220), "speed": 10, "jump": -18,
+     "punch_dmg": 35, "kick_dmg": 35, "max_hp": 350, "block": 10,
+     "desc": "All stats are absurdly maxed out",
+     "double_jump": True, "overload": True},
+    {"name": "Glitch", "color": (60, 255, 120), "speed": 5, "jump": -13,
+     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100, "block": 5,
+     "desc": "Stats randomly shuffle every 5 seconds",
+     "double_jump": False, "glitch_char": True},
+    {"name": "Reflect", "color": (200, 200, 80), "speed": 5, "jump": -13,
+     "punch_dmg": 8, "kick_dmg": 8, "max_hp": 95, "block": 4,
+     "desc": "Reflects 40% of all damage received back to attacker",
+     "double_jump": False, "reflect_dmg": True},
+    {"name": "One Punch", "color": (255, 255, 255), "speed": 6, "jump": -14,
+     "punch_dmg": 8, "kick_dmg": 10, "max_hp": 85, "block": 4,
+     "desc": "Every 7th punch is an instant KO",
+     "double_jump": False, "one_punch_man": True},
+    {"name": "Nick of Time", "color": (60, 200, 255), "speed": 7, "jump": -14,
+     "punch_dmg": 12, "kick_dmg": 12, "max_hp": 95, "block": 5,
+     "desc": "With 10 seconds left, becomes nearly unhittable",
+     "double_jump": True, "nick_of_time": True},
 ]
 
 POWERUPS = [
@@ -1148,6 +1210,23 @@ STAGES = [
     ], "springs": [(450, -22)], "conveyors": [],
     "portals": [(175, GROUND_Y-180), (700, GROUND_Y-180)],
     "hazards": [(270, 80, "lava"), (550, 80, "lava")]},
+    # Portal World — 10 portals in 5 pairs
+    {"name": "Portal World", "platforms": [
+        (80,  GROUND_Y-110, 130, 0, 0),
+        (690, GROUND_Y-110, 130, 0, 0),
+        (380, GROUND_Y-200, 140, 0, 0),
+        (190, GROUND_Y-310, 100, 0, 0),
+        (610, GROUND_Y-310, 100, 0, 0),
+        (370, GROUND_Y-380, 120, 0, 0),
+    ], "springs": [(450, -22)], "conveyors": [],
+    "portals": [
+        (110, GROUND_Y-210), (790, GROUND_Y-210),   # pair 0  blue
+        (450,          60),  (450, GROUND_Y-70),    # pair 1  orange
+        (170, GROUND_Y-60),  (700,          130),   # pair 2  green
+        (240,         110),  (660, GROUND_Y-60),    # pair 3  purple
+        (290, GROUND_Y-280), (610, GROUND_Y-280),   # pair 4  red
+    ],
+    "hazards": []},
 ]
 
 # Stage-specific character advantages and disadvantages.
@@ -1176,5 +1255,6 @@ STAGE_MATCHUPS = {
     "Sky Island":      {"adv": "Angel",          "dis": "Sumo"},
     "Graveyard":       {"adv": "Ghost",       "dis": "Medic"},
     "The Nether":      {"adv": "Void Master", "dis": "Wisp"},
+    "Portal World":    {"adv": "Teleporter",  "dis": "Anchor"},
 }
 
