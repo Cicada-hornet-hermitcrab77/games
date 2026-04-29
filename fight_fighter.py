@@ -1027,10 +1027,6 @@ class Fighter:
             if self.char.get("parry_strike") and self.parry_frames > 0:
                 dmg *= 3
                 self.parry_frames = 0
-            if self.char.get("one_punch_man") and self.action == 'punch':
-                self.one_punch_count += 1
-                if self.one_punch_count % 7 == 0:
-                    dmg = 999
             if self.char.get("overdrive") and self.overdrive_ready:
                 dmg *= 3
                 self.overdrive_ready  = False
@@ -1255,9 +1251,6 @@ class Fighter:
             if self.char.get("titan_grip") and self.action == 'punch' and dmg > 0:
                 other.knockback  = 0
                 other.hurt_timer = max(other.hurt_timer, 120)
-            if other.char.get("reflect_dmg") and dmg > 0 and not other.blocking:
-                self.hp = max(0, self.hp - int(dmg * 0.4))
-                self.flash_timer = max(self.flash_timer, 6)
 
     def draw(self, surface):
         _scale = self.draw_scale

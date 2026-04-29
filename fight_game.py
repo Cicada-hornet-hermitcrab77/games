@@ -309,8 +309,6 @@ UNLOCK_CONDITIONS = {
     # ── new secret characters ────────────────────────────────────────────────
     "Overload":            ("wins_total",     None,            100,  "Power beyond all limits",         True),
     "Glitch":              ("matches_played", None,            150,  "???",                             True),
-    "Reflect":             ("win_with",       "Deflector",       2,  "Turn it back around",             True),
-    "One Punch":           ("win_with",       "Godslayer",       2,  "Legends say one blow is enough",  True),
     "Nick of Time":        ("nick_of_time_win", None,            1,  "A win against the clock",         True),
     "Buffer":              ("wins_total",      None,            25, "Win 25 matches"),
     "Cursed":              ("losses",          None,            20, "Lose 20 matches"),

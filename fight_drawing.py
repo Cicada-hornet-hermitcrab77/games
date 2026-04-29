@@ -3204,19 +3204,6 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.rect(surface, (60, 255, 120),
                          (hx - hd, hy - int(3*s), hd * 2, max(2, int(4*s))))
 
-    elif char_name == "Reflect":
-        # Mirror shards around body
-        for _ri in range(6):
-            _ra = _ri * 1.047
-            _rrx = sx + int(math.cos(_ra) * int(12*s))
-            _rry = sy + int(bl * 0.3) + int(math.sin(_ra) * int(8*s))
-            pygame.draw.line(surface, (200, 200, 80),
-                             (sx, sy + int(bl * 0.3)), (_rrx, _rry), max(1, int(2*s)))
-        # Reflective visor
-        pygame.draw.arc(surface, (220, 220, 100),
-                        (hx - hd, hy - hd // 2, hd * 2, hd),
-                        math.pi * 0.1, math.pi * 0.9, max(2, int(3*s)))
-
     elif char_name == "Nick of Time":
         # Hourglass on chest
         _ncx, _ncy = sx, sy + int(bl * 0.3)
@@ -3239,21 +3226,6 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.line(surface, (200, 240, 255),
                          (hx, hy), (hx + facing * int(hd * 0.8), hy - int(hd * 0.5)),
                          max(1, int(2*s)))
-
-    elif char_name == "One Punch":
-        # White glowing power fist on right hand
-        pygame.draw.circle(surface, (255, 255, 255), (rhx, rhy), max(6, int(11*s)))
-        pygame.draw.circle(surface, (200, 200, 255), (rhx, rhy), max(4, int(8*s)))
-        # Power lines radiating from fist
-        for _pi2 in range(6):
-            _pa = _pi2 * 1.047
-            _px = rhx + int(math.cos(_pa) * int(14*s))
-            _py = rhy + int(math.sin(_pa) * int(14*s))
-            pygame.draw.line(surface, (255, 255, 200), (rhx, rhy), (_px, _py), max(1, int(2*s)))
-        # Bold white headband
-        pygame.draw.line(surface, (255, 255, 255),
-                         (hx - hd, hy + int(hd * 0.15)), (hx + hd, hy + int(hd * 0.15)),
-                         max(2, int(4*s)))
 
     elif char_name == "Buffer":
         # Green plus signs on chest (stat-up symbol)
