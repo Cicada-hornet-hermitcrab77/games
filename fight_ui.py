@@ -957,7 +957,6 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("magnet"):         badges.append(("MAGNET",        PURPLE))
             if detail_ch.get("teleport_kick"):  badges.append(("TELEPORT KICK", (220, 80, 255)))
             if detail_ch.get("random_stats"):   badges.append(("RANDOM STATS",  GRAY))
-            if detail_ch.get("boomerang_kick"): badges.append(("BOOMERANG",     (200, 130, 50)))
             if detail_ch.get("shoot_kick"):     badges.append(("SHOOTS BALLS",  (60, 200, 80)))
             if detail_ch.get("bazooka_kick"):   badges.append(("BAZOOKA",       (220, 60, 60)))
             if detail_ch.get("bounce_kick"):    badges.append(("BOUNCE BALL",   (255, 80, 200)))
