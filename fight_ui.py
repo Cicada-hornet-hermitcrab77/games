@@ -406,6 +406,8 @@ CHEAT_CODES = {
     "mirror_damage":      "Reflect",
     "one_hit_ko":         "One Punch",
     "last_second":        "Nick of Time",
+    "get_big":            "Buffer",
+    "be_cursed":          "Cursed",
 }
 
 # ---------------------------------------------------------------------------
@@ -1109,6 +1111,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("reflect_dmg"):     badges.append(("REFLECT DMG",   (200,200, 80)))
             if detail_ch.get("one_punch_man"):   badges.append(("ONE PUNCH",     (255,255,255)))
             if detail_ch.get("nick_of_time"):    badges.append(("NICK OF TIME",  ( 60,200,255)))
+            if detail_ch.get("buffer_char"):     badges.append(("BUFFER",        (100,220,100)))
+            if detail_ch.get("cursed_drain"):    badges.append(("CURSED",        ( 80,  0, 80)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)

@@ -886,6 +886,14 @@ CHARACTERS = [
      "punch_dmg": 12, "kick_dmg": 12, "max_hp": 95, "block": 5,
      "desc": "With 10 seconds left, becomes nearly unhittable",
      "double_jump": True, "nick_of_time": True},
+    {"name": "Buffer", "color": (100, 220, 100), "speed": 4, "jump": -13,
+     "punch_dmg": 7, "kick_dmg": 7, "max_hp": 90, "block": 3,
+     "desc": "Every second gains +1 speed, +1 HP, and +1 damage",
+     "double_jump": False, "buffer_char": True},
+    {"name": "Cursed", "color": (80, 0, 80), "speed": 8, "jump": -16,
+     "punch_dmg": 18, "kick_dmg": 18, "max_hp": 200, "block": 8,
+     "desc": "Loses 1 HP every second — but hits extremely hard",
+     "double_jump": True, "cursed_drain": True},
 ]
 
 POWERUPS = [

@@ -3255,6 +3255,41 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                          (hx - hd, hy + int(hd * 0.15)), (hx + hd, hy + int(hd * 0.15)),
                          max(2, int(4*s)))
 
+    elif char_name == "Buffer":
+        # Green plus signs on chest (stat-up symbol)
+        _bx, _by = sx, sy
+        for _boff in [(-int(6*s), 0), (int(6*s), 0)]:
+            _cx2 = _bx + _boff[0]
+            pygame.draw.line(surface, (180, 255, 180),
+                             (_cx2 - int(4*s), _by), (_cx2 + int(4*s), _by), max(2, int(3*s)))
+            pygame.draw.line(surface, (180, 255, 180),
+                             (_cx2, _by - int(4*s)), (_cx2, _by + int(4*s)), max(2, int(3*s)))
+        # Upward arrow on head
+        pygame.draw.polygon(surface, (100, 240, 100), [
+            (hx, hy - hd - int(7*s)),
+            (hx - int(5*s), hy - hd),
+            (hx + int(5*s), hy - hd),
+        ])
+
+    elif char_name == "Cursed":
+        # Purple skull on chest
+        _cx2, _cy2 = sx, sy - int(bl * 0.1)
+        pygame.draw.circle(surface, (140, 0, 140), (_cx2, _cy2), max(5, int(8*s)))
+        pygame.draw.circle(surface, (60, 0, 60),   (_cx2, _cy2), max(3, int(5*s)))
+        # Eye sockets
+        for _ex in [_cx2 - int(3*s), _cx2 + int(3*s)]:
+            pygame.draw.circle(surface, (0, 0, 0), (_ex, _cy2 - int(2*s)), max(1, int(2*s)))
+        # Dark cracked halo above head
+        pygame.draw.arc(surface, (100, 0, 100),
+                        (hx - hd - int(3*s), hy - hd * 2 - int(4*s), (hd + int(3*s)) * 2, hd + int(4*s)),
+                        0, math.pi, max(2, int(3*s)))
+        # Jagged crack lines on chest
+        pygame.draw.lines(surface, (200, 0, 200), False, [
+            (sx - int(5*s), sy - int(8*s)),
+            (sx - int(2*s), sy - int(2*s)),
+            (sx + int(4*s), sy + int(5*s)),
+        ], max(1, int(2*s)))
+
 
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color

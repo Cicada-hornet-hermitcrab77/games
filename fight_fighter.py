@@ -194,7 +194,12 @@ class Fighter:
         self.fire_aura_timer         = FPS * 2 if char_data.get("fire_aura")   else 0
         self.money_stacks            = 0      # Tycoon: speed stacks from hits landed
         self.pending_possess         = False  # Poltergeist: possess nearby entity this frame
+        self.possess_entity          = None   # Poltergeist: (type, entity) being controlled
+        self.possess_timer           = 0      # Poltergeist: frames of possession remaining
         self.nick_dodge_active       = False  # Nick of Time: mega-dodge when ≤10s remain
+        self.buffer_timer            = FPS    # Buffer: countdown to next stat gain
+        self.buffer_stacks           = 0      # Buffer: number of bonus HP stacks
+        self.cursed_timer            = FPS    # Cursed: countdown to next HP drain
         if char_data.get("colossus"):
             self.draw_scale = 2.0
         self.parry_frames            = 0      # Parry: frames of triple-dmg buff after blocking
@@ -229,6 +234,9 @@ class Fighter:
         if c.get("soul_master"):      self.soul_switch_timer   = FPS * 5
         if c.get("chicken_banana"):   self.cb_idle_timer       = FPS * 8
         if c.get("auto_forcefield"):  self.forcefield_timer    = FPS * 20
+        self.pending_possess = False
+        self.possess_entity  = None
+        self.possess_timer   = 0
 
     def _suppress_abilities(self, duration_frames):
         _BASE = {"name","color","speed","jump","punch_dmg","kick_dmg",

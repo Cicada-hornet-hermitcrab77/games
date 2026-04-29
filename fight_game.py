@@ -309,9 +309,11 @@ UNLOCK_CONDITIONS = {
     # ── new secret characters ────────────────────────────────────────────────
     "Overload":            ("wins_total",     None,            100,  "Power beyond all limits",         True),
     "Glitch":              ("matches_played", None,            150,  "???",                             True),
-    "Reflect":             ("win_with",       "Deflector",       5,  "Turn it back around",             True),
-    "One Punch":           ("win_with",       "Godslayer",       3,  "Legends say one blow is enough",  True),
+    "Reflect":             ("win_with",       "Deflector",       2,  "Turn it back around",             True),
+    "One Punch":           ("win_with",       "Godslayer",       2,  "Legends say one blow is enough",  True),
     "Nick of Time":        ("nick_of_time_win", None,            1,  "A win against the clock",         True),
+    "Buffer":              ("wins_total",      None,            25, "Win 25 matches"),
+    "Cursed":              ("losses",          None,            20, "Lose 20 matches"),
 }
 
 def _default_stats():
@@ -1106,7 +1108,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if not cd.get('permanent'):
                     cd['timer'] -= 1
                 if cd['timer'] > 0 and cd['fighter'].hp > 0:
-                    cd['fighter'].update(None, cd['target'], platforms)
+                    _psr = next((_pf for _pf in (p1, p2) if _pf.possess_timer > 0 and _pf.possess_entity and _pf.possess_entity[0] == 'clone' and _pf.possess_entity[1] is cd['fighter']), None)
+                    if _psr:
+                        _pc = P1_CTRL if _psr is p1 else P2_CTRL
+                        _opc = p2 if _psr is p1 else p1
+                        _cl_keys = _KeyProxy({_pc[a]: bool(keys[_pc[a]]) for a in _pc})
+                        Fighter.update(cd['fighter'], _cl_keys, _opc, platforms)
+                    else:
+                        cd['fighter'].update(None, cd['target'], platforms)
                     new_clones.append(cd)
             clones = new_clones
 
@@ -1146,8 +1155,39 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
 
             keys = _touch.inject(pygame.key.get_pressed()) if _touch else pygame.key.get_pressed()
             if _touch2: keys = _touch2.inject(keys)
-            p1.update(keys, p2, platforms)
-            p2.update(keys, p1, platforms)
+
+            # Poltergeist possession: decrement timer, apply player input to entity
+            def _polt_ai_keys(fighter, opp, ctrl):
+                m = {v: False for v in ctrl.values()}
+                if opp.x > fighter.x + 80:   m[ctrl['right']] = True
+                elif opp.x < fighter.x - 80: m[ctrl['left']]  = True
+                if fighter.on_ground and opp.y < fighter.y - 80: m[ctrl['jump']] = True
+                if abs(opp.x - fighter.x) < 90: m[ctrl['punch']] = True
+                return _KeyProxy(m)
+
+            for _pf, _oc in [(p1, p2), (p2, p1)]:
+                if _pf.possess_timer > 0:
+                    _pf.possess_timer -= 1
+                    _pc = P1_CTRL if _pf is p1 else P2_CTRL
+                    _ent = _pf.possess_entity
+                    if _ent:
+                        if _ent[0] == 'platform':
+                            _plat = _ent[1]
+                            _spd = 6.0
+                            if keys[_pc['left']]:  _plat.x = max(0.0, _plat.x - _spd)
+                            if keys[_pc['right']]: _plat.x = min(float(WIDTH - _plat.w), _plat.x + _spd)
+                        elif _ent[0] == 'spring':
+                            _sp = _ent[1]
+                            _spd = 6.0
+                            if keys[_pc['left']]:  _sp.x = max(30.0, _sp.x - _spd)
+                            if keys[_pc['right']]: _sp.x = min(float(WIDTH - 30), _sp.x + _spd)
+                    if _pf.possess_timer <= 0:
+                        _pf.possess_entity = None
+
+            p1_keys = _polt_ai_keys(p1, p2, P1_CTRL) if p1.possess_timer > 0 else keys
+            p2_keys = _polt_ai_keys(p2, p1, P2_CTRL) if p2.possess_timer > 0 else keys
+            p1.update(p1_keys, p2, platforms)
+            p2.update(p2_keys, p1, platforms)
 
             # Map Man: swap to a random stage on kick
             for _swapper in (p1, p2):
@@ -1378,53 +1418,63 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             # Update spawned bugs
             _prev_sb = len(spawned_bugs)
             for sb in spawned_bugs:
-                sb['bug'].update(sb['target'])
+                _psr = next((_pf for _pf in (p1, p2) if _pf.possess_timer > 0 and _pf.possess_entity and _pf.possess_entity[0] == 'bug' and _pf.possess_entity[1] is sb['bug']), None)
+                if _psr:
+                    _pc = P1_CTRL if _psr is p1 else P2_CTRL
+                    _opc = p2 if _psr is p1 else p1
+                    b = sb['bug']
+                    b.leg_t += 0.2
+                    if b.bite_timer > 0: b.bite_timer -= 1
+                    spd = ComputerBug.SPEED * 2.5
+                    if keys[_pc['left']]:  b.vx = -spd; b.x -= spd
+                    if keys[_pc['right']]: b.vx =  spd; b.x += spd
+                    b.x = max(30.0, min(float(WIDTH - 30), b.x))
+                    if (keys[_pc['punch']] or keys[_pc['kick']]) and b.bite_timer == 0:
+                        if abs(b.x - _opc.x) < ComputerBug.BITE_RANGE + 20 and abs(b.y - _opc.y) < 70:
+                            _opc.hp = max(0, _opc.hp - ComputerBug.BITE_DMG * 3)
+                            _opc.flash_timer = 8
+                            b.bite_timer = ComputerBug.BITE_COOLDOWN // 2
+                else:
+                    sb['bug'].update(sb['target'])
             spawned_bugs = [sb for sb in spawned_bugs if sb['bug'].alive]
             _computer_bug_kills_flag[0] += _prev_sb - len(spawned_bugs)
 
-            # Poltergeist: possess nearest entity (snake, bug, spring, platform, clone)
+            # Poltergeist: player takes direct control of nearest entity for 5s
             for _possessor, _victim in [(p1, p2), (p2, p1)]:
                 if not _possessor.pending_possess:
                     continue
                 _possessor.pending_possess = False
                 _possessed = False
-                # Snakes
                 for _sn in jungle_snakes:
                     if _sn.alive:
-                        _sn.possessed_timer  = FPS * 5
-                        _sn.possessed_target = _victim
+                        _possessor.possess_entity = ('snake', _sn)
+                        _possessor.possess_timer  = FPS * 5
                         _possessed = True
                         break
                 if not _possessed:
-                    # Bugs
-                    for _bug_entry in spawned_bugs + [{'bug': b, 'target': _victim} for b in computer_bugs if b.alive]:
-                        _bug_entry['bug'].possessed_timer  = FPS * 5
-                        _bug_entry['bug'].possessed_target = _victim
+                    for _be in spawned_bugs + [{'bug': b} for b in computer_bugs if b.alive]:
+                        _possessor.possess_entity = ('bug', _be['bug'])
+                        _possessor.possess_timer  = FPS * 5
                         _possessed = True
                         break
                 if not _possessed:
-                    # Clones
                     for _cl in clones:
-                        _cl['fighter'].char = dict(_cl['fighter'].char)
-                        _cl['fighter'].char['punch_dmg'] = _cl['fighter'].char.get('punch_dmg', 8) * 3
-                        _cl['fighter'].char['kick_dmg']  = _cl['fighter'].char.get('kick_dmg',  8) * 3
-                        _cl['target'] = _victim
+                        _possessor.possess_entity = ('clone', _cl['fighter'])
+                        _possessor.possess_timer  = FPS * 5
                         _possessed = True
                         break
                 if not _possessed:
-                    # Springs — possess nearest spring
                     _sp_list = sorted(springs, key=lambda s: abs(s.x - _victim.x))
                     if _sp_list:
-                        _sp_list[0].possessed = True
+                        _possessor.possess_entity = ('spring', _sp_list[0])
+                        _possessor.possess_timer  = FPS * 5
                         _possessed = True
                 if not _possessed:
-                    # Platforms — teleport nearest one under victim
                     if platforms:
-                        _plat = min(platforms, key=lambda p: abs(p.x - _victim.x))
-                        _plat.x = _victim.x - _plat.w // 2
+                        _possessor.possess_entity = ('platform', min(platforms, key=lambda p: abs(p.x - _victim.x)))
+                        _possessor.possess_timer  = FPS * 5
                         _possessed = True
                 if not _possessed:
-                    # Fallback: confuse the opponent
                     _victim.confuse_frames = max(_victim.confuse_frames, FPS * 3)
 
             # Spawn bouncing balls from bounce_kick
@@ -1836,6 +1886,28 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if f.char.get("nick_of_time"):
                     f.nick_dodge_active = (timer <= FPS * 10)
 
+            # Buffer: gains +1 speed/HP/damage every second
+            for f in (p1, p2):
+                if f.char.get("buffer_char") and f.hp > 0:
+                    if f.buffer_timer > 0:
+                        f.buffer_timer -= 1
+                    else:
+                        f.buffer_timer = FPS
+                        f.speed_boost  = getattr(f, 'speed_boost', 1.0) + 0.05
+                        f.hp           = min(f.hp + 1, f.max_hp + f.buffer_stacks)
+                        f.punch_boost  = getattr(f, 'punch_boost', 0) + 1
+                        f.kick_boost   = getattr(f, 'kick_boost',  0) + 1
+                        f.buffer_stacks = getattr(f, 'buffer_stacks', 0) + 1
+
+            # Cursed: loses 1 HP every second
+            for f in (p1, p2):
+                if f.char.get("cursed_drain") and f.hp > 0:
+                    if f.cursed_timer > 0:
+                        f.cursed_timer -= 1
+                    else:
+                        f.cursed_timer = FPS
+                        f.hp = max(1, f.hp - 1)
+
             # Chainsaw Man: rapid proximity damage
             for attacker, victim in [(p1, p2), (p2, p1)]:
                 if attacker.char.get("chainsaw") and attacker.hp > 0:
@@ -2037,7 +2109,22 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     jungle_snakes.append(JungleSnake())
                     snake_spawn_timer = random.randint(300, 480)
                 for sn in jungle_snakes:
-                    sn.update(p1, p2)
+                    _psr = next((_pf for _pf in (p1, p2) if _pf.possess_timer > 0 and _pf.possess_entity and _pf.possess_entity[0] == 'snake' and _pf.possess_entity[1] is sn), None)
+                    if _psr:
+                        _pc = P1_CTRL if _psr is p1 else P2_CTRL
+                        _opc = p2 if _psr is p1 else p1
+                        sn.t += 1
+                        if sn.bite_cd > 0: sn.bite_cd -= 1
+                        if keys[_pc['left']]:  sn.x -= JungleSnake.SPEED * 2.5; sn.facing = -1
+                        if keys[_pc['right']]: sn.x += JungleSnake.SPEED * 2.5; sn.facing =  1
+                        sn.x = max(30.0, min(float(WIDTH - 30), sn.x))
+                        if (keys[_pc['punch']] or keys[_pc['kick']]) and sn.bite_cd == 0:
+                            if abs(sn.x - _opc.x) < JungleSnake.BITE_RANGE + 20 and abs(sn.y - _opc.y) < 80:
+                                _opc.hp = max(0, _opc.hp - JungleSnake.BITE_DMG * 3)
+                                _opc.flash_timer = 6
+                                sn.bite_cd = JungleSnake.BITE_COOLDOWN // 2
+                    else:
+                        sn.update(p1, p2)
                 _prev_sn = len(jungle_snakes)
                 jungle_snakes = [sn for sn in jungle_snakes if sn.alive]
                 _jungle_kills_flag[0] += _prev_sn - len(jungle_snakes)
@@ -2049,8 +2136,24 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     computer_bugs.append(ComputerBug())
                     bug_spawn_timer = random.randint(200, 360)
                 for b in computer_bugs:
-                    target = min([p1, p2], key=lambda p: abs(p.x - b.x))
-                    b.update(target)
+                    _psr = next((_pf for _pf in (p1, p2) if _pf.possess_timer > 0 and _pf.possess_entity and _pf.possess_entity[0] == 'bug' and _pf.possess_entity[1] is b), None)
+                    if _psr:
+                        _pc = P1_CTRL if _psr is p1 else P2_CTRL
+                        _opc = p2 if _psr is p1 else p1
+                        b.leg_t += 0.2
+                        if b.bite_timer > 0: b.bite_timer -= 1
+                        spd = ComputerBug.SPEED * 2.5
+                        if keys[_pc['left']]:  b.vx = -spd; b.x -= spd
+                        if keys[_pc['right']]: b.vx =  spd; b.x += spd
+                        b.x = max(30.0, min(float(WIDTH - 30), b.x))
+                        if (keys[_pc['punch']] or keys[_pc['kick']]) and b.bite_timer == 0:
+                            if abs(b.x - _opc.x) < ComputerBug.BITE_RANGE + 20 and abs(b.y - _opc.y) < 70:
+                                _opc.hp = max(0, _opc.hp - ComputerBug.BITE_DMG * 3)
+                                _opc.flash_timer = 8
+                                b.bite_timer = ComputerBug.BITE_COOLDOWN // 2
+                    else:
+                        target = min([p1, p2], key=lambda p: abs(p.x - b.x))
+                        b.update(target)
                 _prev_cb = len(computer_bugs)
                 computer_bugs = [b for b in computer_bugs if b.alive]
                 _computer_bug_kills_flag[0] += _prev_cb - len(computer_bugs)
