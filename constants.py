@@ -26,10 +26,10 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Stickman Fighter")
 clock = pygame.time.Clock()
 
-font_large  = pygame.font.SysFont("Arial", 72, bold=True)
-font_medium = pygame.font.SysFont("Arial", 36, bold=True)
-font_small  = pygame.font.SysFont("Arial", 24)
-font_tiny   = pygame.font.SysFont("Arial", 13)
+font_large  = pygame.font.SysFont("Arial", 52, bold=True)
+font_medium = pygame.font.SysFont("Arial", 26, bold=True)
+font_small  = pygame.font.SysFont("Arial", 18)
+font_tiny   = pygame.font.SysFont("Arial", 11)
 
 GRAVITY = 0.55
 STAGE_VOID    = False   # when True the ground floor is removed; falling off = instant death
