@@ -927,17 +927,17 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 ("BLOCK", detail_ch.get("block", 5),         10, (200, 200,  60)),
             ]):
                 by  = bar_y + si * bar_gap
-                lbs = font_tiny.render(lbl, True, (180, 180, 180))
-                screen.blit(lbs, (bar_x, by))
-                bx2 = bar_x + 48
-                bw2 = bar_bw - 48
+                lbs = font_small.render(lbl, True, (220, 220, 220))
+                screen.blit(lbs, (bar_x, by - 1))
+                bx2 = bar_x + 58
+                bw2 = bar_bw - 80
                 pygame.draw.rect(screen, (50, 50, 65), (bx2, by, bw2, bar_h), border_radius=3)
                 fw  = int(bw2 * min(1.0, val / mx))
                 if fw > 0:
                     pygame.draw.rect(screen, col, (bx2, by, fw, bar_h), border_radius=3)
                 pygame.draw.rect(screen, (90, 90, 110), (bx2, by, bw2, bar_h), 1, border_radius=3)
-                vs2 = font_tiny.render(str(val), True, WHITE)
-                screen.blit(vs2, (bx2 + bw2 + 5, by))
+                vs2 = font_small.render(str(val), True, col)
+                screen.blit(vs2, (bx2 + bw2 + 6, by - 1))
 
             # Badges row
             badge_y = bar_y + 5 * bar_gap + 6
