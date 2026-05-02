@@ -179,6 +179,123 @@ def lan_scan(timeout: float = 1.2) -> list:
     return found
 
 
+# ── Bore tunnel (automatic internet relay, no port-forwarding needed) ────────
+
+import subprocess
+import shutil
+import platform
+import io
+import tarfile
+import threading
+import re
+
+_BORE_VERSION = "v0.5.1"
+
+def _bore_path() -> str:
+    """Return path to a bore binary, or '' if none found / can't download."""
+    p = shutil.which("bore")
+    if p:
+        return p
+    if os.path.isfile("/tmp/bore") and os.access("/tmp/bore", os.X_OK):
+        return "/tmp/bore"
+    return _download_bore()
+
+
+def _download_bore() -> str:
+    sys_name = platform.system().lower()
+    machine  = platform.machine().lower()
+    if sys_name == "darwin":
+        arch = "aarch64" if ("arm" in machine or "aarch64" in machine) else "x86_64"
+        fname = f"bore-{_BORE_VERSION}-{arch}-apple-darwin.tar.gz"
+    elif sys_name == "linux":
+        arch = "aarch64" if "aarch64" in machine else "x86_64"
+        fname = f"bore-{_BORE_VERSION}-{arch}-unknown-linux-musl.tar.gz"
+    else:
+        return ""
+    url = f"https://github.com/ekzhang/bore/releases/download/{_BORE_VERSION}/{fname}"
+    try:
+        data = urllib.request.urlopen(url, timeout=20).read()
+        with tarfile.open(fileobj=io.BytesIO(data)) as tf:
+            for m in tf.getmembers():
+                if m.name == "bore" or m.name.endswith("/bore"):
+                    f = tf.extractfile(m)
+                    if f:
+                        with open("/tmp/bore", "wb") as out:
+                            out.write(f.read())
+                        os.chmod("/tmp/bore", 0o755)
+                        return "/tmp/bore"
+    except Exception:
+        pass
+    return ""
+
+
+class BoreTunnel:
+    """
+    Starts `bore local PORT --to bore.pub` in a background thread.
+    Once bore assigns a remote port, `remote_port` becomes non-zero.
+    Use `internet_code` to get the shareable 10-char code.
+    """
+    BORE_HOST = "bore.pub"
+
+    def __init__(self, local_port: int = PORT):
+        self._local_port  = local_port
+        self._proc        = None
+        self._remote_port = 0
+        self._lock        = threading.Lock()
+        self._bore_ip     = ""
+
+    def start(self):
+        """Non-blocking. Tunnel info appears in `remote_port` within a few seconds."""
+        threading.Thread(target=self._run, daemon=True).start()
+
+    def _run(self):
+        bore = _bore_path()
+        if not bore:
+            return
+        try:
+            # Resolve bore.pub IP once
+            try:
+                self._bore_ip = socket.gethostbyname(self.BORE_HOST)
+            except Exception:
+                self._bore_ip = ""
+
+            self._proc = subprocess.Popen(
+                [bore, "local", str(self._local_port), "--to", self.BORE_HOST],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, bufsize=1)
+            for line in self._proc.stdout:
+                m = re.search(r"bore\.pub:(\d+)", line)
+                if m:
+                    with self._lock:
+                        self._remote_port = int(m.group(1))
+                    break
+        except Exception:
+            pass
+
+    @property
+    def remote_port(self) -> int:
+        with self._lock:
+            return self._remote_port
+
+    def internet_code(self) -> str:
+        """10-char code the joiner enters. Empty string if tunnel not ready."""
+        rp = self.remote_port
+        if not rp or not self._bore_ip:
+            return ""
+        try:
+            return ip_port_to_code(self._bore_ip, rp)
+        except Exception:
+            return ""
+
+    def close(self):
+        if self._proc:
+            try:
+                self._proc.terminate()
+            except Exception:
+                pass
+            self._proc = None
+
+
 # ── Framed TCP messaging ──────────────────────────────────────────────────────
 
 def _send(sock, obj):

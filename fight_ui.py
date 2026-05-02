@@ -1184,7 +1184,7 @@ def _text_input_screen(prompt, default="", max_len=20,
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return None
-                if hint_key and event.key == hint_key:
+                if hint_key and event.key == hint_key and not text:
                     return "\x00SCAN"
                 if event.key == pygame.K_RETURN:
                     return text.strip() or default
@@ -1662,11 +1662,9 @@ def host_lobby(userdata):
     # LAN discovery beacon — lets clients on the same WiFi auto-find us
     beacon = _net.DiscoveryBeacon(_net.PORT, userdata.get("username", "Host"))
 
-    # Fetch public IP in background so the screen isn't blocked
-    public_ip = [socket.gethostbyname(socket.gethostname())]
-    def _fetch():
-        public_ip[0] = _net.get_public_ip()
-    threading.Thread(target=_fetch, daemon=True).start()
+    # Bore tunnel — creates a public internet relay, no port forwarding needed
+    bore = _net.BoreTunnel(_net.PORT)
+    bore.start()
 
     local_ip = socket.gethostbyname(socket.gethostname())
 
@@ -1676,39 +1674,50 @@ def host_lobby(userdata):
         net.poll_accept()
         beacon.poll()
 
-        code_pub = _net.ip_port_to_code(public_ip[0], _net.PORT)
-        code_loc = _net.ip_port_to_code(local_ip,     _net.PORT)
+        code_loc  = _net.ip_port_to_code(local_ip, _net.PORT)
+        bore_code = bore.internet_code()   # empty until bore connects (~3 s)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                beacon.close(); net.close(); pygame.quit(); sys.exit()
+                bore.close(); beacon.close(); net.close(); pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    beacon.close(); net.close(); return None
+                    bore.close(); beacon.close(); net.close(); return None
 
         screen.fill(DARK)
         t = font_large.render("HOST GAME", True, CYAN)
         screen.blit(t, (WIDTH//2 - t.get_width()//2, 25))
 
-        y = 110
-        for label, code in [("Internet code (share this):", code_pub),
-                             ("LAN / same WiFi code:",       code_loc)]:
-            lb = font_small.render(label, True, GRAY)
-            screen.blit(lb, (WIDTH//2 - 210, y))
-            cb = font_medium.render(code, True, YELLOW)
-            screen.blit(cb, (WIDTH//2 - 210, y + 28))
-            y += 85
+        y = 90
+        # Internet code via bore (works anywhere, no port forwarding)
+        lb = font_small.render("Internet code — share with anyone online:", True, GRAY)
+        screen.blit(lb, (WIDTH//2 - 210, y))
+        if bore_code:
+            cb = font_medium.render(bore_code, True, (80, 255, 120))
+        else:
+            dots = "." * ((pygame.time.get_ticks() // 400) % 4)
+            cb = font_medium.render(f"connecting{dots}", True, GRAY)
+        screen.blit(cb, (WIDTH//2 - 210, y + 28))
+        y += 78
+
+        # LAN code (same WiFi)
+        lb2 = font_small.render("LAN / same WiFi code:", True, GRAY)
+        screen.blit(lb2, (WIDTH//2 - 210, y))
+        cb2 = font_medium.render(code_loc, True, YELLOW)
+        screen.blit(cb2, (WIDTH//2 - 210, y + 28))
+        y += 72
 
         lan_hint = font_tiny.render("LAN players can also use SCAN in Join Game", True, (100, 220, 100))
-        screen.blit(lan_hint, (WIDTH//2 - lan_hint.get_width()//2, y + 8))
+        screen.blit(lan_hint, (WIDTH//2 - lan_hint.get_width()//2, y + 4))
 
-        dots = "." * ((pygame.time.get_ticks() // 500) % 4)
-        st = font_small.render(f"Waiting for opponent{dots}", True, WHITE)
-        screen.blit(st, (WIDTH//2 - st.get_width()//2, y + 34))
+        dots2 = "." * ((pygame.time.get_ticks() // 500) % 4)
+        st = font_small.render(f"Waiting for opponent{dots2}", True, WHITE)
+        screen.blit(st, (WIDTH//2 - st.get_width()//2, y + 26))
         hint = font_tiny.render("ESC to cancel", True, GRAY)
         screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 28))
         pygame.display.flip()
 
+    bore.close()
     beacon.close()
 
     # Exchange usernames
