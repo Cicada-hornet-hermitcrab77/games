@@ -1743,7 +1743,7 @@ def join_lobby(userdata):
     Ask for friend code, connect, exchange PICK, return
     (net, my_char(=p2), host_char(=p1), stage).  Returns None on cancel/error.
     """
-    code = _text_input_screen("Enter friend code:", max_len=10)
+    code = _text_input_screen("Enter game / LAN code:", max_len=10)
     if not code:
         return None
     code = code.upper().replace(" ", "").replace("-", "")

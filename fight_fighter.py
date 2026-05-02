@@ -946,9 +946,6 @@ class Fighter:
     def check_hit(self, hit_pos, other):
         if hit_pos is None or self.attack_hit:
             return
-        if other.bubble_shield:
-            other.flash_timer = 6   # visual deflect, no damage
-            return
         if other.ducking and self.action == 'punch':
             return  # punches miss ducking opponents
         hit_cy = other.y - 70 * other.draw_scale
