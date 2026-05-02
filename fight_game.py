@@ -3538,6 +3538,12 @@ def _f2s(f):
         'boomerang_angle': f.boomerang_angle,
         'stealth_frames': f.stealth_frames,
         'bubble_shield': f.bubble_shield,
+        'fire_frames': f.fire_frames, 'fire_tick': f.fire_tick,
+        'shock_frames': f.shock_frames,
+        'freeze_frames': f.freeze_frames,
+        'poison_frames': f.poison_frames, 'poison_tick': f.poison_tick,
+        'confuse_frames': f.confuse_frames,
+        'squish_frames': f.squish_frames,
     }
 
 
@@ -3557,6 +3563,12 @@ def _s2f(f, s):
     f.boomerang_angle = s.get('boomerang_angle', 0.0)
     f.stealth_frames = s.get('stealth_frames', 0)
     f.bubble_shield = s.get('bubble_shield', False)
+    f.fire_frames = s.get('fire_frames', 0); f.fire_tick = s.get('fire_tick', 0)
+    f.shock_frames = s.get('shock_frames', 0)
+    f.freeze_frames = s.get('freeze_frames', 0)
+    f.poison_frames = s.get('poison_frames', 0); f.poison_tick = s.get('poison_tick', 0)
+    f.confuse_frames = s.get('confuse_frames', 0)
+    f.squish_frames = s.get('squish_frames', 0)
 
 
 # ---------------------------------------------------------------------------
@@ -3598,6 +3610,9 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     platforms    = [Platform(*p) for p in stage_data["platforms"]]
     springs      = [Spring(*s)   for s in stage_data["springs"]]
     balls        = []; orbs = []; bounce_balls = []; hooks = []; pumpkins = []; whips = []
+    charged_orbs = []; bubble_shots = []; poison_orbs = []; scrolls = []; venoms = []
+    notes        = []; kitsune_shots = []; water_balls = []; bee_shots = []; snipe_shots = []
+    fire_balls   = []; thunder_bolts = []; plant_spikes = []
 
     # Easter eggs
     hot_potatoes   = []
@@ -3819,6 +3834,255 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         w.hit_done = True
             whips = [w for w in whips if w.alive]
 
+            # Charged orbs (Orb Shooter)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_charged_orb:
+                    charge = shooter.pending_charged_orb
+                    shooter.pending_charged_orb = 0
+                    charged_orbs.append(ChargedOrb(
+                        shooter.x + shooter.facing * 30,
+                        shooter.y - 60, shooter.facing, shooter, charge))
+            for co in charged_orbs:
+                co.update()
+                if co.alive:
+                    victim = p2 if co.owner is p1 else p1
+                    if co.collides(victim):
+                        if victim.bubble_shield:
+                            victim.flash_timer = 6; co.alive = False
+                        else:
+                            victim.hp = max(0, victim.hp - co.dmg)
+                            victim.flash_timer = max(victim.flash_timer, 12); co.alive = False
+            charged_orbs = [co for co in charged_orbs if co.alive]
+
+            # Bubble shots (Windshield Viper)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_bubble_shot:
+                    shooter.pending_bubble_shot = False
+                    bubble_shots.append(BubbleShot(
+                        shooter.x + shooter.facing * 30,
+                        shooter.y - 60, shooter.facing, shooter))
+            for bs in bubble_shots:
+                bs.update()
+                if bs.alive:
+                    victim = p2 if bs.owner is p1 else p1
+                    if bs.collides(victim):
+                        if victim.bubble_shield:
+                            victim.flash_timer = 6; bs.alive = False
+                        else:
+                            victim.hp = max(0, victim.hp - 10)
+                            victim.flash_timer = 8; bs.alive = False
+            bubble_shots = [bs for bs in bubble_shots if bs.alive]
+
+            # Poison orbs (King Cobra)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_poison_orb:
+                    shooter.pending_poison_orb = False
+                    poison_orbs.append(PoisonOrb(
+                        shooter.x + shooter.facing * 30,
+                        shooter.y - 60, shooter.facing, shooter))
+            for po in poison_orbs:
+                po.update()
+                if po.alive:
+                    victim = p2 if po.owner is p1 else p1
+                    if po.collides(victim):
+                        if victim.bubble_shield:
+                            victim.flash_timer = 6; po.alive = False
+                        else:
+                            victim.hp = max(0, victim.hp - 15)
+                            victim.poison_frames = max(victim.poison_frames, FPS * 6)
+                            victim.poison_tick   = min(victim.poison_tick if victim.poison_tick > 0 else 999, 60)
+                            victim.flash_timer   = 15; po.alive = False
+            poison_orbs = [po for po in poison_orbs if po.alive]
+
+            # Scrolls (Scrollmaster)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_scroll:
+                    shooter.pending_scroll = False
+                    scrolls.append(Scroll(shooter.x + shooter.facing * 30,
+                                          shooter.y - 60, shooter.facing, shooter))
+            for sc in scrolls:
+                sc.update()
+                if sc.alive and sc.hit_cd == 0:
+                    victim = p2 if sc.owner is p1 else p1
+                    if sc.collides(victim):
+                        victim.hp = max(0, victim.hp - Scroll.DMG)
+                        victim.flash_timer = 8; sc.hit_cd = Scroll.HIT_CD
+            scrolls = [sc for sc in scrolls if sc.alive]
+
+            # Venom beans (Spitting Cobra)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_venom:
+                    shooter.pending_venom = False
+                    venoms.append(VenomBean(shooter.x + shooter.facing * 30,
+                                            shooter.y - 60, shooter.facing, shooter))
+            for vb in venoms:
+                vb.update()
+                if not vb.hit:
+                    victim = p2 if vb.owner is p1 else p1
+                    if vb.collides(victim):
+                        if victim.bubble_shield:
+                            victim.flash_timer = 6; vb.alive = False
+                        else:
+                            victim.hp = max(0, victim.hp - VenomBean.DMG)
+                            victim.flash_timer = 8
+                            if victim.poison_frames == 0: victim.poison_tick = 180
+                            victim.poison_frames = max(victim.poison_frames, 360)
+                            vb.hit = True; vb.alive = False
+            venoms = [vb for vb in venoms if vb.alive]
+
+            # Music notes (Bard)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_note:
+                    shooter.pending_note = False
+                    notes.append(MusicNote(shooter.x + shooter.facing * 30,
+                                           shooter.y - 60, shooter.facing, shooter))
+            for nt in notes:
+                nt.update()
+                if nt.alive:
+                    victim = p2 if nt.owner is p1 else p1
+                    if nt.collides(victim):
+                        if victim.bubble_shield:
+                            victim.flash_timer = 6; nt.alive = False
+                        else:
+                            victim.hp = max(0, victim.hp - MusicNote.DMG)
+                            victim.flash_timer = 8
+                            victim.hurt_timer = max(victim.hurt_timer, 120)
+                            nt.alive = False
+            notes = [nt for nt in notes if nt.alive]
+
+            # Kitsune barrage (9 shots)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_kitsune:
+                    shooter.pending_kitsune = False
+                    for i in range(9):
+                        kitsune_shots.append(KitsuneShot(shooter.x, shooter.y - 70, i * 40.0, shooter))
+            for ks in kitsune_shots:
+                ks.update()
+                if ks.alive:
+                    victim = p2 if ks.owner is p1 else p1
+                    if ks.collides(victim):
+                        if victim.bubble_shield:
+                            victim.flash_timer = 6; ks.alive = False
+                        else:
+                            victim.hp = max(0, victim.hp - KitsuneShot.DMG)
+                            victim.flash_timer = 8; ks.alive = False
+            kitsune_shots = [ks for ks in kitsune_shots if ks.alive]
+
+            # Water balls (Riptide)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_water_ball:
+                    shooter.pending_water_ball = False
+                    water_balls.append(WaterBall(shooter.x + shooter.facing * 30,
+                                                 shooter.y - 60, shooter.facing, shooter))
+            for wb in water_balls:
+                wb.update()
+                if wb.alive:
+                    victim = p2 if wb.owner is p1 else p1
+                    if wb.collides(victim):
+                        if victim.bubble_shield:
+                            victim.flash_timer = 6; wb.alive = False
+                        else:
+                            victim.hp = max(0, victim.hp - WaterBall.DMG)
+                            victim.flash_timer = 8; wb.alive = False
+            water_balls = [wb for wb in water_balls if wb.alive]
+
+            # Bee shots (Beekeeper — 5 spread)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_bee:
+                    shooter.pending_bee = False
+                    for dvy in (-4, -2, 0, 2, 4):
+                        bee_shots.append(BeeShot(shooter.x + shooter.facing * 30,
+                                                 shooter.y - 60, shooter.facing, shooter, vy=dvy))
+            for b in bee_shots:
+                b.update()
+                if b.alive:
+                    victim = p2 if b.owner is p1 else p1
+                    if b.collides(victim):
+                        if victim.bubble_shield:
+                            victim.flash_timer = 6; b.alive = False
+                        else:
+                            victim.hp = max(0, victim.hp - BeeShot.DMG)
+                            victim.flash_timer = 6; b.alive = False
+            bee_shots = [b for b in bee_shots if b.alive]
+
+            # Snipe shots (Shifter)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_snipe:
+                    shooter.pending_snipe = False
+                    snipe_shots.append(SnipeShot(shooter.x + shooter.facing * 30,
+                                                 shooter.y - 80, shooter.facing, shooter))
+            for s in snipe_shots:
+                s.update()
+                if s.alive:
+                    victim = p2 if s.owner is p1 else p1
+                    if s.collides(victim):
+                        if victim.bubble_shield:
+                            victim.flash_timer = 6; s.alive = False
+                        else:
+                            victim.hp = max(0, victim.hp - SnipeShot.DMG)
+                            victim.flash_timer = 10; s.alive = False
+            snipe_shots = [s for s in snipe_shots if s.alive]
+
+            # Fire balls (Pyro)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_autofire:
+                    shooter.pending_autofire = False
+                    fire_balls.append(FireBall(shooter.x + shooter.facing * 30,
+                                               shooter.y - 60, shooter.facing, shooter))
+            for fb in fire_balls:
+                fb.update()
+                if fb.alive:
+                    victim = p2 if fb.owner is p1 else p1
+                    if fb.collides(victim):
+                        if victim.bubble_shield:
+                            victim.flash_timer = 6; fb.alive = False
+                        else:
+                            victim.hp = max(0, victim.hp - FireBall.DMG)
+                            victim.flash_timer = 8
+                            if victim.fire_frames == 0: victim.fire_tick = 480
+                            victim.fire_frames = max(victim.fire_frames, 480)
+                            fb.alive = False
+            fire_balls = [fb for fb in fire_balls if fb.alive]
+
+            # Thunder bolts (Thunder God + Storm Caller)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_thunder:
+                    shooter.pending_thunder = False
+                    thunder_bolts.append(ThunderBolt(victim.x, shooter))
+                if shooter.pending_storm:
+                    shooter.pending_storm = False
+                    thunder_bolts.append(ThunderBolt(random.randint(80, WIDTH - 80), shooter))
+            for tb in thunder_bolts:
+                tb.update()
+                if tb.alive and not tb.hit:
+                    victim = p2 if tb.owner is p1 else p1
+                    if tb.collides(victim):
+                        if victim.bubble_shield:
+                            victim.flash_timer = 6
+                        else:
+                            victim.hp = max(0, victim.hp - ThunderBolt.DMG)
+                            victim.flash_timer = 12
+                            victim.shock_frames = max(victim.shock_frames, 180)
+                        tb.hit = True
+            thunder_bolts = [tb for tb in thunder_bolts if tb.alive]
+
+            # Plant spikes (Druid)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_plant:
+                    shooter.pending_plant = False
+                    plant_spikes.append(PlantSpike(victim.x, shooter))
+            for ps in plant_spikes:
+                ps.update()
+                if ps.alive:
+                    victim = p2 if ps.owner is p1 else p1
+                    if ps.collides(victim):
+                        if victim.bubble_shield:
+                            victim.flash_timer = 6; ps.alive = False
+                        else:
+                            victim.hp = max(0, victim.hp - PlantSpike.DMG)
+                            victim.flash_timer = 12; ps.alive = False
+            plant_spikes = [ps for ps in plant_spikes if ps.alive]
+
             # Hot potatoes
             for hp in hot_potatoes:
                 hp.update()
@@ -3958,8 +4222,25 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                 "type":   "STATE",
                 "p1":     _f2s(p1),
                 "p2":     _f2s(p2),
-                "balls":  [{"x": b.x, "y": b.y, "vx": b.vx} for b in balls],
-                "orbs":   [{"x": o.x, "y": o.y, "exp": o.exploding} for o in orbs],
+                "balls":        [{"x": b.x,  "y": b.y,  "vx": b.vx} for b in balls],
+                "orbs":         [{"x": o.x,  "y": o.y,  "exp": o.exploding, "et": o.explode_timer} for o in orbs],
+                "bounce_balls": [{"x": bb.x, "y": bb.y} for bb in bounce_balls],
+                "hooks":        [{"x": h.x, "y": h.y, "ox": h.ox, "oy": h.oy, "vx": h.vx, "vy": h.vy, "t": h.t} for h in hooks],
+                "pumpkins":     [{"x": pk.x, "y": pk.y, "exp": pk.exploding, "et": pk.explode_timer if pk.exploding else 0} for pk in pumpkins],
+                "whips":        [{"x": w.x,  "y": w.y,  "facing": w.facing, "frame": w.frame} for w in whips],
+                "charged_orbs": [{"x": co.x, "y": co.y, "r": co.r} for co in charged_orbs],
+                "bubble_shots": [{"x": bs.x, "y": bs.y} for bs in bubble_shots],
+                "poison_orbs":  [{"x": po.x, "y": po.y, "pulse": po._pulse} for po in poison_orbs],
+                "scrolls":      [{"x": sc.x, "y": sc.y, "half": sc.half} for sc in scrolls],
+                "venoms":       [{"x": vb.x, "y": vb.y, "facing": vb.facing} for vb in venoms],
+                "notes":        [{"x": nt.x, "y": nt.y, "t": nt._t} for nt in notes],
+                "kitsune_shots":[{"x": ks.x, "y": ks.y, "spin": ks._spin} for ks in kitsune_shots],
+                "water_balls":  [{"x": wb.x, "y": wb.y} for wb in water_balls],
+                "bee_shots":    [{"x": b.x,  "y": b.y} for b in bee_shots],
+                "snipe_shots":  [{"x": s.x,  "y": s.y,  "vx": s.vx} for s in snipe_shots],
+                "fire_balls":   [{"x": fb.x, "y": fb.y, "t": fb._t} for fb in fire_balls],
+                "thunder_bolts":[{"x": tb.x, "y": tb.y, "t": tb._t} for tb in thunder_bolts],
+                "plant_spikes": [{"x": ps.x, "y": ps.y} for ps in plant_spikes],
                 "winner": winner,
             })
 
@@ -3976,13 +4257,109 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                     winner = m.get("winner")
                     if winner:
                         game_over = True
-                    # Reconstruct ball visuals from state
+                    # Reconstruct projectile visuals from state
                     balls = []
                     for bd in m.get("balls", []):
                         b = Projectile.__new__(Projectile)
                         b.x = bd["x"]; b.y = bd["y"]
                         b.vx = bd["vx"]; b.alive = True; b.owner = None
                         balls.append(b)
+                    orbs = []
+                    for od in m.get("orbs", []):
+                        o = Orb.__new__(Orb)
+                        o.x = od["x"]; o.y = od["y"]; o.exploding = od["exp"]
+                        o.explode_timer = od.get("et", 0); o.alive = True
+                        orbs.append(o)
+                    bounce_balls = []
+                    for bbd in m.get("bounce_balls", []):
+                        bb = BouncingBall.__new__(BouncingBall)
+                        bb.x = bbd["x"]; bb.y = bbd["y"]; bb.alive = True
+                        bounce_balls.append(bb)
+                    hooks = []
+                    for hd in m.get("hooks", []):
+                        h = SnakeHook.__new__(SnakeHook)
+                        h.x = hd["x"]; h.y = hd["y"]; h.alive = True
+                        h.ox = hd.get("ox", hd["x"]); h.oy = hd.get("oy", hd["y"])
+                        h.vx = hd.get("vx", 0.0); h.vy = hd.get("vy", 0.0)
+                        h.t  = hd.get("t", 0)
+                        hooks.append(h)
+                    pumpkins = []
+                    for pkd in m.get("pumpkins", []):
+                        pk = Pumpkin.__new__(Pumpkin)
+                        pk.x = pkd["x"]; pk.y = pkd["y"]; pk.exploding = pkd["exp"]
+                        pk.explode_timer = pkd.get("et", 0); pk.alive = True
+                        pumpkins.append(pk)
+                    whips = []
+                    for wd in m.get("whips", []):
+                        w = Whip.__new__(Whip)
+                        w.x = wd["x"]; w.y = wd["y"]; w.facing = wd["facing"]
+                        w.frame = wd["frame"]; w.alive = True
+                        whips.append(w)
+                    charged_orbs = []
+                    for cod in m.get("charged_orbs", []):
+                        co = ChargedOrb.__new__(ChargedOrb)
+                        co.x = cod["x"]; co.y = cod["y"]; co.r = cod["r"]; co.alive = True
+                        charged_orbs.append(co)
+                    bubble_shots = []
+                    for bsd in m.get("bubble_shots", []):
+                        bs = BubbleShot.__new__(BubbleShot)
+                        bs.x = bsd["x"]; bs.y = bsd["y"]; bs.alive = True
+                        bubble_shots.append(bs)
+                    poison_orbs = []
+                    for pod in m.get("poison_orbs", []):
+                        po = PoisonOrb.__new__(PoisonOrb)
+                        po.x = pod["x"]; po.y = pod["y"]; po._pulse = pod.get("pulse", 0); po.alive = True
+                        poison_orbs.append(po)
+                    scrolls = []
+                    for scd in m.get("scrolls", []):
+                        sc = Scroll.__new__(Scroll)
+                        sc.x = scd["x"]; sc.y = scd["y"]; sc.half = scd["half"]; sc.alive = True
+                        scrolls.append(sc)
+                    venoms = []
+                    for vbd in m.get("venoms", []):
+                        vb = VenomBean.__new__(VenomBean)
+                        vb.x = vbd["x"]; vb.y = vbd["y"]; vb.facing = vbd["facing"]; vb.alive = True
+                        venoms.append(vb)
+                    notes = []
+                    for ntd in m.get("notes", []):
+                        nt = MusicNote.__new__(MusicNote)
+                        nt.x = ntd["x"]; nt.y = ntd["y"]; nt._t = ntd.get("t", 0); nt.alive = True
+                        notes.append(nt)
+                    kitsune_shots = []
+                    for ksd in m.get("kitsune_shots", []):
+                        ks = KitsuneShot.__new__(KitsuneShot)
+                        ks.x = ksd["x"]; ks.y = ksd["y"]; ks._spin = ksd.get("spin", 0.0); ks.alive = True
+                        kitsune_shots.append(ks)
+                    water_balls = []
+                    for wbd in m.get("water_balls", []):
+                        wb = WaterBall.__new__(WaterBall)
+                        wb.x = wbd["x"]; wb.y = wbd["y"]; wb.alive = True
+                        water_balls.append(wb)
+                    bee_shots = []
+                    for bbd in m.get("bee_shots", []):
+                        bsh = BeeShot.__new__(BeeShot)
+                        bsh.x = bbd["x"]; bsh.y = bbd["y"]; bsh.alive = True
+                        bee_shots.append(bsh)
+                    snipe_shots = []
+                    for ssd in m.get("snipe_shots", []):
+                        s = SnipeShot.__new__(SnipeShot)
+                        s.x = ssd["x"]; s.y = ssd["y"]; s.vx = ssd.get("vx", 0.0); s.alive = True
+                        snipe_shots.append(s)
+                    fire_balls = []
+                    for fbd in m.get("fire_balls", []):
+                        fb2 = FireBall.__new__(FireBall)
+                        fb2.x = fbd["x"]; fb2.y = fbd["y"]; fb2._t = fbd.get("t", 0); fb2.alive = True
+                        fire_balls.append(fb2)
+                    thunder_bolts = []
+                    for tbd in m.get("thunder_bolts", []):
+                        tb2 = ThunderBolt.__new__(ThunderBolt)
+                        tb2.x = tbd["x"]; tb2.y = tbd["y"]; tb2._t = tbd.get("t", 0); tb2.alive = True
+                        thunder_bolts.append(tb2)
+                    plant_spikes = []
+                    for psd in m.get("plant_spikes", []):
+                        ps2 = PlantSpike.__new__(PlantSpike)
+                        ps2.x = psd["x"]; ps2.y = psd["y"]; ps2.alive = True
+                        plant_spikes.append(ps2)
 
             # Springs (visual only on client — host is authoritative)
             for sp in springs:
@@ -3994,12 +4371,25 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
         pygame.draw.line(screen, (180, 180, 200), (0, 20), (WIDTH, 20), 3)
         for plat in platforms: plat.draw(screen, stage_idx)
         for sp   in springs:   sp.draw(screen)
-        for b    in balls:     b.draw(screen)
-        for o    in orbs:      o.draw(screen)
-        for bb   in bounce_balls: bb.draw(screen)
-        for h    in hooks:     h.draw(screen)
-        for pk   in pumpkins:  pk.draw(screen)
-        for w    in whips:     w.draw(screen)
+        for b    in balls:          b.draw(screen)
+        for o    in orbs:           o.draw(screen)
+        for bb   in bounce_balls:   bb.draw(screen)
+        for h    in hooks:          h.draw(screen)
+        for pk   in pumpkins:       pk.draw(screen)
+        for w    in whips:          w.draw(screen)
+        for co   in charged_orbs:   co.draw(screen)
+        for bs   in bubble_shots:   bs.draw(screen)
+        for po   in poison_orbs:    po.draw(screen)
+        for sc   in scrolls:        sc.draw(screen)
+        for vb   in venoms:         vb.draw(screen)
+        for nt   in notes:          nt.draw(screen)
+        for ks   in kitsune_shots:  ks.draw(screen)
+        for wb   in water_balls:    wb.draw(screen)
+        for bsh  in bee_shots:      bsh.draw(screen)
+        for s    in snipe_shots:    s.draw(screen)
+        for fb   in fire_balls:     fb.draw(screen)
+        for tb   in thunder_bolts:  tb.draw(screen)
+        for ps   in plant_spikes:   ps.draw(screen)
 
         # Laser beams
         for f in (p1, p2):

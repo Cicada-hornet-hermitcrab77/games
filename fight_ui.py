@@ -1168,8 +1168,13 @@ def _draw_waiting(msg, sub=""):
     pygame.display.flip()
 
 
-def _text_input_screen(prompt, default="", max_len=20):
-    """Full-screen text input. Returns entered string, or None on ESC."""
+def _text_input_screen(prompt, default="", max_len=20,
+                       hint_key=None, hint_label=""):
+    """
+    Full-screen text input.
+    Returns entered string, or None on ESC.
+    If hint_key is pressed (e.g. pygame.K_s), returns the sentinel '\\x00SCAN'.
+    """
     text = default
     while True:
         clock.tick(FPS)
@@ -1179,6 +1184,8 @@ def _text_input_screen(prompt, default="", max_len=20):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return None
+                if hint_key and event.key == hint_key:
+                    return "\x00SCAN"
                 if event.key == pygame.K_RETURN:
                     return text.strip() or default
                 if event.key == pygame.K_BACKSPACE:
@@ -1194,7 +1201,10 @@ def _text_input_screen(prompt, default="", max_len=20):
         cursor = "|" if (pygame.time.get_ticks() // 500) % 2 == 0 else ""
         tv = font_medium.render(text + cursor, True, WHITE)
         screen.blit(tv, (box.x + 12, box.y + 8))
-        hint = font_tiny.render("ENTER to confirm   ESC to cancel", True, GRAY)
+        hint_txt = f"ENTER to confirm   ESC to cancel"
+        if hint_key and hint_label:
+            hint_txt += f"   {hint_label}"
+        hint = font_tiny.render(hint_txt, True, GRAY)
         screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT//3 + 90))
         pygame.display.flip()
 
@@ -1649,6 +1659,9 @@ def host_lobby(userdata):
     net = _net.GameServer()
     net.start()
 
+    # LAN discovery beacon — lets clients on the same WiFi auto-find us
+    beacon = _net.DiscoveryBeacon(_net.PORT, userdata.get("username", "Host"))
+
     # Fetch public IP in background so the screen isn't blocked
     public_ip = [socket.gethostbyname(socket.gethostname())]
     def _fetch():
@@ -1661,16 +1674,17 @@ def host_lobby(userdata):
     while not net.connected:
         clock.tick(FPS)
         net.poll_accept()
+        beacon.poll()
 
         code_pub = _net.ip_port_to_code(public_ip[0], _net.PORT)
         code_loc = _net.ip_port_to_code(local_ip,     _net.PORT)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                net.close(); pygame.quit(); sys.exit()
+                beacon.close(); net.close(); pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    net.close(); return None
+                    beacon.close(); net.close(); return None
 
         screen.fill(DARK)
         t = font_large.render("HOST GAME", True, CYAN)
@@ -1678,19 +1692,24 @@ def host_lobby(userdata):
 
         y = 110
         for label, code in [("Internet code (share this):", code_pub),
-                             ("LAN code:",                   code_loc)]:
+                             ("LAN / same WiFi code:",       code_loc)]:
             lb = font_small.render(label, True, GRAY)
             screen.blit(lb, (WIDTH//2 - 210, y))
             cb = font_medium.render(code, True, YELLOW)
             screen.blit(cb, (WIDTH//2 - 210, y + 28))
             y += 85
 
+        lan_hint = font_tiny.render("LAN players can also use SCAN in Join Game", True, (100, 220, 100))
+        screen.blit(lan_hint, (WIDTH//2 - lan_hint.get_width()//2, y + 8))
+
         dots = "." * ((pygame.time.get_ticks() // 500) % 4)
         st = font_small.render(f"Waiting for opponent{dots}", True, WHITE)
-        screen.blit(st, (WIDTH//2 - st.get_width()//2, y + 20))
+        screen.blit(st, (WIDTH//2 - st.get_width()//2, y + 34))
         hint = font_tiny.render("ESC to cancel", True, GRAY)
         screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 28))
         pygame.display.flip()
+
+    beacon.close()
 
     # Exchange usernames
     net.send({"type": "HELLO", "username": userdata["username"]})
@@ -1738,22 +1757,78 @@ def host_lobby(userdata):
     return net, p1_idx, p2_idx, s_idx
 
 
+def _lan_scan_screen():
+    """
+    Show a scanning screen, collect LAN hosts, let user pick one.
+    Returns (ip, port) or None if cancelled / none found.
+    """
+    _draw_waiting("Scanning for games on your network…", "Please wait")
+    pygame.display.flip()
+    hosts = _net.lan_scan(timeout=1.5)
+
+    if not hosts:
+        _draw_waiting("No games found on LAN.", "Make sure host is on same WiFi.  Any key…")
+        _wait_key()
+        return None
+
+    sel = 0
+    while True:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return None
+                if event.key in (pygame.K_UP, pygame.K_w):
+                    sel = (sel - 1) % len(hosts)
+                if event.key in (pygame.K_DOWN, pygame.K_s):
+                    sel = (sel + 1) % len(hosts)
+                if event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                    ip, port, _ = hosts[sel]
+                    return ip, port
+
+        screen.fill(DARK)
+        t = font_large.render("LAN GAMES FOUND", True, CYAN)
+        screen.blit(t, (WIDTH//2 - t.get_width()//2, 30))
+        for i, (ip, port, name) in enumerate(hosts):
+            col = YELLOW if i == sel else WHITE
+            row = font_medium.render(f"{name}  ({ip})", True, col)
+            screen.blit(row, (WIDTH//2 - row.get_width()//2, 130 + i * 48))
+        hint = font_tiny.render("ENTER to connect   ESC to cancel", True, GRAY)
+        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 28))
+        pygame.display.flip()
+
+
 def join_lobby(userdata):
     """
-    Ask for friend code, connect, exchange PICK, return
-    (net, my_char(=p2), host_char(=p1), stage).  Returns None on cancel/error.
+    Ask for game code (or LAN scan), connect, exchange PICK.
+    Returns (net, my_char, host_char, stage) or None on cancel/error.
     """
-    code = _text_input_screen("Enter game / LAN code:", max_len=10)
-    if not code:
-        return None
-    code = code.upper().replace(" ", "").replace("-", "")
+    # Let the player choose: enter a code, or scan LAN
+    choice = _text_input_screen(
+        "Enter game / LAN code  (or press S to scan):", max_len=10,
+        hint_key=pygame.K_s, hint_label="S = scan LAN")
 
-    try:
-        ip, port = _net.code_to_ip_port(code)
-    except Exception:
-        _draw_waiting("Invalid code.", "Returning to menu…")
-        pygame.time.wait(1800)
+    ip, port = None, None
+
+    if choice is None:
         return None
+    elif choice == "\x00SCAN":          # sentinel from _text_input_screen
+        result = _lan_scan_screen()
+        if result is None:
+            return None
+        ip, port = result
+    else:
+        code = choice.upper().replace(" ", "").replace("-", "")
+        if not code:
+            return None
+        try:
+            ip, port = _net.code_to_ip_port(code)
+        except Exception:
+            _draw_waiting("Invalid code.", "Returning to menu…")
+            pygame.time.wait(1800)
+            return None
 
     net = _net.GameClient()
     _draw_waiting(f"Connecting to {ip}:{port}…", "Please wait")

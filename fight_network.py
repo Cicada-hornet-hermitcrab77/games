@@ -17,11 +17,13 @@ import json
 import struct
 import os
 import random
+import time
 import urllib.request
 
 PORT               = 7777
+DISCOVER_PORT      = 7778          # UDP LAN discovery
 SERVER_PORT        = 7779          # fight_server.py default port
-DEFAULT_SERVER_IP  = "bore.pub"      # tunnelled via bore — run start_server.sh
+DEFAULT_SERVER_IP  = "bore.pub"    # tunnelled via bore — run start_server.sh
 USERDATA_FILE      = os.path.expanduser("~/.fight_userdata.json")
 
 _B36_ID = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -104,6 +106,79 @@ def get_public_ip() -> str:
         return socket.gethostbyname(socket.gethostname())
 
 
+# ── LAN auto-discovery ────────────────────────────────────────────────────────
+
+class DiscoveryBeacon:
+    """
+    Listens on UDP DISCOVER_PORT and replies to scan probes while hosting.
+    Call poll() each frame; close() when done.
+    """
+    def __init__(self, tcp_port: int, name: str):
+        self._msg  = json.dumps({"type": "FIGHT_HOST",
+                                 "port": tcp_port, "name": name}).encode()
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            self._sock.bind(("", DISCOVER_PORT))
+        except Exception:
+            self._sock = None   # port already in use — silently skip
+            return
+        self._sock.setblocking(False)
+
+    def poll(self):
+        if not self._sock:
+            return
+        try:
+            r, _, _ = select.select([self._sock], [], [], 0)
+            if r:
+                data, addr = self._sock.recvfrom(256)
+                if data == b"FIGHT_DISCOVER":
+                    self._sock.sendto(self._msg, addr)
+        except Exception:
+            pass
+
+    def close(self):
+        if self._sock:
+            try:
+                self._sock.close()
+            except Exception:
+                pass
+            self._sock = None
+
+
+def lan_scan(timeout: float = 1.2) -> list:
+    """
+    Broadcast a LAN discovery probe and collect host replies.
+    Returns list of (ip_str, port_int, host_name) tuples.
+    """
+    found   = []
+    seen    = set()
+    sock    = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.settimeout(0.15)
+    try:
+        sock.sendto(b"FIGHT_DISCOVER", ("<broadcast>", DISCOVER_PORT))
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                data, addr = sock.recvfrom(512)
+                msg = json.loads(data.decode())
+                if msg.get("type") == "FIGHT_HOST":
+                    key = (addr[0], msg.get("port", PORT))
+                    if key not in seen:
+                        seen.add(key)
+                        found.append((addr[0], msg.get("port", PORT),
+                                      msg.get("name", "Host")))
+            except socket.timeout:
+                pass
+            except Exception:
+                pass
+    finally:
+        sock.close()
+    return found
+
+
 # ── Framed TCP messaging ──────────────────────────────────────────────────────
 
 def _send(sock, obj):
@@ -159,6 +234,7 @@ class GameServer:
         if r:
             self._cli, _ = self._srv.accept()
             self._cli.setblocking(False)
+            self._cli.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self.connected = True
         return self.connected
 
@@ -221,6 +297,7 @@ class GameClient:
         s.settimeout(timeout)
         s.connect((ip, port))   # raises on failure
         s.setblocking(False)
+        s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self._sock     = s
         self.connected = True
 
