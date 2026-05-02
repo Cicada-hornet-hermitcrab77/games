@@ -1307,9 +1307,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             bs.alive = False
                         elif victim.char.get("deflect_proj"):
                             bs.vx = -bs.vx; bs.owner = victim
+                        elif victim.bubble_shield:
+                            victim.flash_timer = 6; bs.alive = False
                         else:
-                            victim.bubble_shield = True
-                            victim.active_powerups['Bubble Kick'] = FPS * 3
+                            victim.hp = max(0, victim.hp - 10)
+                            victim.flash_timer = 8
                             bs.alive = False
             bubble_shots = [bs for bs in bubble_shots if bs.alive]
 
