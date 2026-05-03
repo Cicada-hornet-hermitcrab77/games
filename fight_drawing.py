@@ -7608,6 +7608,15 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
             return (int(waist[0] + facing * int(action_t * 80 * s)), int(y - 20 * s))
         return None
 
+    # ── Snake: draw only classic snake-game blocks, no stickman ─────────────
+    if char_name == "Snake":
+        draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing, s, col)
+        if action == 'punch':
+            return (int(ra[0] + facing * 10 * s), int(ra[1]))
+        if action == 'kick':
+            return (int(waist[0] + facing * int(action_t * 80 * s)), int(y - 20 * s))
+        return None
+
     ln(waist, lk); ln(lk, lf)
     ln(waist, rk); ln(rk, rf)
     ln(shoulder, la); ln(la, lh)
