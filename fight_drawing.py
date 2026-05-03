@@ -7337,7 +7337,7 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         # Void head — dark with no features visible
         pygame.draw.circle(surface, (8, 0, 20), (hx, hy), hd, max(2, int(3*s)))
 
-    elif char_name == "Screen Time":
+    elif char_name == "Screentime":
         # Monitor / screen body on torso
         pygame.draw.rect(surface, (30, 30, 40),
                          (sx - int(12*s), sy - int(2*s), int(24*s), bl + int(4*s)),
