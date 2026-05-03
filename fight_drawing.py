@@ -2281,56 +2281,39 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             surface.blit(otxt, (ox2 - otxt.get_width() // 2, oy2 - otxt.get_height() // 2))
 
     elif char_name == "Snake":
-        # Green scale pattern on torso
-        for _sci in range(3):
-            for _scj in range(2):
-                _scx = sx - int(6*s) + _scj * int(10*s) + (_sci % 2) * int(5*s)
-                _scy = sy + int(bl * (0.12 + _sci * 0.28))
-                pygame.draw.ellipse(surface, (30, 120, 30),
-                                    (_scx - int(5*s), _scy - int(3*s), int(10*s), int(7*s)))
-                pygame.draw.ellipse(surface, (60, 160, 50),
-                                    (_scx - int(5*s), _scy - int(3*s), int(10*s), int(7*s)),
-                                    max(1, int(s)))
-        # Belly scales (lighter stripe down center)
-        for _bsi in range(5):
-            _bsy = sy + int(bl * (0.08 + _bsi * 0.18))
-            pygame.draw.ellipse(surface, (180, 220, 140),
-                                (sx - int(4*s), _bsy, int(8*s), int(5*s)))
-        # Forked tongue
-        _tx = hx + facing * hd
+        # Draw classic snake-game blocks along the body (like actual gameplay look)
+        bsz = max(10, int(16 * s))
+        # Snake body path: head → shoulder → waist → feet, then a curving tail
+        _snake_pts = [
+            (hx, hy),
+            (hx, hy + hd + int(4*s)),
+            (sx, sy + int(bl * 0.3)),
+            (sx, sy + int(bl * 0.6)),
+            (wx, wy),
+            (wx + facing * int(10*s), wy + int(12*s)),
+            (wx + facing * int(18*s), wy + int(20*s)),
+            (wx + facing * int(22*s), wy + int(30*s)),
+            (wx + facing * int(18*s), wy + int(40*s)),
+        ]
+        for _sbi, _sbpt in enumerate(_snake_pts):
+            _g = min(230, 80 + _sbi * 18)
+            pygame.draw.rect(surface, (10, _g, 20),
+                             (_sbpt[0] - bsz//2, _sbpt[1] - bsz//2, bsz, bsz))
+            pygame.draw.rect(surface, (40, min(255, _g + 60), 40),
+                             (_sbpt[0] - bsz//2, _sbpt[1] - bsz//2, bsz, bsz), max(1, int(2*s)))
+        # Forked tongue from head block
+        _tx = hx + facing * (bsz // 2)
         pygame.draw.line(surface, (220, 50, 50),
-                         (_tx, hy + int(3*s)),
-                         (_tx + facing*int(10*s), hy + int(3*s)), max(2, int(2*s)))
+                         (_tx, hy), (_tx + facing*int(8*s), hy), max(1, int(2*s)))
         pygame.draw.line(surface, (220, 50, 50),
-                         (_tx + facing*int(10*s), hy + int(3*s)),
-                         (_tx + facing*int(14*s), hy - int(3*s)), max(1, int(2*s)))
+                         (_tx + facing*int(8*s), hy),
+                         (_tx + facing*int(12*s), hy - int(3*s)), max(1, int(s)))
         pygame.draw.line(surface, (220, 50, 50),
-                         (_tx + facing*int(10*s), hy + int(3*s)),
-                         (_tx + facing*int(14*s), hy + int(8*s)), max(1, int(2*s)))
-        # Slit pupils
-        for _eox in (-1, 1):
-            pygame.draw.ellipse(surface, (20, 80, 10),
-                                (hx + _eox*int(hd*0.3) - int(5*s), hy - int(hd*0.2),
-                                 int(10*s), int(8*s)))
-            pygame.draw.ellipse(surface, (10, 30, 5),
-                                (hx + _eox*int(hd*0.3) - int(2*s), hy - int(hd*0.15),
-                                 int(4*s), int(7*s)))
-            pygame.draw.circle(surface, (220, 220, 60),
-                               (hx + _eox*int(hd*0.3) - int(3*s), hy - int(hd*0.25)),
-                               max(1, int(s)))
-        # Scale hood markings on head
-        for _shi in range(3):
-            _sha = math.pi * (0.3 + _shi * 0.2)
-            pygame.draw.line(surface, (40, 140, 40),
-                             (hx + int(math.cos(_sha) * hd * 0.7),
-                              hy - int(math.sin(_sha) * hd * 0.7)),
-                             (hx + int(math.cos(_sha) * hd),
-                              hy - int(math.sin(_sha) * hd)), max(1, int(2*s)))
-        # Fang marks on chin
-        for _fi2 in (-1, 1):
-            pygame.draw.line(surface, (220, 220, 220),
-                             (hx + _fi2*int(hd*0.2), hy + int(hd*0.5)),
-                             (hx + _fi2*int(hd*0.2), hy + int(hd*0.75)), max(1, int(2*s)))
+                         (_tx + facing*int(8*s), hy),
+                         (_tx + facing*int(12*s), hy + int(3*s)), max(1, int(s)))
+        # Eye dot on head block
+        pygame.draw.circle(surface, (220, 220, 60),
+                           (hx + facing*int(4*s), hy - int(3*s)), max(2, int(3*s)))
 
     elif char_name == "Enraged":
         # Angry red aura flames on head + furrowed brows
