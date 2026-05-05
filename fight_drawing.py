@@ -1338,7 +1338,22 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             (sx + int(hd*.8), wy + int(8*s)), (sx + int(hd*1.85), wy + int(18*s)),
             (sx + int(hd*.55), sy + int(8*s))]
         pygame.draw.polygon(surface, (75, 0, 18), cape_pts)
-        pygame.draw.polygon(surface, (115, 0, 38), cape_pts, 2)
+        pygame.draw.polygon(surface, (115, 0, 38), cape_pts, max(1, int(2*s)))
+        # Formal dark suit vest on torso
+        pygame.draw.rect(surface, (20, 10, 25),
+                         (sx - int(9*s), sy, int(18*s), bl), border_radius=max(2, int(3*s)))
+        # White shirt collar and tie
+        pygame.draw.polygon(surface, (230, 225, 235), [
+            (sx - int(5*s), sy + int(2*s)), (sx + int(5*s), sy + int(2*s)),
+            (sx + int(2*s), sy + int(bl*0.35)), (sx - int(2*s), sy + int(bl*0.35))])
+        # Blood red tie
+        pygame.draw.polygon(surface, (160, 0, 20), [
+            (sx - int(2*s), sy + int(bl*0.35)), (sx + int(2*s), sy + int(bl*0.35)),
+            (sx + int(3*s), sy + int(bl*0.6)), (sx, sy + int(bl*0.72)),
+            (sx - int(3*s), sy + int(bl*0.6))])
+        # Pale hands
+        for _vhx, _vhy in [(lhx, lhy), (rhx, rhy)]:
+            pygame.draw.circle(surface, (200, 180, 190), (_vhx, _vhy), max(4, int(6*s)))
         # Fangs
         for fx_off in [-int(hd*.3), int(hd*.3)]:
             pygame.draw.polygon(surface, WHITE, [
@@ -2557,7 +2572,19 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.circle(surface, _jrc, (_jrx, _jry), max(3, int(5*s)))
 
     elif char_name == "Blitzer":
-        # Lightning bolt on chest + goggles
+        t = pygame.time.get_ticks()
+        # Yellow electro-suit body
+        pygame.draw.rect(surface, (180, 130, 10),
+                         (sx - int(10*s), sy, int(20*s), bl), border_radius=max(2, int(3*s)))
+        pygame.draw.rect(surface, (230, 190, 30),
+                         (sx - int(10*s), sy, int(20*s), bl), max(1, int(s)), border_radius=max(2, int(3*s)))
+        # Animated electricity arcing on arms
+        if (t // 150) % 2 == 0:
+            for _blex, _bley in [(lhx, lhy), (rhx, rhy)]:
+                pygame.draw.line(surface, (255, 240, 80),
+                                 (_blex, _bley),
+                                 (_blex + facing*int(6*s), _bley - int(8*s)), max(1, int(2*s)))
+                pygame.draw.circle(surface, (255, 240, 80), (_blex, _bley), max(3, int(5*s)))
         # Goggles (two circles with strap)
         for gside in (-1, 1):
             gx = hx + gside * int(hd * 0.45)
@@ -2575,6 +2602,13 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             (sx - int(2 * s), sy + int(7 * s)),
         ]
         pygame.draw.polygon(surface, (255, 230, 0), bolt)
+        # Charge meter bar on torso side
+        pygame.draw.rect(surface, (40, 30, 0),
+                         (sx + int(8*s), sy + int(bl*0.25), int(4*s), int(bl*0.5)))
+        _blcharge = 0.5 + 0.5 * math.sin(t * 0.004)
+        pygame.draw.rect(surface, (255, 220, 0),
+                         (sx + int(8*s), sy + int(bl*0.25) + int(bl*0.5*(1-_blcharge)),
+                          int(4*s), int(bl*0.5*_blcharge)))
 
     elif char_name == "Vamp Lord":
         # Dramatic vampire cape
