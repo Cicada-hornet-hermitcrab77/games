@@ -1752,21 +1752,63 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.line(surface, (160, 130, 60), (gx - int(10*s), gy), (gx + int(10*s), gy), max(2, int(3*s)))
 
     elif char_name == "Lava Man":
-        # Glowing lava cracks on body
-        for ly, lx1, lx2 in [(sy+int(10*s), sx-int(8*s), sx+int(5*s)),
-                              (sy+int(25*s), sx+int(3*s), sx-int(6*s)),
-                              (sy+int(38*s), sx-int(4*s), sx+int(10*s))]:
-            pygame.draw.line(surface, (255, 200, 50), (lx1, ly), (lx2, ly+int(8*s)), max(1,int(2*s)))
+        t = pygame.time.get_ticks()
+        # Dark basalt rock body with glowing interior
+        pygame.draw.rect(surface, (50, 25, 10),
+                         (sx - int(12*s), sy - int(2*s), int(24*s), bl + int(4*s)),
+                         border_radius=max(3, int(5*s)))
+        pygame.draw.rect(surface, (30, 12, 5),
+                         (sx - int(12*s), sy - int(2*s), int(24*s), bl + int(4*s)),
+                         max(1, int(s)), border_radius=max(3, int(5*s)))
+        # Thick glowing lava crack network
+        _lava_cracks = [
+            [(sx-int(10*s), sy+int(8*s)), (sx-int(4*s), sy+int(16*s)), (sx+int(6*s), sy+int(12*s))],
+            [(sx+int(8*s), sy+int(10*s)), (sx+int(2*s), sy+int(22*s)), (sx+int(9*s), sy+int(30*s))],
+            [(sx-int(8*s), sy+int(26*s)), (sx+int(4*s), sy+int(34*s)), (sx-int(2*s), sy+int(42*s))],
+            [(sx-int(5*s), sy+int(14*s)), (sx+int(3*s), sy+int(28*s)), (sx-int(4*s), sy+int(38*s))],
+        ]
+        for _lc in _lava_cracks:
+            # Deep orange core
+            pygame.draw.lines(surface, (255, 120, 0), False, _lc, max(2, int(3*s)))
+            # Bright yellow-white center
+            pygame.draw.lines(surface, (255, 240, 100), False, _lc, max(1, int(s)))
+        # Lava drip fists — molten rock with glow
+        for _lfx, _lfy in [(lhx, lhy), (rhx, rhy)]:
+            pygame.draw.circle(surface, (100, 40, 0), (_lfx, _lfy), max(6, int(9*s)))
+            pygame.draw.circle(surface, (255, 100, 0), (_lfx, _lfy), max(4, int(7*s)), max(2, int(3*s)))
+            pygame.draw.circle(surface, (255, 220, 60), (_lfx, _lfy), max(2, int(3*s)))
+            # Lava drip below fist
+            pygame.draw.ellipse(surface, (220, 80, 0),
+                                (_lfx - int(3*s), _lfy + int(5*s), int(6*s), int(9*s)))
+        # Volcanic smoke puffs drifting upward
+        for _vsi in range(3):
+            _vst = (t * 0.001 + _vsi * 0.9) % 2.0
+            _vsy = hy - hd - int(_vst * 20 * s)
+            _vsx = hx + int((_vsi - 1) * 8 * s)
+            _vsa = max(0, int(70 - _vst * 50))
+            if _vsa > 0:
+                _vsc = (60 + _vsi*10, 40 + _vsi*8, 30)
+                pygame.draw.circle(surface, _vsc, (_vsx, _vsy), max(2, int((4 - _vsi) * s)))
         # Horns on head
         for side in (-1, 1):
             hpx = hx + side * int(hd*0.7)
-            pygame.draw.polygon(surface, (80, 20, 0),
+            pygame.draw.polygon(surface, (40, 10, 0),
                 [(hpx-side*int(4*s), hy-hd+int(2*s)),
                  (hpx+side*int(4*s), hy-hd+int(2*s)),
-                 (hpx+side*int(2*s), hy-hd-int(18*s))])
-        # Glowing eyes
-        pygame.draw.circle(surface, (255, 180, 0), (hx - int(hd*0.35), hy - int(2*s)), max(2, int(4*s)))
-        pygame.draw.circle(surface, (255, 180, 0), (hx + int(hd*0.35), hy - int(2*s)), max(2, int(4*s)))
+                 (hpx+side*int(2*s), hy-hd-int(20*s))])
+            # Lava glow inside horn
+            pygame.draw.polygon(surface, (200, 60, 0),
+                [(hpx-side*int(2*s), hy-hd+int(4*s)),
+                 (hpx+side*int(2*s), hy-hd+int(4*s)),
+                 (hpx+side*int(1*s), hy-hd-int(12*s))])
+        # Rocky head — dark basalt with glow
+        pygame.draw.circle(surface, (55, 28, 10), (hx, hy), int(hd*1.08))
+        pygame.draw.circle(surface, (35, 15, 5), (hx, hy), int(hd*1.08), max(1, int(2*s)))
+        pygame.draw.circle(surface, col, (hx, hy), hd)
+        # Glowing molten eyes
+        for _lex in (hx - int(hd*0.35), hx + int(hd*0.35)):
+            pygame.draw.circle(surface, (255, 100, 0), (_lex, hy - int(hd*0.1)), max(3, int(5*s)))
+            pygame.draw.circle(surface, (255, 240, 80), (_lex, hy - int(hd*0.1)), max(1, int(3*s)))
 
     elif char_name == "Angel":
         # Wings behind torso (filled polygons, drawn first)
@@ -2139,31 +2181,58 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.circle(surface, (180, 255, 130), (ex, ey), max(1, er - 2))
 
     elif char_name == "Omus":
-        # Sumo-style big belly body
+        # Big sumo belly — wide ellipse
         pygame.draw.ellipse(surface, col,
-                            (sx - int(14*s), sy - int(2*s), int(28*s), bl + int(6*s)))
-        # Mawashi belt
-        bh_o = max(5, int(9*s))
-        pygame.draw.rect(surface, (30, 60, 220), (wx - int(hd*.9), wy - bh_o//2, int(hd*1.8), bh_o))
-        pygame.draw.rect(surface, (60, 100, 255), (wx - int(hd*.9), wy - bh_o//2, int(hd*1.8), bh_o), max(1, int(s)))
-        # Belt buckle
-        pygame.draw.rect(surface, (150, 200, 255),
-                         (wx - int(4*s), wy - bh_o//2, int(8*s), bh_o), border_radius=max(1, int(s)))
-        # Spiked hair + lightning bolt on head
-        pygame.draw.line(surface, (30, 80, 255), (hx, hy - hd), (hx, hy - int(hd * 1.9)), max(3, int(4 * s)))
-        pygame.draw.line(surface, (30, 80, 255), (hx - int(hd * 0.4), hy - int(hd * 1.5)),
-                         (hx + int(hd * 0.4), hy - int(hd * 1.5)), max(2, int(3 * s)))
-        # Lightning bolt on chest (filled)
-        bolt = [(sx + int(facing * 4 * s), sy + int(4 * s)),
-                (sx - int(facing * 4 * s), sy + int(14 * s)),
-                (sx + int(facing * 2 * s), sy + int(14 * s)),
-                (sx - int(facing * 4 * s), sy + int(24 * s))]
-        pygame.draw.lines(surface, (100, 160, 255), False, bolt, max(2, int(3 * s)))
-        # War paint / intimidation lines on cheeks
+                            (sx - int(15*s), sy - int(4*s), int(30*s), bl + int(8*s)))
+        pygame.draw.ellipse(surface, (min(255,col[0]+30), min(255,col[1]+30), min(255,col[2]+30)),
+                            (sx - int(15*s), sy - int(4*s), int(30*s), bl + int(8*s)),
+                            max(1, int(s)))
+        # Belly button
+        pygame.draw.circle(surface, (max(0,col[0]-30), max(0,col[1]-30), max(0,col[2]-30)),
+                           (sx, (sy+wy)//2 + int(4*s)), max(2, int(3*s)))
+        # Mawashi belt (thick, decorative)
+        bh_o = max(7, int(12*s))
+        pygame.draw.rect(surface, (20, 40, 180),
+                         (wx - int(hd*1.1), wy - bh_o//2, int(hd*2.2), bh_o),
+                         border_radius=max(1, int(2*s)))
+        pygame.draw.rect(surface, (50, 80, 230),
+                         (wx - int(hd*1.1), wy - bh_o//2, int(hd*2.2), bh_o),
+                         max(1, int(s)), border_radius=max(1, int(2*s)))
+        # Belt hanging tassels
+        for _bti in range(3):
+            _btx = wx - int(6*s) + _bti * int(6*s)
+            pygame.draw.line(surface, (60, 100, 255),
+                             (_btx, wy + bh_o//2), (_btx, wy + bh_o//2 + int(8*s)),
+                             max(1, int(2*s)))
+            pygame.draw.circle(surface, (100, 150, 255),
+                               (_btx, wy + bh_o//2 + int(8*s)), max(2, int(3*s)))
+        # Belt buckle jewel
+        pygame.draw.rect(surface, (180, 220, 255),
+                         (wx - int(5*s), wy - bh_o//2, int(10*s), bh_o),
+                         border_radius=max(1, int(2*s)))
+        pygame.draw.circle(surface, (80, 160, 255), (wx, wy), max(2, int(3*s)))
+        # Filled lightning bolt on chest
+        bolt = [(sx + int(facing * 5 * s), sy + int(5 * s)),
+                (sx - int(facing * 5 * s), sy + int(17 * s)),
+                (sx + int(facing * 3 * s), sy + int(17 * s)),
+                (sx - int(facing * 5 * s), sy + int(30 * s)),
+                (sx + int(facing * 3 * s), sy + int(19 * s)),
+                (sx - int(facing * 3 * s), sy + int(19 * s))]
+        pygame.draw.polygon(surface, (80, 160, 255), bolt)
+        pygame.draw.polygon(surface, (150, 210, 255), bolt, max(1, int(s)))
+        # Topknot hair (dome + knot bun)
+        pygame.draw.circle(surface, (30, 20, 10), (hx, hy - hd + int(2*s)), int(hd*0.7))
+        pygame.draw.ellipse(surface, (20, 10, 5),
+                            (hx - int(hd*0.3), hy - int(hd*1.85), int(hd*0.6), int(hd*0.55)))
+        # Thick war paint slashes on cheeks
         for _side in (-1, 1):
-            pygame.draw.line(surface, (30, 60, 200),
-                             (hx + _side*int(hd*0.55), hy - int(hd*0.2)),
-                             (hx + _side*int(hd*0.75), hy + int(hd*0.3)), max(2, int(3*s)))
+            pygame.draw.line(surface, (20, 40, 200),
+                             (hx + _side*int(hd*0.42), hy - int(hd*0.28)),
+                             (hx + _side*int(hd*0.72), hy + int(hd*0.38)), max(2, int(4*s)))
+            # Second diagonal slash
+            pygame.draw.line(surface, (20, 40, 200),
+                             (hx + _side*int(hd*0.55), hy - int(hd*0.38)),
+                             (hx + _side*int(hd*0.82), hy + int(hd*0.22)), max(1, int(2*s)))
 
     elif char_name == "The Creator":
         # Construction hard hat (yellow)
@@ -2327,10 +2396,43 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                                (hx, hy), ring_r, max(1, int(s)))
 
     elif char_name == "ASCII":
-        # Keyboard key decorations at body joints
+        t = pygame.time.get_ticks()
         key_font = font_tiny
+        # Dark terminal green-on-black bodysuit
+        pygame.draw.rect(surface, (10, 20, 12),
+                         (sx - int(10*s), sy, int(20*s), bl), border_radius=max(2, int(3*s)))
+        pygame.draw.rect(surface, (20, 60, 25),
+                         (sx - int(10*s), sy, int(20*s), bl), max(1, int(s)), border_radius=max(2, int(3*s)))
+        # Scrolling code text lines on torso
+        _code_lines = ["> RUN", "0x1A3", "NULL", "{}[];"]
+        _scroll = (t // 400) % len(_code_lines)
+        _ascii_f = _get_font(max(7, int(8*s)))
+        for _ali in range(3):
+            _alt = _code_lines[(_scroll + _ali) % len(_code_lines)]
+            _alsurf = _ascii_f.render(_alt, True, (0, 200, 50))
+            surface.blit(_alsurf, (sx - _alsurf.get_width()//2,
+                                   sy + int(bl*(0.2 + _ali*0.28)) - _alsurf.get_height()//2))
+        # Terminal monitor helmet — dark rectangle with green screen
+        pygame.draw.rect(surface, (15, 15, 15),
+                         (hx - int(hd*1.1), hy - hd - int(2*s), int(hd*2.2), int(hd*1.85)),
+                         border_radius=max(2, int(3*s)))
+        pygame.draw.rect(surface, (30, 80, 35),
+                         (hx - int(hd*1.1), hy - hd - int(2*s), int(hd*2.2), int(hd*1.85)),
+                         max(1, int(2*s)), border_radius=max(2, int(3*s)))
+        # Green CRT screen face
+        pygame.draw.rect(surface, (5, 40, 10),
+                         (hx - int(hd*.85), hy - hd + int(2*s), int(hd*1.7), int(hd*1.45)),
+                         border_radius=max(1, int(2*s)))
+        # Blinking cursor on face
+        if (t // 500) % 2 == 0:
+            pygame.draw.rect(surface, (0, 220, 50),
+                             (hx - int(2*s), hy - int(hd*0.1), int(8*s), max(3, int(5*s))))
+        # "@" symbol on screen face
+        _at_f = _get_font(max(9, int(13*s)))
+        _at_t = _at_f.render("@", True, (0, 200, 50))
+        surface.blit(_at_t, (hx - _at_t.get_width()//2, hy - _at_t.get_height()//2 - int(2*s)))
+        # Keyboard key decorations at body joints
         _key_positions = [
-            (hx,  hy - int(hd * 0.1), '@'),
             (sx,  sy + int(6 * s),    '#'),
             (wx,  wy,                  '$'),
             (lhx, lhy,                '<'),
@@ -2338,32 +2440,14 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         ]
         for kx, ky, kch in _key_positions:
             kr = max(5, int(8 * s))
-            # Key background (white rounded rect)
-            pygame.draw.rect(surface, (230, 230, 230),
-                             (kx - kr, ky - kr, kr * 2, kr * 2),
-                             border_radius=max(1, int(2 * s)))
-            pygame.draw.rect(surface, (100, 100, 100),
-                             (kx - kr, ky - kr, kr * 2, kr * 2),
-                             max(1, int(s)), border_radius=max(1, int(2 * s)))
-            # Key character
-            txt = key_font.render(kch, True, (20, 20, 20))
-            surface.blit(txt, (kx - txt.get_width() // 2, ky - txt.get_height() // 2))
-        # Floating random key chars orbiting the body
-        t = pygame.time.get_ticks()
-        orbit_keys = ['Q','W','E','R','A','S','D','F','Z','X','C','V']
-        for oi, ok in enumerate(orbit_keys[:4]):
-            oa = math.radians(t * 0.12 + oi * 90)
-            ox2 = hx + int(math.cos(oa) * int(hd * 2.2))
-            oy2 = wy - int(hd) + int(math.sin(oa) * int(hd * 1.2))
-            okr = max(4, int(6 * s))
             pygame.draw.rect(surface, (200, 200, 200),
-                             (ox2 - okr, oy2 - okr, okr * 2, okr * 2),
+                             (kx - kr, ky - kr, kr * 2, kr * 2),
                              border_radius=max(1, int(2 * s)))
             pygame.draw.rect(surface, (80, 80, 80),
-                             (ox2 - okr, oy2 - okr, okr * 2, okr * 2),
-                             1, border_radius=max(1, int(2 * s)))
-            otxt = key_font.render(ok, True, (10, 10, 10))
-            surface.blit(otxt, (ox2 - otxt.get_width() // 2, oy2 - otxt.get_height() // 2))
+                             (kx - kr, ky - kr, kr * 2, kr * 2),
+                             max(1, int(s)), border_radius=max(1, int(2 * s)))
+            txt = key_font.render(kch, True, (20, 20, 20))
+            surface.blit(txt, (kx - txt.get_width() // 2, ky - txt.get_height() // 2))
 
     elif char_name == "Snake":
         # Draw classic snake-game blocks along the body (like actual gameplay look)
@@ -3124,28 +3208,69 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
 
     elif char_name == "Shifter":
         t = pygame.time.get_ticks()
-        # Phase-shifting body: alternates between three tinted suits
-        _phase = (t // 1000) % 3
-        _body_tints = [(200, 200, 200), (200, 120, 20), (80, 180, 255)]
+        _phase = (t // 1200) % 3
+        _phase_frac = ((t % 1200) / 1200.0)  # 0→1 within current phase
+        # Phase colours: Normal / Warrior / Speeder
+        _body_tints = [(200, 200, 200), (200, 80, 20), (60, 160, 255)]
+        _phase_names = ["N", "W", "S"]
         _bt = _body_tints[_phase]
+        # Ghost-trail echo of previous phase (semi-transparent offset)
+        _prev = (_phase - 1) % 3
+        _pt = _body_tints[_prev]
+        _ghost_surf = pygame.Surface((surface.get_width(), surface.get_height()), pygame.SRCALPHA)
+        _ghost_alpha = max(0, int(80 * (1 - _phase_frac)))
+        pygame.draw.rect(_ghost_surf, (_pt[0], _pt[1], _pt[2], _ghost_alpha),
+                         (sx - facing*int(8*s) - int(10*s), sy, int(20*s), bl),
+                         border_radius=max(2, int(3*s)))
+        surface.blit(_ghost_surf, (0, 0))
+        # Main phase body
         pygame.draw.rect(surface, _bt,
                          (sx - int(10*s), sy, int(20*s), bl), border_radius=max(2, int(3*s)))
-        pygame.draw.rect(surface, (min(255,_bt[0]+40), min(255,_bt[1]+40), min(255,_bt[2]+40)),
+        pygame.draw.rect(surface, (min(255,_bt[0]+50), min(255,_bt[1]+50), min(255,_bt[2]+50)),
                          (sx - int(10*s), sy, int(20*s), bl), max(1, int(s)), border_radius=max(2, int(3*s)))
-        # Phase symbol on chest
-        _psymbols = ["N", "W", "S"]
+        # Phase-specific chest accessory
+        if _phase == 0:
+            # Normal: gear cog outline
+            for _cgi3 in range(8):
+                _cga = math.radians(_cgi3 * 45)
+                _cgx = sx + int(math.cos(_cga) * int(8*s))
+                _cgy = sy + int(bl*0.35) + int(math.sin(_cga) * int(8*s))
+                pygame.draw.circle(surface, (160, 160, 160), (_cgx, _cgy), max(2, int(3*s)))
+            pygame.draw.circle(surface, (180, 180, 180), (sx, sy + int(bl*0.35)), max(3, int(5*s)))
+        elif _phase == 1:
+            # Warrior: crossed sword lines on chest
+            pygame.draw.line(surface, (240, 180, 60),
+                             (sx - int(7*s), sy + int(bl*0.1)),
+                             (sx + int(7*s), sy + int(bl*0.55)), max(2, int(3*s)))
+            pygame.draw.line(surface, (240, 180, 60),
+                             (sx + int(7*s), sy + int(bl*0.1)),
+                             (sx - int(7*s), sy + int(bl*0.55)), max(2, int(3*s)))
+        else:
+            # Speeder: horizontal speed lines
+            for _sli4 in range(4):
+                _sly4 = sy + int(bl*(0.15 + _sli4*0.2))
+                _slw = int((10 - _sli4*2)*s)
+                pygame.draw.line(surface, (120, 220, 255),
+                                 (sx - _slw, _sly4), (sx + _slw, _sly4), max(1, int(s)))
+        # Phase symbol label on chest
         _pf = _get_font(max(10, int(16*s)))
-        _ps = _pf.render(_psymbols[_phase], True, (20, 20, 20))
-        surface.blit(_ps, (sx - _ps.get_width()//2, sy + int(bl*0.3) - _ps.get_height()//2))
+        _ps = _pf.render(_phase_names[_phase], True, (20, 20, 20))
+        surface.blit(_ps, (sx - _ps.get_width()//2, sy + int(bl*0.65) - _ps.get_height()//2))
+        # Energy shimmer on hands
+        for _sfhx, _sfhy in [(lhx, lhy), (rhx, rhy)]:
+            pygame.draw.circle(surface, _bt, (_sfhx, _sfhy), max(4, int(6*s)), max(1, int(2*s)))
         # Three spinning phase icons above head
-        icons = [("N", (200, 200, 200)), ("W", (200, 120, 20)), ("S", (80, 180, 255))]
+        icons = [("N", (200, 200, 200)), ("W", (200, 80, 20)), ("S", (60, 160, 255))]
         for ii, (ch2, ic) in enumerate(icons):
             ia = math.radians(ii * 120 + t * 0.12)
             ix = hx + int(math.cos(ia) * hd * 1.5)
             iy = hy - hd - int(hd * 0.8) + int(math.sin(ia) * hd * 0.5)
             ir = max(4, int(6 * s))
-            pygame.draw.circle(surface, ic, (ix, iy), ir)
-            lbl2 = font_tiny.render(ch2, True, (10, 10, 10))
+            _is_active = (ii == _phase)
+            pygame.draw.circle(surface, ic, (ix, iy), ir + (int(2*s) if _is_active else 0))
+            if _is_active:
+                pygame.draw.circle(surface, (255, 255, 255), (ix, iy), ir + int(2*s), max(1, int(s)))
+            lbl2 = font_tiny.render(ch2, True, (10, 10, 10) if not _is_active else (255, 255, 255))
             surface.blit(lbl2, (ix - lbl2.get_width() // 2, iy - lbl2.get_height() // 2))
 
     elif char_name == "Time Lord":
@@ -4015,31 +4140,68 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                                  (nox2, jp_y + jp_h + int(4*s) + flame_h)])
 
     elif char_name == "The Impossible Victor":
-        # Golden champion suit on torso
+        t = pygame.time.get_ticks()
+        # Glittering golden suit
         pygame.draw.rect(surface, (180, 145, 10),
                          (sx - int(10*s), sy, int(20*s), bl), border_radius=max(2, int(3*s)))
         pygame.draw.rect(surface, (230, 195, 50),
                          (sx - int(10*s), sy, int(20*s), bl), max(1, int(s)), border_radius=max(2, int(3*s)))
-        # "1st" sash from shoulder to hip
-        pygame.draw.polygon(surface, (0, 220, 155), [
-            (sx - int(10*s), sy), (sx - int(4*s), sy),
-            (sx + int(9*s), wy), (sx + int(3*s), wy),
+        # Sheen highlight on suit
+        pygame.draw.polygon(surface, (255, 230, 100), [
+            (sx - int(8*s), sy + int(2*s)), (sx - int(2*s), sy + int(2*s)),
+            (sx - int(4*s), wy - int(2*s)), (sx - int(9*s), wy - int(2*s)),
         ])
-        # Gold medal hanging from chest
-        pygame.draw.line(surface, (200, 175, 20),
-                         (sx, sy + int(bl*0.3)), (sx, sy + int(bl*0.5)), max(2, int(3*s)))
-        pygame.draw.circle(surface, (210, 180, 20), (sx, sy + int(bl*0.55)), max(5, int(8*s)))
-        pygame.draw.circle(surface, (255, 230, 80), (sx, sy + int(bl*0.55)), max(5, int(8*s)), max(1, int(2*s)))
-        pygame.draw.circle(surface, (230, 200, 40), (sx, sy + int(bl*0.55)), max(2, int(3*s)))
-        # Crown made of trophies
+        # "1st" champion sash
+        pygame.draw.polygon(surface, (0, 200, 140), [
+            (sx - int(10*s), sy), (sx - int(3*s), sy),
+            (sx + int(9*s), wy), (sx + int(2*s), wy),
+        ])
+        pygame.draw.polygon(surface, (0, 255, 180), [
+            (sx - int(10*s), sy), (sx - int(3*s), sy),
+            (sx + int(9*s), wy), (sx + int(2*s), wy),
+        ], max(1, int(s)))
+        # Multiple medals — gold, silver, bronze hanging from chest
+        for _mi3, (_mx3, _mc3, _mrc3) in enumerate([
+                (sx - int(6*s), (210,180,20), (255,230,80)),
+                (sx,            (180,180,185),(230,230,235)),
+                (sx + int(6*s), (160,90,30),  (210,140,60))]):
+            _my3 = sy + int(bl*0.5) + _mi3*int(0*s)
+            pygame.draw.line(surface, (180, 150, 20),
+                             (_mx3, sy + int(bl*0.25)), (_mx3, _my3 - int(5*s)), max(1, int(s)))
+            pygame.draw.circle(surface, _mc3, (_mx3, _my3), max(4, int(6*s)))
+            pygame.draw.circle(surface, _mrc3, (_mx3, _my3), max(4, int(6*s)), max(1, int(s)))
+            pygame.draw.circle(surface, (255, 255, 220), (_mx3, _my3), max(1, int(2*s)))
+        # Sparkle star particles twinkling around body
+        for _spi in range(6):
+            _spa = math.radians(_spi * 60 + t * 0.08)
+            _spr = max(12, int((18 + (_spi%3)*6)*s))
+            _spx = sx + int(math.cos(_spa) * _spr)
+            _spy = (sy+wy)//2 + int(math.sin(_spa) * _spr//2)
+            if (t//300 + _spi) % 2 == 0:
+                pygame.draw.circle(surface, (255, 240, 100), (_spx, _spy), max(2, int(3*s)))
+        # Trophy cup crown (actual cup shapes, not just dots)
         trophy_y = hy - hd - int(4*s)
-        # Crown base band
-        pygame.draw.rect(surface, (210, 175, 20),
+        pygame.draw.rect(surface, (200, 165, 15),
                          (hx - int(hd*0.95), trophy_y, int(hd*1.9), max(3, int(5*s))))
-        for ti2, tx2 in enumerate((-int(hd*0.8), 0, int(hd*0.8))):
-            tcy = trophy_y - (int(8*s) if ti2 == 1 else int(4*s))
-            pygame.draw.circle(surface, (0, 255, 180), (hx + tx2, tcy), max(3, int(5*s)))
-            pygame.draw.circle(surface, (255, 255, 255), (hx + tx2, tcy), max(3, int(5*s)), max(1, int(s)))
+        for ti2, tx2 in enumerate((-int(hd*0.75), 0, int(hd*0.75))):
+            _th = int(8*s) if ti2 == 1 else int(5*s)
+            _tw = int(7*s) if ti2 == 1 else int(5*s)
+            _tcx = hx + tx2
+            _tcy = trophy_y - _th
+            # Cup body
+            pygame.draw.polygon(surface, (0, 220, 160), [
+                (_tcx - _tw, _tcy), (_tcx + _tw, _tcy),
+                (_tcx + int(_tw*0.6), _tcy - _th), (_tcx - int(_tw*0.6), _tcy - _th),
+            ])
+            # Cup stem + base
+            pygame.draw.rect(surface, (0, 180, 130),
+                             (_tcx - int(2*s), _tcy - _th, int(4*s), int(4*s)))
+            pygame.draw.rect(surface, (0, 200, 145),
+                             (_tcx - _tw + int(s), _tcy - _th - int(2*s), _tw*2 - int(2*s), max(2, int(3*s))))
+            pygame.draw.polygon(surface, (0, 255, 180), [
+                (_tcx - _tw, _tcy), (_tcx + _tw, _tcy),
+                (_tcx + int(_tw*0.6), _tcy - _th), (_tcx - int(_tw*0.6), _tcy - _th),
+            ], max(1, int(s)))
 
     elif char_name == "Pacman":
         # Large yellow circle body with animated chomping mouth
@@ -8388,10 +8550,6 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             _ctx2 = _ctstart[0] + int(math.cos(_cta) * _ctr * _cti)
             _cty2 = _ctstart[1] + int(math.sin(_cta) * _ctr * _cti)
             pygame.draw.circle(surface, _cham_col, (_ctx2, _cty2), max(3, int((6-_cti)*s)))
-        # Googly independent eyes
-        for _cgex, _cgey_off in [(hx - int(hd*.4), -int(hd*.3)), (hx + int(hd*.4), -int(hd*.1))]:
-            pygame.draw.circle(surface, (240, 240, 240), (_cgex, hy + _cgey_off), max(4, int(6*s)))
-            pygame.draw.circle(surface, (20, 20, 20), (_cgex + int(s), hy + _cgey_off), max(2, int(3*s)))
 
     elif char_name == "Gargoyle":
         # Stone-grey gargoyle body — crouched and wide
@@ -8444,44 +8602,73 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
 
     elif char_name == "Banshee":
         t = pygame.time.get_ticks()
-        # Wailing spirit — translucent purple-white flowing form
         _bwsurf = pygame.Surface((surface.get_width(), surface.get_height()), pygame.SRCALPHA)
-        # Ghostly body swirl
+        # Pulsing eerie aura around body
+        _bpulse = 0.5 + 0.5 * math.sin(t * 0.004)
+        for _bari in range(4, 0, -1):
+            _bar = hd + int(_bari * 7 * s * (0.7 + 0.3 * _bpulse))
+            pygame.draw.circle(_bwsurf, (180, 100, 255, 25 + _bari*8), (hx, hy), _bar)
+        # Ghostly swirl blobs around torso
         for _bwi2 in range(4):
             _bwa = math.radians(_bwi2 * 90 + t * 0.1)
-            _bwx = sx + int(math.cos(_bwa) * int(8*s))
-            _bwy = (sy + wy)//2 + int(math.sin(_bwa) * int(12*s))
-            pygame.draw.circle(_bwsurf, (200, 140, 255, 80), (_bwx, _bwy), max(8, int(14*s)))
-        # Banshee wail scream lines radiating from mouth
+            _bwx = sx + int(math.cos(_bwa) * int(9*s))
+            _bwy = (sy + wy)//2 + int(math.sin(_bwa) * int(14*s))
+            pygame.draw.circle(_bwsurf, (200, 140, 255, 70), (_bwx, _bwy), max(8, int(14*s)))
+        # Omnidirectional wail shockwave rings from mouth
         _sw_y = hy + int(hd*0.3)
-        for _swi in range(5):
-            _swa = math.radians(150 + _swi * 15)
-            _swx2 = hx + int(math.cos(_swa) * max(14+_swi*8, int((14+_swi*8)*s)))
-            _swy2 = _sw_y + int(math.sin(_swa) * max(8+_swi*4, int((8+_swi*4)*s)))
-            pygame.draw.line(_bwsurf, (220, 180, 255, 160), (hx, _sw_y), (_swx2, _swy2), max(1, int(s)))
+        _wail_phase = (t // 120) % 5
+        for _swi2 in range(6):
+            _swa2 = math.radians(180 - _swi2 * 30 + math.sin(t*0.003)*12)
+            _swr = max(10 + _swi2*7, int((10+_swi2*7)*s))
+            _swx3 = hx + int(math.cos(_swa2) * _swr)
+            _swy3 = _sw_y + int(math.sin(_swa2) * _swr // 2)
+            _swc = max(0, 200 - _swi2 * 20)
+            pygame.draw.line(_bwsurf, (_swc, int(_swc*0.7), 255, 180 - _swi2*25),
+                             (hx, _sw_y), (_swx3, _swy3), max(1, int(2*s)))
+        # Scream shockwave expanding circle
+        _swave_r = int(((t // 60) % 30) * s * 1.5)
+        if _swave_r > 2:
+            pygame.draw.circle(_bwsurf, (220, 160, 255, max(0, 120 - _swave_r*4)),
+                               (hx, _sw_y), _swave_r, max(1, int(s)))
         surface.blit(_bwsurf, (0, 0))
-        # Flowing ethereal robe
+        # Flowing tattered ethereal robe
         _banshee_robe = [
-            (sx - int(hd*1.3), sy + int(4*s)), (sx - int(hd*1.6), wy + int(25*s)),
-            (sx - int(hd*.7), wy + int(12*s)), (sx, wy + int(30*s)),
-            (sx + int(hd*.7), wy + int(12*s)), (sx + int(hd*1.6), wy + int(25*s)),
+            (sx - int(hd*1.3), sy + int(4*s)), (sx - int(hd*1.8), wy + int(20*s)),
+            (sx - int(hd*1.0), wy + int(8*s)), (sx - int(hd*0.4), wy + int(28*s)),
+            (sx, wy + int(14*s)), (sx + int(hd*0.4), wy + int(30*s)),
+            (sx + int(hd*1.0), wy + int(8*s)), (sx + int(hd*1.8), wy + int(20*s)),
             (sx + int(hd*1.3), sy + int(4*s)),
         ]
-        pygame.draw.polygon(surface, (175, 120, 220), _banshee_robe)
-        pygame.draw.polygon(surface, (210, 170, 255), _banshee_robe, max(1, int(s)))
-        # Hollow screaming mouth
-        pygame.draw.ellipse(surface, (10, 5, 20),
-                            (hx - int(hd*.3), hy + int(hd*.15), int(hd*.6), int(hd*.5)))
-        # Wild white streaming hair
-        for _bhi in range(5):
-            _bha = math.radians(120 + _bhi * 15 + math.sin(t*0.003+_bhi)*10)
-            _bhx = hx + int(math.cos(_bha) * hd * 1.4)
-            _bhy = hy - hd + int(math.sin(_bha) * hd * 0.8)
-            pygame.draw.line(surface, (240, 235, 255),
-                             (hx, hy - hd + int(2*s)), (_bhx, _bhy), max(1, int(2*s)))
+        pygame.draw.polygon(surface, (155, 95, 205), _banshee_robe)
+        pygame.draw.polygon(surface, (200, 160, 255), _banshee_robe, max(1, int(s)))
+        # Torn robe tatter tips at bottom
+        for _brti in range(4):
+            _brtx = sx - int(hd*0.9) + _brti * int(hd*0.6)
+            _brty = wy + int((18 + (_brti%2)*10)*s)
+            _wave_off = int(4*s*math.sin(t*0.005 + _brti))
+            pygame.draw.lines(surface, (175, 120, 230), False, [
+                (_brtx, _brty + _wave_off),
+                (_brtx + int(4*s), _brty + int(8*s) + _wave_off),
+                (_brtx + int(2*s), _brty + int(14*s) + _wave_off),
+            ], max(1, int(s)))
+        # Hollow dark screaming mouth
+        pygame.draw.ellipse(surface, (8, 4, 18),
+                            (hx - int(hd*.35), hy + int(hd*.12), int(hd*.7), int(hd*.55)))
+        # Inner mouth purple glow
+        pygame.draw.ellipse(surface, (80, 20, 120),
+                            (hx - int(hd*.25), hy + int(hd*.18), int(hd*.5), int(hd*.38)))
+        # Wild streaming hair in all directions
+        for _bhi in range(8):
+            _bha = math.radians(90 + _bhi * 22.5 + math.sin(t*0.003+_bhi*0.8)*15)
+            _bhl = hd * (1.3 + 0.4 * math.sin(t*0.002 + _bhi))
+            _bhx = hx + int(math.cos(_bha) * _bhl)
+            _bhy = hy - hd//2 + int(math.sin(_bha) * _bhl * 0.6)
+            pygame.draw.line(surface, (235, 230, 255),
+                             (hx, hy - hd + int(4*s)), (_bhx, _bhy), max(1, int(2*s)))
         # Glowing hollow eyes
         for _gbex in (hx - int(hd*.35), hx + int(hd*.35)):
-            pygame.draw.circle(surface, (200, 160, 255), (_gbex, hy - int(hd*.2)), max(2, int(4*s)))
+            pygame.draw.circle(surface, (160, 80, 240), (_gbex, hy - int(hd*.2)), max(3, int(5*s)))
+            pygame.draw.circle(surface, (220, 160, 255), (_gbex, hy - int(hd*.2)), max(2, int(4*s)))
             pygame.draw.circle(surface, (255, 240, 255), (_gbex, hy - int(hd*.2)), max(1, int(2*s)))
         pygame.draw.circle(surface, col, (hx, hy), hd)
 
