@@ -28,42 +28,363 @@ class Powerup:
     def draw(self, surface):
         bob = math.sin(self.age * 0.08) * 6
         cx, cy = int(self.x), int(self.y + bob)
+        n      = self.name
 
-        if self.name == "Everything":
-            # Rainbow: cycle the whole circle through hue over time
-            t = self.age * 0.06
-            col = (
-                int(127 + 127 * math.sin(t)),
-                int(127 + 127 * math.sin(t + 2.094)),
-                int(127 + 127 * math.sin(t + 4.189)),
-            )
-            glow = (min(255, col[0] + 60), min(255, col[1] + 60), min(255, col[2] + 60))
-            glow_r = PICKUP_RADIUS + 4 + int(math.sin(self.age * 0.12) * 3)
-            pygame.draw.circle(surface, glow, (cx, cy), glow_r, 3)
-            # Draw striped rainbow ring
-            for i in range(6):
-                a  = i * math.pi / 3 + t
-                rc = (
-                    int(127 + 127 * math.sin(a)),
-                    int(127 + 127 * math.sin(a + 2.094)),
-                    int(127 + 127 * math.sin(a + 4.189)),
+        # Soft ground shadow for readability on any background
+        _shd = pygame.Surface((56, 14), pygame.SRCALPHA)
+        pygame.draw.ellipse(_shd, (0, 0, 0, 70), (0, 0, 56, 14))
+        surface.blit(_shd, (cx - 28, cy + 20))
+
+        if n in ('Heal', 'Poison', 'MegaHeal', 'Killer'):
+            # --- Potion bottle ---
+            # Body: round-bottomed flask
+            _liq = self.color
+            _glass = (220, 240, 255)
+            # Bottle body outline (dark)
+            pygame.draw.rect(surface, (30, 30, 40),
+                             (cx-11, cy-4, 22, 26), border_radius=9)
+            # Glass body
+            pygame.draw.rect(surface, _glass,
+                             (cx-10, cy-3, 20, 24), border_radius=8)
+            # Liquid fill
+            pygame.draw.rect(surface, _liq,
+                             (cx-9, cy+4, 18, 16), border_radius=6)
+            # Neck outline
+            pygame.draw.rect(surface, (30, 30, 40), (cx-5, cy-18, 10, 16))
+            # Neck glass
+            pygame.draw.rect(surface, _glass,       (cx-4, cy-17,  8, 15))
+            # Cork
+            pygame.draw.rect(surface, (30, 30, 40),  (cx-6, cy-24, 12, 8), border_radius=2)
+            pygame.draw.rect(surface, (190, 130, 55),(cx-5, cy-23, 10, 6), border_radius=2)
+            # Shine stripe on body
+            pygame.draw.line(surface, (255, 255, 255), (cx-7, cy-1), (cx-7, cy+18), 3)
+            # Skull / plus on body
+            if n in ('Poison', 'Killer'):
+                pygame.draw.circle(surface, (30,30,40), (cx, cy+10), 5)
+                pygame.draw.line(surface, (30,30,40), (cx-4, cy+14), (cx+4, cy+14), 2)
+                pygame.draw.line(surface, (30,30,40), (cx-3, cy+12), (cx-3, cy+16), 2)
+                pygame.draw.line(surface, (30,30,40), (cx+3, cy+12), (cx+3, cy+16), 2)
+            else:
+                pygame.draw.line(surface, (30,30,40), (cx, cy+5), (cx, cy+18), 2)
+                pygame.draw.line(surface, (30,30,40), (cx-5, cy+11), (cx+5, cy+11), 2)
+            # Bubble in liquid
+            pygame.draw.circle(surface, (255,255,255), (cx+4, cy+8), 2)
+
+        elif n in ('Swiftness', 'Turbo'):
+            # Winged sneaker — side view, toe pointing right, heel on left
+            _dark = (20, 20, 30)
+            _shoe = self.color
+            _lt   = tuple(min(255, c + 60) for c in _shoe)
+
+            # Thick rubber sole (outline + fill + accent stripe)
+            pygame.draw.polygon(surface, _dark, [
+                (cx-16, cy+10),(cx+20, cy+10),(cx+22, cy+18),(cx-17, cy+18)
+            ])
+            pygame.draw.polygon(surface, (245, 245, 240), [
+                (cx-15, cy+11),(cx+19, cy+11),(cx+21, cy+17),(cx-16, cy+17)
+            ])
+            pygame.draw.line(surface, _shoe, (cx-15, cy+14),(cx+21, cy+14), 2)
+
+            # Upper — classic sneaker silhouette (high heel, low toe)
+            pygame.draw.polygon(surface, _dark, [
+                (cx-16, cy+11),   # heel-sole
+                (cx-14, cy-8),    # top of heel
+                (cx-7,  cy-18),   # ankle / collar
+                (cx+5,  cy-15),   # tongue front
+                (cx+18, cy-5),    # toe top (slopes down)
+                (cx+20, cy+11),   # toe-sole
+            ])
+            pygame.draw.polygon(surface, _shoe, [
+                (cx-15, cy+10),
+                (cx-13, cy-7),
+                (cx-6,  cy-17),
+                (cx+4,  cy-14),
+                (cx+17, cy-4),
+                (cx+19, cy+10),
+            ])
+
+            # Tongue (lighter coloured flap at ankle opening)
+            pygame.draw.polygon(surface, _lt, [
+                (cx-7, cy-18),(cx+5, cy-15),
+                (cx+4, cy-5), (cx-6, cy-6),
+            ])
+
+            # Lace eyelets and crossing laces
+            for _li in range(3):
+                _lly = cy - 14 + _li * 4
+                _llx = cx - 5 + _li
+                pygame.draw.line(surface, WHITE,
+                                 (_llx, _lly), (_llx + 8, _lly + 2), 1)
+                pygame.draw.circle(surface, _dark, (_llx,     _lly),     1)
+                pygame.draw.circle(surface, _dark, (_llx + 8, _lly + 2), 1)
+
+            # Heel counter tab
+            pygame.draw.rect(surface, _lt, (cx-17, cy-7, 5, 12), border_radius=2)
+            pygame.draw.rect(surface, _dark, (cx-17, cy-7, 5, 12), 1, border_radius=2)
+
+            # Wings at heel — 3 gold feathers fanning left
+            for _wi, (_wyo, _wlen) in enumerate([(-6, 22),(-1, 18),(4, 14)]):
+                pygame.draw.polygon(surface, _dark, [
+                    (cx-14, cy+_wyo),
+                    (cx-14-_wlen, cy+_wyo-11),
+                    (cx-14,       cy+_wyo+6),
+                ])
+                pygame.draw.polygon(surface, (255, 220, 40), [
+                    (cx-14, cy+_wyo),
+                    (cx-14-_wlen+1, cy+_wyo-10),
+                    (cx-14,         cy+_wyo+5),
+                ])
+
+            # Turbo: bold speed lines trailing off the toe
+            if n == 'Turbo':
+                for _li2, (_ly2, _ll2) in enumerate([(-8,20),(-2,16),(4,12)]):
+                    pygame.draw.line(surface, _dark,
+                                     (cx+20, cy+_ly2),(cx+20+_ll2+2, cy+_ly2), 4)
+                    pygame.draw.line(surface, (255, 230, 0),
+                                     (cx+20, cy+_ly2),(cx+20+_ll2,   cy+_ly2), 2)
+
+        elif n == 'Rage':
+            # --- Combat knife ---
+            # Shadow under blade
+            pygame.draw.polygon(surface, (20,20,30), [
+                (cx+1, cy-26),(cx-5, cy+10),(cx+7, cy+10)
+            ])
+            # Blade
+            pygame.draw.polygon(surface, (190,210,230), [
+                (cx, cy-26),(cx-5, cy+10),(cx+5, cy+10)
+            ])
+            # Blade edge highlight
+            pygame.draw.line(surface, (240,250,255), (cx, cy-26), (cx+4, cy+8), 2)
+            # Blood drip
+            pygame.draw.circle(surface, (200, 20, 20), (cx-3, cy-8), 3)
+            pygame.draw.circle(surface, (200, 20, 20), (cx-4, cy-2), 2)
+            # Crossguard
+            pygame.draw.rect(surface, (30,30,40),     (cx-12, cy+9, 24, 6), border_radius=2)
+            pygame.draw.rect(surface, (180, 140, 50), (cx-11, cy+10, 22, 4), border_radius=2)
+            # Handle
+            pygame.draw.rect(surface, (30,30,40),  (cx-5, cy+15, 10, 14), border_radius=2)
+            pygame.draw.rect(surface, (100,55,20), (cx-4, cy+16,  8, 12), border_radius=2)
+            for _wi in range(4):
+                pygame.draw.line(surface, (160,100,40),
+                                 (cx-4, cy+18+_wi*3), (cx+4, cy+18+_wi*3), 1)
+            # Pommel
+            pygame.draw.circle(surface, (190,150,55), (cx, cy+29), 4)
+
+        elif n == 'Drugs':
+            # --- Capsule pill (horizontal, large) ---
+            # Outline
+            pygame.draw.ellipse(surface, (30,30,40), (cx-16, cy-10, 32, 20))
+            # Left half
+            pygame.draw.ellipse(surface, WHITE,       (cx-15, cy-9, 16, 18))
+            # Right half
+            pygame.draw.ellipse(surface, (80,230,80), (cx-1,  cy-9, 16, 18))
+            # Center divider
+            pygame.draw.line(surface, (60,60,60), (cx-1, cy-9), (cx-1, cy+9), 2)
+            # Shine left
+            pygame.draw.ellipse(surface, (255,255,255), (cx-13, cy-7, 6, 4))
+            # Shine right
+            pygame.draw.ellipse(surface, (180,255,180), (cx+3,  cy-7, 6, 4))
+
+        elif n == 'Leech':
+            # --- Whip ---
+            # Handle
+            pygame.draw.rect(surface, (30,30,40), (cx-16, cy+6, 10, 18), border_radius=3)
+            pygame.draw.rect(surface, (120,65,15),(cx-15, cy+7,  8, 16), border_radius=3)
+            for _wi in range(4):
+                pygame.draw.line(surface, (180,110,40),
+                                 (cx-15, cy+9+_wi*4), (cx-7, cy+9+_wi*4), 1)
+            # Lash — three arcs forming a crack/whip going upper-right
+            pygame.draw.arc(surface, (30,30,40),
+                            (cx-12, cy-24, 26, 20), math.radians(10), math.radians(190), 4)
+            pygame.draw.arc(surface, (210,175,60),
+                            (cx-12, cy-24, 26, 20), math.radians(10), math.radians(190), 2)
+            pygame.draw.arc(surface, (30,30,40),
+                            (cx-2,  cy-10, 26, 20), math.radians(190), math.radians(360), 4)
+            pygame.draw.arc(surface, (210,175,60),
+                            (cx-2,  cy-10, 26, 20), math.radians(190), math.radians(360), 2)
+            # Tip crack
+            pygame.draw.line(surface, (255,215,80), (cx+18, cy-1), (cx+22, cy-7), 2)
+            pygame.draw.line(surface, (255,215,80), (cx+18, cy-1), (cx+23, cy+3), 2)
+
+        elif n == 'Wither':
+            # --- Snail ---
+            # Body / foot
+            pygame.draw.ellipse(surface, (30,30,40), (cx-16, cy+10, 32, 16))
+            pygame.draw.ellipse(surface, (90,180,55),(cx-15, cy+11, 30, 14))
+            # Head bump
+            pygame.draw.circle(surface, (90,180,55), (cx-10, cy+11), 7)
+            pygame.draw.circle(surface, (30,30,40),  (cx-10, cy+11), 7, 1)
+            # Shell — concentric arcs
+            pygame.draw.circle(surface, (30,30,40),  (cx+5, cy-2), 18)
+            pygame.draw.circle(surface, (205,165,85),(cx+5, cy-2), 17)
+            pygame.draw.circle(surface, (165,120,45),(cx+5, cy-2), 12)
+            pygame.draw.circle(surface, (130,90,30), (cx+5, cy-2),  7)
+            pygame.draw.circle(surface, (100,65,20), (cx+5, cy-2),  3)
+            # Spiral groove lines
+            pygame.draw.arc(surface, (80,55,15),
+                            (cx-5, cy-12, 20, 20), math.radians(30), math.radians(280), 2)
+            # Eyes
+            pygame.draw.line(surface, (30,30,40), (cx-14, cy+11),(cx-17, cy-3), 1)
+            pygame.draw.line(surface, (30,30,40), (cx-10, cy+11),(cx-11, cy-4), 1)
+            pygame.draw.circle(surface, (30,60,20), (cx-17, cy-3), 3)
+            pygame.draw.circle(surface, (30,60,20), (cx-11, cy-4), 3)
+            pygame.draw.circle(surface, (255,255,255),(cx-17, cy-4), 1)
+            pygame.draw.circle(surface, (255,255,255),(cx-11, cy-5), 1)
+
+        elif n == 'Bubble Shield':
+            # --- Large translucent bubble ---
+            _r  = 26
+            _bs = pygame.Surface((_r*2+6, _r*2+6), pygame.SRCALPHA)
+            _bc = (_r+3, _r+3)
+            pygame.draw.circle(_bs, (140, 210, 255,  40), _bc, _r)
+            pygame.draw.circle(_bs, (180, 230, 255, 190), _bc, _r, 3)
+            # Rainbow rim shimmer
+            _tsh = self.age * 0.06
+            for _ri in range(8):
+                _ra = math.radians(_ri * 45) + _tsh
+                _rim_col = (
+                    int(127+127*math.sin(_tsh+_ri)),
+                    int(127+127*math.sin(_tsh+_ri+2.1)),
+                    int(127+127*math.sin(_tsh+_ri+4.2)),
+                    120,
                 )
-                pygame.draw.arc(surface, rc,
-                                (cx - PICKUP_RADIUS, cy - PICKUP_RADIUS,
-                                 PICKUP_RADIUS * 2, PICKUP_RADIUS * 2),
-                                a, a + math.pi / 3 + 0.1, PICKUP_RADIUS)
-            pygame.draw.circle(surface, WHITE, (cx, cy), PICKUP_RADIUS, 2)
-        else:
-            # Standard powerup draw
-            glow_r   = PICKUP_RADIUS + 4 + int(math.sin(self.age * 0.12) * 3)
-            glow_col = tuple(min(255, c + 60) for c in self.color)
-            pygame.draw.circle(surface, glow_col, (cx, cy), glow_r, 3)
-            pygame.draw.circle(surface, self.color, (cx, cy), PICKUP_RADIUS)
-            pygame.draw.circle(surface, WHITE,      (cx, cy), PICKUP_RADIUS, 2)
+                _rp = (_bc[0]+int(math.cos(_ra)*_r), _bc[1]+int(math.sin(_ra)*_r))
+                pygame.draw.circle(_bs, _rim_col, _rp, 3)
+            # Primary highlight
+            pygame.draw.circle(_bs, (255, 255, 255, 200), (_bc[0]-9, _bc[1]-9), 7)
+            # Secondary small highlight
+            pygame.draw.circle(_bs, (255, 255, 255, 130), (_bc[0]+8, _bc[1]-6), 3)
+            surface.blit(_bs, (cx-_r-3, cy-_r-3))
 
-        # Label
-        lbl = font_tiny.render(self.name[0], True, WHITE)   # first letter
-        surface.blit(lbl, (cx - lbl.get_width()//2, cy - lbl.get_height()//2))
+        elif n == 'Everything':
+            # --- 7 rainbow circles rotating ---
+            _t7  = self.age * 0.05
+            _r7  = 20
+            _rb7 = [(255,0,0),(255,127,0),(255,220,0),(0,200,0),(0,80,255),(80,0,160),(180,0,220)]
+            for _i7, _rc7 in enumerate(_rb7):
+                _a7  = math.radians(_i7 * 360 / 7) + _t7
+                _rx7 = cx + int(math.cos(_a7) * _r7)
+                _ry7 = cy + int(math.sin(_a7) * _r7)
+                pygame.draw.circle(surface, (30,30,40), (_rx7, _ry7), 8)
+                pygame.draw.circle(surface, _rc7, (_rx7, _ry7), 7)
+                pygame.draw.circle(surface, WHITE, (_rx7, _ry7), 7, 1)
+                # Shine
+                pygame.draw.circle(surface, (255,255,255),
+                                   (_rx7-2, _ry7-2), 2)
+
+        elif n == '2x Trouble':
+            # --- Cloning machine ---
+            # Machine body
+            pygame.draw.rect(surface, (30,30,40),    (cx-18, cy-12, 36, 26), border_radius=4)
+            pygame.draw.rect(surface, (55,55,100),   (cx-17, cy-11, 34, 24), border_radius=4)
+            # Panel highlight
+            pygame.draw.rect(surface, (80,80,140),   (cx-15, cy-9, 14, 20), border_radius=2)
+            pygame.draw.rect(surface, (80,80,140),   (cx+1,  cy-9, 14, 20), border_radius=2)
+            # Input slot (left)
+            pygame.draw.rect(surface, (20,20,50),    (cx-13, cy-6, 10, 14), border_radius=2)
+            # Output slot (right)
+            pygame.draw.rect(surface, (20,20,50),    (cx+3,  cy-6, 10, 14), border_radius=2)
+            # Center arrow
+            pygame.draw.polygon(surface, (255,220,0),
+                                [(cx-3, cy-3),(cx+3, cy),(cx-3, cy+3)])
+            # Button row
+            for _bi, _bc2 in enumerate([(255,60,60),(60,255,60),(60,120,255)]):
+                pygame.draw.circle(surface, _bc2, (cx-10+_bi*7, cy+9), 3)
+            # ×2 label above
+            _lbl2 = font_tiny.render("x2", True, (255,255,255))
+            surface.blit(_lbl2, (cx-_lbl2.get_width()//2, cy-24))
+
+        elif n == 'Forcefield':
+            # --- Heraldic shield ---
+            _pts = [
+                (cx,     cy-22),
+                (cx+16,  cy-14),
+                (cx+16,  cy+4),
+                (cx,     cy+20),
+                (cx-16,  cy+4),
+                (cx-16,  cy-14),
+            ]
+            pygame.draw.polygon(surface, (30,30,40), _pts)
+            pygame.draw.polygon(surface, (50,100,220), _pts)
+            # Inner border
+            _ipts = [
+                (cx,     cy-17),
+                (cx+11,  cy-11),
+                (cx+11,  cy+2),
+                (cx,     cy+14),
+                (cx-11,  cy+2),
+                (cx-11,  cy-11),
+            ]
+            pygame.draw.polygon(surface, (100,160,255), _ipts, 2)
+            # Emblem cross
+            pygame.draw.line(surface, WHITE, (cx, cy-13), (cx, cy+12), 3)
+            pygame.draw.line(surface, WHITE, (cx-9, cy-2),(cx+9, cy-2), 3)
+            # Shield shine
+            pygame.draw.line(surface, (160,200,255), (cx-10, cy-12),(cx-10, cy+2), 2)
+
+        elif n == 'Cleanse':
+            # --- Mop ---
+            # Handle stick
+            pygame.draw.line(surface, (30,30,40),    (cx, cy-30),(cx, cy+8),  5)
+            pygame.draw.line(surface, (180,140,80),  (cx, cy-30),(cx, cy+8),  3)
+            # Highlight on handle
+            pygame.draw.line(surface, (220,180,110), (cx-1, cy-28),(cx-1, cy+6), 1)
+            # Crossbar
+            pygame.draw.line(surface, (140,100,50),  (cx-14, cy+8),(cx+14, cy+8), 3)
+            # Fringe — 8 strands
+            for _fi in range(8):
+                _fx = cx - 14 + _fi * 4
+                _fwave = int(math.sin(self.age * 0.1 + _fi * 0.8) * 2)
+                pygame.draw.line(surface, (30,30,40),
+                                 (_fx, cy+8), (_fx+_fwave, cy+24), 3)
+                pygame.draw.line(surface, (240,240,210),
+                                 (_fx, cy+8), (_fx+_fwave, cy+23), 2)
+            # Soap bubbles floating
+            for _bi2, (_bx2, _by2, _br2) in enumerate([(-14,-26,4),(10,-20,3),(16,-30,5)]):
+                _bp2 = pygame.Surface((_br2*2+2,_br2*2+2), pygame.SRCALPHA)
+                pygame.draw.circle(_bp2, (180,220,255,80),  (_br2+1,_br2+1), _br2)
+                pygame.draw.circle(_bp2, (220,240,255,180), (_br2+1,_br2+1), _br2, 1)
+                surface.blit(_bp2, (cx+_bx2-_br2-1, cy+_by2-_br2-1))
+
+        elif n == 'Cloak':
+            # --- Flowing cloak ---
+            # Hood (large semicircle)
+            pygame.draw.circle(surface, (30,30,40),  (cx, cy-12), 16)
+            pygame.draw.circle(surface, (35, 0, 65), (cx, cy-12), 15)
+            pygame.draw.circle(surface, (70, 20,110),(cx, cy-12), 15, 2)
+            # Face shadow inside hood
+            pygame.draw.circle(surface, (15, 0, 30), (cx+2, cy-10), 9)
+            # Two glowing eyes inside hood
+            pygame.draw.circle(surface, (180, 80, 255), (cx-3, cy-12), 2)
+            pygame.draw.circle(surface, (180, 80, 255), (cx+5, cy-12), 2)
+            # Cloak body — wide flowing trapezoid
+            pygame.draw.polygon(surface, (30,30,40), [
+                (cx-8, cy-4),(cx+8, cy-4),(cx+20, cy+22),(cx-20, cy+22)
+            ])
+            pygame.draw.polygon(surface, (40, 0, 75), [
+                (cx-7, cy-3),(cx+7, cy-3),(cx+19, cy+21),(cx-19, cy+21)
+            ])
+            # Fold lines
+            pygame.draw.line(surface, (75, 20, 120),
+                             (cx, cy-2), (cx-4, cy+21), 2)
+            pygame.draw.line(surface, (75, 20, 120),
+                             (cx+3, cy-2), (cx+8, cy+21), 2)
+            # Clasp gem
+            pygame.draw.circle(surface, (30,30,40),   (cx, cy-3), 5)
+            pygame.draw.circle(surface, (180, 60, 255),(cx, cy-3), 4)
+            pygame.draw.circle(surface, (220,150,255), (cx-1, cy-4), 2)
+            # Sparkle stars (invisibility hint)
+            for _si, (_sx2, _sy2) in enumerate([(-18,0),(18,-4),(-10,-20),(12,-18)]):
+                if (self.age // 15 + _si) % 2 == 0:
+                    pygame.draw.line(surface, (200,140,255),
+                                     (cx+_sx2-3, cy+_sy2),(cx+_sx2+3, cy+_sy2), 1)
+                    pygame.draw.line(surface, (200,140,255),
+                                     (cx+_sx2, cy+_sy2-3),(cx+_sx2, cy+_sy2+3), 1)
+
+        else:
+            # Fallback: first-letter label
+            _lbl = font_tiny.render(n[0], True, WHITE)
+            surface.blit(_lbl, (cx-_lbl.get_width()//2, cy-_lbl.get_height()//2))
 
     def collides(self, fighter):
         return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < PICKUP_RADIUS + 22

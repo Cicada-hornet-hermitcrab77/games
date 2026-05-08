@@ -48,6 +48,9 @@ class Fighter:
         self.shield         = False
         self.leech          = bool(char_data.get("vampire"))
         self.bubble_shield  = False
+        self.cloak          = False
+        self.feedback_stored   = 0
+        self.growing_dmg_timer = FPS * 15 if char_data.get("growing_dmg") else 0
         self.portal_cooldown = 0
         self.color        = char_data["color"]
         self.poison_frames    = 0   # frames of poison remaining
@@ -273,6 +276,9 @@ class Fighter:
         elif t == 'bubble_shield':
             self.bubble_shield = True
             self.active_powerups[name] = spec['duration']
+        elif t == 'cloak':
+            self.cloak = True
+            self.active_powerups[name] = spec['duration']
         elif t == 'leech':
             self.leech = True
             self.active_powerups[name] = spec['duration']
@@ -298,6 +304,7 @@ class Fighter:
                 elif t == 'shield':         self.shield        = False
                 elif t == 'leech':          self.leech         = False
                 elif t == 'bubble_shield':  self.bubble_shield = False
+                elif t == 'cloak':          self.cloak         = False
             del self.active_powerups[name]
         for name in list(self.active_powerups):
             self.active_powerups[name] -= 1
@@ -319,6 +326,11 @@ class Fighter:
             if self.regen_tick == 0:
                 self.hp = min(self.max_hp, self.hp + 2)
                 self.regen_tick = 300   # reset for next tick
+        if self.growing_dmg_timer > 0:
+            self.growing_dmg_timer -= 1
+            if self.growing_dmg_timer == 0:
+                self.punch_boost       += 2
+                self.growing_dmg_timer  = FPS * 15
         if self.fire_frames > 0:
             self.fire_frames -= 1
             self.fire_tick   -= 1
@@ -621,6 +633,9 @@ class Fighter:
             spd *= 2.0
         if self._berserker_active:
             spd *= 1.5
+        # Desperation speed: faster as HP drops (up to 3× at 0 HP)
+        if self.char.get("desperation_speed") and self.max_hp > 0:
+            spd *= 1.0 + (1.0 - self.hp / self.max_hp) * 2.0
         # Whirlpool momentum: speed scales with consecutive running frames
         if self.char.get("momentum") and self.run_streak > 0:
             spd *= 1.0 + min(self.run_streak, 240) / 240.0 * 1.5
@@ -1079,7 +1094,25 @@ class Fighter:
                         dmg = max(1, dmg // 2)
                     if other.char.get("parry_strike") and dmg > 0:
                         other.parry_frames = 90
+            if other.bubble_shield:
+                dmg = 0
+            # Execute: triple damage when opponent is below 25% HP
+            if self.char.get("execute") and other.hp <= other.max_hp * 0.25:
+                dmg *= 3
+            # Feedback: attacker releases stored damage on punch
+            if self.char.get("feedback") and self.action == 'punch' and self.feedback_stored > 0:
+                dmg += self.feedback_stored
+                self.feedback_stored = 0
             other.hp = max(0, other.hp - dmg)
+            # Feedback: defender absorbs damage into reserve
+            if other.char.get("feedback") and dmg > 0:
+                other.feedback_stored += dmg
+            # Pacifist: 50% of damage dealt reflects back to attacker
+            if other.char.get("pacifist") and dmg > 0:
+                self.hp = max(0, self.hp - dmg // 2)
+            # Voodoo: 100% of damage dealt reflects back to attacker
+            if other.char.get("voodoo") and dmg > 0:
+                self.hp = max(0, self.hp - dmg)
             if other.char.get("overdrive") and dmg > 0 and not other.blocking:
                 other.overdrive_charge += 1
                 if other.overdrive_charge >= 4:
@@ -1370,6 +1403,14 @@ class Fighter:
                 pygame.draw.line(surface, (220, 30, 30), (tx0, ty0),
                                  (tx0 + self.facing * 9, ty0 + 3), 1)
             result = (int(self.x + self.facing * (bsz // 2 + 4)), hy2 + bsz // 2)
+        elif self.cloak and not flash and not self.hurt_timer > 0:
+            # Completely invisible — faint shimmer outline only
+            _csurf = pygame.Surface((120, 180), pygame.SRCALPHA)
+            draw_stickman(_csurf, 60, 160, self.color, self.facing, self.action, self.action_t,
+                          flash=False, scale=_scale, char_name=self.char["name"])
+            _csurf.set_alpha(12)
+            surface.blit(_csurf, (int(self.x) - 60, int(self.y) - 160))
+            result = (int(self.x + self.facing * 40 * _scale), int(self.y - 70 * _scale))
         else:
             _sw = int(50 * _scale)
             _sh = int(12 * _scale)
