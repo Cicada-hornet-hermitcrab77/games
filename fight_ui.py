@@ -1070,6 +1070,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("voodoo"):          badges.append(("VOODOO",        (120,  0,200)))
             if detail_ch.get("desperation_speed"): badges.append(("DESPERATION", (220, 40, 40)))
             if detail_ch.get("crazy_teleport"):  badges.append(("1S TELEPORT",  (255, 50,220)))
+            if detail_ch.get("long_range"):      badges.append(("LONG RANGE 3×", (180,150, 80)))
+            if detail_ch.get("stillness_regen"): badges.append(("STILL = HEAL",  (160,200,130)))
             if detail_ch.get("chef"):            badges.append(("BAKES POWERUP",(255,200, 80)))
             if detail_ch.get("backstab"):        badges.append(("BACKSTAB 3×",  ( 40, 30, 60)))
             if detail_ch.get("rainbow_snake"):   badges.append(("FOREVER POWER", (200,100,255)))

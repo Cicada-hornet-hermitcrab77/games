@@ -161,6 +161,7 @@ class Fighter:
         self.rainbow_poop_timer = FPS * 4 if char_data.get("rainbow_poop") else 0
         self.pending_rainbow_poop = False  # Rainbow Man / Chef: drop a random powerup this frame
         self.chef_bake_timer      = 0      # Chef: frames spent blocking
+        self.stillness_timer      = 0      # Elder: frames standing still
         self.chomp_cooldown     = 0       # Pacman: cooldown between chomps
         self.cb_idle_timer      = FPS * 8 if char_data.get("chicken_banana") else 0  # ChickenBanana: countdown to next ram
         self.cb_ramming         = False   # ChickenBanana: currently ramming
@@ -412,6 +413,15 @@ class Fighter:
             else:
                 self.pending_kitsune = True
                 self.kitsune_timer   = FPS * 9
+        # Elder — heals 2 HP per second when standing still on the ground
+        if self.char.get("stillness_regen"):
+            if self.on_ground and abs(self.vx) < 0.5 and not self.attacking and not self.blocking:
+                self.stillness_timer += 1
+                if self.stillness_timer >= FPS:
+                    self.hp = min(self.max_hp, self.hp + 2)
+                    self.stillness_timer = 0
+            else:
+                self.stillness_timer = 0
         # Chef — bakes a powerup every 2 seconds while blocking
         if self.char.get("chef"):
             if self.blocking:
@@ -1118,6 +1128,13 @@ class Fighter:
                         other.parry_frames = 90
             if other.bubble_shield:
                 dmg = 0
+            # Long range: 3× at >200px, 0 at <60px
+            if self.char.get("long_range"):
+                _dist = abs(self.x - other.x)
+                if _dist < 60:
+                    dmg = 0
+                elif _dist > 200:
+                    dmg = int(dmg * 3)
             # Backstab: triple damage when hitting from behind (same facing direction)
             if self.char.get("backstab") and self.facing == other.facing:
                 dmg *= 3
