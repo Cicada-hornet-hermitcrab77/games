@@ -345,6 +345,7 @@ UNLOCK_CONDITIONS = {
     "Surge":               ("win_with",       "Frenzy",          3,  "Win 3 matches as Frenzy"),
     "Phantom King":        ("win_with",       "Phantom Blade",   5,  "Win 5 matches as Phantom Blade"),
     "Abomination":         ("wins_total",     None,             75,  "Win 75 matches"),
+    "Backstabber":         ("win_with",       "Shadow Dancer",   3,  "Win 3 matches as Shadow Dancer"),
     "Crazy":               ("matches_played", None,             50,  "Play 50 matches"),
     # ── new secret characters ────────────────────────────────────────────────
     "Overload":            ("wins_total",     None,            100,  "Power beyond all limits",         True),

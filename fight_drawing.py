@@ -10152,6 +10152,58 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.circle(surface, (255, 60, 0), (hx - hd//3, hy - max(1, int(2*s))), max(2, int(2*s)))
         pygame.draw.circle(surface, (255, 60, 0), (hx + hd//3, hy - max(1, int(2*s))), max(2, int(2*s)))
 
+    elif char_name == "Backstabber":
+        t = pygame.time.get_ticks()
+        # Dark assassin bodysuit
+        pygame.draw.rect(surface, (25, 18, 45),
+                         (sx - int(10*s), sy, int(20*s), bl), border_radius=max(2, int(3*s)))
+        pygame.draw.rect(surface, (70, 50, 110),
+                         (sx - int(10*s), sy, int(20*s), bl), max(1, int(s)),
+                         border_radius=max(2, int(3*s)))
+        # Crossed dagger straps on chest
+        pygame.draw.line(surface, (90, 70, 130),
+                         (sx - int(8*s), sy + int(4*s)), (sx + int(8*s), sy + int(14*s)), max(1, int(s)))
+        pygame.draw.line(surface, (90, 70, 130),
+                         (sx + int(8*s), sy + int(4*s)), (sx - int(8*s), sy + int(14*s)), max(1, int(s)))
+        # Dagger in back hand (the non-facing hand — ready to backstab)
+        _bkh_x = lhx if facing > 0 else rhx
+        _bkh_y = lhy if facing > 0 else rhy
+        # Blade
+        pygame.draw.line(surface, (200, 200, 220),
+                         (_bkh_x, _bkh_y),
+                         (_bkh_x - int(facing * 12*s), _bkh_y - int(10*s)),
+                         max(2, int(2*s)))
+        # Tip
+        pygame.draw.polygon(surface, (230, 230, 250), [
+            (_bkh_x - int(facing * 12*s), _bkh_y - int(10*s)),
+            (_bkh_x - int(facing * 16*s), _bkh_y - int(8*s)),
+            (_bkh_x - int(facing * 13*s), _bkh_y - int(14*s)),
+        ])
+        # Guard (cross-piece)
+        pygame.draw.line(surface, (120, 90, 60),
+                         (_bkh_x - int(facing * 8*s), _bkh_y - int(5*s) - max(2, int(3*s))),
+                         (_bkh_x - int(facing * 8*s), _bkh_y - int(5*s) + max(2, int(3*s))),
+                         max(2, int(2*s)))
+        # Shadow shimmer — stealth particles
+        _bphase = t * 0.08
+        for _bpi in range(4):
+            _bpa = math.radians(_bpi * 90) + _bphase
+            _bpsurf = pygame.Surface((5, 5), pygame.SRCALPHA)
+            pygame.draw.circle(_bpsurf, (80, 50, 120, 140), (2, 2), 2)
+            surface.blit(_bpsurf,
+                         (sx + int(math.cos(_bpa) * int(13*s)) - 2,
+                          (sy + wy)//2 + int(math.sin(_bpa) * int(8*s)) - 2))
+        # Dark hood / mask
+        pygame.draw.arc(surface, (20, 12, 35),
+                        (hx - hd - max(1, int(2*s)), hy - hd - max(1, int(2*s)),
+                         (hd + max(1, int(2*s))) * 2, (hd + max(1, int(2*s))) * 2),
+                        0, math.pi * 2, max(2, int(3*s)))
+        # Glinting eyes — narrow slits
+        pygame.draw.line(surface, (180, 140, 255),
+                         (hx - hd//2, hy), (hx - max(1, int(2*s)), hy), max(1, int(s)))
+        pygame.draw.line(surface, (180, 140, 255),
+                         (hx + max(1, int(2*s)), hy), (hx + hd//2, hy), max(1, int(s)))
+
     elif char_name == "Crazy":
         t = pygame.time.get_ticks()
         # Wildly shifting rainbow body

@@ -1108,6 +1108,10 @@ class Fighter:
                         other.parry_frames = 90
             if other.bubble_shield:
                 dmg = 0
+            # Backstab: triple damage when hitting from behind (same facing direction)
+            if self.char.get("backstab") and self.facing == other.facing:
+                dmg *= 3
+                self.flash_timer = 8
             # Execute: triple damage when opponent is below 25% HP
             if self.char.get("execute") and other.hp <= other.max_hp * 0.25:
                 dmg *= 3
