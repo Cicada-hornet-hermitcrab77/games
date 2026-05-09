@@ -785,7 +785,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     _orig_gravity = constants.GRAVITY
     if _stage_name == "Space":
         constants.GRAVITY = 0.13   # floaty anti-gravity
-    constants.STAGE_VOID    = (_stage_name == "The Void")
+    constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World"))
     constants.STAGE_CEILING = (_stage_name == "The Nether")
 
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
@@ -1243,7 +1243,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         is_computer   = stage_data["name"] == "Computer"
                         is_underworld = stage_data["name"] == "Underworld"
                         _is_graveyard = stage_data["name"] == "Graveyard"
-                        constants.STAGE_VOID    = (stage_data["name"] == "The Void")
+                        constants.STAGE_VOID    = (stage_data["name"] in ("The Void", "Conveyor World"))
                         constants.STAGE_CEILING = (stage_data["name"] == "The Nether")
                         jungle_snakes.clear()
                         computer_bugs.clear()
@@ -2617,7 +2617,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     _orig_gravity = constants.GRAVITY
     if _stage_name == "Space":
         constants.GRAVITY = 0.13
-    constants.STAGE_VOID    = (_stage_name == "The Void")
+    constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World"))
     constants.STAGE_CEILING = (_stage_name == "The Nether")
 
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
@@ -3629,7 +3629,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     _orig_gravity = constants.GRAVITY
     if _stage_name == "Space":
         constants.GRAVITY = 0.13
-    constants.STAGE_VOID    = (_stage_name == "The Void")
+    constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World"))
     constants.STAGE_CEILING = (_stage_name == "The Nether")
 
     P1_CTRL = dict(left=pygame.K_a,     right=pygame.K_d,     jump=pygame.K_w,

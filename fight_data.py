@@ -1381,12 +1381,11 @@ STAGES = [
     "hazards": []},
     # Conveyor World
     {"name": "Conveyor World", "platforms": [], "springs": [], "conveyors": [
-        (  0, GROUND_Y, 150,  5.0),
-        (150, GROUND_Y, 150, -5.0),
-        (300, GROUND_Y, 150,  5.0),
-        (450, GROUND_Y, 150, -5.0),
-        (600, GROUND_Y, 150,  5.0),
-        (750, GROUND_Y, 150, -5.0),
+        ( 30, GROUND_Y, 130,  5.0),
+        (220, GROUND_Y, 130, -5.0),
+        (410, GROUND_Y, 130,  5.0),
+        (600, GROUND_Y, 130, -5.0),
+        (760, GROUND_Y, 110,  5.0),
     ], "portals": [], "hazards": []},
     # Spring World
     {"name": "Spring World", "platforms": [
