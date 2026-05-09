@@ -10152,6 +10152,51 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.circle(surface, (255, 60, 0), (hx - hd//3, hy - max(1, int(2*s))), max(2, int(2*s)))
         pygame.draw.circle(surface, (255, 60, 0), (hx + hd//3, hy - max(1, int(2*s))), max(2, int(2*s)))
 
+    elif char_name == "Chef":
+        t = pygame.time.get_ticks()
+        # White chef's coat
+        pygame.draw.rect(surface, (245, 245, 240),
+                         (sx - int(11*s), sy, int(22*s), bl), border_radius=max(2, int(3*s)))
+        pygame.draw.rect(surface, (200, 195, 185),
+                         (sx - int(11*s), sy, int(22*s), bl), max(1, int(s)),
+                         border_radius=max(2, int(3*s)))
+        # Double-breast buttons
+        for _cbr in [sy + int(6*s), sy + int(13*s), sy + int(20*s)]:
+            for _cbc in [-3, 3]:
+                pygame.draw.circle(surface, (160, 155, 145),
+                                   (sx + int(_cbc*s), _cbr), max(1, int(s)))
+        # Tall chef's toque — cylinder + flat top
+        _hat_h = max(18, int(22*s))
+        _hat_w = max(14, int(16*s))
+        pygame.draw.rect(surface, (250, 250, 248),
+                         (hx - _hat_w, hy - hd - _hat_h, _hat_w * 2, _hat_h),
+                         border_radius=max(2, int(3*s)))
+        pygame.draw.ellipse(surface, (230, 228, 220),
+                            (hx - _hat_w - max(2, int(2*s)), hy - hd - _hat_h - max(3, int(3*s)),
+                             (_hat_w + max(2, int(2*s))) * 2, max(7, int(7*s))))
+        pygame.draw.rect(surface, (200, 198, 190),
+                         (hx - _hat_w, hy - hd - _hat_h, _hat_w * 2, _hat_h),
+                         max(1, int(s)), border_radius=max(2, int(3*s)))
+        # Rolling pin in dominant hand
+        _rph_x = rhx if facing > 0 else lhx
+        _rph_y = rhy if facing > 0 else lhy
+        pygame.draw.line(surface, (200, 160, 100),
+                         (_rph_x - int(facing * 10*s), _rph_y - int(3*s)),
+                         (_rph_x + int(facing * 10*s), _rph_y + int(3*s)),
+                         max(4, int(4*s)))
+        pygame.draw.circle(surface, (180, 140, 80), (_rph_x - int(facing * 10*s), _rph_y - int(3*s)), max(3, int(3*s)))
+        pygame.draw.circle(surface, (180, 140, 80), (_rph_x + int(facing * 10*s), _rph_y + int(3*s)), max(3, int(3*s)))
+        # Baking sparkle when blocking — golden particles
+        if True:  # always draw subtle steam; bright when baking
+            _bkphase = t * 0.1
+            for _bki in range(3):
+                _bkangle = math.radians(_bki * 120 + _bkphase * 30)
+                _bkx = sx + int(math.cos(_bkangle) * int(14*s))
+                _bky = sy - max(4, int(5*s)) + int(math.sin(_bkphase * 0.3 + _bki) * int(3*s))
+                _bksurf = pygame.Surface((8, 8), pygame.SRCALPHA)
+                pygame.draw.circle(_bksurf, (255, 220, 80, 100), (4, 4), 3)
+                surface.blit(_bksurf, (_bkx - 4, _bky - 4))
+
     elif char_name == "Backstabber":
         t = pygame.time.get_ticks()
         # Dark assassin bodysuit

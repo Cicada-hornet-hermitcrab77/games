@@ -159,7 +159,8 @@ class Fighter:
         self.pending_note       = False   # Bard: shoot a music note
         self._paradox_used      = False   # Paradox: HP swap used this life
         self.rainbow_poop_timer = FPS * 4 if char_data.get("rainbow_poop") else 0
-        self.pending_rainbow_poop = False  # Rainbow Man: drop a random powerup this frame
+        self.pending_rainbow_poop = False  # Rainbow Man / Chef: drop a random powerup this frame
+        self.chef_bake_timer      = 0      # Chef: frames spent blocking
         self.chomp_cooldown     = 0       # Pacman: cooldown between chomps
         self.cb_idle_timer      = FPS * 8 if char_data.get("chicken_banana") else 0  # ChickenBanana: countdown to next ram
         self.cb_ramming         = False   # ChickenBanana: currently ramming
@@ -411,6 +412,15 @@ class Fighter:
             else:
                 self.pending_kitsune = True
                 self.kitsune_timer   = FPS * 9
+        # Chef — bakes a powerup every 2 seconds while blocking
+        if self.char.get("chef"):
+            if self.blocking:
+                self.chef_bake_timer += 1
+                if self.chef_bake_timer >= FPS * 2:
+                    self.pending_rainbow_poop = True
+                    self.chef_bake_timer = 0
+            else:
+                self.chef_bake_timer = 0
         # Rainbow Man — drops a random powerup every 4 seconds
         if self.char.get("rainbow_poop"):
             if self.rainbow_poop_timer > 0:
