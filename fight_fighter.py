@@ -135,6 +135,7 @@ class Fighter:
         self.auto_fire_timer    = FPS * 5  if char_data.get("auto_fire")      else 0
         self.pending_autofire   = False
         self.auto_teleport_timer = FPS * 8 if char_data.get("auto_teleport")  else 0
+        self.crazy_teleport_timer = FPS * 1 if char_data.get("crazy_teleport") else 0
         self.pending_thunder    = False
         # New batch
         self.pending_storm      = False   # Storm Caller: random lightning bolt
@@ -231,7 +232,8 @@ class Fighter:
         if c.get("chaos_timer"):      self.chaos_timer         = FPS * 12
         if c.get("time_freeze"):      self.time_freeze_timer   = FPS * 18
         if c.get("auto_fire"):        self.auto_fire_timer     = FPS * 5
-        if c.get("auto_teleport"):    self.auto_teleport_timer = FPS * 8
+        if c.get("auto_teleport"):    self.auto_teleport_timer  = FPS * 8
+        if c.get("crazy_teleport"):   self.crazy_teleport_timer = FPS * 1
         if c.get("bomb_character"):   self.bomb_spawn_timer    = FPS * 5
         if c.get("rainbow_poop"):     self.rainbow_poop_timer  = FPS * 4
         if c.get("soul_master"):      self.soul_switch_timer   = FPS * 5
@@ -497,7 +499,7 @@ class Fighter:
             else:
                 self.pending_autofire    = True
                 self.auto_fire_timer     = FPS * 5
-        # Auto teleport
+        # Auto teleport (every 8s)
         if self.char.get("auto_teleport"):
             if self.auto_teleport_timer > 0:
                 self.auto_teleport_timer -= 1
@@ -505,6 +507,16 @@ class Fighter:
                 self.x = float(random.randint(80, WIDTH - 80))
                 self.flash_timer = 12
                 self.auto_teleport_timer = FPS * 8
+        # Crazy teleport (every 1s)
+        if self.char.get("crazy_teleport"):
+            if self.crazy_teleport_timer > 0:
+                self.crazy_teleport_timer -= 1
+            else:
+                self.x = float(random.randint(60, WIDTH - 60))
+                self.y = float(random.randint(120, 400))
+                self.vy = 0.0
+                self.flash_timer = 8
+                self.crazy_teleport_timer = FPS * 1
         # Time Lord freeze timer
         if self.char.get("time_freeze"):
             if self.time_freeze_timer > 0:

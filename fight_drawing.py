@@ -10152,6 +10152,48 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.circle(surface, (255, 60, 0), (hx - hd//3, hy - max(1, int(2*s))), max(2, int(2*s)))
         pygame.draw.circle(surface, (255, 60, 0), (hx + hd//3, hy - max(1, int(2*s))), max(2, int(2*s)))
 
+    elif char_name == "Crazy":
+        t = pygame.time.get_ticks()
+        # Wildly shifting rainbow body
+        _chue = (t // 3) % 360
+        _cr = int(128 + 127 * math.sin(math.radians(_chue)))
+        _cg = int(128 + 127 * math.sin(math.radians(_chue + 120)))
+        _cb = int(128 + 127 * math.sin(math.radians(_chue + 240)))
+        pygame.draw.rect(surface, (_cr, _cg, _cb),
+                         (sx - int(11*s), sy, int(22*s), bl), border_radius=max(2, int(3*s)))
+        pygame.draw.rect(surface, (255, 255, 255),
+                         (sx - int(11*s), sy, int(22*s), bl), max(1, int(s)),
+                         border_radius=max(2, int(3*s)))
+        # Teleport afterimages — 3 ghost copies offset randomly (seeded by time bucket)
+        for _cgi in range(3):
+            _cgoff_x = int(math.sin(t * 0.007 + _cgi * 2.1) * int(20*s))
+            _cgoff_y = int(math.cos(t * 0.009 + _cgi * 1.7) * int(12*s))
+            _cgsurf = pygame.Surface((int(24*s), bl), pygame.SRCALPHA)
+            pygame.draw.rect(_cgsurf, (255, 80, 220, 45 - _cgi * 12),
+                             (0, 0, int(24*s), bl), border_radius=max(1, int(2*s)))
+            surface.blit(_cgsurf, (sx - int(12*s) + _cgoff_x, sy + _cgoff_y))
+        # Spiral chaos on chest
+        _cphase = t * 0.15
+        for _csi in range(8):
+            _csa = math.radians(_csi * 45) + _cphase
+            _csr = max(3, int((3 + _csi)*s))
+            _csx2 = sx + int(math.cos(_csa) * _csr)
+            _csy2 = sy + bl//3 + int(math.sin(_csa) * _csr)
+            _cssurf = pygame.Surface((5, 5), pygame.SRCALPHA)
+            _cscol = [(255,50,220),(255,220,50),(50,220,255),(220,255,50),
+                      (255,100,50),(50,255,180),(200,50,255),(255,180,50)][_csi]
+            pygame.draw.circle(_cssurf, (*_cscol, 200), (2, 2), 2)
+            surface.blit(_cssurf, (_csx2 - 2, _csy2 - 2))
+        # Zany wide eyes
+        pygame.draw.circle(surface, (255, 255, 255), (hx - hd//3, hy), max(4, int(4*s)))
+        pygame.draw.circle(surface, (255, 255, 255), (hx + hd//3, hy), max(4, int(4*s)))
+        pygame.draw.circle(surface, (_cr, _cg, _cb), (hx - hd//3, hy), max(2, int(2*s)))
+        pygame.draw.circle(surface, (_cr, _cg, _cb), (hx + hd//3, hy), max(2, int(2*s)))
+        # Question mark above head
+        _qfont = pygame.font.SysFont("Arial", max(10, int(14*s)), bold=True)
+        _qs = _qfont.render("?", True, (255, 255, 255))
+        surface.blit(_qs, (hx - _qs.get_width()//2, hy - hd - max(12, int(14*s))))
+
 
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color

@@ -1033,6 +1033,10 @@ CHARACTERS = [
      "punch_dmg": 13, "kick_dmg": 11, "max_hp": 160, "block": 4,
      "desc": "Massive toxic beast — poisons on contact and radiates a constant toxic aura",
      "double_jump": False, "giant": True, "toxic_aura": True, "contact_dmg": True, "glass_jaw": True},
+    {"name": "Crazy", "color": (255, 50, 220), "speed": 6, "jump": -14,
+     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100, "block": 4,
+     "desc": "Teleports to a completely random spot every single second — total chaos",
+     "double_jump": True, "crazy_teleport": True},
 ]
 
 POWERUPS = [
@@ -1375,6 +1379,27 @@ STAGES = [
         (290, GROUND_Y-280), (610, GROUND_Y-280),   # pair 4  red
     ],
     "hazards": []},
+    # Conveyor World
+    {"name": "Conveyor World", "platforms": [], "springs": [], "conveyors": [
+        (  0, GROUND_Y, 150,  5.0),
+        (150, GROUND_Y, 150, -5.0),
+        (300, GROUND_Y, 150,  5.0),
+        (450, GROUND_Y, 150, -5.0),
+        (600, GROUND_Y, 150,  5.0),
+        (750, GROUND_Y, 150, -5.0),
+    ], "portals": [], "hazards": []},
+    # Spring World
+    {"name": "Spring World", "platforms": [
+        (200, GROUND_Y-180, 120, 0, 0),
+        (580, GROUND_Y-180, 120, 0, 0),
+        (380, GROUND_Y-310, 140, 0, 0),
+    ], "springs": [
+        ( 18, -28), ( 52, -22), ( 88, -28), (124, -22), (160, -28),
+        (196, -22), (232, -28), (268, -22), (304, -28), (340, -22),
+        (376, -28), (412, -22), (448, -28), (484, -22), (520, -28),
+        (556, -22), (592, -28), (628, -22), (664, -28), (700, -22),
+        (736, -28), (772, -22), (808, -28), (844, -22), (878, -28),
+    ], "conveyors": [], "portals": [], "hazards": []},
 ]
 
 # Stage-specific character advantages and disadvantages.
