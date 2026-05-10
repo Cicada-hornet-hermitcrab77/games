@@ -415,7 +415,7 @@ class Fighter:
                 self.kitsune_timer   = FPS * 9
         # Elder — heals 2 HP per second when standing still on the ground
         if self.char.get("stillness_regen"):
-            if self.on_ground and abs(self.vx) < 0.5 and not self.attacking and not self.blocking:
+            if self.on_ground and self.action == 'idle' and not self.attacking and not self.blocking:
                 self.stillness_timer += 1
                 if self.stillness_timer >= FPS:
                     self.hp = min(self.max_hp, self.hp + 2)
