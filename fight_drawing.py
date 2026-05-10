@@ -11406,6 +11406,30 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.circle(surface, (255, 0, 200), (hx + int(hd*0.35), hy), max(3, int(3*s)))
 
 
+    elif char_name == "Eggshell":
+        # Cream-white ovoid body with hairline crack pattern
+        pygame.draw.ellipse(surface, (255, 250, 230),
+                            (sx - int(10*s), sy, int(20*s), bl))
+        pygame.draw.ellipse(surface, (220, 210, 190),
+                            (sx - int(10*s), sy, int(20*s), bl), max(1, int(s)))
+        # Crack lines — jagged fractures across the shell
+        _crack_pts = [
+            [(sx - int(2*s), sy + int(bl*0.2)), (sx + int(4*s), sy + int(bl*0.35)),
+             (sx + int(1*s), sy + int(bl*0.55)), (sx + int(5*s), sy + int(bl*0.7))],
+            [(sx - int(5*s), sy + int(bl*0.4)), (sx - int(2*s), sy + int(bl*0.5)),
+             (sx - int(6*s), sy + int(bl*0.65))],
+        ]
+        for _cpts in _crack_pts:
+            for _ci2 in range(len(_cpts) - 1):
+                pygame.draw.line(surface, (180, 160, 140),
+                                 _cpts[_ci2], _cpts[_ci2 + 1], max(1, int(s)))
+        # Tiny wide frightened eyes
+        pygame.draw.circle(surface, (50, 50, 50), (hx - int(hd*0.35), hy), max(3, int(3*s)))
+        pygame.draw.circle(surface, (50, 50, 50), (hx + int(hd*0.35), hy), max(3, int(3*s)))
+        pygame.draw.circle(surface, (255, 255, 255), (hx - int(hd*0.35) + max(1,int(s)), hy - max(1,int(s))), max(1, int(s)))
+        pygame.draw.circle(surface, (255, 255, 255), (hx + int(hd*0.35) + max(1,int(s)), hy - max(1,int(s))), max(1, int(s)))
+
+
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color
     s = scale

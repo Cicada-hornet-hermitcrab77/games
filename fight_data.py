@@ -1200,6 +1200,10 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100, "block": 4,
      "desc": "Teleports to a completely random spot every single second — total chaos",
      "double_jump": True, "crazy_teleport": True},
+    {"name": "Eggshell", "color": (255, 250, 230), "speed": 10, "jump": -18,
+     "punch_dmg": 18, "kick_dmg": 20, "max_hp": 30, "block": 0,
+     "desc": "Hits like a truck but shatters in two punches — incredibly fragile, stupendously fast",
+     "double_jump": True, "glass_jaw": True, "speed_stack": True},
 ]
 
 POWERUPS = [
