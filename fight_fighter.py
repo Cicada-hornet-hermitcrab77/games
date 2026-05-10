@@ -1135,6 +1135,18 @@ class Fighter:
                     dmg = 0
                 elif _dist > 200:
                     dmg = int(dmg * 3)
+            # Giant killer: bonus damage scaled to opponent's max HP above baseline
+            if self.char.get("giant_killer"):
+                dmg += max(0, int((other.max_hp - 100) / 20))
+            # All or nothing: 50% chance double damage, 50% chance zero
+            if self.char.get("all_or_nothing"):
+                if random.random() < 0.5:
+                    dmg *= 2
+                else:
+                    dmg = 0
+            # Speed stack: landing a hit permanently speeds attacker up this round
+            if self.char.get("speed_stack") and dmg > 0:
+                self.speed_boost = min(4.0, self.speed_boost + 0.08)
             # Backstab: triple damage when hitting from behind (same facing direction)
             if self.char.get("backstab") and self.facing == other.facing:
                 dmg *= 3
