@@ -46,7 +46,6 @@ _symbol_char_flag     = [False]   # True when <|-\||>+() typed on Computer stage
 _death_defyer_flag    = [False]   # True when death_does_not_exist typed on Graveyard as Reaper
 _friday13_flag        = [False]   # True when "13" typed on an actual Friday the 13th
 _nick_of_time_flag    = [False]   # True when p1 KO'd p2 with ≤1 second on the clock
-_cheat_unlocked_flag  = [[]]      # list of char names unlocked via cheat codes this fight
 
 _PRIMES_60 = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59}
 def _is_prime(n): return n in _PRIMES_60
@@ -412,213 +411,6 @@ UNLOCK_CONDITIONS = {
     "Berserker Monk":      ("win_with",       "Berserker Queen", 3,  "Win 3 matches as Berserker Queen"),
 }
 
-# Cheat codes: type the code during a fight to instantly unlock the character.
-# Characters that already have a typed-sequence unlock (Konami, symbol string, etc.) are omitted.
-CHEAT_CODES = {
-    "Boulder":                "boulder",
-    "Wisp":                   "wisp",
-    "Sandman":                "sandman",
-    "Reaper":                 "reaper",
-    "Chainsaw Man":           "chainsawman",
-    "Crusher":                "crusher",
-    "Storm Witch":            "stormwitch",
-    "Blood Baron":            "bloodbaron",
-    "Drifter":                "drifter",
-    "Warlock":                "warlock",
-    "777":                    "lucky777",
-    "Void Master":            "voidmaster",
-    "Screentime":             "screentime",
-    "God":                    "godmode",
-    "Nightfall":              "nightfall",
-    "Lucky":                  "luckycharm",
-    "Great Totem Spirit":     "greattotemspirit",
-    "Flash":                  "flash",
-    "Portal Maker":           "portalmaker",
-    "Gravity":                "gravity",
-    "Prime Time":             "primetime",
-    "Swapper":                "swapper",
-    "Bruiser":                "bruiser",
-    "Grappler":               "grappler",
-    "Trickster":              "trickster",
-    "Wildcard":               "wildcard",
-    "Ironclad":               "ironclad",
-    "Siphon":                 "siphon",
-    "Timekeeper":             "timekeeper",
-    "Rainbow Man":            "rainbowman",
-    "The One":                "theone",
-    "Mirror":                 "mirror",
-    "Paradox":                "paradox",
-    "Spitting Cobra":         "spittingcobra",
-    "Jetpack":                "jetpack",
-    "The Impossible Victor":  "theimpossiblevicor",
-    "Pacman":                 "pacman",
-    "ChickenBanana":          "chickenbanana",
-    "Soul Master":            "soulmaster",
-    "Scorpio":                "scorpio",
-    "Nuke":                   "nuke",
-    "Druid":                  "druid",
-    "Big Bad Critter Clad":   "bigbadcritterclad",
-    "Shade":                  "shade",
-    "Decay":                  "decay",
-    "Fault Line":             "faultline",
-    "Buckler":                "buckler",
-    "Overdrive":              "overdrive",
-    "Hypnotist":              "hypnotist",
-    "Revenant":               "revenant",
-    "Volt":                   "volt",
-    "Phantom Strike":         "phantomstrike",
-    "Trap Master":            "trapmaster",
-    "Juggernaut":             "juggernaut",
-    "Mirage":                 "mirage",
-    "Dementor":               "dementor",
-    "Orb Shooter":            "orbshooter",
-    "Copycat":                "copycat",
-    "Windshield Viper":       "windshieldviper",
-    "Rainbow Snake":          "rainbowsnake",
-    "Inland Taipan":          "inlandtaipan",
-    "Black Mamba":            "blackmamba",
-    "King Cobra":             "kingcobra",
-    "Entomologist":           "entomologist",
-    "Hacker":                 "hacker",
-    "8-Bit Wasp":             "8bitwasp",
-    "Black Widow":            "blackwidow",
-    "AI":                     "aichar",
-    "Forcefield":             "forcefield",
-    "Poltergeist":            "poltergeist",
-    "Armor":                  "armorchar",
-    "Deflector":              "deflector",
-    "Unhittable":             "unhittable",
-    "Sniper":                 "sniper",
-    "Mega-Unhittable":        "megaunhittable",
-    "Map Man":                "mapman",
-    "Bard":                   "bard",
-    "Butcher":                "butcher",
-    "Stone Cold":             "stonecold",
-    "Tycoon":                 "tycoon",
-    "Glass Jaw":              "glassjaw",
-    "Life Drain":             "lifedrain",
-    "Lancer":                 "lancer",
-    "Absorber":               "absorber",
-    "Hexer":                  "hexer",
-    "Gambler":                "gambler",
-    "Counter":                "counter",
-    "Blazer":                 "blazer",
-    "Colossus":               "colossus",
-    "Stomper":                "stomper",
-    "Porcupine":              "porcupine",
-    "Anchor":                 "anchor",
-    "Sleeper":                "sleeper",
-    "Rager":                  "rager",
-    "Twin":                   "twin",
-    "Sapper":                 "sapper",
-    "Mimic":                  "mimic",
-    "Boomerang":              "boomerang",
-    "Parry":                  "parry",
-    "Healer":                 "healer",
-    "Iron Wall":              "ironwall",
-    "Pierce":                 "pierce",
-    "Rage Stack":             "ragestack",
-    "Phoenix":                "phoenix",
-    "Chain Fighter":          "chainfighter",
-    "Breaker":                "breaker",
-    "Titan Grip":             "titangrip",
-    "Sunderer":               "sunderer",
-    "Haunter":                "haunter",
-    "Zeus":                   "zeus",
-    "Glacial":                "glacial",
-    "Soul Eater":             "souleater",
-    "Frenzy":                 "frenzy",
-    "Specter":                "specter",
-    "Demolisher":             "demolisher",
-    "Feedback":               "feedback",
-    "Escalator":              "escalator",
-    "Pacifist":               "pacifist",
-    "Cyclone":                "cyclone",
-    "Phantom Blade":          "phantomblade",
-    "Inferno":                "inferno",
-    "Titan Smash":            "titansmash",
-    "Infiltrator":            "infiltrator",
-    "Executioner":            "executioner",
-    "Coldheart":              "coldheart",
-    "Tempest":                "tempest",
-    "Ancient":                "ancient",
-    "Berserk Lord":           "berserklord",
-    "Shadow Dancer":          "shadowdancer",
-    "Voodoo":                 "voodoo",
-    "Magma":                  "magma",
-    "Minotaur":               "minotaur",
-    "Puppet Master":          "puppetmaster",
-    "Clockwork":              "clockwork",
-    "Void Walker":            "voidwalker",
-    "Lich":                   "lich",
-    "Crimson":                "crimson",
-    "Jester":                 "jester",
-    "Golem":                  "golem",
-    "Blaze":                  "blaze",
-    "Surge":                  "surge",
-    "Phantom King":           "phantomking",
-    "Abomination":            "abomination",
-    "Witch":                  "witch",
-    "Giant Killer":           "giantkiller",
-    "Speed Demon":            "speeddemon",
-    "Wild Card":              "thewildcard",
-    "Ghost Warrior":          "ghostwarrior",
-    "Suicide King":           "suicideking",
-    "Harbinger":              "harbinger",
-    "Hex Doctor":             "hexdoctor",
-    "Time Warden":            "timewarden",
-    "Doppelganger":           "doppelganger",
-    "Graverobber":            "graverobber",
-    "Brawler King":           "brawlerking",
-    "Marksman":               "marksman",
-    "Elder":                  "elder",
-    "Shade Walker":           "shadewalker",
-    "Emperor":                "emperor",
-    "Iron Grappler":          "irongrappler",
-    "Corsair":                "corsair",
-    "Mech":                   "mech",
-    "Vault":                  "vault",
-    "Shaolin":                "shaolin",
-    "Warlord":                "warlord",
-    "Surgeon":                "surgeon",
-    "Cutthroat":              "cutthroat",
-    "Chef":                   "chef",
-    "Backstabber":            "backstabber",
-    "Crazy":                  "crazy",
-    "Leech King":             "leechking",
-    "Puppeteer":              "puppeteer",
-    "Sorcerer":               "sorcerer",
-    "Guardian":               "guardian",
-    "Iron Maiden":            "ironmaiden",
-    "Berserker Queen":        "berserkerqueen",
-    "Phantom Lord":           "phantomlord",
-    "Trapper":                "trapper",
-    "Dark Knight":            "darkknight",
-    "Templar":                "templar",
-    "Hydra":                  "hydra",
-    "Chimera":                "chimera",
-    "Fortune":                "fortune",
-    "Chaos Lord":             "chaoslord",
-    "Overload":               "overload",
-    "Glitch":                 "glitch",
-    "Nick of Time":           "nickoftime",
-    "Buffer":                 "buffer",
-    "Cursed":                 "cursed",
-    "Eggshell":               "eggshell",
-    "Cannonball":             "cannonball",
-    "Wraith":                 "wraith",
-    "Plaguebringer":          "plaguebringer",
-    "Bulwark":                "bulwark",
-    "Assassin":               "assassin",
-    "Wrecking Ball":          "wreckingball",
-    "Bounty Hunter":          "bountyhunter",
-    "Abyssal":                "abyssal",
-    "Revenant King":          "revenantking",
-    "Shadow Lord":            "shadowlord",
-    "Rune Mage":              "runemage",
-    "Berserker Monk":         "berserkermonk",
-}
-_CHEAT_MAX_BUF = max(len(v) for v in CHEAT_CODES.values()) + 4
 
 def _default_stats():
     return {
@@ -1129,7 +921,6 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     _death_defyer_flag[0]    = False
     _friday13_flag[0]        = False
     _nick_of_time_flag[0]    = False
-    _cheat_unlocked_flag[0]  = []
 
     game_over          = False
     winner             = None
@@ -1259,9 +1050,6 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     # Friday the 13th unlock: type "13" on a real Friday the 13th
     _f13_buf = ""
 
-    # Universal cheat codes: type a character's code at any point during a fight
-    _cheat_buf = ""
-
     # Screentime: track whether a Screentime fighter is playing
     _screentime_active = (p1.char.get("screentime") or p2.char.get("screentime"))
     _screentime_skip = False  # toggle for slow-mode frame skip
@@ -1353,16 +1141,6 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             _f13_buf = ""
                         if len(_f13_buf) > 4:
                             _f13_buf = _f13_buf[-2:]
-                    # Universal cheat codes: accumulate typed chars, check all codes
-                    if hasattr(event, 'unicode') and event.unicode and event.unicode.isprintable():
-                        _cheat_buf += event.unicode.lower()
-                        if len(_cheat_buf) > _CHEAT_MAX_BUF:
-                            _cheat_buf = _cheat_buf[-_CHEAT_MAX_BUF:]
-                        for _cname, _ccode in CHEAT_CODES.items():
-                            if _ccode in _cheat_buf:
-                                _cheat_unlocked_flag[0].append(_cname)
-                                _cheat_buf = ""
-                                break
 
         if not game_over:
             # Portal Maker: replace portals on kick
@@ -4952,14 +4730,6 @@ def main():
                 if _map_man_flag[0]:
                     stats["map_man_unlocked"] = True
                     _map_man_flag[0] = False
-                if _cheat_unlocked_flag[0]:
-                    _cheat_new = [n for n in _cheat_unlocked_flag[0] if n not in unlocked]
-                    _cheat_unlocked_flag[0] = []
-                    for _cn in _cheat_new:
-                        unlocked.add(_cn)
-                    if _cheat_new:
-                        _save_data(unlocked, stats)
-                        _show_unlocks(_cheat_new)
                 new_unlocks = check_and_unlock(unlocked, stats)
                 if new_unlocks:
                     _save_data(unlocked, stats)
@@ -5054,14 +4824,6 @@ def main():
             if _nick_of_time_flag[0]:
                 stats["nick_of_time_win"] = True
                 _nick_of_time_flag[0] = False
-            if _cheat_unlocked_flag[0]:
-                _cheat_new = [n for n in _cheat_unlocked_flag[0] if n not in unlocked]
-                _cheat_unlocked_flag[0] = []
-                for _cn in _cheat_new:
-                    unlocked.add(_cn)
-                if _cheat_new:
-                    _save_data(unlocked, stats)
-                    _show_unlocks(_cheat_new)
             new_unlocks = check_and_unlock(unlocked, stats)
             if new_unlocks:
                 _save_data(unlocked, stats)
