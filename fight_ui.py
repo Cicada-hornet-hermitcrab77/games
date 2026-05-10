@@ -494,6 +494,19 @@ CHEAT_CODES = {
     "pure_entropy":       "Chaos Lord",
     # eggshell
     "handle_with_care":   "Eggshell",
+    # batch 7
+    "roll_em":            "Cannonball",
+    "see_through":        "Wraith",
+    "ring_around":        "Plaguebringer",
+    "hold_the_line":      "Bulwark",
+    "silent_kill":        "Assassin",
+    "smash_em_flat":      "Wrecking Ball",
+    "on_the_hunt":        "Bounty Hunter",
+    "from_the_deep":      "Abyssal",
+    "risen_again":        "Revenant King",
+    "shade_of_night":     "Shadow Lord",
+    "carved_in_stone":    "Rune Mage",
+    "monk_of_war":        "Berserker Monk",
 }
 
 # ---------------------------------------------------------------------------

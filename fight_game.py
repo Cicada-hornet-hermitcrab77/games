@@ -397,6 +397,19 @@ UNLOCK_CONDITIONS = {
     "Buffer":              ("wins_total",      None,            25, "Win 25 matches"),
     "Cursed":              ("losses",          None,            20, "Lose 20 matches"),
     "Eggshell":            ("clutch_wins",    None,              5, "Win 5 matches with ≤10 HP"),
+    # ── batch 7 ─────────────────────────────────────────────────────────────
+    "Cannonball":          ("win_with",       "Charger",         3,  "Win 3 matches as Charger"),
+    "Wraith":              ("win_with",       "Specter",         3,  "Win 3 matches as Specter"),
+    "Plaguebringer":       ("win_with",       "Toxic",           5,  "Win 5 matches as Toxic"),
+    "Bulwark":             ("win_with",       "Iron Wall",       3,  "Win 3 matches as Iron Wall"),
+    "Assassin":            ("win_with",       "Backstabber",     5,  "Win 5 matches as Backstabber"),
+    "Wrecking Ball":       ("win_with",       "Juggernaut",      3,  "Win 3 matches as Juggernaut"),
+    "Bounty Hunter":       ("win_with",       "Marksman",        3,  "Win 3 matches as Marksman"),
+    "Abyssal":             ("win_with",       "Abomination",     3,  "Win 3 matches as Abomination"),
+    "Revenant King":       ("win_with",       "Revenant",        3,  "Win 3 matches as Revenant"),
+    "Shadow Lord":         ("win_with",       "Shadow Dancer",   5,  "Win 5 matches as Shadow Dancer"),
+    "Rune Mage":           ("win_with",       "Sorcerer",        3,  "Win 3 matches as Sorcerer"),
+    "Berserker Monk":      ("win_with",       "Berserker Queen", 3,  "Win 3 matches as Berserker Queen"),
 }
 
 # Cheat codes: type the code during a fight to instantly unlock the character.
@@ -592,6 +605,18 @@ CHEAT_CODES = {
     "Buffer":                 "buffer",
     "Cursed":                 "cursed",
     "Eggshell":               "eggshell",
+    "Cannonball":             "cannonball",
+    "Wraith":                 "wraith",
+    "Plaguebringer":          "plaguebringer",
+    "Bulwark":                "bulwark",
+    "Assassin":               "assassin",
+    "Wrecking Ball":          "wreckingball",
+    "Bounty Hunter":          "bountyhunter",
+    "Abyssal":                "abyssal",
+    "Revenant King":          "revenantking",
+    "Shadow Lord":            "shadowlord",
+    "Rune Mage":              "runemage",
+    "Berserker Monk":         "berserkermonk",
 }
 _CHEAT_MAX_BUF = max(len(v) for v in CHEAT_CODES.values()) + 4
 
