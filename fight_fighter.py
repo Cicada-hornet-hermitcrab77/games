@@ -613,7 +613,7 @@ class Fighter:
                     break
         if landed:
             self.on_ground = True
-            self.jumps_left = 2 if self.char["double_jump"] else 1
+            self.jumps_left = 2 if self.char.get("double_jump", False) else 1
             self.wall_cling_active = False
             if self.char.get("quake_land") and self._prev_vy > 9:
                 self.quake_pending = True
@@ -828,7 +828,7 @@ class Fighter:
                     self.vy = self.char["jump"]
                     self.x += -self.wall_dir * 30
                     self.wall_cling_active = False
-                    self.jumps_left = 2 if self.char["double_jump"] else 1
+                    self.jumps_left = 2 if self.char.get("double_jump", False) else 1
                     self.action = 'jump'
                     self.attacking = False
                 elif self.jumps_left > 0:
@@ -1638,7 +1638,7 @@ class AIFighter(Fighter):
                     break
         if landed:
             self.on_ground = True
-            self.jumps_left = 2 if self.char["double_jump"] else 1
+            self.jumps_left = 2 if self.char.get("double_jump", False) else 1
             if self.char.get("quake_land") and self._prev_vy > 9:
                 self.quake_pending = True
         else:
