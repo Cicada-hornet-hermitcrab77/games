@@ -783,12 +783,13 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
     n     = len(CHARACTERS)
     COLS  = 7
     ROWS  = (n + COLS - 1) // COLS
+    VISIBLE_ROWS = 12   # how many card rows show at once
 
     # Grid occupies left ~60% of screen
     GX, GY   = 8,  68
     GW, GH   = 540, HEIGHT - GY - 28
     CW       = GW // COLS
-    CH       = GH // ROWS
+    CH       = GH // VISIBLE_ROWS   # card height based on viewport, not total rows
 
     # Detail panel on the right
     PX       = GX + GW + 10
@@ -811,6 +812,15 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
     p2_ready = vs_ai
     preview_t = 0.0
     flash_t   = 0   # for ready flash
+    scroll_top = 0  # first visible row
+
+    def clip_scroll(idx):
+        nonlocal scroll_top
+        row = idx // COLS
+        if row < scroll_top:
+            scroll_top = row
+        elif row >= scroll_top + VISIBLE_ROWS:
+            scroll_top = row - VISIBLE_ROWS + 1
 
     while True:
         clock.tick(FPS)
@@ -824,15 +834,21 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
                 _tp = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
                 _tx, _ty = _tp
+                # Tap scroll buttons above/below grid
+                _stbh = 26
+                if pygame.Rect(GX, GY - _stbh - 2, GW, _stbh).collidepoint(_tp) and scroll_top > 0:
+                    scroll_top -= 1
+                if pygame.Rect(GX, GY + GH + 2, GW, _stbh).collidepoint(_tp) and scroll_top + VISIBLE_ROWS < ROWS:
+                    scroll_top += 1
                 # Tap inside the character grid
                 if GX <= _tx < GX + GW and GY <= _ty < GY + GH:
                     _col = (_tx - GX) // CW
-                    _row = (_ty - GY) // CH
+                    _row = (_ty - GY) // CH + scroll_top
                     _ni  = min(_row * COLS + _col, n - 1)
                     if not p1_ready:
-                        p1_idx = _ni
+                        p1_idx = _ni; clip_scroll(p1_idx)
                     elif not vs_ai and not p2_ready:
-                        p2_idx = _ni
+                        p2_idx = _ni; clip_scroll(p2_idx)
                 # Tap READY button (drawn at bottom-right of detail panel)
                 _ready_rect = pygame.Rect(PX, PY + PH - 52, PW, 44)
                 if _ready_rect.collidepoint(_tp):
@@ -850,10 +866,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                     return None, None
                 # P1 navigation (WASD or arrows while P1 not ready)
                 if not p1_ready:
-                    if event.key in (pygame.K_a, pygame.K_LEFT):  p1_idx = move(p1_idx, 0, -1)
-                    if event.key in (pygame.K_d, pygame.K_RIGHT): p1_idx = move(p1_idx, 0,  1)
-                    if event.key in (pygame.K_w, pygame.K_UP):    p1_idx = move(p1_idx, -1, 0)
-                    if event.key in (pygame.K_s, pygame.K_DOWN):  p1_idx = move(p1_idx,  1, 0)
+                    if event.key in (pygame.K_a, pygame.K_LEFT):  p1_idx = move(p1_idx, 0, -1); clip_scroll(p1_idx)
+                    if event.key in (pygame.K_d, pygame.K_RIGHT): p1_idx = move(p1_idx, 0,  1); clip_scroll(p1_idx)
+                    if event.key in (pygame.K_w, pygame.K_UP):    p1_idx = move(p1_idx, -1, 0); clip_scroll(p1_idx)
+                    if event.key in (pygame.K_s, pygame.K_DOWN):  p1_idx = move(p1_idx,  1, 0); clip_scroll(p1_idx)
                     if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_f):
                         if CHARACTERS[p1_idx]["name"] not in unlocked:
                             pass  # locked — do nothing
@@ -864,10 +880,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 p2_idx = random.choice(_ul) if _ul else random.randint(0, n - 1)
                 # P2 navigation (arrows only, after P1 locked in)
                 elif not vs_ai and not p2_ready:
-                    if event.key == pygame.K_LEFT:  p2_idx = move(p2_idx, 0, -1)
-                    if event.key == pygame.K_RIGHT: p2_idx = move(p2_idx, 0,  1)
-                    if event.key == pygame.K_UP:    p2_idx = move(p2_idx, -1, 0)
-                    if event.key == pygame.K_DOWN:  p2_idx = move(p2_idx,  1, 0)
+                    if event.key == pygame.K_LEFT:  p2_idx = move(p2_idx, 0, -1); clip_scroll(p2_idx)
+                    if event.key == pygame.K_RIGHT: p2_idx = move(p2_idx, 0,  1); clip_scroll(p2_idx)
+                    if event.key == pygame.K_UP:    p2_idx = move(p2_idx, -1, 0); clip_scroll(p2_idx)
+                    if event.key == pygame.K_DOWN:  p2_idx = move(p2_idx,  1, 0); clip_scroll(p2_idx)
                     if event.key in (pygame.K_RETURN, pygame.K_k):
                         if CHARACTERS[p2_idx]["name"] in unlocked:
                             p2_ready = True
@@ -896,8 +912,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         # ── Character grid ───────────────────────────────────────────────────
         for i, ch in enumerate(CHARACTERS):
             r, c    = divmod(i, COLS)
+            if r < scroll_top or r >= scroll_top + VISIBLE_ROWS:
+                continue
             cx      = GX + c * CW
-            cy      = GY + r * CH
+            cy      = GY + (r - scroll_top) * CH
             color   = ch["color"]
             is_locked = ch["name"] not in unlocked
 
@@ -949,6 +967,24 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
 
         # Grid border
         pygame.draw.rect(screen, (60, 60, 90), (GX, GY, GW, GH), 1, border_radius=4)
+
+        # Scroll buttons — 26px tap targets above and below the grid
+        _scroll_btn_h = 26
+        _scroll_up_rect   = pygame.Rect(GX, GY - _scroll_btn_h - 2, GW, _scroll_btn_h)
+        _scroll_down_rect = pygame.Rect(GX, GY + GH + 2, GW, _scroll_btn_h)
+        mid_x = GX + GW // 2
+        if scroll_top > 0:
+            pygame.draw.rect(screen, (45, 45, 65), _scroll_up_rect, border_radius=4)
+            pygame.draw.polygon(screen, (180, 180, 220),
+                [(mid_x, _scroll_up_rect.top + 6),
+                 (mid_x - 10, _scroll_up_rect.bottom - 6),
+                 (mid_x + 10, _scroll_up_rect.bottom - 6)])
+        if scroll_top + VISIBLE_ROWS < ROWS:
+            pygame.draw.rect(screen, (45, 45, 65), _scroll_down_rect, border_radius=4)
+            pygame.draw.polygon(screen, (180, 180, 220),
+                [(mid_x, _scroll_down_rect.bottom - 6),
+                 (mid_x - 10, _scroll_down_rect.top + 6),
+                 (mid_x + 10, _scroll_down_rect.top + 6)])
 
         # ── Detail panel ─────────────────────────────────────────────────────
         detail_locked = detail_ch["name"] not in unlocked
@@ -1848,9 +1884,9 @@ def host_lobby(userdata):
         for m in net.recv_all():
             if m.get("type") == "HELLO":
                 net.opp_name = m.get("username", "Opponent")
-                # Save as friend
-                code_pub = _net.ip_port_to_code(public_ip[0], _net.PORT)
-                userdata.setdefault("friends", {})[code_pub] = {"name": net.opp_name}
+                # Save as friend (use bore internet code if ready, else local)
+                _friend_code = bore_code if bore_code else code_loc
+                userdata.setdefault("friends", {})[_friend_code] = {"name": net.opp_name}
                 _net.save_userdata(userdata)
                 deadline = 0
                 break

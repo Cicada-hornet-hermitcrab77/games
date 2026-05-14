@@ -26,7 +26,7 @@ class Fighter:
         self.y = float(GROUND_Y)
         self.vy = 0.0
         self.on_ground = True
-        self.jumps_left = 2 if char_data["double_jump"] else 1
+        self.jumps_left = 2 if char_data.get("double_jump", False) else 1
         self.char = char_data
         self.facing = facing
         self.controls = controls
