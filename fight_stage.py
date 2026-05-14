@@ -666,7 +666,7 @@ class Spring:
             bvy = self.bounce_vy * (3.0 if self.possessed else 1.0)
             fighter.vy        = bvy
             fighter.on_ground = False
-            fighter.jumps_left = 2 if fighter.char["double_jump"] else 1
+            fighter.jumps_left = 2 if fighter.char.get("double_jump", False) else 1
             fighter.action    = 'jump'
             fighter.attacking = False
             self.anim     = 25
