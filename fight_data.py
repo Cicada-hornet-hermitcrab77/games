@@ -1595,13 +1595,33 @@ STAGES = [
         (290, GROUND_Y-280), (610, GROUND_Y-280),   # pair 4  red
     ],
     "hazards": []},
-    # Conveyor World
+    # Conveyor World — every surface is a conveyor belt
     {"name": "Conveyor World", "platforms": [], "springs": [], "conveyors": [
-        ( 30, GROUND_Y, 130,  5.0),
-        (220, GROUND_Y, 130, -5.0),
-        (410, GROUND_Y, 130,  5.0),
-        (600, GROUND_Y, 130, -5.0),
-        (760, GROUND_Y, 110,  5.0),
+        # Ground level — full width, alternating directions
+        (  0, GROUND_Y, 130,  6.0),
+        (130, GROUND_Y, 130, -6.0),
+        (260, GROUND_Y, 130,  6.0),
+        (390, GROUND_Y, 130, -6.0),
+        (520, GROUND_Y, 130,  6.0),
+        (650, GROUND_Y, 130, -6.0),
+        (780, GROUND_Y, 120,  6.0),
+        # Level 1 (low platforms)
+        ( 40, GROUND_Y-110, 160, -5.0),
+        (240, GROUND_Y-110, 140,  5.0),
+        (430, GROUND_Y-110, 140, -5.0),
+        (620, GROUND_Y-110, 160,  5.0),
+        # Level 2 (mid platforms)
+        (120, GROUND_Y-210, 150,  6.0),
+        (340, GROUND_Y-210, 160, -6.0),
+        (560, GROUND_Y-210, 150,  6.0),
+        # Level 3 (high platforms)
+        ( 60, GROUND_Y-310, 130, -5.0),
+        (260, GROUND_Y-310, 140,  5.0),
+        (470, GROUND_Y-310, 140, -5.0),
+        (670, GROUND_Y-310, 130,  5.0),
+        # Top level
+        (180, GROUND_Y-395, 200, -7.0),
+        (490, GROUND_Y-395, 200,  7.0),
     ], "portals": [], "hazards": []},
     # Spring World
     {"name": "Spring World", "platforms": [
