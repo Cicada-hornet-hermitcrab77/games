@@ -642,6 +642,54 @@ class ConveyorBelt:
         pygame.draw.rect(surface, (180, 140, 0), (rx, ry, self.w, self.H), 2, border_radius=3)
 
 
+class SlantedConveyorBelt:
+    H = 16
+
+    def __init__(self, x1, y1, x2, y2, speed):
+        self.x1    = float(x1)
+        self.y1    = float(y1)
+        self.x2    = float(x2)
+        self.y2    = float(y2)
+        self.x     = float(min(x1, x2))
+        self.y     = float(min(y1, y2))
+        self.w     = abs(x2 - x1)
+        self.vx    = 0.0
+        self.speed = speed
+        self.slope = (float(y2) - y1) / (x2 - x1) if x2 != x1 else 0.0
+        self.anim  = 0
+
+    def surface_y(self, px):
+        return self.y1 + (px - self.x1) * self.slope
+
+    def update(self):
+        self.anim = (self.anim + 1) % 30
+
+    def draw(self, surface, stage_idx=0):
+        x1, y1 = int(self.x1), int(self.y1)
+        x2, y2 = int(self.x2), int(self.y2)
+        H = self.H
+        pts = [(x1, y1), (x2, y2), (x2, y2 + H), (x1, y1 + H)]
+        pygame.draw.polygon(surface, (40, 40, 40), pts)
+        # Hazard stripes at lower edge
+        stripe_w = 14
+        for i in range(int(self.w // (stripe_w * 2)) + 2):
+            tx = x1 + i * stripe_w * 2
+            if x1 <= tx <= x2:
+                ty = int(self.surface_y(tx)) + H - 5
+                pygame.draw.rect(surface, (220, 180, 0), (tx, ty, stripe_w, 5))
+        # Scrolling arrows along the slope
+        arrow_char = ">" if self.speed > 0 else "<"
+        spacing = 22
+        offset = int(self.anim / 30 * spacing * (1 if self.speed > 0 else -1)) % spacing
+        for ax in range(-spacing, int(self.w) + spacing, spacing):
+            draw_x = x1 + ax + offset
+            if x1 - 4 <= draw_x <= x2 - 4:
+                col = (255, 220, 0) if abs(self.speed) > 2 else (200, 200, 60)
+                a = font_tiny.render(arrow_char, True, col)
+                surface.blit(a, (draw_x, int(self.surface_y(draw_x)) + 1))
+        pygame.draw.polygon(surface, (180, 140, 0), pts, 2)
+
+
 class Spring:
     W        = 22
     H_IDLE   = 22

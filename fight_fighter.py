@@ -5,7 +5,7 @@ import constants
 from constants import *
 from fight_data import CHARACTERS, POWERUPS, STAGES, STAGE_MATCHUPS
 from fight_drawing import draw_stickman
-from fight_stage import ConveyorBelt
+from fight_stage import ConveyorBelt, SlantedConveyorBelt
 
 # ---------------------------------------------------------------------------
 # Fighter
@@ -71,6 +71,10 @@ class Fighter:
         self.boomerang_cooldown = 0   # frames until can throw again
         self.boomerang_angle    = 0.0 # current orbit angle in radians
         self.boomerang_hit_cd   = 0   # per-hit cooldown to avoid rapid damage
+        self.bbboomerang_timer    = 0   # Boom-Boom-Boomerang: 5-boomerang orbit
+        self.bbboomerang_cooldown = 0
+        self.bbboomerang_angle    = 0.0
+        self.bbboomerang_hit_cd   = 0
         self.pending_ball       = False  # shoot_kick: spawn a ball this frame
         self.pending_orb        = False  # bazooka_kick: spawn an orb this frame
         self.bazooka_cooldown   = 0      # 5-second cooldown between orb shots
@@ -406,6 +410,14 @@ class Fighter:
                 self.boomerang_cooldown = 240   # 4s cooldown after expiry
         elif self.boomerang_cooldown > 0:
             self.boomerang_cooldown -= 1
+        if self.bbboomerang_timer > 0:
+            self.bbboomerang_timer -= 1
+            self.bbboomerang_angle = (self.bbboomerang_angle + 0.07) % (2 * math.pi)
+            if self.bbboomerang_hit_cd > 0: self.bbboomerang_hit_cd -= 1
+            if self.bbboomerang_timer == 0:
+                self.bbboomerang_cooldown = 300
+        elif self.bbboomerang_cooldown > 0:
+            self.bbboomerang_cooldown -= 1
         # Kitsune auto barrage — fires every 9 seconds
         if self.char.get("kitsune_barrage"):
             if self.kitsune_timer > 0:
@@ -604,7 +616,15 @@ class Fighter:
             self.vy = abs(self.vy) * 0.4   # bounce back down
         elif not self.char.get("phase"):
             for plat in platforms:
-                if (self.vy >= 0 and prev_y <= plat.y and self.y >= plat.y
+                if isinstance(plat, SlantedConveyorBelt):
+                    if self.vy >= 0 and plat.x1 - 25 <= self.x <= plat.x2 + 25:
+                        sy = plat.surface_y(self.x)
+                        if self.y >= sy and self.y <= sy + 30:
+                            self.y = sy
+                            self.vy = 0
+                            landed = True
+                            break
+                elif (self.vy >= 0 and prev_y <= plat.y and self.y >= plat.y
                         and plat.x - 25 <= self.x <= plat.x + plat.w + 25):
                     self.y = plat.y
                     self.vy = 0
@@ -623,7 +643,14 @@ class Fighter:
         # Conveyor belt push — runs every frame while standing on one
         if self.on_ground:
             for plat in platforms:
-                if (isinstance(plat, ConveyorBelt)
+                if isinstance(plat, SlantedConveyorBelt):
+                    if plat.x1 - 20 <= self.x <= plat.x2 + 20:
+                        sy = plat.surface_y(self.x)
+                        if abs(self.y - sy) <= 4:
+                            self.x += plat.speed
+                            self.y = plat.surface_y(self.x)
+                            break
+                elif (isinstance(plat, ConveyorBelt)
                         and abs(self.y - plat.y) <= 2
                         and plat.x - 20 <= self.x <= plat.x + plat.w + 20):
                     self.x += plat.speed
@@ -757,6 +784,9 @@ class Fighter:
                 if self.char.get("boomerang_kick") and self.boomerang_timer == 0 and self.boomerang_cooldown == 0:
                     self.boomerang_timer = 240   # 4 seconds
                     self.boomerang_angle = 0.0
+                if self.char.get("bbboomerang_kick") and self.bbboomerang_timer == 0 and self.bbboomerang_cooldown == 0:
+                    self.bbboomerang_timer = 300   # 5 seconds
+                    self.bbboomerang_angle = 0.0
                 if self.char.get("shoot_kick"):
                     self.pending_ball = True
                 if self.char.get("bazooka_kick") and self.bazooka_cooldown == 0:
@@ -1522,6 +1552,18 @@ class Fighter:
             pygame.draw.circle(surface, (180, 100, 20), (bx, by), 9)
             pygame.draw.circle(surface, (230, 160, 60), (bx, by), 6)
             pygame.draw.circle(surface, (255, 200, 100), (bx, by), 3)
+        if self.bbboomerang_timer > 0:
+            _bb_elapsed = (300 - self.bbboomerang_timer) // 60
+            _bb_r  = 10 + _bb_elapsed * 4
+            _bb_rx = 70 + _bb_elapsed * 10
+            _bb_ry = 45 + _bb_elapsed * 7
+            for _bbi in range(5):
+                _bba = self.bbboomerang_angle + math.radians(_bbi * 72)
+                _bbx = int(self.x + math.cos(_bba) * _bb_rx)
+                _bby = int(self.y - 60 + math.sin(_bba) * _bb_ry)
+                pygame.draw.circle(surface, (180, 100, 20), (_bbx, _bby), _bb_r + 3)
+                pygame.draw.circle(surface, (230, 160, 60), (_bbx, _bby), _bb_r)
+                pygame.draw.circle(surface, (255, 220, 80), (_bbx, _bby), max(2, _bb_r - 3))
         if self.blocking:
             sx = int(self.x) + self.facing * 22
             sy = int(self.y) - LEG_LEN - BODY_LEN // 2

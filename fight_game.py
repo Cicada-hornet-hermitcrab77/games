@@ -11,7 +11,7 @@ from fight_data import CHARACTERS, POWERUPS, STAGES, STAGE_MATCHUPS
 from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
                            draw_win_screen, draw_active_powerups)
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
-                            StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt,
+                            StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt, SlantedConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull, HazardZone,
                             JungleSnake, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall, Whip, HotPotato,
@@ -86,7 +86,7 @@ UNLOCK_CONDITIONS = {
     "Stalker":             ("win_with",       "Rogue",         3,  "Win 3 matches as Rogue"),
     "Outbacker":           ("win_on_stage",   "Desert",        1,  "Win on Desert stage"),
     "Gunner":              ("win_hard_ai",    None,            2,  "Win 2 matches vs Hard AI"),
-    "Bazooka Man":         ("win_with",       "Titan",         1,  "Win 1 match as Titan"),
+    "Bazooka Man":         ("win_with",       "Tank",          1,  "Win 1 match as Tank"),
     "Pinball":             ("win_on_stage",   "Circus",        2,  "Win on Circus 2 times"),
     "Hammerhead":          ("wins_total",     None,           15,  "Win 15 matches vs AI"),
     "Kitsune":             ("win_on_stage",   "Dream Land",    1,  "Win on Dream Land stage"),
@@ -99,20 +99,20 @@ UNLOCK_CONDITIONS = {
     "Gladiator":           ("win_on_stage",   "Arena",         1,  "Win on Arena stage"),
     "Spring":              ("win_on_stage",   "Grasslands",    1,  "Win on Grasslands stage"),
     "Scarecrow":           ("win_on_stage",   "Jungle",        1,  "Win on Jungle stage"),
-    "Cactus":              ("win_on_stage",   "Desert",        1,  "Win on Desert stage"),
+    "Cactus":              ("win_on_stage",   "Desert",        3,  "Win on Desert 3 times"),
     "Arsonist":            ("win_on_stage",   "Volcano",       1,  "Win on Volcano stage"),
     "Cryogenisist":        ("win_on_stage",   "Arctic Tundra", 1,  "Win on Arctic Tundra"),
     "Magician":            ("win_on_stage",   "Circus",        1,  "Win on Circus stage"),
     "Headless Horseman":   ("win_on_stage",   "Haunted House", 1,  "Win on Haunted House"),
     "Astronaut":           ("win_on_stage",   "Space",         1,  "Win on Space stage"),
     "Spooderman":          ("win_on_stage",   "City Rooftop",  1,  "Win on City Rooftop"),
-    "Wizard":              ("win_on_stage",   "Dream Land",    1,  "Win on Dream Land stage"),
+    "Wizard":              ("win_on_stage",   "Dream Land",    3,  "Win on Dream Land 3 times"),
     "Lava Man":            ("win_on_stage",   "Volcano Core",  1,  "Win on Volcano Core stage"),
     "Angel":               ("win_on_stage",   "Sky Island",    1,  "Win on Sky Island stage"),
     "Demon":               ("win_on_stage",   "Underworld",    1,  "Win on Underworld stage"),
     "Dark Mage":           ("win_on_stage",   "The Void",      1,  "Win on The Void stage"),
     "Pirate":              ("win_on_stage",   "Pirate Ship",   1,  "Win on Pirate Ship stage"),
-    "Medusa":              ("win_on_stage",   "Underwater",    1,  "Win on Underwater stage"),
+    "Medusa":              ("win_on_stage",   "Underwater",    3,  "Win on Underwater 3 times"),
     "The Creator":         ("win_on_stage",   "Computer",      1,  "Win on Computer stage"),
     "Ink Brush":           ("win_on_stage",   "Dojo",          3,  "Win on Dojo 3 times"),
     "Knight":              ("win_on_stage",   "Medieval Castle", 3, "Win on Medieval Castle 3 times"),
@@ -121,7 +121,7 @@ UNLOCK_CONDITIONS = {
     "Pyro":                ("win_on_stage",   "Volcano",       3,  "Win on Volcano 3 times"),
     # ── win_hard_ai ─────────────────────────────────────────────────────────
     "Hardy":               ("win_hard_ai",    None,            1,  "Win 1 match vs Hard AI"),
-    "ASCII":               ("win_hard_ai",    None,            2,  "Win 2 matches vs Hard AI"),
+    "ASCII":               ("win_on_stage",   "Computer",      2,  "Win on Computer 2 times"),
     "Viking":              ("win_hard_ai",    None,            3,  "Win 3 matches vs Hard AI"),
     "Laser Eyes":          ("win_hard_ai",    None,            5,  "Win 5 matches vs Hard AI"),
     "Mr. Crit":            ("win_hard_ai",    None,            7,  "Win 7 matches vs Hard AI"),
@@ -151,7 +151,7 @@ UNLOCK_CONDITIONS = {
     "Snake":               ("survival_best",  None,           20,  "Get 20 kills in one survival run"),
     # ── perfect_wins ────────────────────────────────────────────────────────
     "Medic":               ("perfect_wins",   None,            1,  "Win a match at full HP"),
-    "Ghost":               ("perfect_wins",   None,            3,  "Win 3 matches at full HP"),
+    "Ghost":               ("perfect_wins",   None,            4,  "Win 4 matches at full HP"),
     "Mime":                ("perfect_wins",   None,            5,  "Win 5 matches at full HP"),
     "Chameleon":           ("perfect_wins",   None,            7,  "Win 7 matches at full HP"),
     "Mirror Man":          ("perfect_wins",   None,           10,  "Win 10 matches at full HP"),
@@ -209,12 +209,12 @@ UNLOCK_CONDITIONS = {
     "Prime Time":          ("prime_time_win",       None,            1,  "Numbers hold secrets",               True),
     "Rage Quitter":        ("rage_quit_typed",      None,            1,  "Express yourself",                   True),
     # ── new regular characters ───────────────────────────────────────────────
-    "Swapper":             ("win_on_stage",         "The Void",      5,  "Win 5 matches on The Void"),
+    "Swapper":             ("win_on_stage",         "The Void",      6,  "Win 6 matches on The Void"),
     "Bruiser":             ("survival_kills",       None,           75,  "Get 75 kills in survival"),
-    "Grappler":            ("win_streak",           None,            5,  "Win 5 matches in a row"),
+    "Grappler":            ("win_streak",           None,           11,  "Win 11 matches in a row"),
     "Trickster":           ("losses",                None,            7,  "Lose 7 matches"),
     "Wildcard":            ("matches_played",       None,           45,  "Play 45 matches"),
-    "Ironclad":            ("win_hard_ai",          None,           10,  "Win 10 matches vs Hard AI"),
+    "Ironclad":            ("win_hard_ai",          None,           11,  "Win 11 matches vs Hard AI"),
     "Siphon":              ("win_with",             "Vamp Lord",     5,  "Win 5 matches as Vamp Lord"),
     "Timekeeper":          ("win_on_stage",         "Space",         4,  "Win on Space 4 times"),
     "Rainbow Man":         ("everything_collected", None,           10,  "Collect 10 'Everything' powerups"),
@@ -231,7 +231,7 @@ UNLOCK_CONDITIONS = {
     # ── new regular characters ───────────────────────────────────────────────
     "Scorpio":             ("computer_bug_kills",   None,          100,  "Kill 100 computer bugs"),
     "Nuke":                ("win_with",             "Bomb",          1,  "Win 1 match as Bomb"),
-    "Druid":               ("win_on_stage",          "Jungle",        3,  "Win 3 matches on Jungle"),
+    "Druid":               ("win_on_stage",          "Jungle",        5,  "Win 5 matches on Jungle"),
     "Big Bad Critter Clad": ("crit_only_win",        None,            1,  "Win a match landing only critical hits"),
     "Life the Universe Everything": ("type42",       None,            1,  "Type the answer to life",            True),
     # ── new regular characters ───────────────────────────────────────────────
@@ -266,7 +266,7 @@ UNLOCK_CONDITIONS = {
     "Armor":              ("projectiles_blocked",   None,          200,  "Block 200 projectiles"),
     "Deflector":          ("projectiles_blocked",   None,          300,  "Block 300 projectiles"),
     "Unhittable":         ("projectiles_blocked",   None,          500,  "Block 500 projectiles"),
-    "Sniper":             ("win_hard_ai",            None,            5,  "Win 5 matches vs Hard AI"),
+    "Sniper":             ("win_hard_ai",            None,            9,  "Win 9 matches vs Hard AI"),
     "Mega-Unhittable":    ("projectiles_blocked",   None,       100000,  "Block 100000 projectiles"),
     "Map Man":            ("map_man_unlocked",       None,            1,  "???",                                  True),
     "<|-\\||>+()":         ("symbol_char_typed",     None,            1,  "???",                                  True),
@@ -274,24 +274,24 @@ UNLOCK_CONDITIONS = {
     "Friday the 13th":     ("friday13_typed",        None,            1,  "???",                                  True),
     # ── 11 new characters ───────────────────────────────────────────────────
     "Bard":                ("win_on_stage",   "Circus",          3,  "Win 3 matches on Circus"),
-    "Butcher":             ("win_with",       "Wrestler",        1,  "Win 1 match as Wrestler"),
+    "Butcher":             ("win_with",       "Gargoyle",        1,  "Win 1 match as Gargoyle"),
     "Stone Cold":          ("win_hard_ai",    None,              6,  "Win 6 matches vs Hard AI"),
     "Tycoon":              ("matches_played", None,             30,  "Play 30 matches"),
     "Glass Jaw":           ("clutch_wins",    None,              8,  "Win 8 matches with ≤10 HP"),
     "Life Drain":          ("survival_kills", None,             35,  "Get 35 kills in survival"),
     "Lancer":              ("win_on_stage",   "Medieval Castle", 2,  "Win 2 matches on Medieval Castle"),
-    "Absorber":            ("perfect_wins",   None,              5,  "Win 5 matches at full HP"),
+    "Absorber":            ("perfect_wins",   None,              6,  "Win 6 matches at full HP"),
     "Hexer":               ("win_on_stage",   "The Void",        2,  "Win 2 matches on The Void"),
     "Gambler":             ("matches_played", None,             25,  "Play 25 matches"),
     "Counter":             ("win_with",       "Bouncer",         2,  "Win 2 matches as Bouncer"),
     # ── 10 new characters ───────────────────────────────────────────────────
-    "Blazer":              ("win_on_stage",   "Volcano",         3,  "Win 3 matches on Volcano"),
+    "Blazer":              ("win_on_stage",   "Volcano",         4,  "Win 4 matches on Volcano"),
     "Colossus":            ("win_hard_ai",    None,              8,  "Win 8 matches vs Hard AI"),
-    "Stomper":             ("win_with",       "Titan",           3,  "Win 3 matches as Titan"),
+    "Stomper":             ("win_with",       "Sumo",            3,  "Win 3 matches as Sumo"),
     "Porcupine":           ("win_on_stage",   "Jungle",          4,  "Win 4 matches on Jungle"),
-    "Anchor":              ("win_streak",     None,              5,  "Win 5 matches in a row"),
-    "Sleeper":             ("matches_played", None,             35,  "Play 35 matches"),
-    "Rager":               ("clutch_wins",    None,             10,  "Win 10 matches with ≤10 HP"),
+    "Anchor":              ("win_with",       "Sumo",            1,  "Win 1 match as Sumo"),
+    "Sleeper":             ("matches_played", None,             40,  "Play 40 matches"),
+    "Rager":               ("clutch_wins",    None,             11,  "Win 11 matches with ≤10 HP"),
     "Twin":                ("unique_wins",    None,             10,  "Win with 10 different characters"),
     "Sapper":              ("survival_kills", None,             45,  "Get 45 kills in survival"),
     "Mimic":               ("win_with",       "Copycat",         3,  "Win 3 matches as Copycat"),
@@ -307,7 +307,7 @@ UNLOCK_CONDITIONS = {
     "Breaker":             ("win_with",       "Stone Cold",      3,  "Win 3 matches as Stone Cold"),
     "Titan Grip":          ("win_with",       "Colossus",        3,  "Win 3 matches as Colossus"),
     # ── batch: Sunderer through Cyclone ──────────────────────────────────────
-    "Sunderer":            ("win_with",       "Stone Cold",      3,  "Win 3 matches as Stone Cold"),
+    "Sunderer":            ("win_with",       "Breaker",         3,  "Win 3 matches as Breaker"),
     "Haunter":             ("win_with",       "Shade",           3,  "Win 3 matches as Shade"),
     "Zeus":                ("win_on_stage",   "Space",           5,  "Win 5 matches on Space"),
     "Glacial":             ("win_on_stage",   "Ice Cave",        5,  "Win 5 matches on Ice Cave"),
@@ -322,9 +322,9 @@ UNLOCK_CONDITIONS = {
     # ── batch: Phantom Blade through Magma ───────────────────────────────────
     "Phantom Blade":       ("win_with",       "Specter",         3,  "Win 3 matches as Specter"),
     "Inferno":             ("win_on_stage",   "Volcano",         5,  "Win 5 matches on Volcano"),
-    "Titan Smash":         ("win_with",       "Titan",           5,  "Win 5 matches as Titan"),
+    "Titan Smash":         ("win_with",       "Juggernaut",      3,  "Win 3 matches as Juggernaut"),
     "Infiltrator":         ("win_with",       "Mimic",           3,  "Win 3 matches as Mimic"),
-    "Executioner":         ("wins_total",     None,             50,  "Win 50 matches"),
+    "Executioner":         ("wins_total",     None,             55,  "Win 55 matches"),
     "Coldheart":           ("win_with",       "Glacial",         3,  "Win 3 matches as Glacial"),
     "Tempest":             ("win_with",       "Storm Caller",    3,  "Win 3 matches as Storm Caller"),
     "Ancient":             ("matches_played", None,            100,  "Play 100 matches"),
@@ -350,16 +350,16 @@ UNLOCK_CONDITIONS = {
     "Giant Killer":        ("win_with",       "Titan Smash",     5,  "Win 5 matches as Titan Smash"),
     "Speed Demon":         ("win_with",       "Crimson",         3,  "Win 3 matches as Crimson"),
     "Wild Card":           ("win_with",       "Jester",          3,  "Win 3 matches as Jester"),
-    "Ghost Warrior":       ("win_with",       "Specter",         3,  "Win 3 matches as Specter"),
+    "Ghost Warrior":       ("win_with",       "Phantom Blade",   3,  "Win 3 matches as Phantom Blade"),
     "Suicide King":        ("clutch_wins",    None,             30,  "Win 30 matches with ≤10 HP"),
     "Harbinger":           ("wins_total",     None,            150,  "Win 150 matches"),
     "Hex Doctor":          ("win_with",       "Haunter",         3,  "Win 3 matches as Haunter"),
     "Time Warden":         ("win_with",       "Clockwork",       5,  "Win 5 matches as Clockwork"),
-    "Doppelganger":        ("win_with",       "Mimic",           3,  "Win 3 matches as Mimic"),
+    "Doppelganger":        ("win_with",       "Mimic",           5,  "Win 5 matches as Mimic"),
     "Graverobber":         ("win_with",       "Lich",            3,  "Win 3 matches as Lich"),
-    "Brawler King":        ("win_with",       "Frenzy",          3,  "Win 3 matches as Frenzy"),
+    "Brawler King":        ("win_with",       "Surge",           3,  "Win 3 matches as Surge"),
     # ── batch 4 ─────────────────────────────────────────────────────────────
-    "Marksman":            ("win_on_stage",   "Space",           3,  "Win 3 matches on Space"),
+    "Marksman":            ("win_on_stage",   "Space",           6,  "Win 6 matches on Space"),
     "Elder":               ("win_on_stage",   "Grasslands",      5,  "Win 5 matches on Grasslands"),
     "Shade Walker":        ("win_with",       "Backstabber",     3,  "Win 3 matches as Backstabber"),
     "Emperor":             ("wins_total",     None,            120,  "Win 120 matches"),
@@ -371,9 +371,9 @@ UNLOCK_CONDITIONS = {
     "Warlord":             ("win_with",       "Berserk Lord",    3,  "Win 3 matches as Berserk Lord"),
     "Surgeon":             ("win_with",       "Healer",          3,  "Win 3 matches as Healer"),
     "Cutthroat":           ("win_with",       "Phantom Thief",   3,  "Win 3 matches as Phantom Thief"),
-    "Chef":                ("perfect_wins",   None,              5,  "Win 5 matches at full HP"),
+    "Chef":                ("win_on_stage",   "Jungle",          2,  "Win 2 matches on Jungle"),
     "Backstabber":         ("win_with",       "Shadow Dancer",   3,  "Win 3 matches as Shadow Dancer"),
-    "Crazy":               ("matches_played", None,             50,  "Play 50 matches"),
+    "Crazy":               ("matches_played", None,             55,  "Play 55 matches"),
     # ── batch 6 ─────────────────────────────────────────────────────────────
     "Leech King":          ("win_with",       "Vampire",         5,  "Win 5 matches as Vampire"),
     "Puppeteer":           ("win_with",       "Puppet Master",   3,  "Win 3 matches as Puppet Master"),
@@ -385,7 +385,7 @@ UNLOCK_CONDITIONS = {
     "Trapper":             ("win_with",       "Trap Master",     3,  "Win 3 matches as Trap Master"),
     "Dark Knight":         ("win_with",       "Dark Mage",       3,  "Win 3 matches as Dark Mage"),
     "Templar":             ("win_with",       "Shaolin",         5,  "Win 5 matches as Shaolin"),
-    "Hydra":               ("win_with",       "Lich",            3,  "Win 3 matches as Lich"),
+    "Hydra":               ("win_with",       "Graverobber",     3,  "Win 3 matches as Graverobber"),
     "Chimera":             ("win_with",       "Wild Card",       3,  "Win 3 matches as Wild Card"),
     "Fortune":             ("wins_total",     None,             90,  "Win 90 matches"),
     "Chaos Lord":          ("win_with",       "Jester",          5,  "Win 5 matches as Jester"),
@@ -394,21 +394,38 @@ UNLOCK_CONDITIONS = {
     "Glitch":              ("matches_played", None,            150,  "???",                             True),
     "Nick of Time":        ("nick_of_time_win", None,            1,  "A win against the clock",         True),
     "Buffer":              ("wins_total",      None,            25, "Win 25 matches"),
-    "Cursed":              ("losses",          None,            20, "Lose 20 matches"),
-    "Eggshell":            ("clutch_wins",    None,              5, "Win 5 matches with ≤10 HP"),
+    "Cursed":              ("losses",          None,           15,  "Lose 15 matches"),
+    "Eggshell":            ("clutch_wins",    None,              6,  "Win 6 matches with ≤10 HP"),
     # ── batch 7 ─────────────────────────────────────────────────────────────
     "Cannonball":          ("win_with",       "Charger",         3,  "Win 3 matches as Charger"),
-    "Wraith":              ("win_with",       "Specter",         3,  "Win 3 matches as Specter"),
+    "Wraith":              ("win_with",       "Ghost Warrior",   3,  "Win 3 matches as Ghost Warrior"),
     "Plaguebringer":       ("win_with",       "Toxic",           5,  "Win 5 matches as Toxic"),
     "Bulwark":             ("win_with",       "Iron Wall",       3,  "Win 3 matches as Iron Wall"),
     "Assassin":            ("win_with",       "Backstabber",     5,  "Win 5 matches as Backstabber"),
-    "Wrecking Ball":       ("win_with",       "Juggernaut",      3,  "Win 3 matches as Juggernaut"),
+    "Wrecking Ball":       ("win_with",       "Juggernaut",      5,  "Win 5 matches as Juggernaut"),
     "Bounty Hunter":       ("win_with",       "Marksman",        3,  "Win 3 matches as Marksman"),
     "Abyssal":             ("win_with",       "Abomination",     3,  "Win 3 matches as Abomination"),
-    "Revenant King":       ("win_with",       "Revenant",        3,  "Win 3 matches as Revenant"),
+    "Revenant King":       ("win_with",       "Phoenix",         3,  "Win 3 matches as Phoenix"),
     "Shadow Lord":         ("win_with",       "Shadow Dancer",   5,  "Win 5 matches as Shadow Dancer"),
     "Rune Mage":           ("win_with",       "Sorcerer",        3,  "Win 3 matches as Sorcerer"),
     "Berserker Monk":      ("win_with",       "Berserker Queen", 3,  "Win 3 matches as Berserker Queen"),
+    # ── batch 8 ─────────────────────────────────────────────────────────────
+    "Steel Knuckle":       ("win_with",       "Iron Fist",       3,  "Win 3 matches as Iron Fist"),
+    "Crystal Bomber":      ("clutch_wins",    None,             13,  "Win 13 matches with ≤10 HP"),
+    "Veteran":             ("matches_played", None,            130,  "Play 130 matches"),
+    "Strigone":            ("win_with",       "Blood Baron",     3,  "Win 3 matches as Blood Baron"),
+    "Legionnaire":         ("win_on_stage",   "Arena",           5,  "Win 5 matches on Arena"),
+    "Shadowbind":          ("win_with",       "Warlock",         3,  "Win 3 matches as Warlock"),
+    "Stone Golem":         ("win_with",       "Vault",           3,  "Win 3 matches as Vault"),
+    "Storm Rider":         ("win_with",       "Volt",            5,  "Win 5 matches as Volt"),
+    "Frostbite":           ("win_on_stage",   "Ice Cave",        3,  "Win 3 matches on Ice Cave"),
+    "Blood Mage":          ("win_with",       "Siphon",          3,  "Win 3 matches as Siphon"),
+    "Mirror Knight":       ("win_with",       "Mirror Man",      3,  "Win 3 matches as Mirror Man"),
+    "Desperado":           ("win_with",       "Gambler",         3,  "Win 3 matches as Gambler"),
+    "Tomb Raider":         ("win_with",       "Assassin",        3,  "Win 3 matches as Assassin"),
+    "Chronomancer":        ("win_with",       "Time Warden",     3,  "Win 3 matches as Time Warden"),
+    "Behemoth":            ("wins_total",     None,            200,  "Win 200 matches"),
+    "Boom-Boom-Boomerang": ("secret_chars",   None,             12,  "Unlock 12 secret characters"),
 }
 
 
@@ -886,7 +903,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
         p2.x = 520.0; p2.y = float(GROUND_Y - 70); p2.on_ground = True
 
     stage_data = STAGES[stage_idx % len(STAGES)]
-    platforms  = [Platform(*p) for p in stage_data["platforms"]] + [ConveyorBelt(*c) for c in stage_data.get("conveyors", [])]
+    platforms  = [Platform(*p) for p in stage_data["platforms"]] + [ConveyorBelt(*c) for c in stage_data.get("conveyors", [])] + [SlantedConveyorBelt(*c) for c in stage_data.get("slanted_conveyors", [])]
     springs    = [Spring(*s)   for s in stage_data["springs"]]
     hazards    = [HazardZone(*h) for h in stage_data.get("hazards", [])]
 
@@ -1237,6 +1254,20 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             victim.hp = max(0, victim.hp - 8)
                         victim.flash_timer = 6
                         thrower.boomerang_hit_cd = 30   # 0.5s between hits
+                if thrower.bbboomerang_timer > 0 and thrower.bbboomerang_hit_cd == 0:
+                    _bbe = (300 - thrower.bbboomerang_timer) // 60
+                    _bbrx = 70 + _bbe * 10;  _bbry = 45 + _bbe * 7
+                    _bbhr = 28 + _bbe * 4
+                    for _bbi in range(5):
+                        _bba = thrower.bbboomerang_angle + math.radians(_bbi * 72)
+                        _bbx = thrower.x + math.cos(_bba) * _bbrx
+                        _bby = (thrower.y - 60) + math.sin(_bba) * _bbry
+                        if math.hypot(_bbx - victim.x, _bby - (victim.y - 60)) < _bbhr:
+                            if not victim.bubble_shield:
+                                victim.hp = max(0, victim.hp - 6)
+                            victim.flash_timer = 6
+                            thrower.bbboomerang_hit_cd = 30
+                            break
 
             # Laser Eyes beam damage
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -2692,7 +2723,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     players = [p1, p2] if two_player else [p1]
 
     stage_data  = STAGES[stage_idx % len(STAGES)]
-    platforms   = [Platform(*p) for p in stage_data["platforms"]]
+    platforms   = [Platform(*p) for p in stage_data["platforms"]] + [ConveyorBelt(*c) for c in stage_data.get("conveyors", [])] + [SlantedConveyorBelt(*c) for c in stage_data.get("slanted_conveyors", [])]
     springs     = [Spring(*s)   for s in stage_data["springs"]]
     is_jungle     = stage_data["name"] == "Jungle"
     is_computer   = stage_data["name"] == "Computer"
@@ -2994,6 +3025,20 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             en.flash_timer = 6
                             thrower.boomerang_hit_cd = 30
                             break
+                if thrower.bbboomerang_timer > 0 and thrower.bbboomerang_hit_cd == 0:
+                    _bbe = (300 - thrower.bbboomerang_timer) // 60
+                    _bbrx = 70 + _bbe * 10;  _bbry = 45 + _bbe * 7
+                    _bbhr = 28 + _bbe * 4
+                    for en in enemies:
+                        for _bbi in range(5):
+                            _bba = thrower.bbboomerang_angle + math.radians(_bbi * 72)
+                            _bbx = thrower.x + math.cos(_bba) * _bbrx
+                            _bby = (thrower.y - 60) + math.sin(_bba) * _bbry
+                            if math.hypot(_bbx - en.x, _bby - (en.y - 60)) < _bbhr:
+                                en.hp = max(0, en.hp - 6)
+                                en.flash_timer = 6
+                                thrower.bbboomerang_hit_cd = 30
+                                break
             for en in enemies:
                 if en.boomerang_timer > 0 and en.boomerang_hit_cd == 0:
                     bx = en.x + math.cos(en.boomerang_angle) * 85
@@ -4302,6 +4347,20 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         if not victim.bubble_shield:
                             victim.hp = max(0, victim.hp - 8)
                         victim.flash_timer = 6; thrower.boomerang_hit_cd = 30
+                if thrower.bbboomerang_timer > 0 and thrower.bbboomerang_hit_cd == 0:
+                    _bbe = (300 - thrower.bbboomerang_timer) // 60
+                    _bbrx = 70 + _bbe * 10;  _bbry = 45 + _bbe * 7
+                    _bbhr = 28 + _bbe * 4
+                    for _bbi in range(5):
+                        _bba = thrower.bbboomerang_angle + math.radians(_bbi * 72)
+                        _bbx = thrower.x + math.cos(_bba) * _bbrx
+                        _bby = (thrower.y - 60) + math.sin(_bba) * _bbry
+                        if math.hypot(_bbx - victim.x, _bby - (victim.y - 60)) < _bbhr:
+                            if not victim.bubble_shield:
+                                victim.hp = max(0, victim.hp - 6)
+                            victim.flash_timer = 6
+                            thrower.bbboomerang_hit_cd = 30
+                            break
 
             # Springs
             for sp in springs:
