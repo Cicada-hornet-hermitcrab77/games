@@ -1307,6 +1307,9 @@ class Fighter:
                     other.freeze_frames = 180
                     if other.poison_frames == 0: other.poison_tick = 180
                     other.poison_frames = max(other.poison_frames, 180)
+                if self.char.get("poison_kick") and self.action == 'kick':
+                    if other.poison_frames == 0: other.poison_tick = 180
+                    other.poison_frames = max(other.poison_frames, 300)
                 if self.char.get("shock_punch") and self.action == 'punch':
                     other.shock_frames = 480   # 8 seconds
                 if self.char.get("shock_kick") and self.action == 'kick':

@@ -1399,6 +1399,10 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 12, "max_hp": 100, "block": 7,
      "desc": "The Frenzied One — punches halve opponent speed; every hit carries chaos",
      "double_jump": True, "shock_punch": True, "chaos_strike": True},
+    {"name": "Aqrabuamelu", "color": (190, 150, 60), "speed": 5, "jump": -13,
+     "punch_dmg": 11, "kick_dmg": 15, "max_hp": 120, "block": 6,
+     "desc": "Scorpion-man guardian — kick poisons the foe; armoured hide reduces all damage",
+     "double_jump": False, "poison_kick": True, "stone_skin": True},
 ]
 
 POWERUPS = [

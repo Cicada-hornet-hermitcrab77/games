@@ -447,6 +447,7 @@ UNLOCK_CONDITIONS = {
     "Morrigan":            ("win_with",       "Wraith",          3,  "Win 3 matches as Wraith"),
     "Badb":                ("win_with",       "Morrigan",        3,  "Win 3 matches as Morrigan"),
     "Nemain":              ("win_with",       "Badb",            3,  "Win 3 matches as Badb"),
+    "Aqrabuamelu":        ("win_with",       "Scorpio",         3,  "Win 3 matches as Scorpio"),
 }
 
 

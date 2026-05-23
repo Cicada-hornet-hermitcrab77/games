@@ -12452,6 +12452,56 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.circle(surface, (255, 200, 60), (hx + int(hd*0.32), hy), max(3, int(4*s)))
         pygame.draw.circle(surface, (200, 80, 10), (hx + int(hd*0.32), hy), max(2, int(2*s)))
 
+    elif char_name == "Aqrabuamelu":
+        import math as _m
+        # Sandy gold armoured torso with chitin plating ridges
+        pygame.draw.rect(surface, (170, 130, 45),
+                         (sx - int(10*s), sy, int(20*s), bl), border_radius=max(2, int(3*s)))
+        # Chitin ridge lines across torso
+        for _ri in range(3):
+            _ry = sy + int(bl * (_ri * 0.28 + 0.15))
+            pygame.draw.line(surface, (140, 105, 25),
+                             (sx - int(9*s), _ry), (sx + int(9*s), _ry), max(1, int(s)))
+        # Scorpion claws — two curved lines each side
+        for _side in (-1, 1):
+            _cx = sx + _side * int(12*s)
+            _cy = sy + int(bl * 0.2)
+            pygame.draw.line(surface, (190, 155, 55),
+                             (sx + _side*int(9*s), _cy), (_cx, _cy - int(5*s)), max(2, int(1.5*s)))
+            pygame.draw.line(surface, (190, 155, 55),
+                             (_cx, _cy - int(5*s)), (_cx + _side*int(4*s), _cy - int(2*s)), max(2, int(1.5*s)))
+        # Scorpion tail arcing up from the back (6 segments)
+        _tx, _ty = sx + int(facing * -6 * s), sy
+        for _ti in range(6):
+            _ta = _m.radians(-70 + _ti * 18)
+            _tnx = _tx + int(_m.cos(_ta) * (8 + _ti*3) * s)
+            _tny = _ty - int(_m.sin(_ta) * (8 + _ti*3) * s)
+            pygame.draw.circle(surface, (160, 120, 30), (_tnx, _tny), max(2, int((4 - _ti*0.4)*s)))
+        # Stinger tip — bright yellow-green
+        pygame.draw.circle(surface, (200, 220, 40), (_tnx, _tny), max(2, int(3*s)))
+        # 3 scorpion legs per side
+        for _li in range(3):
+            _lbase_y = sy + int(bl * (0.5 + _li * 0.15))
+            for _side in (-1, 1):
+                _lx1 = sx + _side * int(9*s)
+                _lx2 = sx + _side * int(18*s)
+                _ly2 = _lbase_y + int(8*s)
+                pygame.draw.line(surface, (145, 110, 30), (_lx1, _lbase_y), (_lx2, _ly2),
+                                 max(1, int(s)))
+        # Head — domed with two large amber eyes and mandibles
+        pygame.draw.circle(surface, (175, 140, 50), (hx, hy), hd)
+        pygame.draw.circle(surface, (240, 200, 60), (hx - int(hd*0.35), hy), max(3, int(4*s)))
+        pygame.draw.circle(surface, (80, 50, 10),   (hx - int(hd*0.35), hy), max(2, int(2*s)))
+        pygame.draw.circle(surface, (240, 200, 60), (hx + int(hd*0.35), hy), max(3, int(4*s)))
+        pygame.draw.circle(surface, (80, 50, 10),   (hx + int(hd*0.35), hy), max(2, int(2*s)))
+        # Mandibles
+        pygame.draw.line(surface, (140, 105, 25),
+                         (hx - int(hd*0.3), hy + int(hd*0.6)),
+                         (hx - int(hd*0.6), hy + int(hd*1.0)), max(1, int(s)))
+        pygame.draw.line(surface, (140, 105, 25),
+                         (hx + int(hd*0.3), hy + int(hd*0.6)),
+                         (hx + int(hd*0.6), hy + int(hd*1.0)), max(1, int(s)))
+
     elif char_name == "Anansi":
         # Rich amber-gold chitin body — spider deity
         pygame.draw.rect(surface, (165, 90, 15),
