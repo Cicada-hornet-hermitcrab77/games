@@ -540,6 +540,10 @@ CHEAT_CODES = {
     "sworn_enemy":         "Oathbreaker",
     "spell_weaver":        "Arcanist",
     "golden_thread":       "Anansi",
+    "river_yokai":         "Kappa",
+    "phantom_queen":       "Morrigan",
+    "crow_of_battle":      "Badb",
+    "frenzy_spirit":       "Nemain",
 }
 
 # ---------------------------------------------------------------------------
@@ -1311,6 +1315,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("bbboomerang_kick"):badges.append(("5 BOOMERANGS",  (220,140, 20)))
             if detail_ch.get("web_kick"):        badges.append(("WEB KICK",      (200,160, 40)))
             if detail_ch.get("spider_dodge"):    badges.append(("25% DODGE",     (180,130, 30)))
+            if detail_ch.get("river_pull"):      badges.append(("RIVER PULL",    ( 30,160,120)))
+            if detail_ch.get("shell_body"):      badges.append(("SHELL -25%",    ( 40,120, 80)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)

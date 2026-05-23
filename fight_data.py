@@ -1383,6 +1383,22 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 12, "max_hp": 90, "block": 7,
      "desc": "Kicks weave a web that roots opponents; dodges 1-in-4 hits; clings to walls",
      "double_jump": True, "web_kick": True, "spider_dodge": True, "wall_cling": True},
+    {"name": "Kappa", "color": (30, 140, 100), "speed": 5, "jump": -13,
+     "punch_dmg": 12, "kick_dmg": 11, "max_hp": 120, "block": 7,
+     "desc": "Kicks drag opponents toward it; shell absorbs 25% of all incoming damage",
+     "double_jump": False, "river_pull": True, "shell_body": True},
+    {"name": "Morrigan", "color": (55, 15, 80), "speed": 7, "jump": -16,
+     "punch_dmg": 11, "kick_dmg": 13, "max_hp": 95, "block": 6,
+     "desc": "Phantom Queen — teleports behind opponent on kick and glides like a crow",
+     "double_jump": True, "flash_kick": True, "slow_fall": True},
+    {"name": "Badb", "color": (175, 25, 25), "speed": 8, "jump": -15,
+     "punch_dmg": 13, "kick_dmg": 12, "max_hp": 90, "block": 5,
+     "desc": "Crow of Battle — punches scramble controls; hits harder when bloodied",
+     "double_jump": False, "confuse_punch": True, "rage_damage": True},
+    {"name": "Nemain", "color": (200, 85, 20), "speed": 6, "jump": -14,
+     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 100, "block": 7,
+     "desc": "The Frenzied One — punches halve opponent speed; every hit carries chaos",
+     "double_jump": True, "shock_punch": True, "chaos_strike": True},
 ]
 
 POWERUPS = [

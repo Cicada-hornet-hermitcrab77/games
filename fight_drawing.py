@@ -12346,6 +12346,112 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.circle(surface, (180, 100, 30), (hx - int(hd*0.3), hy), max(2, int(2*s)))
         pygame.draw.circle(surface, (180, 100, 30), (hx + int(hd*0.3), hy), max(2, int(2*s)))
 
+    elif char_name == "Kappa":
+        # Deep teal scaly body
+        pygame.draw.rect(surface, (25, 115, 80),
+                         (sx - int(10*s), sy, int(20*s), bl), border_radius=max(2, int(3*s)))
+        # Domed shell on back — dark green rounded oval
+        pygame.draw.ellipse(surface, (15, 80, 50),
+                            (sx - int(12*s), sy + int(bl*0.05), int(24*s), int(bl*0.75)))
+        # Shell ridge lines
+        pygame.draw.arc(surface, (10, 60, 35),
+                        (sx - int(9*s), sy + int(bl*0.1), int(18*s), int(bl*0.6)),
+                        0.3, 2.8, max(1, int(2*s)))
+        pygame.draw.line(surface, (10, 60, 35),
+                         (sx, sy + int(bl*0.1)), (sx, sy + int(bl*0.65)), max(1, int(s)))
+        # Water dish on head — small flat blue circle
+        pygame.draw.ellipse(surface, (60, 160, 220),
+                            (hx - int(hd*0.75), hy - int(hd*1.25), int(hd*1.5), int(hd*0.45)))
+        pygame.draw.ellipse(surface, (120, 200, 255),
+                            (hx - int(hd*0.5), hy - int(hd*1.2), int(hd), int(hd*0.25)))
+        # Beak / bill
+        pygame.draw.polygon(surface, (50, 160, 100),
+                            [(hx, hy + int(hd*0.3)),
+                             (hx + int(hd*0.55) * facing, hy + int(hd*0.1)),
+                             (hx + int(hd*0.35) * facing, hy + int(hd*0.5))])
+        # Yellow eyes
+        pygame.draw.circle(surface, (200, 220, 60), (hx - int(hd*0.3), hy - int(hd*0.1)), max(2, int(3*s)))
+        pygame.draw.circle(surface, (200, 220, 60), (hx + int(hd*0.3), hy - int(hd*0.1)), max(2, int(3*s)))
+        pygame.draw.circle(surface, (0, 0, 0), (hx - int(hd*0.3), hy - int(hd*0.1)), max(1, int(s)))
+        pygame.draw.circle(surface, (0, 0, 0), (hx + int(hd*0.3), hy - int(hd*0.1)), max(1, int(s)))
+
+    elif char_name == "Morrigan":
+        # Deep purple-black phantom robes
+        pygame.draw.rect(surface, (50, 10, 75),
+                         (sx - int(10*s), sy, int(20*s), bl), border_radius=max(2, int(4*s)))
+        # Jagged hem (crow feather silhouette)
+        for _fi in range(5):
+            _fx = sx - int(8*s) + int(_fi * 4 * s)
+            pygame.draw.polygon(surface, (30, 5, 50),
+                                [(_fx, sy + bl),
+                                 (_fx + int(2*s), sy + bl + int(8*s)),
+                                 (_fx + int(4*s), sy + bl)])
+        # Crow-feather collar
+        pygame.draw.ellipse(surface, (20, 0, 35),
+                            (sx - int(11*s), sy - int(3*s), int(22*s), int(10*s)))
+        # Crown of dark feathers
+        for _fi in range(5):
+            _fa = -60 + _fi * 30
+            import math as _m
+            _fr = _m.radians(_fa)
+            _fpx = int(hx + _m.sin(_fr) * hd * 0.8)
+            _fpy = int(hy - hd - int(6*s) - abs(_m.cos(_fr)) * 8 * s)
+            pygame.draw.line(surface, (20, 0, 35),
+                             (hx, hy - hd), (_fpx, _fpy), max(1, int(2*s)))
+        # Glowing red eyes
+        pygame.draw.circle(surface, (220, 20, 40), (hx - int(hd*0.32), hy), max(2, int(3*s)))
+        pygame.draw.circle(surface, (220, 20, 40), (hx + int(hd*0.32), hy), max(2, int(3*s)))
+
+    elif char_name == "Badb":
+        # Blood-red battle armour, worn and scarred
+        pygame.draw.rect(surface, (155, 20, 20),
+                         (sx - int(10*s), sy, int(20*s), bl), border_radius=max(2, int(2*s)))
+        # Battle scars — diagonal gashes
+        pygame.draw.line(surface, (100, 5, 5),
+                         (sx - int(8*s), sy + int(bl*0.15)), (sx + int(4*s), sy + int(bl*0.45)),
+                         max(2, int(3*s)))
+        pygame.draw.line(surface, (100, 5, 5),
+                         (sx - int(4*s), sy + int(bl*0.5)), (sx + int(8*s), sy + int(bl*0.75)),
+                         max(2, int(3*s)))
+        # Crow skull pauldron on shoulder
+        pygame.draw.ellipse(surface, (80, 10, 10),
+                            (sx - int(15*s), sy - int(2*s), int(12*s), int(9*s)))
+        pygame.draw.circle(surface, (200, 180, 160),
+                           (sx - int(9*s), sy + int(2*s)), max(2, int(2*s)))
+        # Wild matted hair
+        for _hi in range(5):
+            _hx2 = hx + int((_hi - 2) * hd * 0.4)
+            pygame.draw.line(surface, (60, 5, 5),
+                             (_hx2, hy - int(hd*0.9)), (_hx2 + int((_hi-2)*2*s), hy - int(hd*1.7)),
+                             max(1, int(2*s)))
+        # Battle-crazed eyes
+        pygame.draw.circle(surface, (255, 80, 0), (hx - int(hd*0.32), hy), max(2, int(3*s)))
+        pygame.draw.circle(surface, (255, 80, 0), (hx + int(hd*0.32), hy), max(2, int(3*s)))
+
+    elif char_name == "Nemain":
+        # Burnt orange frenzied robes
+        pygame.draw.rect(surface, (185, 75, 15),
+                         (sx - int(9*s), sy, int(18*s), bl), border_radius=max(2, int(3*s)))
+        # Swirling chaos marks on torso
+        import math as _m
+        for _ni in range(3):
+            _na = _m.radians(_ni * 120 + 30)
+            _ncx = sx + int(_m.cos(_na) * 5 * s)
+            _ncy = sy + int(bl*0.4) + int(_m.sin(_na) * 5 * s)
+            pygame.draw.circle(surface, (230, 130, 30), (_ncx, _ncy), max(2, int(3*s)), max(1, int(s)))
+        # Chaotic jagged lines radiating from center
+        for _ni in range(6):
+            _na2 = _m.radians(_ni * 60)
+            _nx2 = sx + int(_m.cos(_na2) * 8 * s)
+            _ny2 = sy + int(bl*0.4) + int(_m.sin(_na2) * 7 * s)
+            pygame.draw.line(surface, (240, 160, 40), (sx, sy + int(bl*0.4)), (_nx2, _ny2),
+                             max(1, int(s)))
+        # Spiral eyes — the mark of panic
+        pygame.draw.circle(surface, (255, 200, 60), (hx - int(hd*0.32), hy), max(3, int(4*s)))
+        pygame.draw.circle(surface, (200, 80, 10), (hx - int(hd*0.32), hy), max(2, int(2*s)))
+        pygame.draw.circle(surface, (255, 200, 60), (hx + int(hd*0.32), hy), max(3, int(4*s)))
+        pygame.draw.circle(surface, (200, 80, 10), (hx + int(hd*0.32), hy), max(2, int(2*s)))
+
     elif char_name == "Anansi":
         # Rich amber-gold chitin body — spider deity
         pygame.draw.rect(surface, (165, 90, 15),

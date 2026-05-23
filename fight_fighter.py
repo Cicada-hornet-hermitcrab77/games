@@ -1159,6 +1159,8 @@ class Fighter:
                 self.overdrive_charge = 0
             if other.char.get("stone_skin"):
                 dmg = int(dmg * 0.6)
+            if other.char.get("shell_body"):
+                dmg = int(dmg * 0.75)
             if self.char.get("glass_jaw") or other.char.get("glass_jaw"):
                 dmg = int(dmg * 1.5)
             if self.char.get("berserk_low") and self.hp < self.max_hp * 0.25:
@@ -1284,6 +1286,9 @@ class Fighter:
             # Typhoon: wind_kick — triple knockback on kick
             if self.char.get("wind_kick") and self.action == 'kick':
                 other.knockback = self.facing * 18
+            # Kappa: river_pull — kick yanks opponent toward Kappa
+            if self.char.get("river_pull") and self.action == 'kick':
+                other.knockback = -self.facing * 14
             if other.char["name"] == "Shapeshifter":
                 other.color = (random.randint(60,255), random.randint(60,255), random.randint(60,255))
             if self.char.get("slam_kick") and self.action == 'kick':

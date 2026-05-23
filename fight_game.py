@@ -443,6 +443,10 @@ UNLOCK_CONDITIONS = {
     "Oathbreaker":         ("win_with",       "Legionnaire",     3,  "Win 3 matches as Legionnaire"),
     "Arcanist":            ("win_with",       "Chronomancer",    3,  "Win 3 matches as Chronomancer"),
     "Anansi":              ("win_with",       "Trap Master",     5,  "Win 5 matches as Trap Master"),
+    "Kappa":               ("win_on_stage",   "Underwater",      5,  "Win 5 matches on Underwater"),
+    "Morrigan":            ("win_with",       "Wraith",          3,  "Win 3 matches as Wraith"),
+    "Badb":                ("win_with",       "Morrigan",        3,  "Win 3 matches as Morrigan"),
+    "Nemain":              ("win_with",       "Badb",            3,  "Win 3 matches as Badb"),
 }
 
 
