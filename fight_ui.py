@@ -539,6 +539,7 @@ CHEAT_CODES = {
     "walk_the_plank":      "Cutlass",
     "sworn_enemy":         "Oathbreaker",
     "spell_weaver":        "Arcanist",
+    "golden_thread":       "Anansi",
 }
 
 # ---------------------------------------------------------------------------
@@ -1308,6 +1309,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("first_strike"):    badges.append(("FIRST STRIKE",  (160, 80, 30)))
             if detail_ch.get("arcane_orb"):      badges.append(("ARCANE ORB",    (150, 60,220)))
             if detail_ch.get("bbboomerang_kick"):badges.append(("5 BOOMERANGS",  (220,140, 20)))
+            if detail_ch.get("web_kick"):        badges.append(("WEB KICK",      (200,160, 40)))
+            if detail_ch.get("spider_dodge"):    badges.append(("25% DODGE",     (180,130, 30)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)

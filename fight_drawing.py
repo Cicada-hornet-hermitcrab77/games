@@ -12346,6 +12346,38 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.circle(surface, (180, 100, 30), (hx - int(hd*0.3), hy), max(2, int(2*s)))
         pygame.draw.circle(surface, (180, 100, 30), (hx + int(hd*0.3), hy), max(2, int(2*s)))
 
+    elif char_name == "Anansi":
+        # Rich amber-gold chitin body — spider deity
+        pygame.draw.rect(surface, (165, 90, 15),
+                         (sx - int(9*s), sy, int(18*s), bl), border_radius=max(2, int(3*s)))
+        # Web pattern on chest (5 radial lines from center)
+        import math as _m
+        _wc = (sx, sy + int(bl*0.35))
+        for _wi in range(6):
+            _wa = _m.radians(_wi * 30 - 90)
+            _wx = int(_wc[0] + _m.cos(_wa) * 8 * s)
+            _wy = int(_wc[1] + _m.sin(_wa) * 7 * s)
+            pygame.draw.line(surface, (220, 180, 60), _wc, (_wx, _wy), max(1, int(s)))
+        # Concentric web ring
+        pygame.draw.circle(surface, (220, 180, 60), _wc, int(5*s), max(1, int(s)))
+        # 4 spider legs on each side of torso (drawn thin)
+        for _li in range(4):
+            _ly = sy + int(bl * (_li * 0.22 + 0.1))
+            _lx1 = sx - int(9*s)
+            _lx2 = sx - int(20*s) + int(_li * 2 * s)
+            _ly2 = _ly + int((_li - 1) * 4 * s)
+            pygame.draw.line(surface, (130, 70, 10), (_lx1, _ly), (_lx2, _ly2), max(1, int(s)))
+            _lx1r = sx + int(9*s)
+            _lx2r = sx + int(20*s) - int(_li * 2 * s)
+            pygame.draw.line(surface, (130, 70, 10), (_lx1r, _ly), (_lx2r, _ly2), max(1, int(s)))
+        # Head — darker amber with 6 gleaming eyes in two rows
+        pygame.draw.circle(surface, (145, 80, 10), (hx, hy), hd)
+        _eye_cols = [(255, 220, 60), (200, 255, 60), (255, 200, 60)]
+        for _ei, _ecol in enumerate(_eye_cols):
+            _ex = hx + int((_ei - 1) * hd * 0.4)
+            pygame.draw.circle(surface, _ecol, (_ex, hy - int(hd*0.2)), max(1, int(2*s)))
+            pygame.draw.circle(surface, _ecol, (_ex, hy + int(hd*0.25)), max(1, int(2*s)))
+
     elif char_name == "Arcanist":
         # Deep violet mage robes with glowing rune trim
         pygame.draw.rect(surface, (90, 30, 160),

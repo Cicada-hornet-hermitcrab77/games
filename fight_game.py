@@ -442,6 +442,7 @@ UNLOCK_CONDITIONS = {
     "Cutlass":             ("win_on_stage",   "Pirate Ship",     3,  "Win 3 matches on Pirate Ship"),
     "Oathbreaker":         ("win_with",       "Legionnaire",     3,  "Win 3 matches as Legionnaire"),
     "Arcanist":            ("win_with",       "Chronomancer",    3,  "Win 3 matches as Chronomancer"),
+    "Anansi":              ("win_with",       "Trap Master",     5,  "Win 5 matches as Trap Master"),
 }
 
 

@@ -1379,6 +1379,10 @@ CHARACTERS = [
      "punch_dmg": 8, "kick_dmg": 10, "max_hp": 95, "block": 8,
      "desc": "Kicks fire a slow arcane orb that deals 8 damage on hit",
      "double_jump": True, "arcane_orb": True},
+    {"name": "Anansi", "color": (190, 110, 20), "speed": 7, "jump": -16,
+     "punch_dmg": 10, "kick_dmg": 12, "max_hp": 90, "block": 7,
+     "desc": "Kicks weave a web that roots opponents; dodges 1-in-4 hits; clings to walls",
+     "double_jump": True, "web_kick": True, "spider_dodge": True, "wall_cling": True},
 ]
 
 POWERUPS = [

@@ -1137,6 +1137,12 @@ class Fighter:
                     other.flash_timer = 8
                     self.attack_hit = True
                     return
+            # Anansi: spider_dodge — 25% chance to sidestep any hit
+            if other.char.get("spider_dodge") and random.random() < 0.25:
+                other.flash_timer = 6
+                other.x = max(30.0, min(float(WIDTH - 30), other.x + other.facing * 30))
+                self.attack_hit = True
+                return
             if self.char.get("phantom_strike") and self.action == 'punch':
                 self.x = max(30.0, min(float(WIDTH - 30), other.x - self.facing * 55))
                 self.flash_timer = 8
@@ -1331,6 +1337,9 @@ class Fighter:
             if self.char.get("sticky_punch") and self.action == 'punch':
                 if not other.char.get("immune"):
                     other.sticky_frames = 120   # 2 seconds
+            if self.char.get("web_kick") and self.action == 'kick':
+                if not other.char.get("immune"):
+                    other.sticky_frames = 120   # 2 seconds — webbed in place
             if self.char.get("magnet_punch") and self.action == 'punch':
                 pull = 100
                 if other.x > self.x:
