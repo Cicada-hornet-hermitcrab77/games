@@ -1296,6 +1296,18 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("nick_of_time"):    badges.append(("NICK OF TIME",  ( 60,200,255)))
             if detail_ch.get("buffer_char"):     badges.append(("BUFFER",        (100,220,100)))
             if detail_ch.get("cursed_drain"):    badges.append(("CURSED",        ( 80,  0, 80)))
+            # --- batch 9 ---
+            if detail_ch.get("moving_punch"):    badges.append(("DASH PUNCH",    (200, 60, 60)))
+            if detail_ch.get("wind_kick"):       badges.append(("WIND KICK",     ( 80,160,230)))
+            if detail_ch.get("phase_dodge"):     badges.append(("PHASE DODGE",   (140, 80,200)))
+            if detail_ch.get("chaos_strike"):    badges.append(("CHAOS HIT",     (220, 80,220)))
+            if detail_ch.get("rage_damage"):     badges.append(("LOW HP RAGE",   (200, 30, 20)))
+            if detail_ch.get("thorn_block"):     badges.append(("THORNS",        ( 80,160, 60)))
+            if detail_ch.get("oracle_dodge"):    badges.append(("ORACLE DODGE",  (160, 80,200)))
+            if detail_ch.get("triple_slash"):    badges.append(("TRIPLE SLASH",  ( 30,120,170)))
+            if detail_ch.get("first_strike"):    badges.append(("FIRST STRIKE",  (160, 80, 30)))
+            if detail_ch.get("arcane_orb"):      badges.append(("ARCANE ORB",    (150, 60,220)))
+            if detail_ch.get("bbboomerang_kick"):badges.append(("5 BOOMERANGS",  (220,140, 20)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)
