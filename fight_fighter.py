@@ -1702,6 +1702,8 @@ class AIFighter(Fighter):
             if self.hurt_timer == 0 and self.char.get("rage_build"):
                 self.punch_boost = min(self.punch_boost + 1, 15)
 
+        _ai_sticky_x = self.x   # capture before all movement for sticky_frames lock
+
         if abs(self.knockback) > 0.1:
             self.x += self.knockback
             self.knockback *= 0.65
@@ -1914,6 +1916,10 @@ class AIFighter(Fighter):
         else:
             if self.on_ground and not self.attacking:
                 self.action = 'idle'
+
+        # Sticky: lock horizontal position (web, Sticker, etc.)
+        if self.sticky_frames > 0:
+            self.x = _ai_sticky_x
 
         # Ghost AI: steer vertically toward the target
         if self.char.get("ghost_float") and other is not None:
