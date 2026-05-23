@@ -507,6 +507,23 @@ CHEAT_CODES = {
     "shade_of_night":     "Shadow Lord",
     "carved_in_stone":    "Rune Mage",
     "monk_of_war":        "Berserker Monk",
+    # batch 8
+    "iron_hands":         "Steel Knuckle",
+    "brittle_dynamite":   "Crystal Bomber",
+    "old_soldier":        "Veteran",
+    "transylvania":       "Strigone",
+    "ave_caesar":         "Legionnaire",
+    "dark_contract":      "Shadowbind",
+    "rock_golem_rise":    "Stone Golem",
+    "ride_the_lightning": "Storm Rider",
+    "minus_forty":        "Frostbite",
+    "crimson_ritual":     "Blood Mage",
+    "shiny_armor":        "Mirror Knight",
+    "lucky_draw":         "Desperado",
+    "grave_robbing":      "Tomb Raider",
+    "rewind_time":        "Chronomancer",
+    "big_big_boy":        "Behemoth",
+    "it_comes_back":      "Boom-Boom-Boomerang",
 }
 
 # ---------------------------------------------------------------------------
