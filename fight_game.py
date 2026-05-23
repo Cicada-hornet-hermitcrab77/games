@@ -426,6 +426,22 @@ UNLOCK_CONDITIONS = {
     "Chronomancer":        ("win_with",       "Time Warden",     3,  "Win 3 matches as Time Warden"),
     "Behemoth":            ("wins_total",     None,            200,  "Win 200 matches"),
     "Boom-Boom-Boomerang": ("secret_chars",   None,             12,  "Unlock 12 secret characters"),
+    # ── batch 9 ─────────────────────────────────────────────────────────────
+    "Marauder":            ("win_with",       "Desperado",       3,  "Win 3 matches as Desperado"),
+    "Seraph":              ("perfect_wins",   None,              9,  "Win 9 matches at full HP"),
+    "Typhoon":             ("win_streak",     None,             12,  "Win 12 matches in a row"),
+    "Ironveil":            ("win_hard_ai",    None,             13,  "Win 13 matches vs Hard AI"),
+    "Pulse":               ("win_with",       "Storm Rider",     3,  "Win 3 matches as Storm Rider"),
+    "Gilded":              ("wins_total",     None,            250,  "Win 250 matches"),
+    "Dusk":                ("win_with",       "Shadowbind",      3,  "Win 3 matches as Shadowbind"),
+    "Prism":               ("unique_wins",    None,             25,  "Win with 25 different characters"),
+    "Ashen":               ("win_with",       "Frostbite",       3,  "Win 3 matches as Frostbite"),
+    "Ravager":             ("clutch_wins",    None,             14,  "Win 14 matches with ≤10 HP"),
+    "Thornwall":           ("win_with",       "Stone Golem",     3,  "Win 3 matches as Stone Golem"),
+    "Diviner":             ("win_with",       "Blood Mage",      3,  "Win 3 matches as Blood Mage"),
+    "Cutlass":             ("win_on_stage",   "Pirate Ship",     3,  "Win 3 matches on Pirate Ship"),
+    "Oathbreaker":         ("win_with",       "Legionnaire",     3,  "Win 3 matches as Legionnaire"),
+    "Arcanist":            ("win_with",       "Chronomancer",    3,  "Win 3 matches as Chronomancer"),
 }
 
 

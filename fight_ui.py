@@ -524,6 +524,21 @@ CHEAT_CODES = {
     "rewind_time":        "Chronomancer",
     "big_big_boy":        "Behemoth",
     "it_comes_back":      "Boom-Boom-Boomerang",
+    "pillage_and_plunder": "Marauder",
+    "holy_wings":          "Seraph",
+    "eye_of_the_storm":    "Typhoon",
+    "iron_curtain":        "Ironveil",
+    "shock_wave":          "Pulse",
+    "all_that_glitters":   "Gilded",
+    "twilight_strike":     "Dusk",
+    "light_refraction":    "Prism",
+    "cold_ashes":          "Ashen",
+    "berserker_blood":     "Ravager",
+    "wall_of_thorns":      "Thornwall",
+    "future_sight":        "Diviner",
+    "walk_the_plank":      "Cutlass",
+    "sworn_enemy":         "Oathbreaker",
+    "spell_weaver":        "Arcanist",
 }
 
 # ---------------------------------------------------------------------------
