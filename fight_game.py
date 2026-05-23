@@ -19,7 +19,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
                             FireBall, ThunderBolt, Scroll, TotemPole,
                             RemoteController, Apple, VenomBean, PlantSpike,
-                            ChargedOrb, BubbleShot, PoisonOrb, BlackHole, MusicNote)
+                            ChargedOrb, BubbleShot, PoisonOrb, BlackHole, MusicNote, ArcaneOrb)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, TouchControls, touch_p1_enabled, touch_p2_enabled
 
@@ -991,6 +991,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     plant_spikes  = []   # active PlantSpike objects (Druid)
     quake_waves   = []   # active ground shockwaves (Fault Line)
     mines         = []   # active ground mines (Trap Master)
+    arcane_orbs   = []   # active ArcaneOrb objects (Arcanist)
     spawn_timer   = 300   # first spawn after 5 seconds
     is_jungle      = stage_data["name"] == "Jungle"
     is_computer    = stage_data["name"] == "Computer"
@@ -1383,6 +1384,23 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             victim.flash_timer = 8
                             b.alive = False
             balls = [b for b in balls if b.alive]
+
+            # Arcanist: arcane orbs (1v1)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_arcane_orb:
+                    shooter.pending_arcane_orb = False
+                    arcane_orbs.append(ArcaneOrb(shooter.x + shooter.facing * 30,
+                                                  shooter.y - 60, shooter.facing, shooter))
+            for ao in arcane_orbs:
+                ao.update()
+                if ao.alive:
+                    victim = p2 if ao.owner is p1 else p1
+                    if ao.collides(victim):
+                        if not victim.bubble_shield:
+                            victim.hp = max(0, victim.hp - ArcaneOrb.DMG)
+                        victim.flash_timer = 8
+                        ao.alive = False
+            arcane_orbs = [ao for ao in arcane_orbs if ao.alive]
 
             # Spawn orbs from bazooka_kick
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -2456,6 +2474,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             pu.draw(screen)
         for b in balls:
             b.draw(screen)
+        for ao in arcane_orbs:
+            ao.draw(screen)
         for o in orbs:
             o.draw(screen)
         for co in charged_orbs:
@@ -2777,6 +2797,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     hooks             = []   # SnakeHook (grapple_kick)
     pumpkins          = []   # Pumpkin (pumpkin_kick)
     whips             = []   # Whip (whip_punch)
+    arcane_orbs       = []   # ArcaneOrb (Arcanist)
     ink_clones        = []   # Ink Brush clones
     survival_bombs    = []   # Bomb character active bombs
     survival_bomb_pops = []  # explosion rings
@@ -3075,6 +3096,21 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             en.hp = max(0, en.hp - 10); en.flash_timer = 8
                             b.alive = False; break
             balls = [b for b in balls if b.alive]
+
+            # Arcanist: arcane orbs (survival — player → enemies)
+            for p in players:
+                if p.pending_arcane_orb:
+                    p.pending_arcane_orb = False
+                    arcane_orbs.append(ArcaneOrb(p.x + p.facing * 30, p.y - 60, p.facing, p))
+            for ao in arcane_orbs:
+                ao.update()
+                if ao.alive:
+                    for en in enemies:
+                        if ao.collides(en):
+                            en.hp = max(0, en.hp - ArcaneOrb.DMG)
+                            en.flash_timer = 8
+                            ao.alive = False; break
+            arcane_orbs = [ao for ao in arcane_orbs if ao.alive]
 
             # Player orbs → enemies
             for o in orbs:
@@ -3532,6 +3568,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for sp   in springs:       sp.draw(screen)
         for pu   in powerups:      pu.draw(screen)
         for b    in balls:         b.draw(screen)
+        for ao   in arcane_orbs:   ao.draw(screen)
         for b    in en_balls:      b.draw(screen)
         for o    in orbs:          o.draw(screen)
         for o    in en_orbs:       o.draw(screen)
@@ -3771,7 +3808,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     balls        = []; orbs = []; bounce_balls = []; hooks = []; pumpkins = []; whips = []
     charged_orbs = []; bubble_shots = []; poison_orbs = []; scrolls = []; venoms = []
     notes        = []; kitsune_shots = []; water_balls = []; bee_shots = []; snipe_shots = []
-    fire_balls   = []; thunder_bolts = []; plant_spikes = []
+    fire_balls   = []; thunder_bolts = []; plant_spikes = []; arcane_orbs = []
 
     # Easter eggs
     hot_potatoes   = []
@@ -3929,6 +3966,23 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         victim.hp = max(0, victim.hp - 10)
                         victim.flash_timer = 8; b.alive = False
             balls = [b for b in balls if b.alive]
+
+            # Arcanist: arcane orbs (network)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_arcane_orb:
+                    shooter.pending_arcane_orb = False
+                    arcane_orbs.append(ArcaneOrb(shooter.x + shooter.facing * 30,
+                                                  shooter.y - 60, shooter.facing, shooter))
+            for ao in arcane_orbs:
+                ao.update()
+                if ao.alive:
+                    victim = p2 if ao.owner is p1 else p1
+                    if ao.collides(victim):
+                        if not victim.bubble_shield:
+                            victim.hp = max(0, victim.hp - ArcaneOrb.DMG)
+                        victim.flash_timer = 8
+                        ao.alive = False
+            arcane_orbs = [ao for ao in arcane_orbs if ao.alive]
 
             for o in orbs:
                 o.update()
@@ -4545,6 +4599,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
         for plat in platforms: plat.draw(screen, stage_idx)
         for sp   in springs:   sp.draw(screen)
         for b    in balls:          b.draw(screen)
+        for ao   in arcane_orbs:    ao.draw(screen)
         for o    in orbs:           o.draw(screen)
         for bb   in bounce_balls:   bb.draw(screen)
         for h    in hooks:          h.draw(screen)

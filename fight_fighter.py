@@ -218,6 +218,13 @@ class Fighter:
         self.chain_timer             = 0      # Chain Fighter: frames until streak resets
         self.glitch_timer            = FPS * 5 if char_data.get("glitch_char") else 0
         self.one_punch_count         = 0      # One Punch: punch counter toward 7th
+        # Batch 9
+        self.phase_dodge_timer   = 0      # Dusk: frames of invincibility after taking a hit
+        self.phase_dodge_cd      = 0      # Dusk: cooldown before phase_dodge can trigger again
+        self.triple_slash_count  = 0      # Cutlass: punch-hit counter toward triple-damage hit
+        self.first_strike_timer  = 0      # Oathbreaker: frames since last punch (counts up)
+        self.oracle_dodge_count  = 0      # Diviner: hits received counter (every 5th negated)
+        self.pending_arcane_orb  = False  # Arcanist: spawn arcane orb this frame
 
     def _reinit_ability_timers(self):
         c = self.char
@@ -418,6 +425,17 @@ class Fighter:
                 self.bbboomerang_cooldown = 300
         elif self.bbboomerang_cooldown > 0:
             self.bbboomerang_cooldown -= 1
+        # Dusk: phase_dodge countdown
+        if self.phase_dodge_timer > 0:
+            self.phase_dodge_timer -= 1
+        if self.phase_dodge_cd > 0:
+            self.phase_dodge_cd -= 1
+        # Oathbreaker: first_strike idle timer (counts up while not punching)
+        if self.char.get("first_strike"):
+            if self.action != 'punch':
+                self.first_strike_timer = min(self.first_strike_timer + 1, 200)
+            else:
+                self.first_strike_timer = 0
         # Kitsune auto barrage — fires every 9 seconds
         if self.char.get("kitsune_barrage"):
             if self.kitsune_timer > 0:
@@ -848,6 +866,8 @@ class Fighter:
                     self.kick_cooldown = FPS * 6   # 6-second reload for big cleave
                 if self.char.get("note_kick"):
                     self.pending_note = True
+                if self.char.get("arcane_orb"):
+                    self.pending_arcane_orb = True
                 if self.char.get("flash_kick"):
                     # Teleport behind opponent immediately on kick press
                     self.x = max(30.0, min(float(WIDTH - 30), other.x - other.facing * 60))
@@ -1073,6 +1093,20 @@ class Fighter:
                 dmg = 13 * self.f13_index
             if self.char.get("wild_attack"):
                 dmg = random.randint(1, 40)
+            # Marauder: +7 punch bonus while moving
+            if self.char.get("moving_punch") and self.action == 'punch':
+                if abs(self.vx) > 0.5 or abs(self.knockback) > 0.5:
+                    dmg += 7
+            # Oathbreaker: +10 on first punch after 90+ idle frames
+            if self.char.get("first_strike") and self.action == 'punch':
+                if self.first_strike_timer >= 90:
+                    dmg += 10
+            # Cutlass: every 3rd punch hit deals 3x damage
+            if self.char.get("triple_slash") and self.action == 'punch':
+                self.triple_slash_count = (self.triple_slash_count + 1) % 3
+                if self.triple_slash_count == 0:
+                    dmg *= 3
+                    other.flash_timer = max(other.flash_timer, 14)
             # Mirage: 35% dodge chance — sidestep and skip all damage
             if other.char.get("mega_unhittable") and random.random() < 0.999:
                 other.flash_timer = 4
@@ -1091,6 +1125,18 @@ class Fighter:
                 other.x = max(30.0, min(float(WIDTH - 30), other.x + random.choice([-55, 55])))
                 self.attack_hit = True
                 return
+            # Dusk: phase_dodge — brief invincibility window after taking a hit
+            if other.char.get("phase_dodge") and other.phase_dodge_timer > 0:
+                other.flash_timer = 6
+                self.attack_hit = True
+                return
+            # Diviner: oracle_dodge — every 5th incoming hit is auto-negated
+            if other.char.get("oracle_dodge"):
+                other.oracle_dodge_count += 1
+                if other.oracle_dodge_count % 5 == 0:
+                    other.flash_timer = 8
+                    self.attack_hit = True
+                    return
             if self.char.get("phantom_strike") and self.action == 'punch':
                 self.x = max(30.0, min(float(WIDTH - 30), other.x - self.facing * 55))
                 self.flash_timer = 8
@@ -1111,6 +1157,12 @@ class Fighter:
                 dmg = int(dmg * 1.5)
             if self.char.get("berserk_low") and self.hp < self.max_hp * 0.25:
                 dmg = int(dmg * 2.0)
+            # Ravager: +60% damage when own HP < 25
+            if self.char.get("rage_damage") and self.hp < 25:
+                dmg = int(dmg * 1.6)
+            # Prism: +1–8 random chaos damage on every hit
+            if self.char.get("chaos_strike"):
+                dmg += random.randint(1, 8)
             if self.char.get("gamble_kick") and self.action == 'kick':
                 dmg = 0 if random.random() < 0.5 else 65
             if other.curse_frames > 0:
@@ -1208,6 +1260,9 @@ class Fighter:
                 other.hurt_timer = min(other.hurt_timer, 8)
             if other.blocking and other.char.get("reflect_block") and dmg > 0:
                 self.hp = max(0, self.hp - dmg // 2)
+            # Thornwall: reflect 4 damage to attacker when blocking
+            if other.blocking and other.char.get("thorn_block") and dmg > 0:
+                self.hp = max(0, self.hp - 4)
             if self.leech:
                 self.hp = min(self.max_hp, self.hp + 8)
             other.action = 'hurt'
@@ -1216,6 +1271,13 @@ class Fighter:
             other.attacking = False
             other.knockback = self.facing * 6
             self.attack_hit = True
+            # Dusk: phase_dodge — trigger invincibility after taking a hit
+            if other.char.get("phase_dodge") and other.phase_dodge_cd == 0 and dmg > 0:
+                other.phase_dodge_timer = 60    # 1 second invincible
+                other.phase_dodge_cd    = 300   # 5 second cooldown
+            # Typhoon: wind_kick — triple knockback on kick
+            if self.char.get("wind_kick") and self.action == 'kick':
+                other.knockback = self.facing * 18
             if other.char["name"] == "Shapeshifter":
                 other.color = (random.randint(60,255), random.randint(60,255), random.randint(60,255))
             if self.char.get("slam_kick") and self.action == 'kick':

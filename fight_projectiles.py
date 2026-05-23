@@ -1575,3 +1575,38 @@ class MusicNote:
         off = self._t % 8
         for dx, dy in [(-10 + off, -14), (12, -8 - off % 4)]:
             pygame.draw.circle(surface, col2, (cx + dx, cy + dy), 2)
+
+
+# ---------------------------------------------------------------------------
+# ArcaneOrb  (Arcanist — slow purple magic orb, 8 damage on hit)
+# ---------------------------------------------------------------------------
+
+class ArcaneOrb:
+    RADIUS = 10
+    SPEED  = 4
+    DMG    = 8
+
+    def __init__(self, x, y, facing, owner):
+        self.x     = float(x)
+        self.y     = float(y)
+        self.vx    = self.SPEED * facing
+        self.owner = owner
+        self.alive = True
+        self._t    = 0
+
+    def update(self):
+        self._t += 1
+        self.x += self.vx
+        if self.x < 0 or self.x > WIDTH:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pulse = (self._t // 6) % 2 == 0
+        outer = (130, 40, 220) if pulse else (160, 70, 255)
+        pygame.draw.circle(surface, outer, (cx, cy), self.RADIUS)
+        pygame.draw.circle(surface, (200, 130, 255), (cx, cy), self.RADIUS - 4)
+        pygame.draw.circle(surface, (240, 210, 255), (cx, cy), max(2, self.RADIUS - 7))
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
