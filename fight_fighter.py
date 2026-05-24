@@ -225,6 +225,8 @@ class Fighter:
         self.first_strike_timer  = 0      # Oathbreaker: frames since last punch (counts up)
         self.oracle_dodge_count  = 0      # Diviner: hits received counter (every 5th negated)
         self.pending_arcane_orb  = False  # Arcanist: spawn arcane orb this frame
+        self.flame_trail         = []    # Trailblazer: list of (x, y, ttl) trail segments
+        self.trail_dmg_cd        = 0     # Trailblazer: cooldown before trail can damage again
 
     def _reinit_ability_timers(self):
         c = self.char
@@ -430,6 +432,12 @@ class Fighter:
             self.phase_dodge_timer -= 1
         if self.phase_dodge_cd > 0:
             self.phase_dodge_cd -= 1
+        if self.char.get("flame_trail"):
+            if abs(self.vx) > 0.5 or (self.on_ground and self.action in ('punch', 'kick')):
+                self.flame_trail.append([int(self.x), int(self.y), 40])
+            self.flame_trail = [[x, y, t-1] for x, y, t in self.flame_trail if t > 1]
+            if self.trail_dmg_cd > 0:
+                self.trail_dmg_cd -= 1
         # Oathbreaker: first_strike idle timer (counts up while not punching)
         if self.char.get("first_strike"):
             if self.action != 'punch':
@@ -1025,6 +1033,17 @@ class Fighter:
                 self.flash_timer = 20
                 self.soul_switch_timer = FPS * 5
 
+        # Trailblazer: opponent touching any live trail tile takes fire damage
+        if self.char.get("flame_trail") and self.trail_dmg_cd == 0 and self.flame_trail:
+            for tx, ty, _ in self.flame_trail:
+                if abs(other.x - tx) < 28 and abs(other.y - ty) < 40:
+                    other.hp = max(0, other.hp - 3)
+                    other.flash_timer = max(other.flash_timer, 6)
+                    if other.fire_frames == 0: other.fire_tick = 480
+                    other.fire_frames = max(other.fire_frames, 120)
+                    self.trail_dmg_cd = 30
+                    break
+
         if self.attacking and self.action in ('punch', 'kick'):
             self.action_t = min(1.0, self.action_t + self._attack_speed)
             if self.action_t >= 1.0:
@@ -1474,6 +1493,16 @@ class Fighter:
             pygame.draw.circle(ssurf, (gray, gray, gray + 15, alpha), (r+1, r+1), r)
             surface.blit(ssurf, (int(sp[0]) - r - 1, int(sp[1]) - r - 1))
 
+        # Trailblazer: draw flame trail tiles
+        if self.char.get("flame_trail"):
+            for tx, ty, ttl in self.flame_trail:
+                intensity = ttl / 40.0
+                r = max(2, int(10 * intensity))
+                fsurf = pygame.Surface((r*2+2, r*2+2), pygame.SRCALPHA)
+                pygame.draw.circle(fsurf, (255, int(120 * intensity), 0, int(180 * intensity)),
+                                   (r+1, r+1), r)
+                surface.blit(fsurf, (tx - r - 1, ty - r - 1))
+
         # Speedster: draw afterimage trail before main body
         if self.char.get("speedster"):
             self.trail.append((self.x, self.y))
@@ -1840,6 +1869,22 @@ class AIFighter(Fighter):
                 self.vy = -5
                 self.flash_timer = 20
                 self.soul_switch_timer = FPS * 5
+        # Trailblazer flame trail (AI version)
+        if self.char.get("flame_trail"):
+            if abs(self.vx) > 0.5 or (self.on_ground and self.action in ('punch', 'kick')):
+                self.flame_trail.append([int(self.x), int(self.y), 40])
+            self.flame_trail = [[x, y, t-1] for x, y, t in self.flame_trail if t > 1]
+            if self.trail_dmg_cd > 0:
+                self.trail_dmg_cd -= 1
+            if self.trail_dmg_cd == 0 and self.flame_trail:
+                for tx, ty, _ in self.flame_trail:
+                    if abs(other.x - tx) < 28 and abs(other.y - ty) < 40:
+                        other.hp = max(0, other.hp - 3)
+                        other.flash_timer = max(other.flash_timer, 6)
+                        if other.fire_frames == 0: other.fire_tick = 480
+                        other.fire_frames = max(other.fire_frames, 120)
+                        self.trail_dmg_cd = 30
+                        break
 
         if self.hurt_timer > 0 or self.freeze_frames > 0:
             return  # don't make decisions while staggered or frozen

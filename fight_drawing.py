@@ -11889,6 +11889,89 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.line(surface, (240, 160, 40), (sx, sy + int(bl*0.4)), (_nx2, _ny2),
                              max(1, int(s)))
 
+    elif char_name == "Sphinx":
+        import math as _m
+        # Tawny desert-gold leonine body
+        pygame.draw.rect(surface, (190, 150, 60),
+                         (sx - int(10*s), sy, int(20*s), bl), border_radius=max(2, int(3*s)))
+        # Mane — dark gold ring around head
+        pygame.draw.circle(surface, (140, 100, 20), (hx, hy), hd + int(5*s))
+        pygame.draw.circle(surface, (190, 150, 60), (hx, hy), hd)
+        # Feathered wings (two arcs per side)
+        for _side in (-1, 1):
+            for _wi in range(3):
+                _wa = _m.radians(30 + _wi * 20)
+                _wx = sx + _side * int((10 + _wi*6) * s)
+                _wy = sy + int(bl * 0.25) - int(_wi * 4 * s)
+                pygame.draw.line(surface, (220, 185, 90),
+                                 (sx + _side*int(9*s), sy + int(bl*0.2)),
+                                 (_wx, _wy - int(12*s)), max(1, int(2*s)))
+        # Headdress — egyptian nemes cloth lines
+        pygame.draw.line(surface, (210, 170, 50),
+                         (hx - int(hd*0.8), hy - int(hd*0.3)),
+                         (hx - int(hd*0.8), hy + int(hd*0.9)), max(1, int(2*s)))
+        pygame.draw.line(surface, (210, 170, 50),
+                         (hx + int(hd*0.8), hy - int(hd*0.3)),
+                         (hx + int(hd*0.8), hy + int(hd*0.9)), max(1, int(2*s)))
+        # Striped headband
+        pygame.draw.rect(surface, (50, 40, 160),
+                         (hx - int(hd*0.9), hy - int(hd*0.55), int(hd*1.8), int(hd*0.3)))
+
+    elif char_name == "Wendigo":
+        import math as _m
+        # Gaunt pale-blue body — skeletal ribs
+        pygame.draw.rect(surface, (140, 180, 210),
+                         (sx - int(8*s), sy, int(16*s), bl), border_radius=max(2, int(3*s)))
+        # Rib cage lines
+        for _ri in range(4):
+            _ry = sy + int(bl * (0.15 + _ri * 0.18))
+            pygame.draw.line(surface, (80, 120, 160),
+                             (sx - int(7*s), _ry), (sx + int(7*s), _ry), max(1, int(s)))
+        # Antlers — branching lines from head
+        for _side in (-1, 1):
+            _ax, _ay = hx + _side*int(hd*0.7), hy - int(hd*0.5)
+            pygame.draw.line(surface, (160, 120, 60),
+                             (hx + _side*int(hd*0.3), hy - int(hd*0.6)), (_ax, _ay - int(12*s)),
+                             max(1, int(2*s)))
+            pygame.draw.line(surface, (160, 120, 60),
+                             (_ax, _ay - int(12*s)),
+                             (_ax + _side*int(5*s), _ay - int(20*s)), max(1, int(s)))
+            pygame.draw.line(surface, (160, 120, 60),
+                             (_ax, _ay - int(6*s)),
+                             (_ax + _side*int(8*s), _ay - int(10*s)), max(1, int(s)))
+        # Gaunt hollow head with frost-breath wisps
+        pygame.draw.circle(surface, (120, 165, 200), (hx, hy), hd)
+        for _bi in range(3):
+            _bx = hx + (_bi - 1) * int(hd*0.35)
+            pygame.draw.line(surface, (200, 230, 255),
+                             (_bx, hy + int(hd*0.7)),
+                             (_bx + (_bi-1)*int(2*s), hy + int(hd*1.2)), max(1, int(s)))
+
+    elif char_name == "Trailblazer":
+        import math as _m
+        # Flame-orange body suit with heat shimmer streaks
+        pygame.draw.rect(surface, (200, 65, 5),
+                         (sx - int(8*s), sy, int(16*s), bl), border_radius=max(2, int(3*s)))
+        # Diagonal speed streaks on torso
+        for _ti in range(3):
+            _ty1 = sy + int(bl * (_ti * 0.3 + 0.1))
+            pygame.draw.line(surface, (255, 160, 20),
+                             (sx - int(7*s), _ty1), (sx + int(7*s), _ty1 + int(6*s)),
+                             max(1, int(s)))
+        # Flame burst at feet
+        import math as _m
+        for _fi in range(5):
+            _fa = _m.radians(_fi * 36 - 90)
+            _fx = sx + int(_m.cos(_fa) * 7 * s)
+            _fy = wy + int(_m.sin(_fa) * 5 * s)
+            pygame.draw.line(surface, (255, int(80 + _fi*30), 0),
+                             (sx, wy), (_fx, _fy), max(1, int(s)))
+        # Head — fire-red with heat lines
+        pygame.draw.circle(surface, (210, 55, 5), (hx, hy), hd)
+        pygame.draw.line(surface, (255, 200, 30),
+                         (hx - int(hd*0.4), hy - int(hd*0.5)),
+                         (hx + int(hd*0.4), hy - int(hd*0.5)), max(1, int(s)))
+
     elif char_name == "Aqrabuamelu":
         import math as _m
         # Sandy gold armoured torso with chitin plating ridges

@@ -544,6 +544,9 @@ CHEAT_CODES = {
     "phantom_queen":       "Morrigan",
     "crow_of_battle":      "Badb",
     "frenzy_spirit":       "Nemain",
+    "desert_riddle":        "Sphinx",
+    "hunger_of_the_north":  "Wendigo",
+    "leave_no_trace":       "Trailblazer",
     "guardian_of_the_gate": "Aqrabuamelu",
 }
 
@@ -1319,6 +1322,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("river_pull"):      badges.append(("RIVER PULL",    ( 30,160,120)))
             if detail_ch.get("shell_body"):      badges.append(("SHELL -25%",    ( 40,120, 80)))
             if detail_ch.get("poison_kick"):     badges.append(("POISON KICK",   ( 80,160, 40)))
+            if detail_ch.get("flame_trail"):     badges.append(("FLAME TRAIL",   (220, 80, 10)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)
