@@ -1277,7 +1277,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     by = (thrower.y - 60) + math.sin(thrower.boomerang_angle) * 55
                     if math.hypot(bx - victim.x, by - (victim.y - 60)) < 48:
                         if not victim.bubble_shield:
-                            victim.hp = max(0, victim.hp - 8)
+                            victim.take_proj_dmg(8)
                         victim.flash_timer = 6
                         thrower.boomerang_hit_cd = 30   # 0.5s between hits
                 if thrower.bbboomerang_timer > 0 and thrower.bbboomerang_hit_cd == 0:
@@ -1290,7 +1290,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         _bby = (thrower.y - 60) + math.sin(_bba) * _bbry
                         if math.hypot(_bbx - victim.x, _bby - (victim.y - 60)) < _bbhr:
                             if not victim.bubble_shield:
-                                victim.hp = max(0, victim.hp - 6)
+                                victim.take_proj_dmg(6)
                             victim.flash_timer = 6
                             thrower.bbboomerang_hit_cd = 30
                             break
@@ -1304,7 +1304,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                                     (shooter.facing == -1 and victim.x < shooter.x))
                     if correct_side and abs((victim.y - 60) - laser_y) < 35:
                         if not victim.bubble_shield:
-                            victim.hp = max(0, victim.hp - 2)
+                            victim.take_proj_dmg(2)
                         victim.flash_timer = 4
                         shooter.laser_hit_cd = 15  # damage tick every 15 frames
 
@@ -1389,7 +1389,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             if victim is p1:
                                 _p1_proj_blocked[0] += 1
                         else:
-                            victim.hp = max(0, victim.hp - 10)
+                            victim.take_proj_dmg(10)
                             victim.flash_timer = 8
                             b.alive = False
             balls = [b for b in balls if b.alive]
@@ -1406,7 +1406,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     victim = p2 if ao.owner is p1 else p1
                     if ao.collides(victim):
                         if not victim.bubble_shield:
-                            victim.hp = max(0, victim.hp - ArcaneOrb.DMG)
+                            victim.take_proj_dmg(ArcaneOrb.DMG)
                         victim.flash_timer = 8
                         ao.alive = False
             arcane_orbs = [ao for ao in arcane_orbs if ao.alive]
@@ -1426,7 +1426,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     victim = p2 if o.owner is p1 else p1
                     if math.hypot(o.x - victim.x, o.y - (victim.y - 60)) < o.EXPLODE_RADIUS:
                         if not victim.bubble_shield:
-                            victim.hp = max(0, victim.hp - o.EXPLODE_DMG)
+                            victim.take_proj_dmg(o.EXPLODE_DMG)
                         victim.flash_timer = 14
             orbs = [o for o in orbs if o.alive]
 
@@ -1456,7 +1456,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                             if victim is p1:
                                 _p1_proj_blocked[0] += 1
                         else:
-                            victim.hp = max(0, victim.hp - co.dmg)
+                            victim.take_proj_dmg(co.dmg)
                             victim.flash_timer = max(victim.flash_timer, 12)
                             co.alive = False
             charged_orbs = [co for co in charged_orbs if co.alive]
@@ -1482,7 +1482,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         elif victim.bubble_shield:
                             victim.flash_timer = 6; bs.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - 10)
+                            victim.take_proj_dmg(10)
                             victim.flash_timer = 8
                             bs.alive = False
             bubble_shots = [bs for bs in bubble_shots if bs.alive]
@@ -1508,7 +1508,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         elif victim.bubble_shield:
                             victim.flash_timer = 6; po.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - 15)
+                            victim.take_proj_dmg(15)
                             victim.poison_frames = max(victim.poison_frames, FPS * 6)
                             victim.poison_tick   = min(victim.poison_tick if victim.poison_tick > 0 else 999, 60)
                             victim.flash_timer   = 15
@@ -1674,7 +1674,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         if victim.bubble_shield:
                             victim.flash_timer = 6
                         else:
-                            victim.hp = max(0, victim.hp - 10)
+                            victim.take_proj_dmg(10)
                             victim.flash_timer = 8
                         bb.hit_cd = BouncingBall.HIT_CD
             bounce_balls = [bb for bb in bounce_balls if bb.alive]
@@ -1697,7 +1697,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if t.hit_cd == 0:
                     for victim in (p1, p2):
                         if t.collides(victim):
-                            victim.hp = max(0, victim.hp - TotemPole.DMG)
+                            victim.take_proj_dmg(TotemPole.DMG)
                             victim.flash_timer = 8
                             t.hit_cd = TotemPole.HIT_CD
                             if victim is p1 and p1.hp <= 0:
@@ -1716,7 +1716,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if not r.hit:
                     for victim in (p1, p2):
                         if r.collides(victim):
-                            victim.hp = max(0, victim.hp - RemoteController.DMG)
+                            victim.take_proj_dmg(RemoteController.DMG)
                             victim.flash_timer = 20
                             r.hit = True; r.alive = False; break
             remotes = [r for r in remotes if r.alive]
@@ -1732,7 +1732,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if ap.hit_cd == 0:
                     for victim in (p1, p2):
                         if ap.collides(victim):
-                            victim.hp = max(0, victim.hp - Apple.DMG)
+                            victim.take_proj_dmg(Apple.DMG)
                             victim.flash_timer = 6
                             ap.hit_cd = Apple.HIT_CD; break
             apples = [ap for ap in apples if ap.alive]
@@ -1781,7 +1781,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         elif victim.bubble_shield:
                             victim.flash_timer = 6; nt.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - MusicNote.DMG)
+                            victim.take_proj_dmg(MusicNote.DMG)
                             victim.flash_timer = 8
                             if not victim.char.get("immune"):
                                 victim.hurt_timer = max(victim.hurt_timer, 120)
@@ -1794,7 +1794,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if sc.alive and sc.hit_cd == 0:
                     victim = p2 if sc.owner is p1 else p1
                     if sc.collides(victim):
-                        victim.hp = max(0, victim.hp - Scroll.DMG)
+                        victim.take_proj_dmg(Scroll.DMG)
                         victim.flash_timer = 8
                         sc.hit_cd = Scroll.HIT_CD
             scrolls = [sc for sc in scrolls if sc.alive]
@@ -1816,7 +1816,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         pull_dir = 1 if h.owner.x > victim.x else -1
                         if not victim.bubble_shield:
                             victim.knockback = pull_dir * 22
-                            victim.hp = max(0, victim.hp - 6)
+                            victim.take_proj_dmg(6)
                         victim.flash_timer = 8
                         h.alive = False
             hooks = [h for h in hooks if h.alive]
@@ -1835,7 +1835,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     victim = p2 if pk.owner is p1 else p1
                     if math.hypot(pk.x - victim.x, pk.y - (victim.y - 60)) < pk.EXPLODE_RADIUS:
                         if not victim.bubble_shield:
-                            victim.hp = max(0, victim.hp - pk.EXPLODE_DMG)
+                            victim.take_proj_dmg(pk.EXPLODE_DMG)
                         victim.flash_timer = 14
                 elif not pk.exploding and not pk.damaged:
                     victim = p2 if pk.owner is p1 else p1
@@ -1855,7 +1855,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if w.can_hit():
                     victim = p2 if w.owner is p1 else p1
                     if w.collides(victim):
-                        victim.hp = max(0, victim.hp - w.DMG)
+                        victim.take_proj_dmg(w.DMG)
                         victim.flash_timer = 10
                         victim.knockback = w.facing * 14
                         w.hit_done = True
@@ -1963,7 +1963,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         elif victim.bubble_shield:
                             victim.flash_timer = 6; b.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - BeeShot.DMG)
+                            victim.take_proj_dmg(BeeShot.DMG)
                             victim.flash_timer = 6
                             b.alive = False
             bee_shots = [b for b in bee_shots if b.alive]
@@ -2024,7 +2024,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             for toxic, victim in [(p1, p2), (p2, p1)]:
                 if (toxic.char.get("toxic_aura") and victim.contact_cooldown == 0
                         and math.hypot(toxic.x - victim.x, (toxic.y - 60) - (victim.y - 60)) < 80):
-                    victim.hp = max(0, victim.hp - 2)
+                    victim.take_proj_dmg(2)
                     victim.flash_timer = 4
                     victim.contact_cooldown = 90
                     if not victim.char.get("immune"):
@@ -2036,7 +2036,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if snake.char.get("snake") and snake.snake_contact_cd == 0:
                     for seg in snake.snake_segs[8:]:   # skip the head region
                         if math.hypot(seg[0] - victim.x, seg[1] - (victim.y - 60)) < 30:
-                            victim.hp = max(0, victim.hp - 6)
+                            victim.take_proj_dmg(6)
                             victim.flash_timer = 8
                             snake.snake_contact_cd = 60
                             break
@@ -2060,7 +2060,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     elif abs(attacker.x - victim.x) < 80:
                         attacker.fire_aura_timer = FPS * 2
                         if not victim.char.get("immune"):
-                            victim.hp = max(0, victim.hp - 6)
+                            victim.take_proj_dmg(6)
                             if victim.fire_frames == 0: victim.fire_tick = 120
                             victim.fire_frames = max(victim.fire_frames, 180)
 
@@ -2072,7 +2072,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     else:
                         attacker.shock_aura_timer = FPS * 3
                         if abs(attacker.x - victim.x) < 140:
-                            victim.hp = max(0, victim.hp - 8)
+                            victim.take_proj_dmg(8)
                             victim.flash_timer = 10
                             if not victim.char.get("immune"):
                                 victim.shock_frames = max(victim.shock_frames, 240)
@@ -2110,7 +2110,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     if attacker.chainsaw_cd > 0:
                         attacker.chainsaw_cd -= 1
                     elif abs(attacker.x - victim.x) < 50:
-                        victim.hp = max(0, victim.hp - 4)
+                        victim.take_proj_dmg(4)
                         victim.flash_timer = 4
                         attacker.chainsaw_cd = 15
 
@@ -2150,7 +2150,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     kamikaze.kamikaze_exploded = True
                     if math.hypot(kamikaze.x - victim.x,
                                   (kamikaze.y - 60) - (victim.y - 60)) < 150:
-                        victim.hp = max(0, victim.hp - 60)
+                        victim.take_proj_dmg(60)
                         victim.flash_timer = 20
 
             # Pyro auto-fire balls
@@ -2194,7 +2194,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if attacker.quake_pending:
                     attacker.quake_pending = False
                     if abs(attacker.x - victim.x) < 140 and victim.hp > 0:
-                        victim.hp = max(0, victim.hp - 15)
+                        victim.take_proj_dmg(15)
                         victim.flash_timer = 12
                         victim.knockback = (1 if victim.x > attacker.x else -1) * 8
             for tb in thunder_bolts:
@@ -2229,7 +2229,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if mn['arm'] == 0:
                     victim = p2 if mn['owner'] is p1 else p1
                     if abs(mn['x'] - victim.x) < 28 and victim.hp > 0:
-                        victim.hp = max(0, victim.hp - 25)
+                        victim.take_proj_dmg(25)
                         victim.flash_timer = 15
                         mn['life'] = 0
                 if mn['life'] > 0:
@@ -2251,7 +2251,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     qw['hit_cd'] -= 1
                 victim = p2 if qw['owner'] is p1 else p1
                 if qw['hit_cd'] == 0 and abs(qw['x'] - victim.x) < 32 and victim.hp > 0:
-                    victim.hp = max(0, victim.hp - 15)
+                    victim.take_proj_dmg(15)
                     victim.flash_timer = 10
                     qw['hit_cd'] = 30
                 if qw['life'] > 0 and 0 <= qw['x'] <= WIDTH:
@@ -2390,7 +2390,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     if sk.hit_cd == 0:
                         for victim in (p1, p2):
                             if sk.collides(victim):
-                                victim.hp = max(0, victim.hp - sk.DMG)
+                                victim.take_proj_dmg(sk.DMG)
                                 victim.flash_timer = 10
                                 sk.hit_cd = sk.HIT_CD
 
@@ -2807,6 +2807,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     pumpkins          = []   # Pumpkin (pumpkin_kick)
     whips             = []   # Whip (whip_punch)
     arcane_orbs       = []   # ArcaneOrb (Arcanist)
+    survival_widow_bugs = []  # Black Widow wall bugs
     ink_clones        = []   # Ink Brush clones
     survival_bombs    = []   # Bomb character active bombs
     survival_bomb_pops = []  # explosion rings
@@ -3105,6 +3106,28 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             en.hp = max(0, en.hp - 10); en.flash_timer = 8
                             b.alive = False; break
             balls = [b for b in balls if b.alive]
+
+            # Black Widow: wall bugs (survival — player → enemies)
+            for p in players:
+                if p.pending_widow_bugs:
+                    p.pending_widow_bugs = False
+                    for _wx in (40.0, float(WIDTH - 40)):
+                        nb = ComputerBug(); nb.x = _wx
+                        survival_widow_bugs.append({'bug': nb, 'enemies': enemies})
+            _prev_swb = len(survival_widow_bugs)
+            for swb in survival_widow_bugs:
+                swb['bug'].leg_t += 0.2
+                closest = min(swb['enemies'], key=lambda e: abs(e.x - swb['bug'].x), default=None)
+                if closest:
+                    swb['bug'].vx = ComputerBug.SPEED if closest.x > swb['bug'].x else -ComputerBug.SPEED
+                    swb['bug'].x += swb['bug'].vx
+                    swb['bug'].x = max(30.0, min(float(WIDTH - 30), swb['bug'].x))
+                    if swb['bug'].bite_timer > 0:
+                        swb['bug'].bite_timer -= 1
+                    elif abs(closest.x - swb['bug'].x) < ComputerBug.BITE_RANGE and abs(closest.y - swb['bug'].y) < 60:
+                        closest.take_proj_dmg(ComputerBug.BITE_DMG)
+                        swb['bug'].bite_timer = ComputerBug.BITE_COOLDOWN
+            survival_widow_bugs = [swb for swb in survival_widow_bugs if swb['bug'].alive]
 
             # Arcanist: arcane orbs (survival — player → enemies)
             for p in players:
@@ -3450,7 +3473,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     if sk.hit_cd == 0:
                         for victim in [p for p in players if p.hp > 0] + enemies:
                             if sk.collides(victim):
-                                victim.hp = max(0, victim.hp - sk.DMG)
+                                victim.take_proj_dmg(sk.DMG)
                                 victim.flash_timer = 10
                                 sk.hit_cd = sk.HIT_CD
 
@@ -3578,6 +3601,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for pu   in powerups:      pu.draw(screen)
         for b    in balls:         b.draw(screen)
         for ao   in arcane_orbs:   ao.draw(screen)
+        for swb  in survival_widow_bugs: swb['bug'].draw(screen)
         for b    in en_balls:      b.draw(screen)
         for o    in orbs:          o.draw(screen)
         for o    in en_orbs:       o.draw(screen)
@@ -3972,7 +3996,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                 if b.alive:
                     victim = p2 if b.owner is p1 else p1
                     if b.collides(victim):
-                        victim.hp = max(0, victim.hp - 10)
+                        victim.take_proj_dmg(10)
                         victim.flash_timer = 8; b.alive = False
             balls = [b for b in balls if b.alive]
 
@@ -3988,7 +4012,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                     victim = p2 if ao.owner is p1 else p1
                     if ao.collides(victim):
                         if not victim.bubble_shield:
-                            victim.hp = max(0, victim.hp - ArcaneOrb.DMG)
+                            victim.take_proj_dmg(ArcaneOrb.DMG)
                         victim.flash_timer = 8
                         ao.alive = False
             arcane_orbs = [ao for ao in arcane_orbs if ao.alive]
@@ -4000,7 +4024,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                     victim = p2 if o.owner is p1 else p1
                     if math.hypot(o.x - victim.x, o.y - (victim.y - 60)) < o.EXPLODE_RADIUS:
                         if not victim.bubble_shield:
-                            victim.hp = max(0, victim.hp - o.EXPLODE_DMG)
+                            victim.take_proj_dmg(o.EXPLODE_DMG)
                         victim.flash_timer = 14
             orbs = [o for o in orbs if o.alive]
 
@@ -4009,7 +4033,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                 if bb.alive and bb.hit_cd == 0:
                     victim = p2 if bb.owner is p1 else p1
                     if bb.collides(victim):
-                        victim.hp = max(0, victim.hp - 10)
+                        victim.take_proj_dmg(10)
                         victim.flash_timer = 8; bb.hit_cd = BouncingBall.HIT_CD
             bounce_balls = [bb for bb in bounce_balls if bb.alive]
 
@@ -4020,7 +4044,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                     if h.collides(victim):
                         pull = 1 if h.owner.x > victim.x else -1
                         victim.knockback = pull * 22
-                        victim.hp = max(0, victim.hp - 6)
+                        victim.take_proj_dmg(6)
                         victim.flash_timer = 8; h.alive = False
             hooks = [h for h in hooks if h.alive]
 
@@ -4031,7 +4055,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                     victim = p2 if pk.owner is p1 else p1
                     if math.hypot(pk.x - victim.x, pk.y - (victim.y - 60)) < pk.EXPLODE_RADIUS:
                         if not victim.bubble_shield:
-                            victim.hp = max(0, victim.hp - pk.EXPLODE_DMG)
+                            victim.take_proj_dmg(pk.EXPLODE_DMG)
                         victim.flash_timer = 14
                 elif not pk.exploding and not pk.damaged:
                     victim = p2 if pk.owner is p1 else p1
@@ -4050,7 +4074,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                 if w.can_hit():
                     victim = p2 if w.owner is p1 else p1
                     if w.collides(victim):
-                        victim.hp = max(0, victim.hp - w.DMG)
+                        victim.take_proj_dmg(w.DMG)
                         victim.flash_timer = 10
                         victim.knockback = w.facing * 14
                         w.hit_done = True
@@ -4072,7 +4096,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         if victim.bubble_shield:
                             victim.flash_timer = 6; co.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - co.dmg)
+                            victim.take_proj_dmg(co.dmg)
                             victim.flash_timer = max(victim.flash_timer, 12); co.alive = False
             charged_orbs = [co for co in charged_orbs if co.alive]
 
@@ -4091,7 +4115,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         if victim.bubble_shield:
                             victim.flash_timer = 6; bs.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - 10)
+                            victim.take_proj_dmg(10)
                             victim.flash_timer = 8; bs.alive = False
             bubble_shots = [bs for bs in bubble_shots if bs.alive]
 
@@ -4110,7 +4134,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         if victim.bubble_shield:
                             victim.flash_timer = 6; po.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - 15)
+                            victim.take_proj_dmg(15)
                             victim.poison_frames = max(victim.poison_frames, FPS * 6)
                             victim.poison_tick   = min(victim.poison_tick if victim.poison_tick > 0 else 999, 60)
                             victim.flash_timer   = 15; po.alive = False
@@ -4127,7 +4151,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                 if sc.alive and sc.hit_cd == 0:
                     victim = p2 if sc.owner is p1 else p1
                     if sc.collides(victim):
-                        victim.hp = max(0, victim.hp - Scroll.DMG)
+                        victim.take_proj_dmg(Scroll.DMG)
                         victim.flash_timer = 8; sc.hit_cd = Scroll.HIT_CD
             scrolls = [sc for sc in scrolls if sc.alive]
 
@@ -4145,7 +4169,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         if victim.bubble_shield:
                             victim.flash_timer = 6; vb.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - VenomBean.DMG)
+                            victim.take_proj_dmg(VenomBean.DMG)
                             victim.flash_timer = 8
                             if victim.poison_frames == 0: victim.poison_tick = 180
                             victim.poison_frames = max(victim.poison_frames, 360)
@@ -4166,7 +4190,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         if victim.bubble_shield:
                             victim.flash_timer = 6; nt.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - MusicNote.DMG)
+                            victim.take_proj_dmg(MusicNote.DMG)
                             victim.flash_timer = 8
                             victim.hurt_timer = max(victim.hurt_timer, 120)
                             nt.alive = False
@@ -4186,7 +4210,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         if victim.bubble_shield:
                             victim.flash_timer = 6; ks.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - KitsuneShot.DMG)
+                            victim.take_proj_dmg(KitsuneShot.DMG)
                             victim.flash_timer = 8; ks.alive = False
             kitsune_shots = [ks for ks in kitsune_shots if ks.alive]
 
@@ -4204,7 +4228,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         if victim.bubble_shield:
                             victim.flash_timer = 6; wb.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - WaterBall.DMG)
+                            victim.take_proj_dmg(WaterBall.DMG)
                             victim.flash_timer = 8; wb.alive = False
             water_balls = [wb for wb in water_balls if wb.alive]
 
@@ -4223,7 +4247,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         if victim.bubble_shield:
                             victim.flash_timer = 6; b.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - BeeShot.DMG)
+                            victim.take_proj_dmg(BeeShot.DMG)
                             victim.flash_timer = 6; b.alive = False
             bee_shots = [b for b in bee_shots if b.alive]
 
@@ -4241,7 +4265,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         if victim.bubble_shield:
                             victim.flash_timer = 6; s.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - SnipeShot.DMG)
+                            victim.take_proj_dmg(SnipeShot.DMG)
                             victim.flash_timer = 10; s.alive = False
             snipe_shots = [s for s in snipe_shots if s.alive]
 
@@ -4259,7 +4283,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         if victim.bubble_shield:
                             victim.flash_timer = 6; fb.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - FireBall.DMG)
+                            victim.take_proj_dmg(FireBall.DMG)
                             victim.flash_timer = 8
                             if victim.fire_frames == 0: victim.fire_tick = 480
                             victim.fire_frames = max(victim.fire_frames, 480)
@@ -4282,7 +4306,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         if victim.bubble_shield:
                             victim.flash_timer = 6
                         else:
-                            victim.hp = max(0, victim.hp - ThunderBolt.DMG)
+                            victim.take_proj_dmg(ThunderBolt.DMG)
                             victim.flash_timer = 12
                             victim.shock_frames = max(victim.shock_frames, 180)
                         tb.hit = True
@@ -4301,7 +4325,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         if victim.bubble_shield:
                             victim.flash_timer = 6; ps.alive = False
                         else:
-                            victim.hp = max(0, victim.hp - PlantSpike.DMG)
+                            victim.take_proj_dmg(PlantSpike.DMG)
                             victim.flash_timer = 12; ps.alive = False
             plant_spikes = [ps for ps in plant_spikes if ps.alive]
 
@@ -4414,7 +4438,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                     side_ok  = ((shooter.facing ==  1 and victim.x > shooter.x) or
                                 (shooter.facing == -1 and victim.x < shooter.x))
                     if side_ok and abs((victim.y - 60) - laser_y) < 35:
-                        victim.hp = max(0, victim.hp - 2)
+                        victim.take_proj_dmg(2)
                         victim.flash_timer = 4; shooter.laser_hit_cd = 15
 
             # Boomerang
@@ -4424,7 +4448,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                     by = (thrower.y - 60) + math.sin(thrower.boomerang_angle) * 55
                     if math.hypot(bx - victim.x, by - (victim.y - 60)) < 48:
                         if not victim.bubble_shield:
-                            victim.hp = max(0, victim.hp - 8)
+                            victim.take_proj_dmg(8)
                         victim.flash_timer = 6; thrower.boomerang_hit_cd = 30
                 if thrower.bbboomerang_timer > 0 and thrower.bbboomerang_hit_cd == 0:
                     _bbe = (300 - thrower.bbboomerang_timer) // 60
@@ -4436,7 +4460,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                         _bby = (thrower.y - 60) + math.sin(_bba) * _bbry
                         if math.hypot(_bbx - victim.x, _bby - (victim.y - 60)) < _bbhr:
                             if not victim.bubble_shield:
-                                victim.hp = max(0, victim.hp - 6)
+                                victim.take_proj_dmg(6)
                             victim.flash_timer = 6
                             thrower.bbboomerang_hit_cd = 30
                             break

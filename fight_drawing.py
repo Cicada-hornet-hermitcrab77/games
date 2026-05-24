@@ -5543,6 +5543,25 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                              (sx - facing*int((3+_ui*6)*s), sy + int(bl*0.25*_ui)),
                              (sx - facing*int((12+_ui*6)*s), sy + int(bl*0.25*_ui) - int(3*s)),
                              max(1, int(s)))
+        # Mega sword — enormous glowing blade held in front hand
+        _sw_base = (rhx, rhy)
+        _sw_tip  = (rhx + facing * int(80*s), rhy - int(55*s))
+        _sw_guard_l = (rhx - int(12*s), rhy - int(4*s))
+        _sw_guard_r = (rhx + int(12*s), rhy - int(4*s))
+        # Blade glow (wide soft layer)
+        pygame.draw.line(surface, (200, 240, 255),
+                         _sw_base, _sw_tip, max(8, int(12*s)))
+        # Blade core
+        pygame.draw.line(surface, (255, 255, 255),
+                         _sw_base, _sw_tip, max(4, int(5*s)))
+        # Edge highlight
+        pygame.draw.line(surface, (180, 220, 255),
+                         (rhx + facing*int(5*s), rhy - int(4*s)),
+                         (rhx + facing*int(75*s), rhy - int(52*s)), max(1, int(2*s)))
+        # Cross-guard
+        pygame.draw.line(surface, (220, 220, 100), _sw_guard_l, _sw_guard_r, max(3, int(5*s)))
+        # Pommel
+        pygame.draw.circle(surface, (200, 200, 80), _sw_base, max(3, int(5*s)))
 
     elif char_name == "Bard":
         # Medieval tunic with diamond pattern

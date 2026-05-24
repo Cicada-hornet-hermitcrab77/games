@@ -986,8 +986,7 @@ class Fighter:
             if self.chomp_cooldown > 0:
                 self.chomp_cooldown -= 1
             elif other is not self and abs(self.x - other.x) <= 55:
-                other.hp = max(0, other.hp - 50)
-                other.flash_timer = 12
+                other.take_proj_dmg(50)
                 other.knockback = self.facing * 4
                 self.draw_scale = min(2.5, self.draw_scale + 0.2)
                 self.chomp_cooldown = FPS * 2
@@ -1467,6 +1466,16 @@ class Fighter:
                 other.knockback  = 0
                 other.hurt_timer = max(other.hurt_timer, 120)
 
+    def take_proj_dmg(self, dmg, flash=True):
+        """Apply damage from projectiles/chomps/contact — respects mega_unhittable and immune."""
+        if self.char.get("immune"):
+            return
+        if self.char.get("mega_unhittable") and random.random() < 0.999:
+            return
+        self.hp = max(0, self.hp - dmg)
+        if flash:
+            self.flash_timer = max(self.flash_timer, 8)
+
     def draw(self, surface):
         _scale = self.draw_scale
         flash = (self.flash_timer % 4) < 2 and self.flash_timer > 0
@@ -1833,8 +1842,7 @@ class AIFighter(Fighter):
             if self.chomp_cooldown > 0:
                 self.chomp_cooldown -= 1
             elif other is not self and abs(self.x - other.x) <= 55:
-                other.hp = max(0, other.hp - 50)
-                other.flash_timer = 12
+                other.take_proj_dmg(50)
                 other.knockback = self.facing * 4
                 self.draw_scale = min(2.5, self.draw_scale + 0.2)
                 self.chomp_cooldown = FPS * 2
