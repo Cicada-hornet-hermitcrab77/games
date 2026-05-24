@@ -448,7 +448,7 @@ UNLOCK_CONDITIONS = {
     "Badb":                ("win_with",       "Morrigan",        3,  "Win 3 matches as Morrigan"),
     "Nemain":              ("win_with",       "Badb",            3,  "Win 3 matches as Badb"),
     "Sphinx":             ("win_on_stage",    "Desert",          5,  "Win 5 matches on Desert"),
-    "Wendigo":            ("win_on_stage",    "Tundra",          5,  "Win 5 matches on Tundra"),
+    "Wendigo":            ("win_on_stage",    "Arctic Tundra",   5,  "Win 5 matches on Arctic Tundra"),
     "Trailblazer":        ("total_wins",      None,              20, "Win 20 total matches"),
     "Aqrabuamelu":        ("win_with",       "Scorpio",         3,  "Win 3 matches as Scorpio"),
 }

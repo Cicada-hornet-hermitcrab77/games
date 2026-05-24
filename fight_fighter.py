@@ -432,12 +432,6 @@ class Fighter:
             self.phase_dodge_timer -= 1
         if self.phase_dodge_cd > 0:
             self.phase_dodge_cd -= 1
-        if self.char.get("flame_trail"):
-            if abs(self.vx) > 0.5 or (self.on_ground and self.action in ('punch', 'kick')):
-                self.flame_trail.append([int(self.x), int(self.y), 40])
-            self.flame_trail = [[x, y, t-1] for x, y, t in self.flame_trail if t > 1]
-            if self.trail_dmg_cd > 0:
-                self.trail_dmg_cd -= 1
         # Oathbreaker: first_strike idle timer (counts up while not punching)
         if self.char.get("first_strike"):
             if self.action != 'punch':
@@ -1033,6 +1027,14 @@ class Fighter:
                 self.flash_timer = 20
                 self.soul_switch_timer = FPS * 5
 
+        # Trailblazer: grow trail while moving, tick cooldown
+        if self.char.get("flame_trail"):
+            if abs(self.knockback) > 0.5 or (self.on_ground and self.action in ('punch', 'kick')):
+                self.flame_trail.append([int(self.x), int(self.y), 40])
+            self.flame_trail = [[x, y, t-1] for x, y, t in self.flame_trail if t > 1]
+            if self.trail_dmg_cd > 0:
+                self.trail_dmg_cd -= 1
+
         # Trailblazer: opponent touching any live trail tile takes fire damage
         if self.char.get("flame_trail") and self.trail_dmg_cd == 0 and self.flame_trail:
             for tx, ty, _ in self.flame_trail:
@@ -1114,7 +1116,7 @@ class Fighter:
                 dmg = random.randint(1, 40)
             # Marauder: +7 punch bonus while moving
             if self.char.get("moving_punch") and self.action == 'punch':
-                if abs(self.vx) > 0.5 or abs(self.knockback) > 0.5:
+                if abs(self.knockback) > 0.5:
                     dmg += 7
             # Oathbreaker: +10 on first punch after 90+ idle frames
             if self.char.get("first_strike") and self.action == 'punch':
@@ -1871,7 +1873,7 @@ class AIFighter(Fighter):
                 self.soul_switch_timer = FPS * 5
         # Trailblazer flame trail (AI version)
         if self.char.get("flame_trail"):
-            if abs(self.vx) > 0.5 or (self.on_ground and self.action in ('punch', 'kick')):
+            if abs(self.knockback) > 0.5 or (self.on_ground and self.action in ('punch', 'kick')):
                 self.flame_trail.append([int(self.x), int(self.y), 40])
             self.flame_trail = [[x, y, t-1] for x, y, t in self.flame_trail if t > 1]
             if self.trail_dmg_cd > 0:
