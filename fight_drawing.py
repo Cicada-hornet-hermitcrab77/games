@@ -2004,6 +2004,9 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pulse = 0.5 + 0.5 * math.sin(t * 0.008)
         for eye_ox in (-int(hd * 0.38), int(hd * 0.38)):
             ex, ey = hx + eye_ox, hy - int(hd * 0.1)
+            # Eye orbs
+            pygame.draw.circle(surface, (255, int(80 + 80*pulse), 0), (ex, ey), max(3, int(4*s)))
+            pygame.draw.circle(surface, (255, 255, int(80*pulse)),    (ex, ey), max(1, int(2*s)))
             # Laser beams shooting forward
             pygame.draw.line(surface, (255, int(60 + 60*pulse), 0),
                              (ex, ey),
@@ -2084,6 +2087,11 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
 
     elif char_name == "Medusa":
         t = pygame.time.get_ticks()
+        # Serpentine petrifying eyes
+        for _mex in (-int(hd*0.35), int(hd*0.35)):
+            pygame.draw.circle(surface, (220, 200, 30), (hx + _mex, hy), max(3, int(4*s)))
+            pygame.draw.circle(surface, (60, 180, 20),  (hx + _mex, hy), max(2, int(2*s)))
+            pygame.draw.circle(surface, (10, 10, 10),   (hx + _mex, hy), max(1, int(s)))
         # Snake hair — 6 snakes waving from the head
         for si in range(6):
             base_ang = si * 60
