@@ -1233,7 +1233,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                         if getattr(hz, cd_attr) == 0:
                             setattr(hz, cd_attr, HazardZone.TICK)
                             dmg = 8 if hz.htype == "lava" else 6 if hz.htype == "electric" else 5
-                            fighter.hp = max(0, fighter.hp - dmg)
+                            fighter.take_proj_dmg(dmg, flash=False)
                             fighter.flash_timer = max(fighter.flash_timer, 6)
                             if hz.htype == "lava" and fighter.fire_frames == 0:
                                 fighter.fire_tick = 60
@@ -2049,7 +2049,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     elif abs(attacker.x - victim.x) < 130:
                         attacker.drain_aura_timer = FPS * 2
                         if not victim.char.get("immune"):
-                            victim.hp  = max(0, victim.hp - 1)
+                            victim.take_proj_dmg(1, flash=False)
                             attacker.hp = min(attacker.max_hp, attacker.hp + 1)
 
             # Blazer: fire aura burns nearby opponent every 2 seconds
@@ -3056,7 +3056,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         correct_side = ((en.facing == 1  and p.x > en.x) or
                                         (en.facing == -1 and p.x < en.x))
                         if correct_side and abs((p.y - 60) - laser_y) < 35:
-                            p.hp = max(0, p.hp - 2)
+                            p.take_proj_dmg(2, flash=False)
                             p.flash_timer = 4
                             en.laser_hit_cd = 15
                             break
@@ -3092,7 +3092,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     by = (en.y - 60) + math.sin(en.boomerang_angle) * 55
                     for p in living:
                         if math.hypot(bx - p.x, by - (p.y - 60)) < 48:
-                            p.hp = max(0, p.hp - 8)
+                            p.take_proj_dmg(8, flash=False)
                             p.flash_timer = 6
                             en.boomerang_hit_cd = 30
                             break
@@ -3269,7 +3269,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         if h.collides(p):
                             pull = 1 if h.owner.x > p.x else -1
                             p.knockback = pull * 22
-                            p.hp = max(0, p.hp - 6); p.flash_timer = 8
+                            p.take_proj_dmg(6, flash=False); p.flash_timer = 8
                             h.alive = False; break
             en_hooks = [h for h in en_hooks if h.alive]
 
@@ -3279,7 +3279,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 if b.alive:
                     for p in living:
                         if b.collides(p):
-                            p.hp = max(0, p.hp - 10); p.flash_timer = 8
+                            p.take_proj_dmg(10, flash=False); p.flash_timer = 8
                             b.alive = False; break
             en_balls = [b for b in en_balls if b.alive]
 
@@ -3290,7 +3290,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     o.damaged = True
                     for p in living:
                         if math.hypot(o.x - p.x, o.y - (p.y - 60)) < o.EXPLODE_RADIUS:
-                            p.hp = max(0, p.hp - o.EXPLODE_DMG); p.flash_timer = 14
+                            p.take_proj_dmg(o.EXPLODE_DMG, flash=False); p.flash_timer = 14
             en_orbs = [o for o in en_orbs if o.alive]
 
             # Enemy bouncing balls → players
@@ -3299,7 +3299,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 if bb.alive and bb.hit_cd == 0:
                     for p in living:
                         if bb.collides(p):
-                            p.hp = max(0, p.hp - 10); p.flash_timer = 8
+                            p.take_proj_dmg(10, flash=False); p.flash_timer = 8
                             bb.hit_cd = BouncingBall.HIT_CD; break
             en_bounce_balls = [bb for bb in en_bounce_balls if bb.alive]
 
@@ -3335,7 +3335,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     pk.damaged = True
                     for p in living:
                         if math.hypot(pk.x - p.x, pk.y - (p.y - 60)) < pk.EXPLODE_RADIUS:
-                            p.hp = max(0, p.hp - pk.EXPLODE_DMG); p.flash_timer = 14
+                            p.take_proj_dmg(pk.EXPLODE_DMG, flash=False); p.flash_timer = 14
                 elif not pk.exploding and not pk.damaged:
                     for p in living:
                         if pk.collides(p):
@@ -3373,7 +3373,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 if w.can_hit():
                     for p in living:
                         if w.collides(p):
-                            p.hp = max(0, p.hp - w.DMG)
+                            p.take_proj_dmg(w.DMG, flash=False)
                             p.flash_timer = 10
                             p.knockback = w.facing * 14
                             w.hit_done = True
@@ -3430,7 +3430,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 else:
                     for p in living:
                         if abs(en.x - p.x) < 50:
-                            p.hp = max(0, p.hp - 4)
+                            p.take_proj_dmg(4, flash=False)
                             p.flash_timer = 4
                             en.chainsaw_cd = 15
                             break

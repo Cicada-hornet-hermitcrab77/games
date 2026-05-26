@@ -799,7 +799,7 @@ class JungleSnake:
         if (abs(self.x - target.x) < self.BITE_RANGE and
                 abs(self.y - target.y) < 70 and self.bite_cd == 0):
             dmg = self.BITE_DMG * (3 if self.possessed_timer > 0 else 1)
-            target.hp = max(0, target.hp - dmg)
+            target.take_proj_dmg(dmg, flash=False)
             target.flash_timer = 6
             self.bite_cd = self.BITE_COOLDOWN
 
@@ -879,7 +879,7 @@ class ComputerBug:
                 and abs(actual_target.x - self.x) < self.BITE_RANGE
                 and abs(actual_target.y - self.y) < 60):
             dmg = self.BITE_DMG * (3 if self.possessed_timer > 0 else 1)
-            actual_target.hp = max(0, actual_target.hp - dmg)
+            actual_target.take_proj_dmg(dmg, flash=False)
             actual_target.flash_timer = 8
             self.bite_timer = self.BITE_COOLDOWN
 

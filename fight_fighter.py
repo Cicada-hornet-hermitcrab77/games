@@ -1038,8 +1038,9 @@ class Fighter:
         if self.char.get("flame_trail") and self.trail_dmg_cd == 0 and self.flame_trail:
             for tx, ty, _ in self.flame_trail:
                 if abs(other.x - tx) < 28 and abs(other.y - ty) < 40:
-                    other.hp = max(0, other.hp - 3)
-                    other.flash_timer = max(other.flash_timer, 6)
+                    if not other.char.get("immune"):
+                        other.hp = max(0, other.hp - 3)
+                        other.flash_timer = max(other.flash_timer, 6)
                     if other.fire_frames == 0: other.fire_tick = 480
                     other.fire_frames = max(other.fire_frames, 120)
                     self.trail_dmg_cd = 30
@@ -1889,8 +1890,9 @@ class AIFighter(Fighter):
             if self.trail_dmg_cd == 0 and self.flame_trail:
                 for tx, ty, _ in self.flame_trail:
                     if abs(other.x - tx) < 28 and abs(other.y - ty) < 40:
-                        other.hp = max(0, other.hp - 3)
-                        other.flash_timer = max(other.flash_timer, 6)
+                        if not other.char.get("immune"):
+                            other.hp = max(0, other.hp - 3)
+                            other.flash_timer = max(other.flash_timer, 6)
                         if other.fire_frames == 0: other.fire_tick = 480
                         other.fire_frames = max(other.fire_frames, 120)
                         self.trail_dmg_cd = 30
