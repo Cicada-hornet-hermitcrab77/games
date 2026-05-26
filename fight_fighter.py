@@ -227,6 +227,7 @@ class Fighter:
         self.pending_arcane_orb  = False  # Arcanist: spawn arcane orb this frame
         self.flame_trail         = []    # Trailblazer: list of (x, y, ttl) trail segments
         self.trail_dmg_cd        = 0     # Trailblazer: cooldown before trail can damage again
+        self._prev_x             = float(x)  # for flame_trail movement detection
 
     def _reinit_ability_timers(self):
         c = self.char
@@ -945,6 +946,8 @@ class Fighter:
         if self.sticky_frames > 0:
             self.x = _sticky_save_x
 
+        self._prev_x = self.x   # for flame_trail movement detection
+
         # Ghost free float: hold jump = rise, hold duck = sink (independent of attack)
         if self.char.get("ghost_float") and _ec and self.hurt_timer == 0:
             jk = _ec.get('jump')
@@ -1028,7 +1031,7 @@ class Fighter:
 
         # Trailblazer: grow trail while moving, tick cooldown
         if self.char.get("flame_trail"):
-            if abs(self.knockback) > 0.5 or (self.on_ground and self.action in ('punch', 'kick')):
+            if abs(self.x - self._prev_x) > 0.5 or self.action in ('punch', 'kick'):
                 self.flame_trail.append([int(self.x), int(self.y), 40])
             self.flame_trail = [[x, y, t-1] for x, y, t in self.flame_trail if t > 1]
             if self.trail_dmg_cd > 0:
@@ -1882,7 +1885,7 @@ class AIFighter(Fighter):
                 self.soul_switch_timer = FPS * 5
         # Trailblazer flame trail (AI version)
         if self.char.get("flame_trail"):
-            if abs(self.knockback) > 0.5 or (self.on_ground and self.action in ('punch', 'kick')):
+            if abs(self.x - self._prev_x) > 0.5 or self.action in ('punch', 'kick'):
                 self.flame_trail.append([int(self.x), int(self.y), 40])
             self.flame_trail = [[x, y, t-1] for x, y, t in self.flame_trail if t > 1]
             if self.trail_dmg_cd > 0:
@@ -1985,6 +1988,8 @@ class AIFighter(Fighter):
         # Sticky: lock horizontal position (web, Sticker, etc.)
         if self.sticky_frames > 0:
             self.x = _ai_sticky_x
+
+        self._prev_x = self.x   # for flame_trail movement detection
 
         # Ghost AI: steer vertically toward the target
         if self.char.get("ghost_float") and other is not None:
