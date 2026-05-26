@@ -10918,22 +10918,56 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.circle(surface, (50, 140, 80), (_nneck_x, sy - int(12*s)), max(4, int(4*s)))
 
     elif char_name == "Chimera":
-        # Shifting multi-colored patchwork body (lion/goat/snake sections)
-        _t10 = pygame.time.get_ticks()
-        _ch10 = (_t10 // 10) % 360
-        _r10 = int(128 + 100 * math.sin(math.radians(_ch10)))
-        _g10 = int(80 + 60 * math.sin(math.radians(_ch10 + 120)))
-        _b10 = int(100 + 80 * math.sin(math.radians(_ch10 + 240)))
-        pygame.draw.rect(surface, (_r10, _g10, _b10),
-                         (sx - int(11*s), sy, int(22*s), bl//2), border_radius=max(2, int(3*s)))
-        pygame.draw.rect(surface, (_b10, _r10, _g10),
-                         (sx - int(11*s), sy + bl//2, int(22*s), bl//2), border_radius=max(2, int(3*s)))
-        # Mixed face: one horn + one ear
-        pygame.draw.polygon(surface, (_r10, _g10, 80),
-                            [(hx - int(hd*0.3), hy - hd), (hx - int(hd*0.15), hy - hd - int(10*s)),
-                             (hx - int(hd*0.0), hy - hd)])
-        pygame.draw.ellipse(surface, (_g10, _b10, 120),
-                            (hx + int(hd*0.4), hy - int(hd*0.5), int(hd*0.5), int(hd*0.8)))
+        import math as _m
+        # Tawny lion body
+        pygame.draw.rect(surface, (200, 140, 50),
+                         (sx - int(10*s), sy, int(20*s), bl), border_radius=max(2, int(3*s)))
+        # Goat spine-horns poking from the back
+        for _bhi in range(3):
+            _bhx = sx - facing * int((2 + _bhi*5)*s)
+            _bhy = sy + int(bl * (0.15 + _bhi*0.22))
+            pygame.draw.polygon(surface, (170, 150, 75), [
+                (_bhx - int(2*s), _bhy),
+                (_bhx, _bhy - int(8*s)),
+                (_bhx + int(2*s), _bhy),
+            ])
+        # Snake tail — winding segments from the back hip, animated
+        _tx = float(sx - facing * int(8*s))
+        _ty = float(sy + int(bl * 0.75))
+        _t_ms = pygame.time.get_ticks()
+        _tnx, _tny = _tx, _ty
+        for _ti in range(7):
+            _wave = _m.sin(_t_ms * 0.004 + _ti * 0.9) * int(5*s)
+            _tnx = _tx - facing * int((6 + _ti*9)*s)
+            _tny = _ty + _wave + _ti * int(2*s)
+            _tr = max(2, int((5 - _ti*0.5)*s))
+            pygame.draw.circle(surface, (40, 155, 60), (int(_tnx), int(_tny)), _tr)
+        # Snake head at tip with forked tongue
+        pygame.draw.circle(surface, (25, 130, 45), (int(_tnx), int(_tny)), max(3, int(4*s)))
+        pygame.draw.line(surface, (220, 30, 30),
+                         (int(_tnx), int(_tny)),
+                         (int(_tnx) - facing*int(5*s), int(_tny) - int(2*s)), 1)
+        pygame.draw.line(surface, (220, 30, 30),
+                         (int(_tnx), int(_tny)),
+                         (int(_tnx) - facing*int(5*s), int(_tny) + int(2*s)), 1)
+        # Lion head — dark mane ring then face
+        pygame.draw.circle(surface, (110, 65, 10), (hx, hy), hd + int(6*s))
+        pygame.draw.circle(surface, (195, 135, 50), (hx, hy), hd)
+        # Lion snout
+        pygame.draw.ellipse(surface, (220, 175, 85),
+                            (hx + facing*int(hd*0.15) - int(hd*0.3),
+                             hy - int(hd*0.15), int(hd*0.6), int(hd*0.45)))
+        # Curling goat horns above the lion head
+        for _gs in (-1, 1):
+            _ghx = hx + _gs * int(hd*0.55)
+            _ghy = hy - int(hd*0.65)
+            pygame.draw.line(surface, (190, 165, 90),
+                             (_ghx, _ghy), (_ghx + _gs*int(5*s), _ghy - int(9*s)),
+                             max(2, int(2*s)))
+            pygame.draw.line(surface, (190, 165, 90),
+                             (_ghx + _gs*int(5*s), _ghy - int(9*s)),
+                             (_ghx + _gs*int(2*s), _ghy - int(15*s)),
+                             max(1, int(s)))
 
     elif char_name == "Fortune":
         # Gold and white gambler's jacket with coin-spin aura
