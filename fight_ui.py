@@ -7,6 +7,7 @@ import fight_network as _net
 from constants import *
 from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS
 from fight_drawing import draw_bg, draw_stickman
+from fight_seasonal import SEASONAL_EVENTS, SEASONAL_SHOP_CHARS, get_active_event, draw_seasonal_decos
 
 # Shared flag: set True when player types "42" on the main menu
 _type42_typed = [False]
@@ -590,6 +591,7 @@ def stage_select():
         ov = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
         ov.fill((0, 0, 0, 120))
         screen.blit(ov, (0, 0))
+        draw_seasonal_decos(screen)
 
         title = font_large.render("SELECT STAGE", True, YELLOW)
         screen.blit(title, (WIDTH//2 - title.get_width()//2, 30))
@@ -628,8 +630,8 @@ def stage_select():
 # ---------------------------------------------------------------------------
 
 def mode_select():
-    """Returns ('1p', difficulty), '2p', 'survival_1p', 'survival_2p', or 'online'."""
-    selected = 0   # 0=1P, 1=2P, 2=SURVIVAL, 3=ONLINE
+    """Returns ('1p', difficulty), '2p', 'survival_1p', 'survival_2p', 'online', or 'seasonal_shop'."""
+    selected = 0   # 0=1P, 1=2P, 2=SURVIVAL, 3=ONLINE, 4=SHOP
     difficulty_idx = 1
     difficulties = ['easy', 'medium', 'hard', 'super_hard', 'super_super_hard', 'mega_hard']
     diff_colors  = [GREEN, YELLOW, RED, PURPLE, CYAN, ORANGE]
@@ -638,11 +640,11 @@ def mode_select():
     survival_players = 0   # 0=1P survival, 1=2P survival
     preview_t = 0.0
 
-    # 4 cards layout
-    card_w, card_h = 155, 240
+    # 5 cards layout
+    card_w, card_h = 140, 240
     GAP   = 8
-    START = WIDTH // 2 - (4 * card_w + 3 * GAP) // 2
-    card_xs = [START + i * (card_w + GAP) for i in range(4)]
+    START = WIDTH // 2 - (5 * card_w + 4 * GAP) // 2
+    card_xs = [START + i * (card_w + GAP) for i in range(5)]
 
     _type42_buf = ""
     _secret_seq = "all_the_secrets_of_the_world"
@@ -653,7 +655,8 @@ def mode_select():
         if selected == 0:   return ('1p', difficulties[difficulty_idx])
         elif selected == 1: return '2p'
         elif selected == 2: return 'survival_2p' if survival_players else 'survival_1p'
-        else:               return 'online'
+        elif selected == 3: return 'online'
+        else:               return 'seasonal_shop'
 
     while True:
         clock.tick(FPS)
@@ -672,7 +675,7 @@ def mode_select():
                         selected = _ci
                         break
                 # Difficulty ▲/▼ touch (drawn at list_x, list_y area)
-                if selected == 0:
+                if selected == 0 and len(card_xs) > 0:
                     _lx, _ly = card_xs[0] + 10, 428
                     if pygame.Rect(_lx, _ly - 26, 60, 22).collidepoint(_mp):
                         difficulty_idx = (difficulty_idx - 1) % len(difficulties)
@@ -707,9 +710,9 @@ def mode_select():
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit(); sys.exit()
                 if event.key in (pygame.K_LEFT, pygame.K_a):
-                    selected = (selected - 1) % 4
+                    selected = (selected - 1) % 5
                 if event.key in (pygame.K_RIGHT, pygame.K_d):
-                    selected = (selected + 1) % 4
+                    selected = (selected + 1) % 5
                 if selected == 0:   # 1P: difficulty picker
                     if event.key in (pygame.K_UP, pygame.K_w):
                         difficulty_idx = (difficulty_idx - 1) % len(difficulties)
@@ -726,35 +729,54 @@ def mode_select():
                     touch_p1_enabled[0] = not touch_p1_enabled[0]
                     touch_p2_enabled[0] = touch_p1_enabled[0]
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    if selected == 0:
-                        return ('1p', difficulties[difficulty_idx])
-                    elif selected == 1:
-                        return '2p'
-                    elif selected == 2:
-                        return 'survival_2p' if survival_players else 'survival_1p'
-                    else:
-                        return 'online'
+                    return _mode_confirm()
 
         screen.fill(DARK)
+        draw_seasonal_decos(screen)
         title = font_large.render("STICKMAN FIGHTER", True, YELLOW)
-        screen.blit(title, (WIDTH//2 - title.get_width()//2, 30))
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, 58))
+
+        # Show active event name if any
+        _active_ev = get_active_event()
+        if _active_ev:
+            _sm, _sd = _active_ev['start']
+            _em, _ed = _active_ev['end']
+            import calendar
+            _smn = calendar.month_abbr[_sm]
+            _emn = calendar.month_abbr[_em]
+            if (_sm, _sd) == (_em, _ed):
+                _date_str = f"{_smn} {_sd}"
+            else:
+                _date_str = f"{_smn} {_sd} – {_emn} {_ed}"
+            _ev_lbl = font_tiny.render(
+                f"{_active_ev['name']} is here only during {_date_str}!", True, (255, 200, 0))
+            screen.blit(_ev_lbl, (WIDTH//2 - _ev_lbl.get_width()//2, 102))
 
         cards = [
-            (card_xs[0], "1 PLAYER",  "vs CPU",    BLUE),
-            (card_xs[1], "2 PLAYERS", "local",      ORANGE),
-            (card_xs[2], "SURVIVAL",  "endless",    GREEN),
-            (card_xs[3], "ONLINE",    "internet",   CYAN),
+            (card_xs[0], "1 PLAYER",  "vs CPU",     BLUE),
+            (card_xs[1], "2 PLAYERS", "local",       ORANGE),
+            (card_xs[2], "SURVIVAL",  "endless",     GREEN),
+            (card_xs[3], "ONLINE",    "internet",    CYAN),
+            (card_xs[4], "SHOP",      "seasonal",    (255, 200, 0)),
         ]
         for ci, (cx, top, sub, col) in enumerate(cards):
             border = WHITE if ci == selected else GRAY
-            pygame.draw.rect(screen, (50,50,50), (cx, 140, card_w, card_h), border_radius=12)
-            pygame.draw.rect(screen, border,     (cx, 140, card_w, card_h), 3, border_radius=12)
+            bg_col = (50, 45, 10) if ci == 4 else (50, 50, 50)
+            pygame.draw.rect(screen, bg_col, (cx, 140, card_w, card_h), border_radius=12)
+            pygame.draw.rect(screen, border,  (cx, 140, card_w, card_h), 3, border_radius=12)
             lbl = font_medium.render(top, True, col)
             screen.blit(lbl, (cx + card_w//2 - lbl.get_width()//2, 150))
             sl = font_small.render(sub, True, GRAY)
             screen.blit(sl, (cx + card_w//2 - sl.get_width()//2, 190))
-            draw_stickman(screen, cx + card_w//2 - 25, 140 + card_h - 30, BLUE, 1, 'walk', preview_t)
-            draw_stickman(screen, cx + card_w//2 + 25, 140 + card_h - 30, RED, -1, 'idle', 0.0)
+            if ci == 4:
+                # Draw coin symbol instead of stickman
+                pygame.draw.circle(screen, (255, 200, 0), (cx + card_w//2, 140 + card_h - 55), 28)
+                pygame.draw.circle(screen, (200, 150, 0), (cx + card_w//2, 140 + card_h - 55), 28, 3)
+                _clbl = font_medium.render("$", True, (120, 90, 0))
+                screen.blit(_clbl, (cx + card_w//2 - _clbl.get_width()//2, 140 + card_h - 55 - _clbl.get_height()//2))
+            else:
+                draw_stickman(screen, cx + card_w//2 - 25, 140 + card_h - 30, BLUE, 1, 'walk', preview_t)
+                draw_stickman(screen, cx + card_w//2 + 25, 140 + card_h - 30, RED, -1, 'idle', 0.0)
             if ci == selected:
                 sel_txt = font_tiny.render("ENTER / SPACE to select", True, WHITE)
                 screen.blit(sel_txt, (cx + card_w//2 - sel_txt.get_width()//2, 390))
@@ -939,6 +961,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
 
         # ── Background ──────────────────────────────────────────────────────
         screen.fill((18, 18, 28))
+        draw_seasonal_decos(screen)
 
         # Title bar
         pygame.draw.rect(screen, (30, 30, 48), (0, 0, WIDTH, GY - 2))
@@ -2287,4 +2310,317 @@ def online_menu(userdata):
 
         hint = font_tiny.render("↑/↓  ENTER to select   ESC = back", True, GRAY)
         screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 28))
+        pygame.display.flip()
+
+
+# ---------------------------------------------------------------------------
+# Seasonal shop
+# ---------------------------------------------------------------------------
+
+def seasonal_shop(screen, clock, stats, unlocked):
+    """Seasonal shop screen. Modifies stats and unlocked in-place."""
+    from fight_data import CHARACTERS as _CHARS
+
+    # Build a quick lookup: char name -> char dict
+    _char_map = {c["name"]: c for c in _CHARS}
+
+    COIN_COL  = (255, 200, 0)
+    LOCK_COL  = (100, 100, 100)
+    BUY_COL   = (60, 180, 60)
+    OWNED_COL = (60, 120, 200)
+
+    # Left panel dimensions
+    LP_X, LP_W = 10, 210
+    # Right panel
+    RP_X = LP_X + LP_W + 10
+    RP_W = WIDTH - RP_X - 10
+
+    # Character card dimensions inside right panel
+    CARD_W, CARD_H = 148, 108
+    CARD_GAP = 8
+    CARDS_PER_ROW = max(1, (RP_W + CARD_GAP) // (CARD_W + CARD_GAP))
+
+    # Locked section scroll
+    locked_scroll = 0
+
+    def _draw_coin(surf, cx, cy, r, alpha=255):
+        pygame.draw.circle(surf, (255, 200, 0, alpha) if hasattr(surf, '_pixels_address') else (255, 200, 0),
+                           (cx, cy), r)
+        pygame.draw.circle(surf, (180, 140, 0, alpha) if hasattr(surf, '_pixels_address') else (180, 140, 0),
+                           (cx, cy), r, 2)
+
+    def _draw_char_card(surf, x, y, w, h, shop_item, owned, can_buy, active):
+        name  = shop_item["name"]
+        cost  = shop_item["cost"]
+        ch    = _char_map.get(name, {})
+        col   = ch.get("color", GRAY)
+
+        # Card background
+        bg = (40, 40, 40) if active else (28, 28, 28)
+        border = col if active else (70, 70, 70)
+        pygame.draw.rect(surf, bg,     (x, y, w, h), border_radius=8)
+        pygame.draw.rect(surf, border, (x, y, w, h), 2, border_radius=8)
+
+        # Stickman color swatch
+        pygame.draw.circle(surf, col, (x + w // 2, y + 30), 14)
+
+        # Name
+        nm = font_small.render(name, True, WHITE)
+        surf.blit(nm, (x + w//2 - nm.get_width()//2, y + 50))
+
+        # Cost line with coin
+        cost_txt = font_small.render(str(cost), True, COIN_COL)
+        pygame.draw.circle(surf, COIN_COL, (x + w//2 - cost_txt.get_width()//2 - 10, y + 72), 6)
+        pygame.draw.circle(surf, (180, 140, 0), (x + w//2 - cost_txt.get_width()//2 - 10, y + 72), 6, 1)
+        surf.blit(cost_txt, (x + w//2 - cost_txt.get_width()//2 + 4, y + 65))
+
+        # Status button
+        btn_rect = pygame.Rect(x + 10, y + h - 26, w - 20, 20)
+        if owned:
+            pygame.draw.rect(surf, OWNED_COL, btn_rect, border_radius=5)
+            lbl = font_tiny.render("OWNED", True, WHITE)
+        elif can_buy:
+            pygame.draw.rect(surf, BUY_COL, btn_rect, border_radius=5)
+            lbl = font_tiny.render("BUY", True, WHITE)
+        else:
+            pygame.draw.rect(surf, (60, 60, 60), btn_rect, border_radius=5)
+            coins = stats.get("seasonal_coins", 0)
+            lbl = font_tiny.render(f"NEED {cost - coins} more", True, GRAY)
+        surf.blit(lbl, (btn_rect.centerx - lbl.get_width()//2,
+                        btn_rect.centery - lbl.get_height()//2))
+
+    active_ev = get_active_event()
+    hovered   = None   # (section, index) of card under cursor
+    _yuletide_gift_msg = 0   # frames to show gift notification
+
+    # Yuletide Gatherings: free $20 gift on first visit each year
+    import datetime as _dt
+    _today = _dt.date.today()
+    if active_ev and active_ev["name"] == "Yuletide Gatherings":
+        _gift_key = f"yuletide_gift_{_today.year}"
+        if not stats.get(_gift_key):
+            stats[_gift_key] = True
+            stats["seasonal_coins"] = stats.get("seasonal_coins", 0) + 20
+            _yuletide_gift_msg = FPS * 4
+
+    while True:
+        clock.tick(FPS)
+        coins         = stats.get("seasonal_coins", 0)
+        purchased     = stats.get("seasonal_purchased", [])
+        active_ev     = get_active_event()
+        active_ev_name = active_ev["name"] if active_ev else None
+
+        # Partition shop chars into available-now vs locked
+        available = [s for s in SEASONAL_SHOP_CHARS if s["event"] == active_ev_name]
+        locked    = [s for s in SEASONAL_SHOP_CHARS if s["event"] != active_ev_name]
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return
+                if event.key in (pygame.K_UP, pygame.K_w):
+                    locked_scroll = max(0, locked_scroll - 1)
+                if event.key in (pygame.K_DOWN, pygame.K_s):
+                    max_scroll = max(0, (len(locked) - 1) // CARDS_PER_ROW - 2)
+                    locked_scroll = min(max_scroll, locked_scroll + 1)
+
+            if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                mx, my = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
+
+                # BACK button
+                if pygame.Rect(LP_X, HEIGHT - 52, LP_W, 38).collidepoint(mx, my):
+                    return
+
+                # Scroll locked section
+                _lock_scroll_up   = pygame.Rect(RP_X, 320 - 22, RP_W, 18)
+                _lock_scroll_down = pygame.Rect(RP_X, HEIGHT - 52, RP_W // 3, 18)
+                if _lock_scroll_up.collidepoint(mx, my):
+                    locked_scroll = max(0, locked_scroll - 1)
+                if _lock_scroll_down.collidepoint(mx, my):
+                    max_scroll = max(0, (len(locked) - 1) // CARDS_PER_ROW - 2)
+                    locked_scroll = min(max_scroll, locked_scroll + 1)
+
+                # Available-now cards
+                for i, shop_item in enumerate(available):
+                    col_idx = i % CARDS_PER_ROW
+                    row_idx = i // CARDS_PER_ROW
+                    cx = RP_X + col_idx * (CARD_W + CARD_GAP)
+                    cy = 130 + row_idx * (CARD_H + CARD_GAP)
+                    name = shop_item["name"]
+                    cost = shop_item["cost"]
+                    owned   = name in unlocked
+                    can_buy = not owned and coins >= cost
+                    btn_rect = pygame.Rect(cx + 10, cy + CARD_H - 26, CARD_W - 20, 20)
+                    if btn_rect.collidepoint(mx, my) and can_buy:
+                        stats["seasonal_coins"]    = coins - cost
+                        plist = list(stats.get("seasonal_purchased", []))
+                        if name not in plist:
+                            plist.append(name)
+                        stats["seasonal_purchased"] = plist
+                        unlocked.add(name)
+
+                # Locked cards (non-interactive, just display)
+
+        # ── Draw ────────────────────────────────────────────────────────────
+        screen.fill((12, 12, 20))
+        draw_seasonal_decos(screen)
+
+        # ── Left panel ──────────────────────────────────────────────────────
+        pygame.draw.rect(screen, (22, 22, 34), (LP_X, 60, LP_W, HEIGHT - 70), border_radius=10)
+        pygame.draw.rect(screen, (60, 60, 90), (LP_X, 60, LP_W, HEIGHT - 70), 1, border_radius=10)
+
+        # Speech bubble — how to earn coins
+        bub_y = 74
+        bub_h = 220
+        pygame.draw.rect(screen, (30, 30, 50), (LP_X + 8, bub_y, LP_W - 16, bub_h), border_radius=8)
+        pygame.draw.rect(screen, COIN_COL,     (LP_X + 8, bub_y, LP_W - 16, bub_h), 2, border_radius=8)
+        _how_lbl = font_small.render("HOW TO EARN", True, COIN_COL)
+        screen.blit(_how_lbl, (LP_X + LP_W//2 - _how_lbl.get_width()//2, bub_y + 8))
+        pygame.draw.circle(screen, COIN_COL, (LP_X + LP_W//2, bub_y + 42), 16)
+        pygame.draw.circle(screen, (180, 140, 0), (LP_X + LP_W//2, bub_y + 42), 16, 2)
+        _clbl = font_medium.render("$", True, (80, 60, 0))
+        screen.blit(_clbl, (LP_X + LP_W//2 - _clbl.get_width()//2, bub_y + 42 - _clbl.get_height()//2))
+        _lines = [
+            "Win a match",
+            "during any",
+            "seasonal event",
+            "to earn",
+            "1 Seasonal Coin.",
+            "",
+            "Coins carry over",
+            "between events.",
+        ]
+        for li, line in enumerate(_lines):
+            lt = font_tiny.render(line, True, (200, 200, 220))
+            screen.blit(lt, (LP_X + LP_W//2 - lt.get_width()//2, bub_y + 70 + li * 18))
+
+        # Coin balance
+        _bal_y = bub_y + bub_h + 16
+        pygame.draw.rect(screen, (30, 30, 50), (LP_X + 8, _bal_y, LP_W - 16, 44), border_radius=8)
+        pygame.draw.rect(screen, COIN_COL,     (LP_X + 8, _bal_y, LP_W - 16, 44), 2, border_radius=8)
+        pygame.draw.circle(screen, COIN_COL, (LP_X + 20, _bal_y + 22), 10)
+        pygame.draw.circle(screen, (180, 140, 0), (LP_X + 20, _bal_y + 22), 10, 2)
+        _bal_txt = font_medium.render(str(stats.get("seasonal_coins", 0)), True, COIN_COL)
+        screen.blit(_bal_txt, (LP_X + 34, _bal_y + 22 - _bal_txt.get_height()//2))
+        _bal_sub = font_tiny.render("coins", True, (160, 160, 160))
+        screen.blit(_bal_sub, (LP_X + 34 + _bal_txt.get_width() + 4, _bal_y + 22 - _bal_sub.get_height()//2))
+
+        # Active event name
+        if active_ev_name:
+            _ev_t = font_tiny.render(f"Event: {active_ev_name}", True, (150, 220, 150))
+            screen.blit(_ev_t, (LP_X + LP_W//2 - _ev_t.get_width()//2, _bal_y + 54))
+        else:
+            _ev_t = font_tiny.render("No event active", True, LOCK_COL)
+            screen.blit(_ev_t, (LP_X + LP_W//2 - _ev_t.get_width()//2, _bal_y + 54))
+
+        # BACK button
+        _back_rect = pygame.Rect(LP_X, HEIGHT - 52, LP_W, 38)
+        pygame.draw.rect(screen, (60, 30, 30), _back_rect, border_radius=8)
+        pygame.draw.rect(screen, (180, 60, 60), _back_rect, 2, border_radius=8)
+        _bk = font_small.render("◄ BACK", True, WHITE)
+        screen.blit(_bk, (_back_rect.centerx - _bk.get_width()//2,
+                          _back_rect.centery - _bk.get_height()//2))
+
+        # ── Right panel: title ───────────────────────────────────────────────
+        _title = font_medium.render("SEASONAL SHOP", True, COIN_COL)
+        screen.blit(_title, (RP_X, 10))
+        _esc_hint = font_tiny.render("ESC to go back", True, GRAY)
+        screen.blit(_esc_hint, (WIDTH - _esc_hint.get_width() - 8, 14))
+
+        # ── Available now section ────────────────────────────────────────────
+        _sec_y = 36
+        if active_ev_name:
+            _hdr = font_small.render(f"AVAILABLE NOW — {active_ev_name.upper()}", True, (150, 255, 150))
+        else:
+            _hdr = font_small.render("AVAILABLE NOW", True, LOCK_COL)
+        screen.blit(_hdr, (RP_X, _sec_y))
+
+        _card_start_y = _sec_y + 22
+        if not available:
+            _no_ev = font_small.render("No characters available — wait for an event!", True, LOCK_COL)
+            screen.blit(_no_ev, (RP_X, _card_start_y + 10))
+            _avail_end_y = _card_start_y + 44
+        else:
+            for i, shop_item in enumerate(available):
+                col_idx = i % CARDS_PER_ROW
+                row_idx = i // CARDS_PER_ROW
+                cx = RP_X + col_idx * (CARD_W + CARD_GAP)
+                cy = _card_start_y + row_idx * (CARD_H + CARD_GAP)
+                name  = shop_item["name"]
+                owned   = name in unlocked
+                can_buy = not owned and stats.get("seasonal_coins", 0) >= shop_item["cost"]
+                _draw_char_card(screen, cx, cy, CARD_W, CARD_H, shop_item, owned, can_buy, True)
+            rows_avail  = max(1, (len(available) + CARDS_PER_ROW - 1) // CARDS_PER_ROW)
+            _avail_end_y = _card_start_y + rows_avail * (CARD_H + CARD_GAP)
+
+        # ── Divider ──────────────────────────────────────────────────────────
+        _div_y = _avail_end_y + 6
+        pygame.draw.line(screen, (60, 60, 80), (RP_X, _div_y), (WIDTH - 10, _div_y), 1)
+
+        # ── Locked section ───────────────────────────────────────────────────
+        _lock_y = _div_y + 10
+        _lock_hdr = font_small.render("LOCKED  (available during their event)", True, LOCK_COL)
+        screen.blit(_lock_hdr, (RP_X, _lock_y))
+        _lock_y += 22
+
+        if locked:
+            # Scroll indicator
+            total_locked_rows = (len(locked) + CARDS_PER_ROW - 1) // CARDS_PER_ROW
+            visible_h = HEIGHT - _lock_y - 30
+            visible_rows = max(1, visible_h // (CARD_H + CARD_GAP))
+            max_scroll = max(0, total_locked_rows - visible_rows)
+            locked_scroll = min(locked_scroll, max_scroll)
+
+            if locked_scroll > 0:
+                _up = font_tiny.render("▲ scroll up", True, GRAY)
+                screen.blit(_up, (RP_X, _lock_y - 18))
+
+            # Clip drawing to locked area
+            clip_rect = pygame.Rect(RP_X - 4, _lock_y - 2, RP_W + 8, HEIGHT - _lock_y - 28)
+            screen.set_clip(clip_rect)
+
+            for i, shop_item in enumerate(locked):
+                row_idx = i // CARDS_PER_ROW
+                col_idx = i % CARDS_PER_ROW
+                draw_row = row_idx - locked_scroll
+                if draw_row < 0 or draw_row >= visible_rows:
+                    continue
+                cx = RP_X + col_idx * (CARD_W + CARD_GAP)
+                cy = _lock_y + draw_row * (CARD_H + CARD_GAP)
+                name  = shop_item["name"]
+                owned = name in unlocked
+                # Draw card with event label instead of buy button
+                ch    = _char_map.get(name, {})
+                col   = ch.get("color", GRAY)
+                bg_c  = (25, 25, 35) if owned else (20, 20, 28)
+                brd_c = OWNED_COL if owned else (50, 50, 70)
+                pygame.draw.rect(screen, bg_c,  (cx, cy, CARD_W, CARD_H), border_radius=8)
+                pygame.draw.rect(screen, brd_c, (cx, cy, CARD_W, CARD_H), 2, border_radius=8)
+                # Color swatch (dimmed if not owned)
+                swatch_col = col if owned else tuple(c // 3 for c in col)
+                pygame.draw.circle(screen, swatch_col, (cx + CARD_W//2, cy + 26), 12)
+                _nm = font_small.render(name, True, WHITE if owned else LOCK_COL)
+                screen.blit(_nm, (cx + CARD_W//2 - _nm.get_width()//2, cy + 44))
+                _ev = font_tiny.render(shop_item["event"], True, (120, 180, 120) if not owned else (80, 150, 255))
+                screen.blit(_ev, (cx + CARD_W//2 - _ev.get_width()//2, cy + 64))
+                if owned:
+                    _own = font_tiny.render("OWNED", True, OWNED_COL)
+                    screen.blit(_own, (cx + CARD_W//2 - _own.get_width()//2, cy + CARD_H - 20))
+                else:
+                    _cost = font_tiny.render(f"{shop_item['cost']} coins", True, COIN_COL)
+                    screen.blit(_cost, (cx + CARD_W//2 - _cost.get_width()//2, cy + CARD_H - 20))
+
+            screen.set_clip(None)
+
+            if locked_scroll < max_scroll:
+                _dn = font_tiny.render("▼ scroll down", True, GRAY)
+                screen.blit(_dn, (RP_X, HEIGHT - 24))
+
+        if _yuletide_gift_msg > 0:
+            _yuletide_gift_msg -= 1
+            _gm = font_small.render("Ho ho ho! +$20 Yuletide gift!", True, (255, 230, 100))
+            screen.blit(_gm, (WIDTH//2 - _gm.get_width()//2, HEIGHT - 60))
+
         pygame.display.flip()

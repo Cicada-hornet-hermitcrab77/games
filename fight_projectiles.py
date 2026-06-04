@@ -1610,3 +1610,225 @@ class ArcaneOrb:
 
     def collides(self, fighter):
         return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
+# SunBeam  (Solara — auto-fires every 3 s; shocks and burns on hit)
+# ---------------------------------------------------------------------------
+
+class SunBeam:
+    RADIUS = 9
+    SPEED  = 11
+    DMG    = 10
+
+    def __init__(self, x, y, facing, owner):
+        self.x     = float(x)
+        self.y     = float(y)
+        self.vx    = self.SPEED * facing
+        self.owner = owner
+        self.alive = True
+        self._t    = 0
+
+    def update(self):
+        self._t += 1
+        self.x  += self.vx
+        if self.x < 0 or self.x > WIDTH:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pulse  = (self._t // 3) % 2 == 0
+        core   = (255, 240, 80) if pulse else (255, 200, 30)
+        pygame.draw.circle(surface, core, (cx, cy), self.RADIUS)
+        pygame.draw.circle(surface, (255, 255, 200), (cx, cy), self.RADIUS - 4)
+        for i in range(6):
+            ang = math.pi * i / 3 + self._t * 0.18
+            rx  = int(math.cos(ang) * (self.RADIUS + 5))
+            ry  = int(math.sin(ang) * (self.RADIUS + 5))
+            pygame.draw.line(surface, (255, 180, 0), (cx, cy), (cx + rx, cy + ry), 2)
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
+# LibertyDove  (Stickman of Liberty companion — flies around, drops bombs)
+# ---------------------------------------------------------------------------
+
+class LibertyDove:
+    BOMB_INTERVAL = FPS * 3
+    LIFESPAN      = FPS * 10
+
+    def __init__(self, x, y, owner):
+        self.x          = float(x)
+        self._base_y    = float(max(y - 150, 80))
+        self.y          = self._base_y
+        self.vx         = 3.0
+        self.owner      = owner
+        self.alive      = True
+        self._life      = self.LIFESPAN
+        self._bomb_cd   = self.BOMB_INTERVAL
+        self.pending_bomb = False
+        self._t         = 0
+
+    def update(self):
+        self._t      += 1
+        self._life   -= 1
+        self._bomb_cd -= 1
+        if self._life <= 0:
+            self.alive = False
+            return
+        self.x += self.vx
+        if self.x < 80 or self.x > WIDTH - 80:
+            self.vx = -self.vx
+        self.y = self._base_y + math.sin(self._t * 0.05) * 40
+        if self._bomb_cd <= 0:
+            self.pending_bomb = True
+            self._bomb_cd = self.BOMB_INTERVAL
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pygame.draw.ellipse(surface, (240, 240, 240), (cx - 10, cy - 5, 20, 10))
+        flap = (self._t // 5) % 2
+        wy   = cy - (9 if flap else 3)
+        pygame.draw.ellipse(surface, (255, 255, 255), (cx - 16, wy - 4, 14, 7))
+        pygame.draw.ellipse(surface, (255, 255, 255), (cx + 2,  wy - 4, 14, 7))
+        pygame.draw.line(surface, (220, 180, 80), (cx + 9, cy - 1), (cx + 13, cy), 2)
+        pygame.draw.circle(surface, (50, 50, 50), (cx + 7, cy - 2), 2)
+
+
+# ---------------------------------------------------------------------------
+# PumpkinSeed  (Jack O' Slash tank mode kick — fast small seed projectile)
+# ---------------------------------------------------------------------------
+
+class PumpkinSeed:
+    RADIUS = 4
+    SPEED  = 14
+    DMG    = 8
+
+    def __init__(self, x, y, facing, owner):
+        self.x     = float(x)
+        self.y     = float(y)
+        self.vx    = self.SPEED * facing
+        self.owner = owner
+        self.alive = True
+        self._t    = 0
+
+    def update(self):
+        self._t += 1
+        self.x  += self.vx
+        if self.x < 0 or self.x > WIDTH:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pygame.draw.ellipse(surface, (200, 180, 80),
+                            (cx - self.RADIUS - 1, cy - self.RADIUS,
+                             self.RADIUS * 3, self.RADIUS * 2))
+        pygame.draw.ellipse(surface, (240, 220, 140),
+                            (cx - self.RADIUS, cy - self.RADIUS + 1,
+                             self.RADIUS * 2, self.RADIUS - 1))
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
+# FruitProj — Cornucopia's fruit attack projectiles
+# ---------------------------------------------------------------------------
+
+class FruitProj:
+    SPEED = 9
+
+    FRUIT_DATA = {
+        'cranberry':  ((200,  30,  60),  6,  8, 'none'),
+        'pear':       ((170, 220,  50), 10, 10, 'slow'),
+        'apple':      ((220,  50,  30), 12, 18, 'explode'),
+        'banana':     ((255, 210,  30), 10,  8, 'slip'),
+        'strawberry': ((220,  30,  70),  9,  9, 'fire'),
+        'orange':     ((255, 140,  20), 10,  8, 'shock'),
+        'lemon':      ((255, 235,  50),  8,  7, 'acid'),
+        'blackberry': (( 60,  10,  80),  9, 10, 'freeze'),
+    }
+
+    def __init__(self, x, y, facing, owner, fruit_type, vy=0.0):
+        self.x = float(x)
+        self.y = float(y)
+        self.vx = facing * self.SPEED
+        self.vy = float(vy)
+        self.owner = owner
+        self.fruit_type = fruit_type
+        info = self.FRUIT_DATA.get(fruit_type, ((200, 200, 200), 8, 8, 'none'))
+        self.color, self.radius, self.dmg, self.effect = info
+        self.alive = True
+        self._gravity = (vy != 0.0)
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+        if self._gravity:
+            self.vy += 0.5
+        if self.x < -20 or self.x > WIDTH + 20:
+            self.alive = False
+        if self.y > GROUND_Y + 20:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        r = self.radius
+        pygame.draw.circle(surface, self.color, (cx, cy), r)
+        shine = tuple(min(255, c + 70) for c in self.color)
+        pygame.draw.circle(surface, shine, (cx - r//3, cy - r//3), max(2, r//3))
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.radius + 28
+
+
+# ---------------------------------------------------------------------------
+# CoalProj — Saint Nix's 4 coal projectile types
+# ---------------------------------------------------------------------------
+
+class CoalProj:
+    SPEED = 10
+
+    COAL_DATA = [
+        (( 60,  60,  60),  9, 14, 'none'),    # 0 normal coal
+        ((200,  80,  20),  9, 10, 'fire'),    # 1 burncoal
+        (( 50,  50,  50), 18, 22, 'none'),    # 2 big coal
+        ((180, 220, 255),  9, 10, 'freeze'),  # 3 freeze coal
+    ]
+
+    def __init__(self, x, y, facing, owner, coal_idx):
+        self.x = float(x)
+        self.y = float(y)
+        self.vx = facing * self.SPEED
+        self.owner = owner
+        self.coal_idx = coal_idx
+        info = self.COAL_DATA[coal_idx]
+        self.color, self.radius, self.dmg, self.effect = info
+        self.alive = True
+        self._t = 0
+
+    def update(self):
+        self._t += 1
+        self.x  += self.vx
+        if self.x < -20 or self.x > WIDTH + 20:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        r = self.radius
+        pygame.draw.circle(surface, self.color, (cx, cy), r)
+        t = self._t
+        if self.coal_idx == 1:
+            gr = int(30 + 20 * abs(math.sin(t * 0.2)))
+            pygame.draw.circle(surface, (255, gr, 0), (cx, cy), r - 2)
+        elif self.coal_idx == 3:
+            pygame.draw.circle(surface, (230, 245, 255), (cx - 2, cy - 2), max(2, r // 3))
+        elif self.coal_idx == 2:
+            pygame.draw.line(surface, (30, 30, 30), (cx - r//2, cy), (cx, cy + r//2), 2)
+            pygame.draw.line(surface, (30, 30, 30), (cx + r//3, cy - r//3), (cx - r//4, cy + r//4), 2)
+
+    def collides(self, fighter):
+        hit_r = self.radius + (20 if self.coal_idx == 2 else 0)
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < hit_r + 28

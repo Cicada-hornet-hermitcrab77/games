@@ -19,9 +19,12 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
                             FireBall, ThunderBolt, Scroll, TotemPole,
                             RemoteController, Apple, VenomBean, PlantSpike,
-                            ChargedOrb, BubbleShot, PoisonOrb, BlackHole, MusicNote, ArcaneOrb)
+                            ChargedOrb, BubbleShot, PoisonOrb, BlackHole, MusicNote, ArcaneOrb,
+                            SunBeam, LibertyDove, PumpkinSeed,
+                            FruitProj, CoalProj)
 import fight_network as _net
-from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, TouchControls, touch_p1_enabled, touch_p2_enabled
+from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop
+from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
 
 # ---------------------------------------------------------------------------
 # Unlock system
@@ -451,6 +454,22 @@ UNLOCK_CONDITIONS = {
     "Wendigo":            ("win_on_stage",    "Arctic Tundra",   5,  "Win 5 matches on Arctic Tundra"),
     "Trailblazer":        ("total_wins",      None,              20, "Win 20 total matches"),
     "Aqrabuamelu":        ("win_with",       "Scorpio",         3,  "Win 3 matches as Scorpio"),
+    # ── Seasonal shop ────────────────────────────────────────────────────────
+    "Nian":           ("seasonal_purchased", "Nian",           1, "Buy in Seasonal Shop (New Dynasties)"),
+    "Smoochie":       ("seasonal_purchased", "Smoochie",       1, "Buy in Seasonal Shop (Hearts and Harmonies)"),
+    "Clover":         ("seasonal_purchased", "Clover",         1, "Buy in Seasonal Shop (Emerald Echoes)"),
+    "Baddit":         ("seasonal_purchased", "Baddit",         1, "Buy in Seasonal Shop (April Rain)"),
+    "Eartha":         ("seasonal_purchased", "Eartha",         1, "Buy in Seasonal Shop (Bound to the Ground)"),
+    "Tombstone":      ("seasonal_purchased", "Tombstone",      1, "Buy in Seasonal Shop (Legacy of Valor)"),
+    "Solara":         ("seasonal_purchased", "Solara",         1, "Buy in Seasonal Shop (Summer Solstice)"),
+    "Stickman of Liberty": ("seasonal_purchased", "Stickman of Liberty", 1, "Buy in Seasonal Shop (Red White and Boom)"),
+    "Bookzworm":      ("seasonal_purchased", "Bookzworm",      1, "Buy in Seasonal Shop (Novel Beginnings)"),
+    "Yellowstone":    ("seasonal_purchased", "Yellowstone",    1, "Buy in Seasonal Shop (Project Yellowstone)"),
+    "Jack O' Slash":  ("seasonal_purchased", "Jack O' Slash",  1, "Buy in Seasonal Shop (Echoes of the Undying)"),
+    "Cornucopia":          ("seasonal_purchased", "Cornucopia",          1, "Buy in Seasonal Shop (Feasterween)"),
+    "Nun-Gimel-Hei-Shin":  ("seasonal_purchased", "Nun-Gimel-Hei-Shin",  1, "Buy in Seasonal Shop (Aura of Menorah)"),
+    "Prism":               ("seasonal_purchased", "Prism",               1, "Buy in Seasonal Shop (Aura of Menorah)"),
+    "Saint Nix":           ("seasonal_purchased", "Saint Nix",           1, "Buy in Seasonal Shop (Yuletide Gatherings)"),
 }
 
 
@@ -526,6 +545,9 @@ def _default_stats():
         "map_man_unlocked":         False,
         # Nick of Time: won by landing final hit with ≤1 second left
         "nick_of_time_win":         False,
+        # Seasonal shop
+        "seasonal_coins":           0,
+        "seasonal_purchased":       [],
     }
 
 def load_save():
@@ -535,9 +557,9 @@ def load_save():
             data = json.load(f)
         s     = set(data.get("unlocked", []))
         s.update(_DEFAULT_UNLOCK)
-        # Characters with no unlock condition are always available
+        # Characters with no unlock condition are always available (skip shop-only)
         for _ch in CHARACTERS:
-            if _ch["name"] not in UNLOCK_CONDITIONS:
+            if _ch["name"] not in UNLOCK_CONDITIONS and not _ch.get("shop_only"):
                 s.add(_ch["name"])
         stats = _default_stats()
         stats.update(data.get("stats", {}))
@@ -549,7 +571,7 @@ def load_save():
     except Exception:
         s = set(_DEFAULT_UNLOCK)
         for _ch in CHARACTERS:
-            if _ch["name"] not in UNLOCK_CONDITIONS:
+            if _ch["name"] not in UNLOCK_CONDITIONS and not _ch.get("shop_only"):
                 s.add(_ch["name"])
         return s, _default_stats()
 
@@ -677,6 +699,8 @@ def _meets_condition(cond, stats):
         return stats.get("friday13_typed", False)
     if kind == "map_man_unlocked":
         return stats.get("map_man_unlocked", False)
+    if kind == "seasonal_purchased":
+        return param in stats.get("seasonal_purchased", [])
     if kind == "nick_of_time_win":
         return stats.get("nick_of_time_win", False)
     return False
@@ -876,6 +900,63 @@ def _show_unlocks(new_names):
                 screen.blit(t4, (WIDTH//2 - t4.get_width()//2, HEIGHT//2 + 90))
             pygame.display.flip()
 
+def _show_seasonal_coin_earned(total):
+    """Briefly shows a coin-earned notification in the corner."""
+    start = pygame.time.get_ticks()
+    while pygame.time.get_ticks() - start < 1800:
+        clock.tick(FPS)
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if ev.type == pygame.KEYDOWN:
+                return
+        elapsed = (pygame.time.get_ticks() - start) / 1800
+        alpha = int(255 * (1.0 - max(0, elapsed - 0.6) / 0.4)) if elapsed > 0.6 else 255
+        ov = pygame.Surface((260, 56), pygame.SRCALPHA)
+        ov.fill((20, 20, 20, min(220, alpha)))
+        pygame.draw.rect(ov, (255, 200, 0, alpha), (0, 0, 260, 56), 2, border_radius=8)
+        t1 = font_small.render("+ 1 Seasonal Coin!", True, (255, 200, 0))
+        t2 = font_tiny.render(f"Total: {total}  (check the Seasonal Shop)", True, (200, 200, 200))
+        ov.blit(t1, (12, 8))
+        ov.blit(t2, (12, 34))
+        screen.blit(ov, (WIDTH - 268, HEIGHT - 64))
+        pygame.display.flip()
+
+# ---------------------------------------------------------------------------
+# Fruit / Coal hit helpers (Cornucopia + Saint Nix)
+# ---------------------------------------------------------------------------
+
+def _apply_fruit_hit(target, fp):
+    target.take_proj_dmg(fp.dmg)
+    if fp.effect == 'slow':
+        target.shock_frames = max(target.shock_frames, 180)
+    elif fp.effect == 'fire':
+        if target.fire_frames == 0: target.fire_tick = 300
+        target.fire_frames = max(target.fire_frames, 180)
+    elif fp.effect == 'shock':
+        target.shock_frames = max(target.shock_frames, 240)
+    elif fp.effect == 'freeze':
+        target.freeze_frames = max(target.freeze_frames, 180)
+    elif fp.effect == 'acid':
+        if target.poison_frames == 0: target.poison_tick = 60
+        target.poison_frames = max(target.poison_frames, 240)
+    elif fp.effect == 'slip':
+        target.shock_frames = max(target.shock_frames, 90)
+    elif fp.effect == 'explode':
+        target.knockback = (1 if target.x > fp.x else -1) * 12
+    target.flash_timer = max(target.flash_timer, 10)
+
+
+def _apply_coal_hit(target, cp):
+    target.take_proj_dmg(cp.dmg)
+    if cp.effect == 'fire':
+        if target.fire_frames == 0: target.fire_tick = 300
+        target.fire_frames = max(target.fire_frames, 240)
+    elif cp.effect == 'freeze':
+        target.freeze_frames = max(target.freeze_frames, 240)
+    target.flash_timer = max(target.flash_timer, 12)
+
+
 # ---------------------------------------------------------------------------
 # Fight loop
 # ---------------------------------------------------------------------------
@@ -1001,6 +1082,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     quake_waves   = []   # active ground shockwaves (Fault Line)
     mines         = []   # active ground mines (Trap Master)
     arcane_orbs   = []   # active ArcaneOrb objects (Arcanist)
+    sun_beams     = []   # active SunBeam objects (Solara)
+    liberty_doves      = []   # active LibertyDove companions (Stickman of Liberty)
+    liberty_bombs      = []   # falling bombs dropped by LibertyDoves
+    yellowstone_geysers = []  # active geysers (Yellowstone kick)
+    jack_seeds    = []   # PumpkinSeed projectiles (Jack O' Slash tank kick)
+    fruit_projs   = []   # FruitProj projectiles (Cornucopia)
+    coal_projs    = []   # CoalProj projectiles (Saint Nix)
     spawn_timer   = 300   # first spawn after 5 seconds
     is_jungle      = stage_data["name"] == "Jungle"
     is_computer    = stage_data["name"] == "Computer"
@@ -1823,11 +1911,59 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
 
             # Pumpkins (Headless Horseman)
             for shooter, victim in [(p1, p2), (p2, p1)]:
-                if shooter.pending_pumpkin:
+                if shooter.pending_pumpkin or shooter.pending_jack_pumpkin:
                     shooter.pending_pumpkin = False
+                    shooter.pending_jack_pumpkin = False
                     pumpkins.append(Pumpkin(
                         shooter.x + shooter.facing * 24, shooter.y - 80,
                         shooter.facing, shooter))
+                if shooter.pending_jack_seed:
+                    shooter.pending_jack_seed = False
+                    jack_seeds.append(PumpkinSeed(shooter.x + shooter.facing * 24,
+                                                  shooter.y - 60, shooter.facing, shooter))
+                if shooter.pending_fruit_attack:
+                    fa = shooter.pending_fruit_attack
+                    shooter.pending_fruit_attack = None
+                    _fx = shooter.x + shooter.facing * 30
+                    _fy = shooter.y - 60
+                    if fa[0] == 'cranberry_burst':
+                        for _ci in range(4):
+                            fruit_projs.append(FruitProj(_fx, _fy + _ci * 5,
+                                               shooter.facing, shooter, 'cranberry'))
+                    elif fa[0] == 'grape_rain':
+                        for _gi in range(7):
+                            gx = random.randint(50, WIDTH - 50)
+                            fruit_projs.append(FruitProj(gx, -20, shooter.facing,
+                                               shooter, 'grape', vy=4.0 + random.random() * 2))
+                    elif fa[0] == 'coal':
+                        coal_projs.append(CoalProj(_fx, _fy, shooter.facing, shooter, fa[1]))
+                    else:
+                        fruit_projs.append(FruitProj(_fx, _fy, shooter.facing, shooter, fa[0]))
+            for js in jack_seeds:
+                js.update()
+                if js.alive:
+                    victim = p2 if js.owner is p1 else p1
+                    if js.collides(victim):
+                        victim.take_proj_dmg(PumpkinSeed.DMG)
+                        victim.flash_timer = max(victim.flash_timer, 8)
+                        js.alive = False
+            jack_seeds = [js for js in jack_seeds if js.alive]
+            for fp in fruit_projs:
+                fp.update()
+                if fp.alive:
+                    victim = p2 if fp.owner is p1 else p1
+                    if fp.collides(victim):
+                        _apply_fruit_hit(victim, fp)
+                        fp.alive = False
+            fruit_projs = [fp for fp in fruit_projs if fp.alive]
+            for cp in coal_projs:
+                cp.update()
+                if cp.alive:
+                    victim = p2 if cp.owner is p1 else p1
+                    if cp.collides(victim):
+                        _apply_coal_hit(victim, cp)
+                        cp.alive = False
+            coal_projs = [cp for cp in coal_projs if cp.alive]
             for pk in pumpkins:
                 pk.update()
                 if pk.exploding and not pk.damaged:
@@ -2121,6 +2257,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     f.undead_used = True
                     f.flash_timer = 30
 
+            # Smoochie: revive up to 5 times at 25% HP
+            for f in (p1, p2):
+                if f.hp <= 0 and f.char.get("smoochie_revivals") and f.smoochie_revivals < 5:
+                    f.hp                 = int(f.max_hp * 0.25)
+                    f.smoochie_revivals += 1
+                    f.flash_timer        = 35
+
             # Revenant: revive up to 2 times at 30% HP
             for f in (p1, p2):
                 if f.hp <= 0 and f.char.get("revenant") and f.revenant_count < 2:
@@ -2159,6 +2302,76 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     shooter.pending_autofire = False
                     fire_balls.append(FireBall(shooter.x + shooter.facing * 30,
                                                shooter.y - 60, shooter.facing, shooter))
+            # Nian — breathes fire while blocking
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_nian_breath:
+                    shooter.pending_nian_breath = False
+                    fire_balls.append(FireBall(shooter.x + shooter.facing * 30,
+                                               shooter.y - 60, shooter.facing, shooter))
+
+            # Clover — kick summons a snake
+            for fighter in (p1, p2):
+                if fighter.pending_clover_snake:
+                    fighter.pending_clover_snake = False
+                    jungle_snakes.append(JungleSnake())
+            # Solara — sun beams (shock + burn)
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_sun_beam:
+                    shooter.pending_sun_beam = False
+                    sun_beams.append(SunBeam(shooter.x + shooter.facing * 30,
+                                             shooter.y - 60, shooter.facing, shooter))
+            for sb in sun_beams:
+                sb.update()
+                if sb.alive:
+                    victim = p2 if sb.owner is p1 else p1
+                    if sb.collides(victim):
+                        if victim.char.get("tombstone_reflect"):
+                            victim.flash_timer = 4
+                            sb.owner.hp = max(0, sb.owner.hp - SunBeam.DMG)
+                            sb.owner.flash_timer = max(sb.owner.flash_timer, 14)
+                        elif victim.char.get("mega_unhittable") and random.random() < 0.999:
+                            victim.flash_timer = 4
+                        elif victim.char.get("deflect_proj"):
+                            sb.vx = -sb.vx; sb.owner = victim; continue
+                        elif victim.bubble_shield:
+                            victim.flash_timer = 6
+                        else:
+                            victim.take_proj_dmg(SunBeam.DMG)
+                            victim.shock_frames = max(victim.shock_frames, 120)
+                            if not victim.char.get("immune"):
+                                if victim.fire_frames == 0: victim.fire_tick = 480
+                                victim.fire_frames = max(victim.fire_frames, 300)
+                        sb.alive = False
+            sun_beams = [sb for sb in sun_beams if sb.alive]
+            # Stickman of Liberty — dove companion + bombs
+            for shooter in (p1, p2):
+                if shooter.pending_liberty_dove:
+                    shooter.pending_liberty_dove = False
+                    liberty_doves.append(LibertyDove(shooter.x, shooter.y, shooter))
+            for dove in liberty_doves:
+                dove.update()
+                if dove.pending_bomb:
+                    dove.pending_bomb = False
+                    liberty_bombs.append({'x': dove.x, 'y': dove.y, 'vy': 0.0, 'alive': True, 'owner': dove.owner})
+            liberty_doves = [d for d in liberty_doves if d.alive]
+            for lb in liberty_bombs:
+                lb['vy'] = min(lb['vy'] + 0.9, 22)
+                lb['y'] += lb['vy']
+                if lb['y'] >= GROUND_Y - 4:
+                    for victim in (p1, p2):
+                        if victim is not lb['owner'] and abs(victim.x - lb['x']) < 65:
+                            victim.take_proj_dmg(15)
+                            victim.flash_timer = max(victim.flash_timer, 14)
+                    lb['alive'] = False
+            liberty_bombs = [lb for lb in liberty_bombs if lb['alive']]
+            # Bookzworm — orbiting book aura
+            for bz, victim in [(p1, p2), (p2, p1)]:
+                if bz.char.get("bookzworm_books") and bz.hp > 0 and bz.bookzworm_book_cd <= 0:
+                    dist = math.hypot(victim.x - bz.x, (victim.y - 60) - (bz.y - 60))
+                    if dist < int(85 * bz.draw_scale):
+                        victim.take_proj_dmg(6)
+                        victim.flash_timer = max(victim.flash_timer, 10)
+                        bz.bookzworm_book_cd = 50
             for fb in fire_balls:
                 fb.update()
                 if fb.alive:
@@ -2257,6 +2470,28 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 if qw['life'] > 0 and 0 <= qw['x'] <= WIDTH:
                     new_qw.append(qw)
             quake_waves = new_qw
+
+            # Yellowstone — kick spawns 10 geysers across the stage
+            for shooter in (p1, p2):
+                if shooter.pending_yellowstone_geysers:
+                    shooter.pending_yellowstone_geysers = False
+                    for i in range(10):
+                        gx = 60 + (WIDTH - 120) * i / 9 + random.uniform(-25, 25)
+                        gx = max(60.0, min(float(WIDTH - 60), gx))
+                        yellowstone_geysers.append({'x': gx, 'age': 0, 'alive': True,
+                                                    'owner': shooter, 'hit': False})
+            new_gy = []
+            for gy in yellowstone_geysers:
+                gy['age'] += 1
+                if gy['age'] <= 60:
+                    new_gy.append(gy)
+                    victim = p2 if gy['owner'] is p1 else p1
+                    if not gy['hit'] and 22 <= gy['age'] <= 40:
+                        if abs(victim.x - gy['x']) < 52 and victim.hp > 0:
+                            victim.take_proj_dmg(12)
+                            victim.flash_timer = max(victim.flash_timer, 10)
+                            gy['hit'] = True
+            yellowstone_geysers = new_gy
 
             # Druid plant spikes
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -2445,15 +2680,18 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                 pu.update()
                 for fighter, foe in [(p1, p2), (p2, p1)]:
                     if not pu.picked_up and pu.collides(fighter):
+                        _pu_target = foe if fighter.char.get("baddit") else fighter
                         if pu.spec['type'] == 'clone':
-                            cf = AIFighter(fighter.x + 60 * fighter.facing,
-                                           fighter.char, fighter.facing, 'hard')
+                            _clone_src = foe if fighter.char.get("baddit") else fighter
+                            cf = AIFighter(_clone_src.x + 60 * _clone_src.facing,
+                                           _clone_src.char, _clone_src.facing, 'hard')
                             cf.hp    = 80
-                            cf.color = fighter.color
-                            clones.append({'fighter': cf, 'timer': 30 * FPS, 'target': foe})
+                            cf.color = _clone_src.color
+                            _clone_foe = fighter if fighter.char.get("baddit") else foe
+                            clones.append({'fighter': cf, 'timer': 30 * FPS, 'target': _clone_foe})
                         else:
-                            fighter.apply_powerup(pu.spec)
-                            if (fighter is p1
+                            _pu_target.apply_powerup(pu.spec)
+                            if (_pu_target is p1
                                     and pu.spec['type'] == 'heal'
                                     and pu.spec.get('amount', 0) < 0
                                     and p1.hp <= 0):
@@ -2539,6 +2777,12 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             h.draw(screen)
         for pk in pumpkins:
             pk.draw(screen)
+        for js in jack_seeds:
+            js.draw(screen)
+        for fp in fruit_projs:
+            fp.draw(screen)
+        for cp in coal_projs:
+            cp.draw(screen)
         for w in whips:
             w.draw(screen)
         for ks in kitsune_shots:
@@ -2549,6 +2793,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             b.draw(screen)
         for s in snipe_shots:
             s.draw(screen)
+        for sb in sun_beams:
+            sb.draw(screen)
+        for dove in liberty_doves:
+            dove.draw(screen)
+        for lb in liberty_bombs:
+            bx, by = int(lb['x']), int(lb['y'])
+            pygame.draw.circle(screen, (255, 255, 255), (bx, by), 7)
+            pygame.draw.circle(screen, (200, 220, 200), (bx, by), 4)
         for fb in fire_balls:
             fb.draw(screen)
         for tb in thunder_bolts:
@@ -2560,6 +2812,23 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             r = max(6, int(18 - t * 8))
             col = (180 + int(t * 60), int(130 - t * 70), 30)
             pygame.draw.ellipse(screen, col, (int(qw['x']) - r, GROUND_Y - r // 2, r * 2, r // 2 + 3))
+        for gy in yellowstone_geysers:
+            gx, age = int(gy['x']), gy['age']
+            if age <= 22:
+                h = min(age * 6, 130)
+                pygame.draw.rect(screen, (160, 220, 255), (gx - 7, GROUND_Y - h, 14, h))
+                pygame.draw.circle(screen, (220, 240, 255), (gx, GROUND_Y - h), 10)
+            elif age <= 40:
+                r = int((age - 22) * 5) + 8
+                pygame.draw.circle(screen, (255, 255, 255), (gx, GROUND_Y - 110), r)
+                pygame.draw.circle(screen, (180, 230, 255), (gx, GROUND_Y - 110), r + 4, 3)
+            else:
+                fade = max(0, 60 - age)
+                a = int(fade * 4)
+                if a > 0:
+                    _gs = pygame.Surface((40, 40), pygame.SRCALPHA)
+                    pygame.draw.circle(_gs, (200, 200, 200, a), (20, 20), 18)
+                    screen.blit(_gs, (gx - 20, GROUND_Y - 130))
         for mn in mines:
             armed = mn['arm'] == 0
             blink = armed and (mn['life'] // 8) % 2 == 0
@@ -2807,6 +3076,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     pumpkins          = []   # Pumpkin (pumpkin_kick)
     whips             = []   # Whip (whip_punch)
     arcane_orbs       = []   # ArcaneOrb (Arcanist)
+    sun_beams         = []   # SunBeam (Solara)
+    liberty_doves       = []   # LibertyDove (Stickman of Liberty)
+    liberty_bombs       = []   # bombs dropped by dove
+    yellowstone_geysers = []   # Yellowstone kick geysers
+    jack_seeds          = []   # PumpkinSeed (Jack O' Slash)
+    fruit_projs         = []   # FruitProj (Cornucopia)
+    coal_projs          = []   # CoalProj (Saint Nix)
+    thunder_bolts       = []   # ThunderBolt (Thunder God / Storm Caller)
     survival_widow_bugs = []  # Black Widow wall bugs
     ink_clones        = []   # Ink Brush clones
     survival_bombs    = []   # Bomb character active bombs
@@ -3144,6 +3421,74 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             ao.alive = False; break
             arcane_orbs = [ao for ao in arcane_orbs if ao.alive]
 
+            # Stickman of Liberty dove (survival)
+            for p in players:
+                if p.pending_liberty_dove:
+                    p.pending_liberty_dove = False
+                    liberty_doves.append(LibertyDove(p.x, p.y, p))
+            for dove in liberty_doves:
+                dove.update()
+                if dove.pending_bomb:
+                    dove.pending_bomb = False
+                    liberty_bombs.append({'x': dove.x, 'y': dove.y, 'vy': 0.0, 'alive': True, 'owner': dove.owner})
+            liberty_doves = [d for d in liberty_doves if d.alive]
+            for lb in liberty_bombs:
+                lb['vy'] = min(lb['vy'] + 0.9, 22)
+                lb['y'] += lb['vy']
+                if lb['y'] >= GROUND_Y - 4:
+                    for en in enemies:
+                        if abs(en.x - lb['x']) < 65:
+                            en.take_proj_dmg(15)
+                            en.flash_timer = max(en.flash_timer, 14)
+                    lb['alive'] = False
+            liberty_bombs = [lb for lb in liberty_bombs if lb['alive']]
+            # Yellowstone geysers (survival)
+            for p in players:
+                if p.pending_yellowstone_geysers:
+                    p.pending_yellowstone_geysers = False
+                    for i in range(10):
+                        gx = 60 + (WIDTH - 120) * i / 9 + random.uniform(-25, 25)
+                        gx = max(60.0, min(float(WIDTH - 60), gx))
+                        yellowstone_geysers.append({'x': gx, 'age': 0, 'alive': True,
+                                                    'owner': p, 'hit': set()})
+            new_gy = []
+            for gy in yellowstone_geysers:
+                gy['age'] += 1
+                if gy['age'] <= 60:
+                    new_gy.append(gy)
+                    if 22 <= gy['age'] <= 40:
+                        for en in enemies:
+                            if id(en) not in gy['hit'] and abs(en.x - gy['x']) < 52:
+                                en.take_proj_dmg(12)
+                                en.flash_timer = max(en.flash_timer, 10)
+                                gy['hit'].add(id(en))
+            yellowstone_geysers = new_gy
+            # Bookzworm aura (survival — player hits enemies)
+            for p in players:
+                if p.char.get("bookzworm_books") and p.hp > 0 and p.bookzworm_book_cd <= 0:
+                    for en in enemies:
+                        if math.hypot(en.x - p.x, (en.y - 60) - (p.y - 60)) < int(85 * p.draw_scale):
+                            en.take_proj_dmg(6)
+                            en.flash_timer = max(en.flash_timer, 10)
+                            p.bookzworm_book_cd = 50
+                            break
+            # Solara sun beams (survival — player → enemies)
+            for p in players:
+                if p.pending_sun_beam:
+                    p.pending_sun_beam = False
+                    sun_beams.append(SunBeam(p.x + p.facing * 30, p.y - 60, p.facing, p))
+            for sb in sun_beams:
+                sb.update()
+                if sb.alive:
+                    for en in enemies:
+                        if sb.collides(en):
+                            en.take_proj_dmg(SunBeam.DMG)
+                            en.shock_frames = max(en.shock_frames, 120)
+                            if en.fire_frames == 0: en.fire_tick = 480
+                            en.fire_frames = max(en.fire_frames, 300)
+                            sb.alive = False; break
+            sun_beams = [sb for sb in sun_beams if sb.alive]
+
             # Player orbs → enemies
             for o in orbs:
                 o.update()
@@ -3303,6 +3648,74 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             bb.hit_cd = BouncingBall.HIT_CD; break
             en_bounce_balls = [bb for bb in en_bounce_balls if bb.alive]
 
+            # Jack O' Slash seeds (survival)
+            for p in players:
+                if p.pending_jack_pumpkin:
+                    p.pending_jack_pumpkin = False
+                    pumpkins.append(Pumpkin(p.x + p.facing * 24, p.y - 80, p.facing, p))
+                if p.pending_jack_seed:
+                    p.pending_jack_seed = False
+                    jack_seeds.append(PumpkinSeed(p.x + p.facing * 24, p.y - 60, p.facing, p))
+            for js in jack_seeds:
+                js.update()
+                if js.alive:
+                    for en in enemies:
+                        if js.collides(en):
+                            en.take_proj_dmg(PumpkinSeed.DMG)
+                            en.flash_timer = max(en.flash_timer, 8)
+                            js.alive = False; break
+            jack_seeds = [js for js in jack_seeds if js.alive]
+            # Player fruit projectiles + coal + thunder (survival)
+            for shooter in players:
+                if shooter.pending_fruit_attack:
+                    fa = shooter.pending_fruit_attack
+                    shooter.pending_fruit_attack = None
+                    _fx = shooter.x + shooter.facing * 30
+                    _fy = shooter.y - 60
+                    if fa[0] == 'cranberry_burst':
+                        for _ci in range(4):
+                            fruit_projs.append(FruitProj(_fx, _fy + _ci * 5,
+                                               shooter.facing, shooter, 'cranberry'))
+                    elif fa[0] == 'grape_rain':
+                        for _gi in range(7):
+                            gx = random.randint(50, WIDTH - 50)
+                            fruit_projs.append(FruitProj(gx, -20, shooter.facing,
+                                               shooter, 'grape', vy=4.0 + random.random() * 2))
+                    elif fa[0] == 'coal':
+                        coal_projs.append(CoalProj(_fx, _fy, shooter.facing, shooter, fa[1]))
+                    else:
+                        fruit_projs.append(FruitProj(_fx, _fy, shooter.facing, shooter, fa[0]))
+                if shooter.pending_thunder:
+                    shooter.pending_thunder = False
+                    tgt_x = min(enemies, key=lambda e: abs(e.x - shooter.x)).x if enemies else random.randint(80, WIDTH-80)
+                    thunder_bolts.append(ThunderBolt(tgt_x, shooter))
+            for fp in fruit_projs:
+                fp.update()
+                if fp.alive:
+                    for en in enemies:
+                        if fp.collides(en):
+                            _apply_fruit_hit(en, fp)
+                            fp.alive = False; break
+            fruit_projs = [fp for fp in fruit_projs if fp.alive]
+            for cp in coal_projs:
+                cp.update()
+                if cp.alive:
+                    for en in enemies:
+                        if cp.collides(en):
+                            _apply_coal_hit(en, cp)
+                            cp.alive = False; break
+            coal_projs = [cp for cp in coal_projs if cp.alive]
+            for tb in thunder_bolts:
+                tb.update()
+                if tb.alive:
+                    for en in enemies:
+                        if tb.collides(en):
+                            en.hp = max(0, en.hp - ThunderBolt.DMG)
+                            en.flash_timer = 12
+                            if not en.char.get("immune"):
+                                en.shock_frames = max(en.shock_frames, 180)
+                            tb.alive = False; break
+            thunder_bolts = [tb for tb in thunder_bolts if tb.alive]
             # Player pumpkins → enemies
             for shooter in players:
                 if shooter.pending_pumpkin:
@@ -3601,6 +4014,22 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for pu   in powerups:      pu.draw(screen)
         for b    in balls:         b.draw(screen)
         for ao   in arcane_orbs:   ao.draw(screen)
+        for sb   in sun_beams:     sb.draw(screen)
+        for dove in liberty_doves: dove.draw(screen)
+        for lb in liberty_bombs:
+            bx, by = int(lb['x']), int(lb['y'])
+            pygame.draw.circle(screen, (255, 255, 255), (bx, by), 7)
+            pygame.draw.circle(screen, (200, 220, 200), (bx, by), 4)
+        for gy in yellowstone_geysers:
+            gx, age = int(gy['x']), gy['age']
+            if age <= 22:
+                h = min(age * 6, 130)
+                pygame.draw.rect(screen, (160, 220, 255), (gx - 7, GROUND_Y - h, 14, h))
+                pygame.draw.circle(screen, (220, 240, 255), (gx, GROUND_Y - h), 10)
+            elif age <= 40:
+                r = int((age - 22) * 5) + 8
+                pygame.draw.circle(screen, (255, 255, 255), (gx, GROUND_Y - 110), r)
+                pygame.draw.circle(screen, (180, 230, 255), (gx, GROUND_Y - 110), r + 4, 3)
         for swb  in survival_widow_bugs: swb['bug'].draw(screen)
         for b    in en_balls:      b.draw(screen)
         for o    in orbs:          o.draw(screen)
@@ -3615,6 +4044,10 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for h    in hooks:         h.draw(screen)
         for h    in en_hooks:      h.draw(screen)
         for pk   in pumpkins:      pk.draw(screen)
+        for js   in jack_seeds:    js.draw(screen)
+        for fp   in fruit_projs:   fp.draw(screen)
+        for cp   in coal_projs:    cp.draw(screen)
+        for tb   in thunder_bolts: tb.draw(screen)
         for pk   in en_pumpkins:   pk.draw(screen)
         for w    in whips:         w.draw(screen)
         for w    in en_whips:      w.draw(screen)
@@ -3841,7 +4274,10 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     balls        = []; orbs = []; bounce_balls = []; hooks = []; pumpkins = []; whips = []
     charged_orbs = []; bubble_shots = []; poison_orbs = []; scrolls = []; venoms = []
     notes        = []; kitsune_shots = []; water_balls = []; bee_shots = []; snipe_shots = []
-    fire_balls   = []; thunder_bolts = []; plant_spikes = []; arcane_orbs = []
+    fire_balls   = []; thunder_bolts = []; plant_spikes = []; arcane_orbs = []; sun_beams = []
+    liberty_doves = []; liberty_bombs = []; yellowstone_geysers = []; jack_seeds = []
+    fruit_projs   = []   # FruitProj (Cornucopia)
+    coal_projs    = []   # CoalProj (Saint Nix)
 
     # Easter eggs
     hot_potatoes   = []
@@ -3985,10 +4421,59 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                     shooter.pending_hook = False
                     hooks.append(SnakeHook(shooter.x + shooter.facing * 20, shooter.y - 60,
                                            victim.x, victim.y - 60, shooter))
-                if shooter.pending_pumpkin:
+                if shooter.pending_pumpkin or shooter.pending_jack_pumpkin:
                     shooter.pending_pumpkin = False
+                    shooter.pending_jack_pumpkin = False
                     pumpkins.append(Pumpkin(shooter.x + shooter.facing * 24,
                                             shooter.y - 80, shooter.facing, shooter))
+                if shooter.pending_jack_seed:
+                    shooter.pending_jack_seed = False
+                    jack_seeds.append(PumpkinSeed(shooter.x + shooter.facing * 24,
+                                                  shooter.y - 60, shooter.facing, shooter))
+            for js in jack_seeds:
+                js.update()
+                if js.alive:
+                    victim = p2 if js.owner is p1 else p1
+                    if js.collides(victim):
+                        victim.take_proj_dmg(PumpkinSeed.DMG)
+                        victim.flash_timer = max(victim.flash_timer, 8)
+                        js.alive = False
+            jack_seeds = [js for js in jack_seeds if js.alive]
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_fruit_attack:
+                    fa = shooter.pending_fruit_attack
+                    shooter.pending_fruit_attack = None
+                    _fx = shooter.x + shooter.facing * 30
+                    _fy = shooter.y - 60
+                    if fa[0] == 'cranberry_burst':
+                        for _ci in range(4):
+                            fruit_projs.append(FruitProj(_fx, _fy + _ci * 5,
+                                               shooter.facing, shooter, 'cranberry'))
+                    elif fa[0] == 'grape_rain':
+                        for _gi in range(7):
+                            gx = random.randint(50, WIDTH - 50)
+                            fruit_projs.append(FruitProj(gx, -20, shooter.facing,
+                                               shooter, 'grape', vy=4.0 + random.random() * 2))
+                    elif fa[0] == 'coal':
+                        coal_projs.append(CoalProj(_fx, _fy, shooter.facing, shooter, fa[1]))
+                    else:
+                        fruit_projs.append(FruitProj(_fx, _fy, shooter.facing, shooter, fa[0]))
+            for fp in fruit_projs:
+                fp.update()
+                if fp.alive:
+                    victim = p2 if fp.owner is p1 else p1
+                    if fp.collides(victim):
+                        _apply_fruit_hit(victim, fp)
+                        fp.alive = False
+            fruit_projs = [fp for fp in fruit_projs if fp.alive]
+            for cp in coal_projs:
+                cp.update()
+                if cp.alive:
+                    victim = p2 if cp.owner is p1 else p1
+                    if cp.collides(victim):
+                        _apply_coal_hit(victim, cp)
+                        cp.alive = False
+            coal_projs = [cp for cp in coal_projs if cp.alive]
 
             # Update projectiles
             for b in balls:
@@ -4269,12 +4754,65 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                             victim.flash_timer = 10; s.alive = False
             snipe_shots = [s for s in snipe_shots if s.alive]
 
-            # Fire balls (Pyro)
+            # Fire balls (Pyro + Nian breath)
             for shooter, victim in [(p1, p2), (p2, p1)]:
                 if shooter.pending_autofire:
                     shooter.pending_autofire = False
                     fire_balls.append(FireBall(shooter.x + shooter.facing * 30,
                                                shooter.y - 60, shooter.facing, shooter))
+                if shooter.pending_nian_breath:
+                    shooter.pending_nian_breath = False
+                    fire_balls.append(FireBall(shooter.x + shooter.facing * 30,
+                                               shooter.y - 60, shooter.facing, shooter))
+                if shooter.pending_sun_beam:
+                    shooter.pending_sun_beam = False
+                    sun_beams.append(SunBeam(shooter.x + shooter.facing * 30,
+                                             shooter.y - 60, shooter.facing, shooter))
+                if shooter.pending_liberty_dove:
+                    shooter.pending_liberty_dove = False
+                    liberty_doves.append(LibertyDove(shooter.x, shooter.y, shooter))
+            for dove in liberty_doves:
+                dove.update()
+                if dove.pending_bomb:
+                    dove.pending_bomb = False
+                    liberty_bombs.append({'x': dove.x, 'y': dove.y, 'vy': 0.0, 'alive': True, 'owner': dove.owner})
+            liberty_doves = [d for d in liberty_doves if d.alive]
+            for lb in liberty_bombs:
+                lb['vy'] = min(lb['vy'] + 0.9, 22)
+                lb['y'] += lb['vy']
+                if lb['y'] >= GROUND_Y - 4:
+                    for victim in (p1, p2):
+                        if victim is not lb['owner'] and abs(victim.x - lb['x']) < 65:
+                            victim.take_proj_dmg(15)
+                            victim.flash_timer = max(victim.flash_timer, 14)
+                    lb['alive'] = False
+            liberty_bombs = [lb for lb in liberty_bombs if lb['alive']]
+            for shooter in (p1, p2):
+                if shooter.pending_yellowstone_geysers:
+                    shooter.pending_yellowstone_geysers = False
+                    for i in range(10):
+                        gx = 60 + (WIDTH - 120) * i / 9 + random.uniform(-25, 25)
+                        gx = max(60.0, min(float(WIDTH - 60), gx))
+                        yellowstone_geysers.append({'x': gx, 'age': 0, 'alive': True,
+                                                    'owner': shooter, 'hit': False})
+            new_gy = []
+            for gy in yellowstone_geysers:
+                gy['age'] += 1
+                if gy['age'] <= 60:
+                    new_gy.append(gy)
+                    victim = p2 if gy['owner'] is p1 else p1
+                    if not gy['hit'] and 22 <= gy['age'] <= 40:
+                        if abs(victim.x - gy['x']) < 52 and victim.hp > 0:
+                            victim.take_proj_dmg(12)
+                            victim.flash_timer = max(victim.flash_timer, 10)
+                            gy['hit'] = True
+            yellowstone_geysers = new_gy
+            for bz, victim in [(p1, p2), (p2, p1)]:
+                if bz.char.get("bookzworm_books") and bz.hp > 0 and bz.bookzworm_book_cd <= 0:
+                    if math.hypot(victim.x - bz.x, (victim.y - 60) - (bz.y - 60)) < int(85 * bz.draw_scale):
+                        victim.take_proj_dmg(6)
+                        victim.flash_timer = max(victim.flash_timer, 10)
+                        bz.bookzworm_book_cd = 50
             for fb in fire_balls:
                 fb.update()
                 if fb.alive:
@@ -4289,6 +4827,27 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                             victim.fire_frames = max(victim.fire_frames, 480)
                             fb.alive = False
             fire_balls = [fb for fb in fire_balls if fb.alive]
+            for sb in sun_beams:
+                sb.update()
+                if sb.alive:
+                    victim = p2 if sb.owner is p1 else p1
+                    if sb.collides(victim):
+                        if victim.char.get("tombstone_reflect"):
+                            victim.flash_timer = 4
+                            sb.owner.hp = max(0, sb.owner.hp - SunBeam.DMG)
+                            sb.owner.flash_timer = max(sb.owner.flash_timer, 14)
+                        elif victim.char.get("deflect_proj"):
+                            sb.vx = -sb.vx; sb.owner = victim; continue
+                        elif victim.bubble_shield:
+                            victim.flash_timer = 6
+                        else:
+                            victim.take_proj_dmg(SunBeam.DMG)
+                            victim.shock_frames = max(victim.shock_frames, 120)
+                            if not victim.char.get("immune"):
+                                if victim.fire_frames == 0: victim.fire_tick = 480
+                                victim.fire_frames = max(victim.fire_frames, 300)
+                        sb.alive = False
+            sun_beams = [sb for sb in sun_beams if sb.alive]
 
             # Thunder bolts (Thunder God + Storm Caller)
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -4637,6 +5196,9 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
         for bb   in bounce_balls:   bb.draw(screen)
         for h    in hooks:          h.draw(screen)
         for pk   in pumpkins:       pk.draw(screen)
+        for js   in jack_seeds:     js.draw(screen)
+        for fp   in fruit_projs:    fp.draw(screen)
+        for cp   in coal_projs:     cp.draw(screen)
         for w    in whips:          w.draw(screen)
         for co   in charged_orbs:   co.draw(screen)
         for bs   in bubble_shots:   bs.draw(screen)
@@ -4648,6 +5210,22 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
         for wb   in water_balls:    wb.draw(screen)
         for bsh  in bee_shots:      bsh.draw(screen)
         for s    in snipe_shots:    s.draw(screen)
+        for sb   in sun_beams:      sb.draw(screen)
+        for dove in liberty_doves:  dove.draw(screen)
+        for lb in liberty_bombs:
+            bx, by = int(lb['x']), int(lb['y'])
+            pygame.draw.circle(screen, (255, 255, 255), (bx, by), 7)
+            pygame.draw.circle(screen, (200, 220, 200), (bx, by), 4)
+        for gy in yellowstone_geysers:
+            gx, age = int(gy['x']), gy['age']
+            if age <= 22:
+                h = min(age * 6, 130)
+                pygame.draw.rect(screen, (160, 220, 255), (gx - 7, GROUND_Y - h, 14, h))
+                pygame.draw.circle(screen, (220, 240, 255), (gx, GROUND_Y - h), 10)
+            elif age <= 40:
+                r = int((age - 22) * 5) + 8
+                pygame.draw.circle(screen, (255, 255, 255), (gx, GROUND_Y - 110), r)
+                pygame.draw.circle(screen, (180, 230, 255), (gx, GROUND_Y - 110), r + 4, 3)
         for fb   in fire_balls:     fb.draw(screen)
         for tb   in thunder_bolts:  tb.draw(screen)
         for ps   in plant_spikes:   ps.draw(screen)
@@ -4829,6 +5407,12 @@ def main():
                 _save_data(unlocked, stats)
                 _show_unlocks(new_unlocks)
 
+        # --- Seasonal shop path ---
+        if mode == 'seasonal_shop':
+            seasonal_shop(screen, clock, stats, unlocked)
+            _save_data(unlocked, stats)
+            continue
+
         # --- Secret menu path ---
         if mode == 'secret_menu':
             newly = secret_menu(unlocked, stats)
@@ -4987,6 +5571,10 @@ def main():
             if _nick_of_time_flag[0]:
                 stats["nick_of_time_win"] = True
                 _nick_of_time_flag[0] = False
+            # Award seasonal coin for winning during an active event
+            if p1_won and get_active_event() is not None:
+                stats["seasonal_coins"] = stats.get("seasonal_coins", 0) + 1
+                _show_seasonal_coin_earned(stats["seasonal_coins"])
             new_unlocks = check_and_unlock(unlocked, stats)
             if new_unlocks:
                 _save_data(unlocked, stats)

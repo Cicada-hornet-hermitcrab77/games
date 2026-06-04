@@ -225,6 +225,24 @@ class Fighter:
         self.first_strike_timer  = 0      # Oathbreaker: frames since last punch (counts up)
         self.oracle_dodge_count  = 0      # Diviner: hits received counter (every 5th negated)
         self.pending_arcane_orb  = False  # Arcanist: spawn arcane orb this frame
+        self.pending_nian_breath = False  # Nian: breathe fire while blocking
+        self.nian_breath_timer   = 0      # Nian: frames since last breath shot
+        self.smoochie_revivals   = 0      # Smoochie: revivals used (max 5)
+        self.pending_clover_snake = False # Clover: spawn snake on kick
+        self.eartha_grow_timer   = 0      # Eartha: frames toward next size increase
+        self.pending_sun_beam    = False  # Solara: fire a sun beam this frame
+        self.sun_beam_timer      = FPS * 3 if char_data.get("solara_beam") else 0
+        self.pending_liberty_dove = False  # Stickman of Liberty: release dove this frame
+        self.liberty_dove_timer   = FPS * 8 if char_data.get("liberty_dove") else 0
+        self.bookzworm_book_cd       = 0      # Bookzworm: cooldown between book aura hits
+        self.pending_yellowstone_geysers = False  # Yellowstone: spawn 10 geysers this frame
+        self.jack_tank_frames    = 0      # Jack O' Slash: frames of pumpkin tank mode remaining
+        self.pending_jack_pumpkin = False  # Jack O' Slash tank: fire pumpkin this frame
+        self.pending_jack_seed   = False  # Jack O' Slash tank: fire seed this frame
+        self.pending_fruit_attack = None  # Cornucopia: fruit type string to spawn this frame
+        self.cornucopia_feather_lit = None  # Cornucopia: which feather is currently lit (0-9)
+        self.cornucopia_feather_timer = 0   # Cornucopia: frames feather stays lit
+        self.saint_nix_coal_idx  = 0      # Saint Nix: cycles through coal types 0-3
         self.flame_trail         = []    # Trailblazer: list of (x, y, ttl) trail segments
         self.trail_dmg_cd        = 0     # Trailblazer: cooldown before trail can damage again
         self._prev_x             = float(x)  # for flame_trail movement detection
@@ -273,6 +291,11 @@ class Fighter:
     def apply_powerup(self, spec):
         t    = spec['type']
         name = spec['name']
+        # Clover: bad powerups (negative heal or speed debuff) have no effect
+        if self.char.get("clover_luck"):
+            if (t == 'heal'  and spec.get('amount', 0) < 0) or \
+               (t == 'speed' and spec.get('amount', 0) < 0):
+                return
         if t == 'speed':
             # supports 'mult' (multiplier) or 'amount' (additive delta, e.g. Wither)
             if 'mult' in spec:
@@ -464,6 +487,44 @@ class Fighter:
                     self.chef_bake_timer = 0
             else:
                 self.chef_bake_timer = 0
+        # Nian — breathes fire every 20 frames while blocking
+        if self.char.get("nian_breath"):
+            if self.blocking:
+                self.nian_breath_timer += 1
+                if self.nian_breath_timer >= 20:
+                    self.pending_nian_breath = True
+                    self.nian_breath_timer   = 0
+            else:
+                self.nian_breath_timer = 0
+        # Stickman of Liberty — releases dove every 8 seconds
+        if self.char.get("liberty_dove"):
+            self.liberty_dove_timer -= 1
+            if self.liberty_dove_timer <= 0:
+                self.pending_liberty_dove = True
+                self.liberty_dove_timer   = FPS * 8
+        # Jack O' Slash — countdown tank mode
+        if self.jack_tank_frames > 0:
+            self.jack_tank_frames -= 1
+        # Bookzworm — book aura cooldown
+        if self.bookzworm_book_cd > 0:
+            self.bookzworm_book_cd -= 1
+        # Cornucopia — feather glow timer
+        if self.cornucopia_feather_timer > 0:
+            self.cornucopia_feather_timer -= 1
+            if self.cornucopia_feather_timer == 0:
+                self.cornucopia_feather_lit = None
+        # Solara — fires a sun beam every 3 seconds
+        if self.char.get("solara_beam"):
+            self.sun_beam_timer -= 1
+            if self.sun_beam_timer <= 0:
+                self.pending_sun_beam = True
+                self.sun_beam_timer   = FPS * 3
+        # Eartha — grows larger every second, capped at 3x
+        if self.char.get("eartha_grow"):
+            self.eartha_grow_timer += 1
+            if self.eartha_grow_timer >= FPS:
+                self.eartha_grow_timer = 0
+                self.draw_scale = min(3.0, self.draw_scale + 0.1)
         # Rainbow Man — drops a random powerup every 4 seconds
         if self.char.get("rainbow_poop"):
             if self.rainbow_poop_timer > 0:
@@ -796,6 +857,13 @@ class Fighter:
                     self.pending_thunder = True
                 if self.char.get("storm_punch"):
                     self.pending_storm = True
+                if self.char.get("jack_tank") and self.jack_tank_frames > 0:
+                    self.pending_jack_pumpkin = True
+                if self.char.get("cornucopia_fruits"):
+                    self._cornucopia_fire()
+                if self.char.get("saint_nix_coal"):
+                    self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
+                    self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
             elif can_atk and keys[ctrl['kick']] and self.kick_cooldown == 0 and not self.char.get("orb_shooter"):
                 self._start('kick', 0.06)
                 self.kick_cooldown = FPS * 2     # 2 seconds
@@ -837,6 +905,14 @@ class Fighter:
                 if self.char.get("pumpkin_kick") and self.pumpkin_cooldown == 0:
                     self.pending_pumpkin  = True
                     self.pumpkin_cooldown = FPS * 3   # 3-second cooldown
+                if self.char.get("jack_tank"):
+                    self.jack_tank_frames = FPS * 10  # activate / refresh tank mode
+                    self.pending_jack_seed = True      # kick also fires a seed
+                if self.char.get("cornucopia_fruits"):
+                    self._cornucopia_fire()
+                if self.char.get("saint_nix_coal"):
+                    self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
+                    self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
                 if self.char.get("ink_kick") and self.ink_clone_cooldown == 0:
                     self.pending_ink_clone  = True
                     self.ink_clone_cooldown = FPS * 5  # 5-second cooldown
@@ -1131,7 +1207,17 @@ class Fighter:
                 if self.triple_slash_count == 0:
                     dmg *= 3
                     other.flash_timer = max(other.flash_timer, 14)
+            # Nun-Gimel-Hei-Shin: dreidel spin — 0, heal opp 1, 50, or 100
+            if self.char.get("ngs_dreidel"):
+                dmg = random.choice([0, -1, 50, 100])
             # Mirage: 35% dodge chance — sidestep and skip all damage
+            # Tombstone: reflect melee damage back to the attacker
+            if other.char.get("tombstone_reflect"):
+                other.flash_timer = 4
+                self.attack_hit   = True
+                self.hp = max(0, self.hp - int(dmg))
+                self.flash_timer  = max(self.flash_timer, 14)
+                return
             if other.char.get("mega_unhittable") and random.random() < 0.999:
                 other.flash_timer = 4
                 self.attack_hit   = True
@@ -1469,12 +1555,33 @@ class Fighter:
             if self.char.get("titan_grip") and self.action == 'punch' and dmg > 0:
                 other.knockback  = 0
                 other.hurt_timer = max(other.hurt_timer, 120)
+            if self.char.get("clover_kick") and self.action == 'kick':
+                self.pending_clover_snake = True
+            if self.char.get("yellowstone_kick") and self.action == 'kick':
+                self.pending_yellowstone_geysers = True
+
+    def _cornucopia_fire(self):
+        _FRUITS = ['cranberry', 'pear', 'apple', 'grape', 'banana',
+                   'strawberry', 'orange', 'peach', 'lemon', 'blackberry']
+        idx = random.randint(0, 9)
+        fruit = _FRUITS[idx]
+        self.cornucopia_feather_lit   = idx
+        self.cornucopia_feather_timer = 90
+        if fruit == 'peach':
+            self.hp = min(self.max_hp, self.hp + 30)
+            self.flash_timer = max(self.flash_timer, 8)
+        elif fruit == 'grape':
+            self.pending_fruit_attack = ('grape_rain', None)
+        elif fruit == 'cranberry':
+            self.pending_fruit_attack = ('cranberry_burst', None)
+        else:
+            self.pending_fruit_attack = (fruit, None)
 
     def take_proj_dmg(self, dmg, flash=True):
         """Apply damage from projectiles/chomps/contact — respects mega_unhittable and immune."""
         if self.char.get("immune"):
             return
-        if self.char.get("mega_unhittable") and random.random() < 0.999:
+        if self.char.get("tombstone_reflect") or (self.char.get("mega_unhittable") and random.random() < 0.999):
             return
         self.hp = max(0, self.hp - dmg)
         if flash:
@@ -1901,6 +2008,31 @@ class AIFighter(Fighter):
                         self.trail_dmg_cd = 30
                         break
 
+        # Passive ability timers (AI version — mirrors Fighter.update logic)
+        if self.jack_tank_frames > 0:
+            self.jack_tank_frames -= 1
+        if self.bookzworm_book_cd > 0:
+            self.bookzworm_book_cd -= 1
+        if self.cornucopia_feather_timer > 0:
+            self.cornucopia_feather_timer -= 1
+            if self.cornucopia_feather_timer == 0:
+                self.cornucopia_feather_lit = None
+        if self.char.get("liberty_dove"):
+            self.liberty_dove_timer -= 1
+            if self.liberty_dove_timer <= 0:
+                self.pending_liberty_dove = True
+                self.liberty_dove_timer   = FPS * 8
+        if self.char.get("solara_beam"):
+            self.sun_beam_timer -= 1
+            if self.sun_beam_timer <= 0:
+                self.pending_sun_beam = True
+                self.sun_beam_timer   = FPS * 3
+        if self.char.get("eartha_grow"):
+            self.eartha_grow_timer += 1
+            if self.eartha_grow_timer >= FPS:
+                self.eartha_grow_timer = 0
+                self.draw_scale = min(3.0, self.draw_scale + 0.1)
+
         if self.hurt_timer > 0 or self.freeze_frames > 0:
             return  # don't make decisions while staggered or frozen
 
@@ -1938,6 +2070,13 @@ class AIFighter(Fighter):
                         self.attack_cycle = (self.attack_cycle + 1) % 3
                     if self.char.get("thunder_punch"):
                         self.pending_thunder = True
+                    if self.char.get("jack_tank") and self.jack_tank_frames > 0:
+                        self.pending_jack_pumpkin = True
+                    if self.char.get("cornucopia_fruits"):
+                        self._cornucopia_fire()
+                    if self.char.get("saint_nix_coal"):
+                        self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
+                        self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
                 else:
                     self.kick_cooldown = FPS * 2
                     if self.char.get("teleport_kick"):
@@ -1971,6 +2110,14 @@ class AIFighter(Fighter):
                         self.kick_cooldown = FPS * 3
                     if self.char.get("map_kick"):
                         self.pending_stage_swap = True
+                    if self.char.get("jack_tank"):
+                        self.jack_tank_frames = FPS * 10
+                        self.pending_jack_seed = True
+                    if self.char.get("cornucopia_fruits"):
+                        self._cornucopia_fire()
+                    if self.char.get("saint_nix_coal"):
+                        self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
+                        self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
             self.ai_attack = None
         elif self.ai_move != 0:
             _ai_spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
