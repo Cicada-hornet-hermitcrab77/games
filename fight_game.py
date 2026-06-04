@@ -352,7 +352,7 @@ UNLOCK_CONDITIONS = {
     "Witch":               ("win_with",       "Storm Witch",     3,  "Win 3 matches as Storm Witch"),
     "Giant Killer":        ("win_with",       "Titan Smash",     5,  "Win 5 matches as Titan Smash"),
     "Speed Demon":         ("win_with",       "Crimson",         3,  "Win 3 matches as Crimson"),
-    "Wild Card":           ("win_with",       "Jester",          3,  "Win 3 matches as Jester"),
+    "High Roller":           ("win_with",       "Jester",          3,  "Win 3 matches as Jester"),
     "Ghost Warrior":       ("win_with",       "Phantom Blade",   3,  "Win 3 matches as Phantom Blade"),
     "Suicide King":        ("clutch_wins",    None,             30,  "Win 30 matches with ≤10 HP"),
     "Harbinger":           ("wins_total",     None,            150,  "Win 150 matches"),
@@ -389,7 +389,7 @@ UNLOCK_CONDITIONS = {
     "Dark Knight":         ("win_with",       "Dark Mage",       3,  "Win 3 matches as Dark Mage"),
     "Templar":             ("win_with",       "Shaolin",         5,  "Win 5 matches as Shaolin"),
     "Hydra":               ("win_with",       "Graverobber",     3,  "Win 3 matches as Graverobber"),
-    "Chimera":             ("win_with",       "Wild Card",       3,  "Win 3 matches as Wild Card"),
+    "Chimera":             ("win_with",       "High Roller",       3,  "Win 3 matches as Wild Card"),
     "Fortune":             ("wins_total",     None,             90,  "Win 90 matches"),
     "Chaos Lord":          ("win_with",       "Jester",          5,  "Win 5 matches as Jester"),
     # ── new secret characters ────────────────────────────────────────────────

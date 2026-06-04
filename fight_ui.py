@@ -453,7 +453,7 @@ CHEAT_CODES = {
     "hex_broom":          "Witch",
     "goliath_down":       "Giant Killer",
     "full_throttle":      "Speed Demon",
-    "joker_card":         "Wild Card",
+    "joker_card":         "High Roller",
     "spirit_blade":       "Ghost Warrior",
     "card_king":          "Suicide King",
     "doom_coming":        "Harbinger",

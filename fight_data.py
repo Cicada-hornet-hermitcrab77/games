@@ -1103,7 +1103,7 @@ CHARACTERS = [
      "punch_dmg": 7, "kick_dmg": 8, "max_hp": 75, "block": 2,
      "desc": "Gets permanently faster with every hit landed — snowballs into blur",
      "double_jump": True, "speed_stack": True, "rapid_fire": True, "glass_jaw": True},
-    {"name": "Wild Card", "color": (200, 80, 200), "speed": 6, "jump": -13,
+    {"name": "High Roller", "color": (200, 80, 200), "speed": 6, "jump": -13,
      "punch_dmg": 12, "kick_dmg": 12, "max_hp": 100, "block": 4,
      "desc": "Every hit is either double damage or zero — pure gambling",
      "double_jump": True, "all_or_nothing": True, "gamble_kick": True, "random_stats": True},

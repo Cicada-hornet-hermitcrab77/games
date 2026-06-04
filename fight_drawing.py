@@ -9879,7 +9879,7 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                 (hx + int(_sdh * (hd + max(1, int(s)))), hy - hd + max(2, int(2*s))),
             ])
 
-    elif char_name == "Wild Card":
+    elif char_name == "High Roller":
         t = pygame.time.get_ticks()
         # Playing-card black and red split suit
         pygame.draw.rect(surface, (20, 10, 10),
