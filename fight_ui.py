@@ -532,7 +532,7 @@ CHEAT_CODES = {
     "shock_wave":          "Pulse",
     "all_that_glitters":   "Gilded",
     "twilight_strike":     "Dusk",
-    "light_refraction":    "Prism",
+    "light_refraction":    "Chaos",
     "cold_ashes":          "Ashen",
     "berserker_blood":     "Ravager",
     "wall_of_thorns":      "Thornwall",
@@ -549,6 +549,21 @@ CHEAT_CODES = {
     "hunger_of_the_north":  "Wendigo",
     "leave_no_trace":       "Trailblazer",
     "guardian_of_the_gate": "Aqrabuamelu",
+    # seasonal / newer characters
+    "gobble_time":          "Cornucopia",
+    "spin_the_dreidel":     "Nun-Gimel-Hei-Shin",
+    "ho_ho_ho":             "Saint Nix",
+    "bunny_bandit":         "Baddit",
+    "grow_big":             "Eartha",
+    "rip_and_rest":         "Tombstone",
+    "rise_of_the_sun":      "Solara",
+    "land_of_the_free":     "Stickman of Liberty",
+    "read_em":              "Bookzworm",
+    "geyser_time":          "Yellowstone",
+    "pumpkin_carve":        "Jack O' Slash",
+    "lion_dance":           "Nian",
+    "pucker_up":            "Smoochie",
+    "luck_of_the_irish":    "Clover",
 }
 
 # ---------------------------------------------------------------------------
@@ -2329,7 +2344,7 @@ def online_menu(userdata):
             _alpha = min(255, _bt * 6)
             _bsurf = pygame.Surface((WIDTH - 40, 36), pygame.SRCALPHA)
             _bsurf.fill((20, 60, 20, min(200, _alpha)))
-            _btxt  = font_small.render(f"UPDATE: {_bn}", True, (120, 255, 120))
+            _btxt  = font_small.render(f"Kevin pushed: {_bn}", True, (120, 255, 120))
             _bsurf.blit(_btxt, (10, 6))
             screen.blit(_bsurf, (20, 120 + _bi * 42))
             _update_banner[_bi][1] -= 1

@@ -3217,7 +3217,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             # Spawn enemies
             enemy_spawn_timer -= 1
             if enemy_spawn_timer <= 0 and len(enemies) < max_en:
-                ci = random.randint(0, len(CHARACTERS) - 1)
+                _ai_pool = [i for i, c in enumerate(CHARACTERS) if not c.get("shop_only")]
+                ci = random.choice(_ai_pool)
                 if constants.STAGE_VOID:
                     # Spawn on the central platform so they don't fall into the void
                     sx = float(random.randint(330, 570))
