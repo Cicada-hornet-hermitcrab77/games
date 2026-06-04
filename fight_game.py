@@ -1346,6 +1346,22 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     new_clones.append(cd)
             clones = new_clones
 
+            # Flame trail damage — 2P mode (each player's trail can burn the opponent)
+            def _flame_trail_hit(trail_owner, victim):
+                if (trail_owner.char.get("flame_trail") and trail_owner.trail_dmg_cd == 0
+                        and trail_owner.flame_trail):
+                    for tx, ty, _ in trail_owner.flame_trail:
+                        if abs(victim.x - tx) < 28 and abs(victim.y - ty) < 40:
+                            if not victim.char.get("immune"):
+                                victim.hp = max(0, victim.hp - 3)
+                                victim.flash_timer = max(victim.flash_timer, 6)
+                            if victim.fire_frames == 0: victim.fire_tick = 480
+                            victim.fire_frames = max(victim.fire_frames, 120)
+                            trail_owner.trail_dmg_cd = 30
+                            break
+            for blazer, opp in [(p1, p2), (p2, p1)]:
+                _flame_trail_hit(blazer, opp)
+
             # Cactus contact damage + poison
             for cactus, victim in [(p1, p2), (p2, p1)]:
                 if (cactus.char.get("contact_dmg") and
@@ -3089,6 +3105,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     whips             = []   # Whip (whip_punch)
     arcane_orbs       = []   # ArcaneOrb (Arcanist)
     sun_beams         = []   # SunBeam (Solara)
+    nian_breaths      = []   # NianBreath cone (Nian)
     liberty_doves       = []   # LibertyDove (Stickman of Liberty)
     liberty_bombs       = []   # bombs dropped by dove
     yellowstone_geysers = []   # Yellowstone kick geysers
@@ -3351,6 +3368,27 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             en.laser_hit_cd = 15
                             break
 
+            # Flame trail damage — survival (player trails hit enemies only, enemy trails hit players)
+            def _flame_trail_hit_surv(trail_owner, victims):
+                if (trail_owner.char.get("flame_trail") and trail_owner.trail_dmg_cd == 0
+                        and trail_owner.flame_trail):
+                    for victim in victims:
+                        if victim.hp <= 0:
+                            continue
+                        for tx, ty, _ in trail_owner.flame_trail:
+                            if abs(victim.x - tx) < 28 and abs(victim.y - ty) < 40:
+                                if not victim.char.get("immune"):
+                                    victim.hp = max(0, victim.hp - 3)
+                                    victim.flash_timer = max(victim.flash_timer, 6)
+                                if victim.fire_frames == 0: victim.fire_tick = 480
+                                victim.fire_frames = max(victim.fire_frames, 120)
+                                trail_owner.trail_dmg_cd = 30
+                                break
+            for blazer in players:
+                _flame_trail_hit_surv(blazer, enemies)
+            for blazer in enemies:
+                _flame_trail_hit_surv(blazer, living)
+
             # Boomerang damage: player boomerangs hit enemies, enemy boomerangs hit players
             for thrower in players:
                 if thrower.boomerang_timer > 0 and thrower.boomerang_hit_cd == 0:
@@ -3479,8 +3517,9 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             # Bookzworm aura (survival — player hits enemies)
             for p in players:
                 if p.char.get("bookzworm_books") and p.hp > 0 and p.bookzworm_book_cd <= 0:
+                    _bz_r = int(18 * 4.5 * p.draw_scale) + 30   # match visual orbit + hitbox
                     for en in enemies:
-                        if math.hypot(en.x - p.x, (en.y - 60) - (p.y - 60)) < int(85 * p.draw_scale):
+                        if math.hypot(en.x - p.x, (en.y - p.y)) < _bz_r:
                             en.take_proj_dmg(6)
                             en.flash_timer = max(en.flash_timer, 10)
                             p.bookzworm_book_cd = 50
@@ -3501,6 +3540,23 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             en.fire_frames = max(en.fire_frames, 300)
                             sb.alive = False; break
             sun_beams = [sb for sb in sun_beams if sb.alive]
+
+            # Nian breath cone (survival — player breath hits enemies only)
+            for p in players:
+                if p.pending_nian_breath:
+                    p.pending_nian_breath = False
+                    nian_breaths.append(NianBreath(p.x + p.facing * 18, p.y - 60, p.facing, p))
+            for nb in nian_breaths:
+                nb.update()
+                targets = enemies if nb.owner in players else living
+                for victim in targets:
+                    if victim.hp > 0 and id(victim) not in nb._hit and nb.in_cone(victim):
+                        nb._hit.add(id(victim))
+                        victim.take_proj_dmg(NianBreath.DMG)
+                        if not victim.char.get("immune"):
+                            victim.fire_frames = max(victim.fire_frames, NianBreath.FIRE_FRAMES)
+                        victim.flash_timer = max(victim.flash_timer, 12)
+            nian_breaths = [nb for nb in nian_breaths if nb.alive]
 
             # Player orbs → enemies
             for o in orbs:
@@ -4049,6 +4105,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for b    in balls:         b.draw(screen)
         for ao   in arcane_orbs:   ao.draw(screen)
         for sb   in sun_beams:     sb.draw(screen)
+        for nb   in nian_breaths:  nb.draw(screen)
         for dove in liberty_doves: dove.draw(screen)
         for lb in liberty_bombs:
             bx, by = int(lb['x']), int(lb['y'])

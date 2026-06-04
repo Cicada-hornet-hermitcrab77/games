@@ -1112,18 +1112,8 @@ class Fighter:
             self.flame_trail = [[x, y, t-1] for x, y, t in self.flame_trail if t > 1]
             if self.trail_dmg_cd > 0:
                 self.trail_dmg_cd -= 1
-
-        # Trailblazer: opponent touching any live trail tile takes fire damage
-        if self.char.get("flame_trail") and self.trail_dmg_cd == 0 and self.flame_trail:
-            for tx, ty, _ in self.flame_trail:
-                if abs(other.x - tx) < 28 and abs(other.y - ty) < 40:
-                    if not other.char.get("immune"):
-                        other.hp = max(0, other.hp - 3)
-                        other.flash_timer = max(other.flash_timer, 6)
-                    if other.fire_frames == 0: other.fire_tick = 480
-                    other.fire_frames = max(other.fire_frames, 120)
-                    self.trail_dmg_cd = 30
-                    break
+        # Note: flame trail damage is applied in the game loop so it never
+        # hits co-op allies — see fight_game.py _apply_flame_trail_dmg
 
         if self.attacking and self.action in ('punch', 'kick'):
             self.action_t = min(1.0, self.action_t + self._attack_speed)
