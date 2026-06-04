@@ -490,6 +490,8 @@ class LobbyClient:
         self.incoming_friend_reqs = []     # [(from_code, from_name)]
         self.friend_req_results   = []     # [(from_code, from_name, result)]
         self.pending_msgs         = []     # non-relay server messages (FRIEND_INFO etc.)
+        self.leaderboard          = []     # filled when LEADERBOARD response arrives
+        self.update_notify        = []     # [(note_str)] server update announcements
 
     # ── Connection ────────────────────────────────────────────────────────────
 
@@ -537,6 +539,16 @@ class LobbyClient:
         self._send({"type": "FRIEND_RESPONSE", "to_code": to_code,
                     "accepted": accepted})
 
+    # ── Leaderboard ───────────────────────────────────────────────────────────
+
+    def report_result(self, won: bool):
+        """Report match outcome to the server (for global leaderboard)."""
+        self._send({"type": "MATCH_RESULT", "won": won})
+
+    def request_leaderboard(self):
+        """Ask the server to send the current win leaderboard."""
+        self._send({"type": "LEADERBOARD_REQUEST"})
+
     # ── Polling ───────────────────────────────────────────────────────────────
 
     def poll(self):
@@ -583,6 +595,10 @@ class LobbyClient:
                      m.get("result", "")))
             elif t == "OPP_LEFT":
                 self.connected = False
+            elif t == "LEADERBOARD":
+                self.leaderboard = m.get("entries", [])
+            elif t == "UPDATE_NOTIFY":
+                self.update_notify.append(m.get("note", ""))
             else:
                 self.pending_msgs.append(m)
         return relay_out

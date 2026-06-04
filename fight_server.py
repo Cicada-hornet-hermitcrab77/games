@@ -20,6 +20,7 @@ import struct
 import threading
 import random
 import sys
+import os
 
 PORT = 7779
 
@@ -59,6 +60,27 @@ class _Reader:
 _lock    = threading.Lock()
 _clients = {}   # user_code → {sock, reader, username, in_queue, matched_with}
 _queue   = []   # [user_code, …] ordered by join time
+
+# Win leaderboard — persisted to disk
+_WINS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fight_wins.json")
+_wins      = {}   # user_code → {"username": str, "wins": int}
+
+
+def _load_wins():
+    global _wins
+    try:
+        with open(_WINS_FILE) as f:
+            _wins = json.load(f)
+    except Exception:
+        _wins = {}
+
+
+def _save_wins():
+    try:
+        with open(_WINS_FILE, "w") as f:
+            json.dump(_wins, f, indent=2)
+    except Exception:
+        pass
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -180,6 +202,35 @@ def _handle(code, msg):
                 "result":    "accepted" if accepted else "declined",
             })
 
+    elif t == "MATCH_RESULT":
+        if msg.get("won"):
+            with _lock:
+                name = _clients.get(code, {}).get("username", "Player")
+            entry = _wins.setdefault(code, {"username": name, "wins": 0})
+            entry["username"] = name   # keep name current
+            entry["wins"] += 1
+            _save_wins()
+            print(f"[win] {name} ({code})  total={entry['wins']}", flush=True)
+
+    elif t == "LEADERBOARD_REQUEST":
+        with _lock:
+            snapshot = list(_wins.values())
+        top = sorted(snapshot, key=lambda x: -x.get("wins", 0))[:25]
+        _send(sock, {"type": "LEADERBOARD", "entries": top})
+
+    elif t == "UPDATE_NOTIFY":
+        # Broadcast an update notification to all connected clients
+        note = msg.get("note", "")
+        if note:
+            with _lock:
+                all_socks = [v["sock"] for v in _clients.values() if v.get("sock")]
+            for s in all_socks:
+                try:
+                    _send(s, {"type": "UPDATE_NOTIFY", "note": note})
+                except Exception:
+                    pass
+            print(f"[notify] {note}", flush=True)
+
 
 # ── Per-client thread ─────────────────────────────────────────────────────────
 
@@ -253,13 +304,50 @@ def _client_thread(sock, addr):
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
+def _broadcast_update(note: str):
+    """Broadcast an update notification to all currently connected players."""
+    with _lock:
+        all_socks = [v["sock"] for v in _clients.values()]
+        count     = len(all_socks)
+    for s in all_socks:
+        try:
+            _send(s, {"type": "UPDATE_NOTIFY", "note": note})
+        except Exception:
+            pass
+    print(f"[notify] sent to {count} players: {note}", flush=True)
+
+
+def _stdin_console():
+    """Read admin commands from stdin (run in background thread)."""
+    print("Admin console ready.  Commands: notify <message>  |  wins  |  quit", flush=True)
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("notify "):
+            msg = line[7:].strip()
+            if msg:
+                _broadcast_update(msg)
+        elif line == "wins":
+            with _lock:
+                snapshot = sorted(_wins.values(), key=lambda x: -x.get("wins", 0))
+            for i, e in enumerate(snapshot[:20], 1):
+                print(f"  #{i:2d}  {e.get('username','?'):20s}  {e.get('wins',0)} wins", flush=True)
+        elif line == "quit":
+            os._exit(0)
+        else:
+            print("Unknown command.", flush=True)
+
+
 def main():
+    _load_wins()
     port = int(sys.argv[1]) if len(sys.argv) > 1 else PORT
     srv  = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     srv.bind(("", port))
     srv.listen(64)
-    print(f"Fight server listening on port {port}", flush=True)
+    print(f"Fight server listening on port {port}  (wins loaded: {len(_wins)})", flush=True)
+    threading.Thread(target=_stdin_console, daemon=True).start()
     try:
         while True:
             sock, addr = srv.accept()

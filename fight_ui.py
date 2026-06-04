@@ -2232,8 +2232,9 @@ def online_menu(userdata):
          or ('join',       (net, p2_char, p1_char, stage))
          or None on cancel.
     """
-    opts = ["QUICK MATCH", "HOST GAME", "JOIN GAME", "FRIENDS", "SET USERNAME"]
+    opts = ["QUICK MATCH", "HOST GAME", "JOIN GAME", "FRIENDS", "LEADERBOARD", "SET USERNAME"]
     sel  = 0
+    _update_banner = []   # server update announcements to show
 
     # Keep a background lobby connection for incoming friend requests
     _lobby_bg = _make_lobby(userdata, timeout=3)
@@ -2242,12 +2243,15 @@ def online_menu(userdata):
         clock.tick(FPS)
         user_code = userdata.get("user_code", "????????")
 
-        # Poll for incoming friend requests while idle on this menu
+        # Poll for incoming friend requests + update notifications
         if _lobby_bg and _lobby_bg.connected:
             _lobby_bg.poll()
             if _lobby_bg.incoming_friend_reqs:
                 friends = userdata.setdefault("friends", {})
                 _process_incoming_requests(_lobby_bg, userdata, friends)
+            for _note in _lobby_bg.update_notify:
+                _update_banner.append([_note, FPS * 8])
+            _lobby_bg.update_notify.clear()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -2284,7 +2288,9 @@ def online_menu(userdata):
                         if _lobby_bg: _lobby_bg.close()
                         friends_screen(userdata)
                         _lobby_bg = _make_lobby(userdata, timeout=3)
-                    elif sel == 4:  # SET USERNAME
+                    elif sel == 4:  # LEADERBOARD
+                        leaderboard_screen(userdata)
+                    elif sel == 5:  # SET USERNAME
                         set_username_screen(userdata)
 
         screen.fill(DARK)
@@ -2308,7 +2314,116 @@ def online_menu(userdata):
             r = font_medium.render(("► " if i == sel else "  ") + opt, True, col)
             screen.blit(r, (WIDTH//2 - r.get_width()//2, 130 + i * 56))
 
+        # Local online record
+        _ow = userdata.get("online_wins", 0)
+        _ol = userdata.get("online_losses", 0)
+        _rec = font_tiny.render(f"Your record: {_ow}W – {_ol}L", True, (160, 200, 160))
+        screen.blit(_rec, (WIDTH//2 - _rec.get_width()//2, HEIGHT - 52))
+
         hint = font_tiny.render("↑/↓  ENTER to select   ESC = back", True, GRAY)
+        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 28))
+
+        # Update notification banners
+        _update_banner[:] = [[n, t] for n, t in _update_banner if t > 0]
+        for _bi, (_bn, _bt) in enumerate(_update_banner):
+            _alpha = min(255, _bt * 6)
+            _bsurf = pygame.Surface((WIDTH - 40, 36), pygame.SRCALPHA)
+            _bsurf.fill((20, 60, 20, min(200, _alpha)))
+            _btxt  = font_small.render(f"UPDATE: {_bn}", True, (120, 255, 120))
+            _bsurf.blit(_btxt, (10, 6))
+            screen.blit(_bsurf, (20, 120 + _bi * 42))
+            _update_banner[_bi][1] -= 1
+
+        pygame.display.flip()
+
+
+# ---------------------------------------------------------------------------
+# Leaderboard screen
+# ---------------------------------------------------------------------------
+
+def leaderboard_screen(userdata):
+    """Fetch and display the global online win leaderboard from the server."""
+    import fight_network as _fn
+    lobby = None
+    entries = []
+    status  = "Connecting..."
+
+    try:
+        lobby = _fn.LobbyClient()
+        lobby.connect(timeout=5)
+        lobby.register(userdata.get("user_code", "????????"),
+                       userdata.get("username", "Player"))
+        lobby.request_leaderboard()
+        # Wait up to 3s for the response
+        import time as _time
+        _deadline = _time.time() + 3.0
+        while _time.time() < _deadline:
+            lobby.poll()
+            if lobby.leaderboard is not None and lobby.leaderboard != []:
+                entries = lobby.leaderboard
+                status  = f"Top {len(entries)} players"
+                break
+        else:
+            if not entries:
+                status = "No data yet — play some online matches!"
+    except Exception as e:
+        status = f"Server offline ({e})"
+    finally:
+        if lobby:
+            try: lobby.close()
+            except Exception: pass
+
+    my_code = userdata.get("user_code", "")
+    scroll  = 0
+
+    while True:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_ESCAPE, pygame.K_RETURN):
+                    return
+                if event.key in (pygame.K_DOWN, pygame.K_s):
+                    scroll = min(scroll + 1, max(0, len(entries) - 14))
+                if event.key in (pygame.K_UP, pygame.K_w):
+                    scroll = max(0, scroll - 1)
+
+        screen.fill(DARK)
+        title = font_large.render("LEADERBOARD", True, YELLOW)
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, 16))
+        st = font_small.render(status, True, GRAY)
+        screen.blit(st, (WIDTH//2 - st.get_width()//2, 68))
+
+        # Local record
+        _lw = userdata.get("online_wins", 0)
+        _ll = userdata.get("online_losses", 0)
+        _lr = font_tiny.render(f"Your local record: {_lw}W – {_ll}L", True, (160, 200, 160))
+        screen.blit(_lr, (WIDTH//2 - _lr.get_width()//2, 96))
+
+        # Column headers
+        hdr_y = 126
+        screen.blit(font_tiny.render("RANK", True, GRAY), (60,  hdr_y))
+        screen.blit(font_tiny.render("PLAYER",  True, GRAY), (130, hdr_y))
+        screen.blit(font_tiny.render("WINS",    True, GRAY), (WIDTH - 100, hdr_y))
+        pygame.draw.line(screen, GRAY, (50, hdr_y + 20), (WIDTH - 50, hdr_y + 20), 1)
+
+        row_h = 32
+        for ri, entry in enumerate(entries[scroll:scroll + 14]):
+            ry   = 152 + ri * row_h
+            rank = scroll + ri + 1
+            name = entry.get("username", "?")
+            wins = entry.get("wins", 0)
+            col  = YELLOW if rank == 1 else (200, 200, 200) if rank == 2 else \
+                   (180, 130, 60) if rank == 3 else WHITE
+            if rank <= 3:
+                medal = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉"
+                screen.blit(font_small.render(medal, True, col), (50, ry))
+            screen.blit(font_small.render(f"#{rank}", True, col), (60, ry))
+            screen.blit(font_small.render(name[:22], True, col), (130, ry))
+            screen.blit(font_small.render(str(wins), True, col), (WIDTH - 100, ry))
+
+        hint = font_tiny.render("↑/↓ scroll   ESC / ENTER = back", True, GRAY)
         screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT - 28))
         pygame.display.flip()
 

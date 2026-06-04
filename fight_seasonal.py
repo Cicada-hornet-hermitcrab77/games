@@ -62,7 +62,6 @@ SEASONAL_SHOP_CHARS = [
     {"name": "Chef",           "event": "Feasterween",          "cost": 100},
     {"name": "Scarecrow",      "event": "Feasterween",          "cost":  60},
     {"name": "Nun-Gimel-Hei-Shin", "event": "Aura of Menorah",   "cost": 290},
-    {"name": "Prism",              "event": "Aura of Menorah",   "cost": 100},
     {"name": "Saint Nix",          "event": "Yuletide Gatherings", "cost": 305},
     {"name": "Wendigo",            "event": "Yuletide Gatherings", "cost": 100},
     {"name": "Cryogenisist",       "event": "Yuletide Gatherings", "cost":  50},

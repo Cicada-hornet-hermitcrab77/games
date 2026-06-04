@@ -437,7 +437,7 @@ UNLOCK_CONDITIONS = {
     "Pulse":               ("win_with",       "Storm Rider",     3,  "Win 3 matches as Storm Rider"),
     "Gilded":              ("wins_total",     None,            250,  "Win 250 matches"),
     "Dusk":                ("win_with",       "Shadowbind",      3,  "Win 3 matches as Shadowbind"),
-    "Prism":               ("unique_wins",    None,             25,  "Win with 25 different characters"),
+    "Chaos":               ("unique_wins",    None,             25,  "Win with 25 different characters"),
     "Ashen":               ("win_with",       "Frostbite",       3,  "Win 3 matches as Frostbite"),
     "Ravager":             ("clutch_wins",    None,             14,  "Win 14 matches with ≤10 HP"),
     "Thornwall":           ("win_with",       "Stone Golem",     3,  "Win 3 matches as Stone Golem"),
@@ -468,7 +468,6 @@ UNLOCK_CONDITIONS = {
     "Jack O' Slash":  ("seasonal_purchased", "Jack O' Slash",  1, "Buy in Seasonal Shop (Echoes of the Undying)"),
     "Cornucopia":          ("seasonal_purchased", "Cornucopia",          1, "Buy in Seasonal Shop (Feasterween)"),
     "Nun-Gimel-Hei-Shin":  ("seasonal_purchased", "Nun-Gimel-Hei-Shin",  1, "Buy in Seasonal Shop (Aura of Menorah)"),
-    "Prism":               ("seasonal_purchased", "Prism",               1, "Buy in Seasonal Shop (Aura of Menorah)"),
     "Saint Nix":           ("seasonal_purchased", "Saint Nix",           1, "Buy in Seasonal Shop (Yuletide Gatherings)"),
 }
 
@@ -4238,7 +4237,7 @@ def _s2f(f, s):
 # ---------------------------------------------------------------------------
 
 def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
-                     stage_idx, my_name, opp_name):
+                     stage_idx, my_name, opp_name, userdata=None):
     """
     Networked 1v1 fight.
     * Host (is_host=True)  runs the authoritative sim and sends STATE each frame.
@@ -5343,6 +5342,23 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
 
     constants.GRAVITY    = _orig_gravity
     constants.STAGE_VOID = False; constants.STAGE_CEILING = False
+
+    # Report win to server (relay fights) and save locally
+    if winner and winner not in ("disconnect", "draw"):
+        _i_won = (winner == "p1") == is_host
+        if userdata is not None:
+            if _i_won:
+                userdata["online_wins"]   = userdata.get("online_wins",   0) + 1
+            else:
+                userdata["online_losses"] = userdata.get("online_losses", 0) + 1
+            _net.save_userdata(userdata)
+        # Report to relay server for global leaderboard
+        if isinstance(net, _RelayNet):
+            try:
+                net._lobby.report_result(_i_won)
+            except Exception:
+                pass
+
     net.close()
     return 'select'
 
@@ -5380,12 +5396,12 @@ class _RelayNet:
 
 
 def run_relay_fight(lobby, is_host, p1_char_idx, p2_char_idx,
-                    stage_idx, my_name, opp_name):
+                    stage_idx, my_name, opp_name, userdata=None):
     """Wrapper: create a _RelayNet adapter and delegate to run_online_fight."""
     net = _RelayNet(lobby)
     net.opp_name = opp_name
     return run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
-                            stage_idx, my_name, opp_name)
+                            stage_idx, my_name, opp_name, userdata=userdata)
 
 
 # ---------------------------------------------------------------------------
@@ -5435,7 +5451,8 @@ def main():
             if role == 'quickmatch':
                 lobby, p1_char, p2_char, s_idx, is_host, opp_name = info
                 run_relay_fight(lobby, is_host, p1_char, p2_char,
-                                s_idx, userdata['username'], opp_name)
+                                s_idx, userdata['username'], opp_name,
+                                userdata=userdata)
             else:
                 net, my_char, opp_char, s_idx = info
                 if role == 'host':
@@ -5443,7 +5460,8 @@ def main():
                 else:
                     p1_char, p2_char = opp_char, my_char
                 run_online_fight(net, role == 'host', p1_char, p2_char,
-                                 s_idx, userdata['username'], net.opp_name)
+                                 s_idx, userdata['username'], net.opp_name,
+                                 userdata=userdata)
             continue
 
         # --- Survival path ---
