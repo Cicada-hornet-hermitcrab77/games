@@ -12314,37 +12314,113 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         surface.blit(_gsurf, (sx - int(bl), sy - int(bl * 0.1)))
 
     elif char_name == "Stickman of Liberty":
-        _liberty = (88, 152, 132)
-        _dark_l  = (55, 100, 85)
-        # Toga/robe — wide drape covering the body
-        _robe_w = int(al * 0.9)
-        pygame.draw.polygon(surface, _liberty, [
-            (sx - _robe_w, sy),
-            (sx + _robe_w, sy),
-            (sx + int(_robe_w * 0.6), wy + int(bl * 0.3)),
-            (sx - int(_robe_w * 0.6), wy + int(bl * 0.3)),
+        _liberty   = (88, 152, 132)
+        _lib_mid   = (108, 175, 155)
+        _lib_dark  = (55, 100, 85)
+        _lib_light = (140, 200, 180)
+        # Tablet in non-torch hand
+        _tab_x = sx - facing * int(al * 0.7)
+        _tab_y = sy + int(bl * 0.3)
+        _tab_w, _tab_h = int(hd*0.9), int(hd*1.3)
+        pygame.draw.rect(surface, (195, 175, 130),
+                         (_tab_x - _tab_w//2, _tab_y, _tab_w, _tab_h),
+                         border_radius=max(1, int(3*s)))
+        pygame.draw.rect(surface, (160, 140, 95),
+                         (_tab_x - _tab_w//2, _tab_y, _tab_w, _tab_h),
+                         max(1, int(s)), border_radius=max(1, int(3*s)))
+        # Engraved lines on tablet (representing text)
+        for _tl in range(4):
+            _tly = _tab_y + int(_tab_h * (0.18 + _tl * 0.2))
+            pygame.draw.line(surface, (130, 110, 70),
+                             (_tab_x - _tab_w//2 + int(3*s), _tly),
+                             (_tab_x + _tab_w//2 - int(3*s), _tly), max(1, int(s)))
+        # Toga/robe — layered drape with shading
+        _robe_w = int(al * 1.0)
+        # Back layer (darker)
+        pygame.draw.polygon(surface, _lib_dark, [
+            (sx - _robe_w, sy + int(bl*0.05)),
+            (sx + _robe_w, sy + int(bl*0.05)),
+            (sx + int(_robe_w * 0.65), wy + int(bl * 0.4)),
+            (sx - int(_robe_w * 0.65), wy + int(bl * 0.4)),
         ])
-        pygame.draw.polygon(surface, _dark_l, [
-            (sx - _robe_w, sy),
-            (sx + _robe_w, sy),
-            (sx + int(_robe_w * 0.6), wy + int(bl * 0.3)),
-            (sx - int(_robe_w * 0.6), wy + int(bl * 0.3)),
-        ], max(1, int(2*s)))
-        # Torch in forward hand — small staff + flame
-        _tx = sx + facing * int(al * 0.85)
-        _ty = sy - int(hd * 0.5)
-        pygame.draw.line(surface, (160, 110, 50), (_tx, _ty + int(hd * 1.2)), (_tx, _ty - int(hd * 0.5)), max(2, int(3*s)))
-        pygame.draw.circle(surface, (255, 160, 20), (_tx, _ty - int(hd * 0.5)), max(3, int(hd * 0.35)))
-        pygame.draw.circle(surface, (255, 240, 100), (_tx, _ty - int(hd * 0.5)), max(1, int(hd * 0.18)))
-        # Liberty crown — 7 spikes around the top of the head
+        # Front layer (main color)
+        _front_w = int(_robe_w * 0.78)
+        pygame.draw.polygon(surface, _liberty, [
+            (sx - _front_w, sy),
+            (sx + _front_w, sy),
+            (sx + int(_front_w * 0.6), wy + int(bl * 0.35)),
+            (sx - int(_front_w * 0.6), wy + int(bl * 0.35)),
+        ])
+        # Diagonal drape fold from shoulder to opposite hip
+        pygame.draw.line(surface, _lib_dark,
+                         (sx - facing * int(_front_w * 0.7), sy + int(bl*0.08)),
+                         (sx + facing * int(_front_w * 0.3), wy - int(bl*0.1)),
+                         max(2, int(3*s)))
+        # Lighter highlight stripe on the drape
+        pygame.draw.line(surface, _lib_light,
+                         (sx - facing * int(_front_w * 0.55), sy + int(bl*0.12)),
+                         (sx + facing * int(_front_w * 0.18), wy - int(bl*0.14)),
+                         max(1, int(s)))
+        # Hem folds at bottom
+        for _hf in range(3):
+            _hfx = sx - _front_w//2 + int(_front_w * (_hf + 1) / 4)
+            pygame.draw.line(surface, _lib_dark,
+                             (_hfx, wy + int(bl*0.2)),
+                             (_hfx + int(4*s), wy + int(bl*0.35)), max(1, int(s)))
+        # Outline
+        pygame.draw.polygon(surface, _lib_dark, [
+            (sx - _front_w, sy),
+            (sx + _front_w, sy),
+            (sx + int(_front_w * 0.6), wy + int(bl * 0.35)),
+            (sx - int(_front_w * 0.6), wy + int(bl * 0.35)),
+        ], max(1, int(s)))
+        # Torch in forward hand — long staff + layered flame
+        _tx = sx + facing * int(al * 0.9)
+        _ty = sy - int(hd * 0.8)
+        _staff_bot = _ty + int(hd * 2.0)
+        # Staff
+        pygame.draw.line(surface, (120, 80, 32), (_tx, _staff_bot), (_tx, _ty), max(3, int(4*s)))
+        # Torch cup (dark bowl at top of staff)
+        pygame.draw.ellipse(surface, (80, 55, 20),
+                            (_tx - int(5*s), _ty - int(3*s), int(10*s), int(8*s)))
+        # Flame layers (outer → inner)
+        _ft = pygame.time.get_ticks() / 200
+        _flicker = int(math.sin(_ft) * int(2*s))
+        for _fl_col, _fl_r in [((200, 80, 10), int(hd*0.55)),
+                                ((240, 140, 20), int(hd*0.38)),
+                                ((255, 220, 80), int(hd*0.22))]:
+            pygame.draw.ellipse(surface, _fl_col,
+                                (_tx - _fl_r + _flicker, _ty - _fl_r * 2,
+                                 _fl_r * 2, int(_fl_r * 2.2)))
+        # Liberty crown — 7 triangular spikes radiating from head
+        _crown_base_y = hy - int(hd * 0.62)
+        _crown_r_in  = hd + int(hd * 0.08)
+        _crown_r_out = hd + int(hd * 0.82)
+        # Crown band
+        pygame.draw.arc(surface, _liberty,
+                        pygame.Rect(hx - hd - int(4*s), _crown_base_y - int(4*s),
+                                    (hd + int(4*s)) * 2, int(hd * 0.55)),
+                        0, math.pi, max(3, int(4*s)))
+        # Seven spikes
         for _i in range(7):
-            _ang = -math.pi / 2 + (_i - 3) * (math.pi * 0.22)
-            _cr = hd + int(hd * 0.35)
-            _cx1 = hx + int(math.cos(_ang) * hd)
-            _cy1 = hy + int(math.sin(_ang) * hd)
-            _cx2 = hx + int(math.cos(_ang) * _cr)
-            _cy2 = hy + int(math.sin(_ang) * _cr)
-            pygame.draw.line(surface, _liberty, (_cx1, _cy1), (_cx2, _cy2), max(2, int(3*s)))
+            _ang = -math.pi / 2 + (_i - 3) * (math.pi / 6.5)
+            if math.sin(_ang) > 0.2:   # skip spikes pointing downward
+                continue
+            _cx1 = hx + int(math.cos(_ang) * _crown_r_in)
+            _cy1 = hy + int(math.sin(_ang) * _crown_r_in)
+            _cx2 = hx + int(math.cos(_ang) * _crown_r_out)
+            _cy2 = hy + int(math.sin(_ang) * _crown_r_out)
+            _perp = math.pi / 2
+            _pw = int(4*s)
+            _side1 = (int(math.cos(_ang + _perp) * _pw), int(math.sin(_ang + _perp) * _pw))
+            _side2 = (int(math.cos(_ang - _perp) * _pw), int(math.sin(_ang - _perp) * _pw))
+            _spike_pts = [
+                (_cx1 + _side1[0], _cy1 + _side1[1]),
+                (_cx2, _cy2),
+                (_cx1 + _side2[0], _cy1 + _side2[1]),
+            ]
+            pygame.draw.polygon(surface, _lib_mid, _spike_pts)
+            pygame.draw.polygon(surface, _lib_light, _spike_pts, max(1, int(s)))
 
     elif char_name == "Bookzworm":
         # Caterpillar body — segmented circles along the torso

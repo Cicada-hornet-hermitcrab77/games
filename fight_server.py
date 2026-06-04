@@ -234,6 +234,9 @@ def _handle(code, msg):
 
 # ── Per-client thread ─────────────────────────────────────────────────────────
 
+_ADMIN_KEY = os.environ.get("FIGHT_ADMIN_KEY", "kevin_dev")
+
+
 def _client_thread(sock, addr):
     reader = _Reader()
     code   = None
@@ -246,6 +249,12 @@ def _client_thread(sock, addr):
                 return
             reader.feed(chunk)
             for m in reader.messages():
+                if m.get("type") == "ADMIN_NOTIFY":
+                    if m.get("key") == _ADMIN_KEY:
+                        note = m.get("note", "").strip()
+                        if note:
+                            _broadcast_update(note)
+                    return   # close connection after handling
                 if m.get("type") == "HELLO":
                     code = m.get("code", "")
                     name = m.get("username", "Player")

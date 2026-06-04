@@ -3848,6 +3848,27 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             en.chainsaw_cd = 15
                             break
 
+            # Toxic aura — proximity poison (survival)
+            for toxic in [p for p in players if p.char.get("toxic_aura") and p.hp > 0]:
+                for en in enemies:
+                    if (en.contact_cooldown == 0 and
+                            math.hypot(toxic.x - en.x, (toxic.y - 60) - (en.y - 60)) < 80):
+                        en.take_proj_dmg(2)
+                        en.flash_timer = 4
+                        en.contact_cooldown = 90
+                        if en.poison_frames == 0: en.poison_tick = 180
+                        en.poison_frames = max(en.poison_frames, 360)
+            for en in [e for e in enemies if e.char.get("toxic_aura") and e.hp > 0]:
+                for p in living:
+                    if (p.contact_cooldown == 0 and
+                            math.hypot(en.x - p.x, (en.y - 60) - (p.y - 60)) < 80):
+                        p.take_proj_dmg(2)
+                        p.flash_timer = 4
+                        p.contact_cooldown = 90
+                        if not p.char.get("immune"):
+                            if p.poison_frames == 0: p.poison_tick = 180
+                            p.poison_frames = max(p.poison_frames, 360)
+
             # Death pops: spawn burst when enemy hp hits 0, then remove enemy
             for en in enemies:
                 if en.hp <= 0:
