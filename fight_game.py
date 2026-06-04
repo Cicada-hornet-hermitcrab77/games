@@ -17,7 +17,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             Projectile, Orb, BouncingBall, Whip, HotPotato,
                             FallingPot, RollingCoin, FallingMerlin,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
-                            FireBall, ThunderBolt, Scroll, TotemPole,
+                            FireBall, NianBreath, ThunderBolt, Scroll, TotemPole,
                             RemoteController, Apple, VenomBean, PlantSpike,
                             ChargedOrb, BubbleShot, PoisonOrb, BlackHole, MusicNote, ArcaneOrb,
                             SunBeam, LibertyDove, PumpkinSeed,
@@ -1082,6 +1082,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
     mines         = []   # active ground mines (Trap Master)
     arcane_orbs   = []   # active ArcaneOrb objects (Arcanist)
     sun_beams     = []   # active SunBeam objects (Solara)
+    nian_breaths  = []   # active NianBreath cones (Nian)
     liberty_doves      = []   # active LibertyDove companions (Stickman of Liberty)
     liberty_bombs      = []   # falling bombs dropped by LibertyDoves
     yellowstone_geysers = []  # active geysers (Yellowstone kick)
@@ -2301,12 +2302,22 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
                     shooter.pending_autofire = False
                     fire_balls.append(FireBall(shooter.x + shooter.facing * 30,
                                                shooter.y - 60, shooter.facing, shooter))
-            # Nian — breathes fire while blocking
+            # Nian — wide fire breath cone
             for shooter, victim in [(p1, p2), (p2, p1)]:
                 if shooter.pending_nian_breath:
                     shooter.pending_nian_breath = False
-                    fire_balls.append(FireBall(shooter.x + shooter.facing * 30,
-                                               shooter.y - 60, shooter.facing, shooter))
+                    nian_breaths.append(NianBreath(shooter.x + shooter.facing * 18,
+                                                   shooter.y - 60, shooter.facing, shooter))
+            for nb in nian_breaths:
+                nb.update()
+                for shooter, victim in [(p1, p2), (p2, p1)]:
+                    if nb.owner is shooter and id(victim) not in nb._hit and nb.in_cone(victim):
+                        nb._hit.add(id(victim))
+                        victim.take_proj_dmg(NianBreath.DMG)
+                        if not victim.char.get("immune"):
+                            victim.fire_frames = max(victim.fire_frames, NianBreath.FIRE_FRAMES)
+                        victim.flash_timer = max(victim.flash_timer, 12)
+            nian_breaths = [nb for nb in nian_breaths if nb.alive]
 
             # Clover — kick summons a snake
             for fighter in (p1, p2):
@@ -2802,6 +2813,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
             pygame.draw.circle(screen, (200, 220, 200), (bx, by), 4)
         for fb in fire_balls:
             fb.draw(screen)
+        for nb in nian_breaths:
+            nb.draw(screen)
         for tb in thunder_bolts:
             tb.draw(screen)
         for ps in plant_spikes:
@@ -4296,6 +4309,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     charged_orbs = []; bubble_shots = []; poison_orbs = []; scrolls = []; venoms = []
     notes        = []; kitsune_shots = []; water_balls = []; bee_shots = []; snipe_shots = []
     fire_balls   = []; thunder_bolts = []; plant_spikes = []; arcane_orbs = []; sun_beams = []
+    nian_breaths = []
     liberty_doves = []; liberty_bombs = []; yellowstone_geysers = []; jack_seeds = []
     fruit_projs   = []   # FruitProj (Cornucopia)
     coal_projs    = []   # CoalProj (Saint Nix)
@@ -4783,8 +4797,8 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                                                shooter.y - 60, shooter.facing, shooter))
                 if shooter.pending_nian_breath:
                     shooter.pending_nian_breath = False
-                    fire_balls.append(FireBall(shooter.x + shooter.facing * 30,
-                                               shooter.y - 60, shooter.facing, shooter))
+                    nian_breaths.append(NianBreath(shooter.x + shooter.facing * 18,
+                                                   shooter.y - 60, shooter.facing, shooter))
                 if shooter.pending_sun_beam:
                     shooter.pending_sun_beam = False
                     sun_beams.append(SunBeam(shooter.x + shooter.facing * 30,
@@ -4848,6 +4862,17 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                             victim.fire_frames = max(victim.fire_frames, 480)
                             fb.alive = False
             fire_balls = [fb for fb in fire_balls if fb.alive]
+            # Nian breath — wide cone, hits players and enemies
+            for nb in nian_breaths:
+                nb.update()
+                for victim in living + enemies:
+                    if nb.owner is not victim and id(victim) not in nb._hit and nb.in_cone(victim):
+                        nb._hit.add(id(victim))
+                        victim.take_proj_dmg(NianBreath.DMG)
+                        if not victim.char.get("immune"):
+                            victim.fire_frames = max(victim.fire_frames, NianBreath.FIRE_FRAMES)
+                        victim.flash_timer = max(victim.flash_timer, 12)
+            nian_breaths = [nb for nb in nian_breaths if nb.alive]
             for sb in sun_beams:
                 sb.update()
                 if sb.alive:
@@ -5248,6 +5273,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                 pygame.draw.circle(screen, (255, 255, 255), (gx, GROUND_Y - 110), r)
                 pygame.draw.circle(screen, (180, 230, 255), (gx, GROUND_Y - 110), r + 4, 3)
         for fb   in fire_balls:     fb.draw(screen)
+        for nb   in nian_breaths:   nb.draw(screen)
         for tb   in thunder_bolts:  tb.draw(screen)
         for ps   in plant_spikes:   ps.draw(screen)
 

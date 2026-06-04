@@ -1203,6 +1203,92 @@ class FireBall:
 
 
 # ---------------------------------------------------------------------------
+# NianBreath  (Nian dragon — wide fire cone while blocking)
+# ---------------------------------------------------------------------------
+
+class NianBreath:
+    DURATION    = 40    # frames the cone lasts
+    DMG         = 14
+    FIRE_FRAMES = 120   # sets opponent on fire
+    MAX_LEN     = 210   # pixels forward
+    MAX_W       = 150   # pixels wide at the end
+
+    def __init__(self, x, y, facing, owner):
+        self.x       = float(x)
+        self.y       = float(y)
+        self.facing  = facing
+        self.owner   = owner
+        self.alive   = True
+        self._t      = 0
+        self._hit    = set()   # ids of fighters already damaged this breath
+        # Pre-scatter 50 particle offsets (frac along axis, frac across width, scale)
+        self._ptcls  = [(random.random(), random.uniform(-1, 1), random.uniform(0.6, 1.4))
+                        for _ in range(50)]
+
+    def update(self):
+        self._t += 1
+        if self._t >= self.DURATION:
+            self.alive = False
+
+    def _dims(self):
+        progress = self._t / self.DURATION
+        grow     = min(progress * 2.2, 1.0)   # reaches full size at ~45% through
+        fade     = max(0.0, 1.0 - (progress - 0.45) / 0.55)
+        return grow, fade
+
+    def in_cone(self, fighter):
+        grow, _ = self._dims()
+        length  = self.MAX_LEN * grow
+        width   = self.MAX_W   * grow
+        fx      = fighter.x
+        fy      = fighter.y - 60
+        along   = (fx - self.x) * self.facing
+        if along < -20 or along > length + 35:
+            return False
+        frac      = max(0.0, along / (length + 1))
+        half_w    = width * 0.5 * frac + 28   # cone widens as it extends
+        return abs(fy - self.y) < half_w
+
+    def draw(self, surface):
+        grow, fade = self._dims()
+        if fade <= 0 or grow <= 0.04:
+            return
+        length = int(self.MAX_LEN * grow)
+        width  = int(self.MAX_W   * grow)
+        ox     = int(self.x)
+        oy     = int(self.y)
+        tip    = (ox + self.facing * 18, oy)
+        end_x  = ox + self.facing * (18 + length)
+
+        def cone_poly(l, w):
+            return [tip,
+                    (end_x, oy - w // 2),
+                    (end_x, oy + w // 2)]
+
+        alpha = int(190 * fade)
+        # Draw 3 nested cones back → front for depth
+        layers = [
+            ((200, 45,  5),  width,           alpha),
+            ((255, 110, 15), int(width*0.72), min(255, alpha + 25)),
+            ((255, 215, 60), int(width*0.40), min(255, alpha + 50)),
+        ]
+        for col, w, a in layers:
+            if w < 2:
+                continue
+            _s = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            pygame.draw.polygon(_s, (*col, a), cone_poly(length, w))
+            surface.blit(_s, (0, 0))
+
+        # Scattered fire particles inside cone
+        for af, wf, sc in self._ptcls:
+            px = int(self.x + self.facing * (18 + length * af))
+            py = int(self.y + width * wf * af * 0.48)
+            pr = max(2, int(9 * sc * (1.0 - af * 0.5) * fade))
+            brightness = int(255 * (1.0 - af * 0.5))
+            pygame.draw.circle(surface, (brightness, max(0, brightness - 140), 10), (px, py), pr)
+
+
+# ---------------------------------------------------------------------------
 # ThunderBolt  (Thunder God punch — falls from above onto opponent)
 # ---------------------------------------------------------------------------
 

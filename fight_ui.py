@@ -2344,7 +2344,7 @@ def online_menu(userdata):
             _alpha = min(255, _bt * 6)
             _bsurf = pygame.Surface((WIDTH - 40, 36), pygame.SRCALPHA)
             _bsurf.fill((20, 60, 20, min(200, _alpha)))
-            _btxt  = font_small.render(f"Kevin pushed: {_bn}", True, (120, 255, 120))
+            _btxt  = font_small.render(f"Update: {_bn}", True, (120, 255, 120))
             _bsurf.blit(_btxt, (10, 6))
             screen.blit(_bsurf, (20, 120 + _bi * 42))
             _update_banner[_bi][1] -= 1
