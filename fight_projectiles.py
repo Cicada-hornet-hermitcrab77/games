@@ -1255,37 +1255,36 @@ class NianBreath:
             return
         length = int(self.MAX_LEN * grow)
         width  = int(self.MAX_W   * grow)
-        ox     = int(self.x)
-        oy     = int(self.y)
-        tip    = (ox + self.facing * 18, oy)
-        end_x  = ox + self.facing * (18 + length)
+        if length < 4 or width < 2:
+            return
+        ox    = int(self.x)
+        oy    = int(self.y)
+        tip   = (ox + self.facing * 18, oy)
+        end_x = ox + self.facing * (18 + length)
 
-        def cone_poly(l, w):
-            return [tip,
-                    (end_x, oy - w // 2),
-                    (end_x, oy + w // 2)]
+        def cone_poly(w):
+            hw = max(1, w // 2)
+            return [tip, (end_x, oy - hw), (end_x, oy + hw)]
 
-        alpha = int(190 * fade)
-        # Draw 3 nested cones back → front for depth
-        layers = [
-            ((200, 45,  5),  width,           alpha),
-            ((255, 110, 15), int(width*0.72), min(255, alpha + 25)),
-            ((255, 215, 60), int(width*0.40), min(255, alpha + 50)),
-        ]
-        for col, w, a in layers:
-            if w < 2:
-                continue
-            _s = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-            pygame.draw.polygon(_s, (*col, a), cone_poly(length, w))
-            surface.blit(_s, (0, 0))
+        # Use a surface with surface-level alpha for the fade effect
+        _s = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        _s.set_alpha(int(220 * fade))
+        # Three nested cones: outer dark red → mid orange → inner yellow
+        for col, w in [((200, 45,  5),  width),
+                       ((255, 110, 15), int(width * 0.72)),
+                       ((255, 215, 60), int(width * 0.42))]:
+            if w >= 2:
+                pygame.draw.polygon(_s, col, cone_poly(w))
+        surface.blit(_s, (0, 0))
 
-        # Scattered fire particles inside cone
+        # Scattered fire particles inside cone (drawn directly, no alpha surface)
         for af, wf, sc in self._ptcls:
             px = int(self.x + self.facing * (18 + length * af))
-            py = int(self.y + width * wf * af * 0.48)
+            py = int(self.y + int(width * wf * af * 0.48))
             pr = max(2, int(9 * sc * (1.0 - af * 0.5) * fade))
-            brightness = int(255 * (1.0 - af * 0.5))
-            pygame.draw.circle(surface, (brightness, max(0, brightness - 140), 10), (px, py), pr)
+            brightness = min(255, int(255 * (1.0 - af * 0.4)))
+            g = max(0, brightness - 140)
+            pygame.draw.circle(surface, (brightness, g, 10), (px, py), pr)
 
 
 # ---------------------------------------------------------------------------

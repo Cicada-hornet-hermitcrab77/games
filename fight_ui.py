@@ -666,6 +666,10 @@ def mode_select():
     _secret_buf = ""
     _confirm_rect = pygame.Rect(WIDTH // 2 - 80, HEIGHT - 52, 160, 44)
 
+    # Background lobby for update notifications (non-blocking, best-effort)
+    _home_lobby   = _make_lobby(_net.load_userdata(), timeout=2)
+    _home_banners = []   # [[text, frames_remaining], ...]
+
     def _mode_confirm():
         if selected == 0:   return ('1p', difficulties[difficulty_idx])
         elif selected == 1: return '2p'
@@ -677,13 +681,22 @@ def mode_select():
         clock.tick(FPS)
         preview_t = (preview_t + 0.02) % 1.0
 
+        # Poll server for update notifications
+        if _home_lobby and _home_lobby.connected:
+            _home_lobby.poll()
+            for _note in _home_lobby.update_notify:
+                _home_banners.append([_note, FPS * 8])
+            _home_lobby.update_notify.clear()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                if _home_lobby: _home_lobby.close()
                 pygame.quit(); sys.exit()
             # Touch / click: tap a card to select it; tap confirm to enter
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
                 _mp = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
                 if _confirm_rect.collidepoint(_mp):
+                    if _home_lobby: _home_lobby.close()
                     return _mode_confirm()
                 for _ci, _cx in enumerate(card_xs):
                     if pygame.Rect(_cx, 140, card_w, card_h).collidepoint(_mp):
@@ -744,6 +757,7 @@ def mode_select():
                     touch_p1_enabled[0] = not touch_p1_enabled[0]
                     touch_p2_enabled[0] = touch_p1_enabled[0]
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                    if _home_lobby: _home_lobby.close()
                     return _mode_confirm()
 
         screen.fill(DARK)
@@ -844,6 +858,17 @@ def mode_select():
         _ps = font_medium.render("PLAY", True, WHITE)
         screen.blit(_ps, (_confirm_rect.centerx - _ps.get_width() // 2,
                           _confirm_rect.centery - _ps.get_height() // 2))
+
+        # Update notification banners (same style as online menu)
+        _home_banners[:] = [[n, t] for n, t in _home_banners if t > 0]
+        for _bi, (_bn, _bt) in enumerate(_home_banners):
+            _bsurf = pygame.Surface((WIDTH - 40, 36), pygame.SRCALPHA)
+            _bsurf.fill((20, 60, 20, min(200, _bt * 6)))
+            _btxt  = font_small.render(f"Update: {_bn}", True, (120, 255, 120))
+            _bsurf.blit(_btxt, (10, 6))
+            screen.blit(_bsurf, (20, 120 + _bi * 42))
+            _home_banners[_bi][1] -= 1
+
         pygame.display.flip()
 
 # ---------------------------------------------------------------------------
