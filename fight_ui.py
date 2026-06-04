@@ -2195,7 +2195,12 @@ def secret_menu(unlocked, stats):
                 elif event.key == pygame.K_RETURN:
                     code = input_buf.strip().lower()
                     input_buf = ""
-                    if code in CHEAT_CODES:
+                    if code == "money_bags":
+                        stats["seasonal_coins"] = stats.get("seasonal_coins", 0) + 1000
+                        feedback = "+$1000 added to your wallet!"
+                        feedback_col = (255, 215, 0)
+                        history.append((f"> {code}", "+$1000!", (255, 215, 0)))
+                    elif code in CHEAT_CODES:
                         name = CHEAT_CODES[code]
                         if name in unlocked:
                             feedback = f"{name} already unlocked"

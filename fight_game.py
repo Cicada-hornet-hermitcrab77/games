@@ -5542,8 +5542,8 @@ def main():
                     cond = UNLOCK_CONDITIONS.get(name)
                     if cond and len(cond) > 4 and cond[4]:
                         stats["secret_chars_unlocked"] = stats.get("secret_chars_unlocked", 0) + 1
-                _save_data(unlocked, stats)
                 _show_unlocks(newly)
+            _save_data(unlocked, stats)   # always save (coins may have changed)
             continue
 
         # --- Online path ---
