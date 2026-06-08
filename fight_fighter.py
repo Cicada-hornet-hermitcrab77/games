@@ -1580,6 +1580,7 @@ class Fighter:
     def draw(self, surface):
         _scale = self.draw_scale
         flash = (self.flash_timer % 4) < 2 and self.flash_timer > 0
+        _cname = (self.char["name"] + "|tank") if self.char.get("jack_tank") and self.jack_tank_frames > 0 else self.char["name"]
 
         # Snake body segments — drawn as blocks like the classic snake game
         if self.char.get("snake") and len(self.snake_segs) > 0:
@@ -1636,7 +1637,7 @@ class Fighter:
             cx = tmp_w // 2
             cy = int(tmp_h * 0.88)
             draw_stickman(tmp, cx, cy, self.color, self.facing, self.action, self.action_t,
-                          flash=flash, scale=_scale, char_name=self.char["name"])
+                          flash=flash, scale=_scale, char_name=_cname)
             sq_w = int(tmp_w * 1.55)
             sq_h = int(tmp_h * 0.35)
             squished = pygame.transform.scale(tmp, (sq_w, sq_h))
@@ -1661,7 +1662,7 @@ class Fighter:
             cx = tmp_w // 2
             cy = int(tmp_h * 0.72)
             draw_stickman(tmp, cx, cy, self.color, self.facing, self.action, self.action_t,
-                          flash=flash, scale=_scale, char_name=self.char["name"])
+                          flash=flash, scale=_scale, char_name=_cname)
             rotated = pygame.transform.rotate(tmp, self.angle)
             bx = int(self.x) - rotated.get_width()  // 2
             by = int(self.y) - int(tmp_h * 0.72)    - (rotated.get_height() - tmp_h) // 2
@@ -1675,7 +1676,7 @@ class Fighter:
             cx    = tmp_w // 2
             cy    = int(tmp_h * 0.85)
             draw_stickman(tmp, cx, cy, self.color, self.facing, self.action, self.action_t,
-                          flash=flash, scale=_scale, char_name=self.char["name"])
+                          flash=flash, scale=_scale, char_name=_cname)
             # More visible when hurt, flashing, or attacking
             if flash or self.hurt_timer > 0:
                 alpha = 210
@@ -1712,7 +1713,7 @@ class Fighter:
             # Completely invisible — faint shimmer outline only
             _csurf = pygame.Surface((120, 180), pygame.SRCALPHA)
             draw_stickman(_csurf, 60, 160, self.color, self.facing, self.action, self.action_t,
-                          flash=False, scale=_scale, char_name=self.char["name"])
+                          flash=False, scale=_scale, char_name=_cname)
             _csurf.set_alpha(12)
             surface.blit(_csurf, (int(self.x) - 60, int(self.y) - 160))
             result = (int(self.x + self.facing * 40 * _scale), int(self.y - 70 * _scale))
@@ -1727,7 +1728,7 @@ class Fighter:
                                     (int(self.x) - _sw//2, int(self.y) - _sh//2, _sw, _sh))
                 result = draw_stickman(surface, self.x, self.y, self.color,
                                        self.facing, self.action, self.action_t, flash=flash, scale=_scale,
-                                       char_name=self.char["name"])
+                                       char_name=_cname)
         if self.poison_frames > 0:
             top_y = int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 14
             for i, dx in enumerate((-10, 0, 10)):

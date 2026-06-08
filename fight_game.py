@@ -960,7 +960,7 @@ def _apply_coal_hit(target, cp):
 # Fight loop
 # ---------------------------------------------------------------------------
 
-def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
+def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, giant_mode=False):
     _stage_name = STAGES[stage_idx % len(STAGES)]["name"]
     _orig_gravity = constants.GRAVITY
     if _stage_name == "Space":
@@ -981,6 +981,15 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0):
 
     _touch  = TouchControls(P1_CTRL, player=1, two_player=not vs_ai) if touch_p1_enabled[0] else None
     _touch2 = TouchControls(P2_CTRL, player=2, two_player=True) if (not vs_ai and touch_p2_enabled[0]) else None
+
+    # Giants Among Us: everyone grows to 2x scale, extra HP, slower speed
+    if giant_mode:
+        for _gf in (p1, p2):
+            _gf.draw_scale = max(_gf.draw_scale, 2.0)
+            _gf.max_hp  = int(_gf.max_hp * 1.5)
+            _gf.hp      = _gf.max_hp
+            _gf.char    = dict(_gf.char)
+            _gf.char["speed"] = max(1, int(_gf.char.get("speed", 4) * 0.65))
 
     # Copycat: copy opponent's ability flags at fight start
     _COPY_EXCLUDE = {"name", "color", "speed", "jump", "punch_dmg", "kick_dmg",
@@ -5604,6 +5613,42 @@ def main():
                 if new_unlocks:
                     _save_data(unlocked, stats)
                     _show_unlocks(new_unlocks)
+                if action == 'rematch':
+                    continue
+                break
+            continue
+
+        # --- Giants Among Us (seasonal event) path ---
+        if mode == 'giants_among_us':
+            _GIANTS_FILTER = frozenset({
+                "Giant", "Minotaur", "Colossus", "Eartha",
+                "Morph", "Titan Smash", "Abomination", "Emperor",
+            })
+            p1_idx, p2_idx = character_select(
+                vs_ai=False, unlocked=_GIANTS_FILTER,
+                char_filter=_GIANTS_FILTER,
+                select_title="GIANTS AMONG US",
+            )
+            if p1_idx is None:
+                continue
+            s_idx = stage_select()
+            while True:
+                result = run_fight(p1_idx, p2_idx, vs_ai=False, stage_idx=s_idx, giant_mode=True)
+                action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
+                p1_won = info[0] if isinstance(info, tuple) else False
+                if p1_won:
+                    stats["giants_wins"] = stats.get("giants_wins", 0) + 1
+                    if stats["giants_wins"] % 10 == 0:
+                        _reward = random.choice(list(_GIANTS_FILTER))
+                        if _reward not in unlocked:
+                            unlocked.add(_reward)
+                            _save_data(unlocked, stats)
+                            _show_unlocks([_reward])
+                        else:
+                            _save_data(unlocked, stats)
+                if _konami_flag[0]:
+                    stats["konami_unlocked"] = True
+                    _konami_flag[0] = False
                 if action == 'rematch':
                     continue
                 break

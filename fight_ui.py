@@ -680,6 +680,10 @@ def mode_select():
     while True:
         clock.tick(FPS)
         preview_t = (preview_t + 0.02) % 1.0
+        _ev_mode_ev = get_active_event()
+        _ev_mode    = _ev_mode_ev.get("special_mode") if _ev_mode_ev else None
+        _ev_label   = _ev_mode_ev.get("special_mode_label", "Event Mode") if _ev_mode_ev and _ev_mode else None
+        _ev_btn_rect = pygame.Rect(WIDTH // 2 - 175, HEIGHT - 92, 350, 38) if _ev_mode else None
 
         # Poll server for update notifications
         if _home_lobby and _home_lobby.connected:
@@ -759,6 +763,15 @@ def mode_select():
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     if _home_lobby: _home_lobby.close()
                     return _mode_confirm()
+                if event.key == pygame.K_e and _ev_mode:
+                    if _home_lobby: _home_lobby.close()
+                    return _ev_mode
+
+            if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN) and _ev_btn_rect:
+                _mp2 = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
+                if _ev_btn_rect.collidepoint(_mp2):
+                    if _home_lobby: _home_lobby.close()
+                    return _ev_mode
 
         screen.fill(DARK)
         draw_seasonal_decos(screen)
@@ -838,6 +851,17 @@ def mode_select():
                 screen.blit(ot, (card_xs[2] + 8, 405 + oi * 30))
             screen.blit(font_tiny.render("W/S to switch", True, GRAY), (card_xs[2] + 8, 468))
 
+        # Seasonal event special mode button
+        if _ev_btn_rect and _ev_label:
+            _pulse = int(abs(math.sin(pygame.time.get_ticks() / 600.0)) * 40)
+            _ev_bg  = (20 + _pulse, 80 + _pulse, 20 + _pulse)
+            _ev_brd = (80 + _pulse, 220, 80 + _pulse)
+            pygame.draw.rect(screen, _ev_bg,  _ev_btn_rect, border_radius=10)
+            pygame.draw.rect(screen, _ev_brd, _ev_btn_rect, 2, border_radius=10)
+            _ev_txt = font_small.render(f"★ {_ev_label}  [E]", True, (180, 255, 120))
+            screen.blit(_ev_txt, (_ev_btn_rect.centerx - _ev_txt.get_width() // 2,
+                                  _ev_btn_rect.centery - _ev_txt.get_height() // 2))
+
         nav = font_tiny.render("◄ ► to switch mode", True, GRAY)
         screen.blit(nav, (WIDTH//2 - nav.get_width()//2, HEIGHT - 24))
         # Single input mode toggle — bottom left (T to switch)
@@ -875,16 +899,28 @@ def mode_select():
 # Character select screen
 # ---------------------------------------------------------------------------
 
-def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progress=None):
-    """Returns (p1_idx, p2_idx). P2 is random if vs_ai."""
+def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progress=None,
+                     char_filter=None, select_title=None):
+    """Returns (p1_idx, p2_idx). P2 is random if vs_ai.
+    char_filter: optional set of character names — only those characters are shown.
+    Returned indices are always into the global CHARACTERS list.
+    """
+    if char_filter is not None:
+        _cf_pairs   = [(i, c) for i, c in enumerate(CHARACTERS) if c["name"] in char_filter]
+        _CHARS      = [c for _, c in _cf_pairs]
+        _orig_idx   = [i for i, _ in _cf_pairs]
+        COLS        = min(4, max(1, len(_CHARS)))
+    else:
+        _CHARS    = CHARACTERS
+        _orig_idx = None
+        COLS      = 7
     if unlocked is None:
-        unlocked = {ch["name"] for ch in CHARACTERS}
+        unlocked = {ch["name"] for ch in _CHARS}
     if unlock_hints is None:
         unlock_hints = {}
     if unlock_progress is None:
         unlock_progress = {}
-    n     = len(CHARACTERS)
-    COLS  = 7
+    n     = len(_CHARS)
     ROWS  = (n + COLS - 1) // COLS
     VISIBLE_ROWS = 12   # how many card rows show at once
 
@@ -956,13 +992,13 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _ready_rect = pygame.Rect(PX, PY + PH - 52, PW, 44)
                 if _ready_rect.collidepoint(_tp):
                     if not p1_ready:
-                        if CHARACTERS[p1_idx]["name"] in unlocked:
+                        if _CHARS[p1_idx]["name"] in unlocked:
                             p1_ready = True
                             if vs_ai:
-                                _ul = [i for i, c in enumerate(CHARACTERS) if c["name"] in unlocked]
+                                _ul = [i for i, c in enumerate(_CHARS) if c["name"] in unlocked]
                                 p2_idx = random.choice(_ul) if _ul else random.randint(0, n - 1)
                     elif not vs_ai and not p2_ready:
-                        if CHARACTERS[p2_idx]["name"] in unlocked:
+                        if _CHARS[p2_idx]["name"] in unlocked:
                             p2_ready = True
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
@@ -974,12 +1010,12 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                     if event.key in (pygame.K_w, pygame.K_UP):    p1_idx = move(p1_idx, -1, 0); clip_scroll(p1_idx)
                     if event.key in (pygame.K_s, pygame.K_DOWN):  p1_idx = move(p1_idx,  1, 0); clip_scroll(p1_idx)
                     if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_f):
-                        if CHARACTERS[p1_idx]["name"] not in unlocked:
+                        if _CHARS[p1_idx]["name"] not in unlocked:
                             pass  # locked — do nothing
                         else:
                             p1_ready = True
                             if vs_ai:
-                                _ul = [i for i, c in enumerate(CHARACTERS) if c["name"] in unlocked]
+                                _ul = [i for i, c in enumerate(_CHARS) if c["name"] in unlocked]
                                 p2_idx = random.choice(_ul) if _ul else random.randint(0, n - 1)
                 # P2 navigation (arrows only, after P1 locked in)
                 elif not vs_ai and not p2_ready:
@@ -988,15 +1024,17 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                     if event.key == pygame.K_UP:    p2_idx = move(p2_idx, -1, 0); clip_scroll(p2_idx)
                     if event.key == pygame.K_DOWN:  p2_idx = move(p2_idx,  1, 0); clip_scroll(p2_idx)
                     if event.key in (pygame.K_RETURN, pygame.K_k):
-                        if CHARACTERS[p2_idx]["name"] in unlocked:
+                        if _CHARS[p2_idx]["name"] in unlocked:
                             p2_ready = True
 
         if p1_ready and p2_ready:
+            if _orig_idx:
+                return _orig_idx[p1_idx], _orig_idx[p2_idx]
             return p1_idx, p2_idx
 
         # Whose detail to show: the active picker
         detail_idx = p2_idx if (p1_ready and not p2_ready) else p1_idx
-        detail_ch  = CHARACTERS[detail_idx]
+        detail_ch  = _CHARS[detail_idx]
         active_col = ORANGE if (p1_ready and not p2_ready) else BLUE
 
         # ── Background ──────────────────────────────────────────────────────
@@ -1005,7 +1043,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
 
         # Title bar
         pygame.draw.rect(screen, (30, 30, 48), (0, 0, WIDTH, GY - 2))
-        title = font_medium.render("SELECT YOUR FIGHTER", True, YELLOW)
+        _title_str = select_title if select_title else "SELECT YOUR FIGHTER"
+        title = font_medium.render(_title_str, True, YELLOW)
         screen.blit(title, (GX, 10))
         if not vs_ai:
             phase = "P1 choosing" if not p1_ready else "P2 choosing"
@@ -1014,7 +1053,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             screen.blit(ps, (WIDTH - ps.get_width() - 10, 12))
 
         # ── Character grid ───────────────────────────────────────────────────
-        for i, ch in enumerate(CHARACTERS):
+        for i, ch in enumerate(_CHARS):
             r, c    = divmod(i, COLS)
             if r < scroll_top or r >= scroll_top + VISIBLE_ROWS:
                 continue
@@ -1386,6 +1425,35 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if detail_ch.get("shell_body"):      badges.append(("SHELL -25%",    ( 40,120, 80)))
             if detail_ch.get("poison_kick"):     badges.append(("POISON KICK",   ( 80,160, 40)))
             if detail_ch.get("flame_trail"):     badges.append(("FLAME TRAIL",   (220, 80, 10)))
+            # --- seasonal / special characters ---
+            if detail_ch.get("nian_breath"):     badges.append(("FIRE BREATH",   (220, 60, 20)))
+            if detail_ch.get("saint_nix_coal"):  badges.append(("COAL CYCLE",    (200,  50,  50)))
+            if detail_ch.get("scorpio_kick"):    badges.append(("FREEZE+POISON", ( 80, 160, 200)))
+            if detail_ch.get("plant_kick"):      badges.append(("PLANT SPIKE",   ( 40, 180,  60)))
+            if detail_ch.get("dementor_heal"):   badges.append(("TIMED HEAL",    (120, 100, 200)))
+            if detail_ch.get("decay_punch"):     badges.append(("DECAY PUNCH",   (120, 100,  60)))
+            if detail_ch.get("f13_dmg"):         badges.append(("×13 MULT",      ( 40,  40,  40)))
+            if detail_ch.get("sniper_shot"):     badges.append(("SNIPER SHOT",   (180, 140,  60)))
+            if detail_ch.get("map_kick"):        badges.append(("STAGE SWAP",    (180, 140,  80)))
+            if detail_ch.get("bookzworm_books"): badges.append(("BOOK ORBIT",    ( 70, 145,  50)))
+            if detail_ch.get("yellowstone_kick"):badges.append(("GEYSER KICK",   (118,  98,  72)))
+            if detail_ch.get("jack_tank"):       badges.append(("PUMPKIN TANK",  (220, 110,  20)))
+            if detail_ch.get("cornucopia_fruits"):badges.append(("FRUIT SHOT",   (180, 140,  55)))
+            if detail_ch.get("ngs_dreidel"):     badges.append(("DREIDEL SPIN",  ( 40, 110, 210)))
+            if detail_ch.get("smoochie_revivals"):badges.append(("5 REVIVALS",   (255, 100, 180)))
+            if detail_ch.get("baddit"):          badges.append(("POWERUP SWAP",  (240, 220, 200)))
+            if detail_ch.get("clover_kick"):     badges.append(("SNAKE KICK",    ( 40, 200,  80)))
+            if detail_ch.get("clover_luck"):     badges.append(("IMMUNE BAD",    (150, 220, 100)))
+            if detail_ch.get("eartha_grow"):     badges.append(("GROWS/SEC",     (120,  80,  40)))
+            if detail_ch.get("tombstone_reflect"):badges.append(("REFLECT ALL",  (155, 150, 140)))
+            if detail_ch.get("absorb_block"):    badges.append(("HEAL BLOCK",    ( 70, 160, 100)))
+            if detail_ch.get("overdrive"):       badges.append(("OVERDRIVE",     (255, 130,   0)))
+            if detail_ch.get("crit_only"):       badges.append(("CRIT ONLY",     ( 75,  50,  25)))
+            if detail_ch.get("phantom_strike"):  badges.append(("PHANTOM STRIKE", ( 50,  50, 160)))
+            if detail_ch.get("mine_kick"):       badges.append(("GROUND MINE",    (110,  85,  40)))
+            if detail_ch.get("juggernaut"):      badges.append(("NO KNOCKBACK",   (180,  60,  20)))
+            if detail_ch.get("revenant"):        badges.append(("2× REVIVE",      (160,  90, 200)))
+            if detail_ch.get("hypno_kick"):      badges.append(("HYPNO KICK",     (140,  60, 200)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)

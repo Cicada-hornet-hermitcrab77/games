@@ -12438,6 +12438,15 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                          (hx + int(hd * 0.4), hy - int(hd * 1.6)), max(1, int(s)))
         pygame.draw.circle(surface, (255, 80, 80), (hx - int(hd * 0.4), hy - int(hd * 1.6)), max(2, int(hd * 0.2)))
         pygame.draw.circle(surface, (255, 80, 80), (hx + int(hd * 0.4), hy - int(hd * 1.6)), max(2, int(hd * 0.2)))
+        # Round glasses — two lens circles with nose bridge
+        _gl_r = max(3, int(hd * 0.27))
+        _gl_y = hy - int(hd * 0.12)
+        _gl_col = (40, 30, 10)
+        for _gx in (hx - int(hd * 0.36), hx + int(hd * 0.36)):
+            pygame.draw.circle(surface, _gl_col, (_gx, _gl_y), _gl_r, max(1, int(s * 1.5)))
+        pygame.draw.line(surface, _gl_col,
+                         (hx - int(hd * 0.36) + _gl_r, _gl_y),
+                         (hx + int(hd * 0.36) - _gl_r, _gl_y), max(1, int(s)))
         # Book held in front — small rectangle with title
         _bk_x = sx + facing * int(hd * 1.1)
         _bk_y = sy + int(bl * 0.2)
@@ -12490,60 +12499,124 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.circle(surface, (200, 240, 255), (_ex, _eye_y), _er)
             pygame.draw.circle(surface, (100, 200, 240), (_ex, _eye_y), max(1, _er // 2))
 
-    elif char_name == "Jack O' Slash":
-        # Reaper's dark robe
-        pygame.draw.rect(surface, (15, 15, 20),
-                         (sx - int(11*s), sy, int(22*s), bl + int(4*s)), border_radius=max(2, int(3*s)))
-        for _ti in range(5):
-            _tx = sx - int(10*s) + _ti * int(5*s)
-            pygame.draw.polygon(surface, (15, 15, 20), [
-                (_tx, wy), (_tx + int(3*s), wy + int(8*s)), (_tx + int(5*s), wy)
-            ])
-        # Reaper's dark hood
-        pygame.draw.polygon(surface, (15, 15, 20),
-                            [(hx - hd - int(6*s), hy + int(4*s)),
-                             (hx + hd + int(6*s), hy + int(4*s)),
-                             (hx + int(hd*0.8), hy - hd - int(10*s)),
-                             (hx - int(hd*0.8), hy - hd - int(10*s))])
-        pygame.draw.polygon(surface, (50, 50, 60),
-                            [(hx - hd - int(6*s), hy + int(4*s)),
-                             (hx + hd + int(6*s), hy + int(4*s)),
-                             (hx + int(hd*0.8), hy - hd - int(10*s)),
-                             (hx - int(hd*0.8), hy - hd - int(10*s))], max(1, int(2*s)))
-        # Reaper's scythe
-        _spx = rhx + int(facing * int(6*s))
-        _spy = rhy
-        _shaft_tip = (_spx - int(facing * int(6*s)), _spy - int(hd*3.2))
-        pygame.draw.line(surface, (70, 45, 20), (_spx, _spy), _shaft_tip, max(2, int(4*s)))
-        _br = int(hd * 1.3)
-        _bs = math.radians(60 if facing > 0 else 300)
-        _be = math.radians(200 if facing > 0 else 480)
-        pygame.draw.arc(surface, (190, 200, 220),
-                        (_shaft_tip[0] - _br, _shaft_tip[1] - _br, _br*2, _br*2),
-                        _bs, _be, max(2, int(3*s)))
-        # Pumpkin head replacing the normal skull/face
-        _pumpkin = (220, 110, 20)
-        _pline   = (160,  75, 10)
-        pygame.draw.circle(surface, _pumpkin, (hx, hy), hd + 1)
-        for _off in (-int(hd*0.42), -int(hd*0.18), int(hd*0.18), int(hd*0.42)):
-            pygame.draw.line(surface, _pline,
-                             (hx + _off, hy - int(hd*0.82)),
-                             (hx + _off, hy + int(hd*0.82)), max(1, int(s)))
-        pygame.draw.line(surface, (50, 120, 30),
-                         (hx, hy - hd), (hx, hy - int(hd*1.5)), max(2, int(2*s)))
-        _ey = hy - int(hd*0.15)
-        for _ex in (hx - int(hd*0.38), hx + int(hd*0.38)):
-            pygame.draw.polygon(surface, (255, 180, 0), [
-                (_ex, _ey - int(hd*0.28)),
-                (_ex - int(hd*0.21), _ey + int(hd*0.1)),
-                (_ex + int(hd*0.21), _ey + int(hd*0.1))
-            ])
-        _my = hy + int(hd*0.28)
-        _mpts = [(hx + dx, _my + dy) for dx, dy in
-                 [(-int(hd*0.42), 0), (-int(hd*0.22), int(hd*0.18)),
-                  (-int(hd*0.08), 0), (int(hd*0.08), int(hd*0.18)),
-                  (int(hd*0.28), 0), (int(hd*0.42), int(hd*0.18))]]
-        pygame.draw.lines(surface, (255, 160, 0), False, _mpts, max(1, int(2*s)))
+    elif char_name in ("Jack O' Slash", "Jack O' Slash|tank"):
+        _in_tank = "|tank" in char_name
+        if _in_tank:
+            # PUMPKIN TANK: giant pumpkin body replaces the whole stickman torso
+            _pc   = (220, 110, 20)
+            _pl   = (160,  75, 10)
+            _p_cx = sx
+            _p_cy = sy + bl // 2
+            _p_rw = int(hd * 2.5)
+            _p_rh = int(bl * 0.72)
+            pygame.draw.ellipse(surface, _pc,
+                                (_p_cx - _p_rw, _p_cy - _p_rh, _p_rw * 2, _p_rh * 2))
+            # Vertical ribs
+            for _off in (-int(_p_rw * 0.55), -int(_p_rw * 0.22),
+                          int(_p_rw * 0.22),  int(_p_rw * 0.55)):
+                pygame.draw.line(surface, _pl,
+                                 (_p_cx + _off, _p_cy - int(_p_rh * 0.88)),
+                                 (_p_cx + _off, _p_cy + int(_p_rh * 0.88)),
+                                 max(1, int(s)))
+            # Pumpkin outline
+            pygame.draw.ellipse(surface, _pl,
+                                (_p_cx - _p_rw, _p_cy - _p_rh, _p_rw * 2, _p_rh * 2),
+                                max(1, int(2 * s)))
+            # Stem
+            pygame.draw.line(surface, (50, 130, 30),
+                             (_p_cx, _p_cy - _p_rh),
+                             (_p_cx, _p_cy - _p_rh - int(hd * 0.7)),
+                             max(2, int(2 * s)))
+            # Angry triangle eyes
+            _fe_y = _p_cy - int(_p_rh * 0.18)
+            for _fe_x in (_p_cx - int(_p_rw * 0.42), _p_cx + int(_p_rw * 0.42)):
+                pygame.draw.polygon(surface, (255, 180, 0), [
+                    (_fe_x, _fe_y - int(hd * 0.30)),
+                    (_fe_x - int(hd * 0.22), _fe_y + int(hd * 0.12)),
+                    (_fe_x + int(hd * 0.22), _fe_y + int(hd * 0.12)),
+                ])
+            # Jagged mouth
+            _m_y  = _p_cy + int(_p_rh * 0.28)
+            _m_hw = int(_p_rw * 0.55)
+            _seg  = _m_hw * 2 // 5
+            _mpts = [
+                (_p_cx - _m_hw,         _m_y),
+                (_p_cx - _m_hw + _seg,  _m_y + int(hd * 0.22)),
+                (_p_cx - _m_hw + _seg*2, _m_y),
+                (_p_cx - _m_hw + _seg*3, _m_y + int(hd * 0.22)),
+                (_p_cx - _m_hw + _seg*4, _m_y),
+                (_p_cx + _m_hw,         _m_y),
+            ]
+            pygame.draw.lines(surface, (255, 160, 0), False, _mpts, max(1, int(2 * s)))
+            # Tank treads along the bottom edge
+            _tr_y = _p_cy + _p_rh - int(4 * s)
+            for _ti in range(6):
+                _tx = _p_cx - _p_rw + int(_ti * (_p_rw * 2) / 5.5)
+                pygame.draw.rect(surface, (40, 30, 20),
+                                 (_tx - int(3 * s), _tr_y, int(6 * s), int(7 * s)),
+                                 border_radius=1)
+            # Scythe still sticking out from the side
+            _spx = _p_cx + int(facing * (_p_rw - int(2 * s)))
+            _spy = _p_cy - int(_p_rh * 0.3)
+            _shaft_tip = (_spx + int(facing * int(14 * s)), _spy - int(hd * 2.4))
+            pygame.draw.line(surface, (70, 45, 20), (_spx, _spy), _shaft_tip, max(2, int(4 * s)))
+            _br2 = int(hd * 1.3)
+            _bs2 = math.radians(60 if facing > 0 else 300)
+            _be2 = math.radians(200 if facing > 0 else 480)
+            pygame.draw.arc(surface, (190, 200, 220),
+                            (_shaft_tip[0] - _br2, _shaft_tip[1] - _br2, _br2 * 2, _br2 * 2),
+                            _bs2, _be2, max(2, int(3 * s)))
+        else:
+            # Normal reaper costume
+            pygame.draw.rect(surface, (15, 15, 20),
+                             (sx - int(11*s), sy, int(22*s), bl + int(4*s)), border_radius=max(2, int(3*s)))
+            for _ti in range(5):
+                _tx = sx - int(10*s) + _ti * int(5*s)
+                pygame.draw.polygon(surface, (15, 15, 20), [
+                    (_tx, wy), (_tx + int(3*s), wy + int(8*s)), (_tx + int(5*s), wy)
+                ])
+            pygame.draw.polygon(surface, (15, 15, 20),
+                                [(hx - hd - int(6*s), hy + int(4*s)),
+                                 (hx + hd + int(6*s), hy + int(4*s)),
+                                 (hx + int(hd*0.8), hy - hd - int(10*s)),
+                                 (hx - int(hd*0.8), hy - hd - int(10*s))])
+            pygame.draw.polygon(surface, (50, 50, 60),
+                                [(hx - hd - int(6*s), hy + int(4*s)),
+                                 (hx + hd + int(6*s), hy + int(4*s)),
+                                 (hx + int(hd*0.8), hy - hd - int(10*s)),
+                                 (hx - int(hd*0.8), hy - hd - int(10*s))], max(1, int(2*s)))
+            _spx = rhx + int(facing * int(6*s))
+            _spy = rhy
+            _shaft_tip = (_spx - int(facing * int(6*s)), _spy - int(hd*3.2))
+            pygame.draw.line(surface, (70, 45, 20), (_spx, _spy), _shaft_tip, max(2, int(4*s)))
+            _br = int(hd * 1.3)
+            _bs = math.radians(60 if facing > 0 else 300)
+            _be = math.radians(200 if facing > 0 else 480)
+            pygame.draw.arc(surface, (190, 200, 220),
+                            (_shaft_tip[0] - _br, _shaft_tip[1] - _br, _br*2, _br*2),
+                            _bs, _be, max(2, int(3*s)))
+            _pumpkin = (220, 110, 20)
+            _pline   = (160,  75, 10)
+            pygame.draw.circle(surface, _pumpkin, (hx, hy), hd + 1)
+            for _off in (-int(hd*0.42), -int(hd*0.18), int(hd*0.18), int(hd*0.42)):
+                pygame.draw.line(surface, _pline,
+                                 (hx + _off, hy - int(hd*0.82)),
+                                 (hx + _off, hy + int(hd*0.82)), max(1, int(s)))
+            pygame.draw.line(surface, (50, 120, 30),
+                             (hx, hy - hd), (hx, hy - int(hd*1.5)), max(2, int(2*s)))
+            _ey = hy - int(hd*0.15)
+            for _ex in (hx - int(hd*0.38), hx + int(hd*0.38)):
+                pygame.draw.polygon(surface, (255, 180, 0), [
+                    (_ex, _ey - int(hd*0.28)),
+                    (_ex - int(hd*0.21), _ey + int(hd*0.1)),
+                    (_ex + int(hd*0.21), _ey + int(hd*0.1))
+                ])
+            _my = hy + int(hd*0.28)
+            _mpts = [(hx + dx, _my + dy) for dx, dy in
+                     [(-int(hd*0.42), 0), (-int(hd*0.22), int(hd*0.18)),
+                      (-int(hd*0.08), 0), (int(hd*0.08), int(hd*0.18)),
+                      (int(hd*0.28), 0), (int(hd*0.42), int(hd*0.18))]]
+            pygame.draw.lines(surface, (255, 160, 0), False, _mpts, max(1, int(2*s)))
 
     elif char_name == "Cornucopia":
         _FEATHER_COLS = [
