@@ -1513,6 +1513,23 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 10, "max_hp": 110, "block": 6,
      "desc": "Copies the last move the opponent used and deals 1.5× its damage",
      "double_jump": False, "mimic_move": True},
+    # ── Eartha seasonal variants ─────────────────────────────────────────────
+    {"name": "Spring Eartha", "color": (160, 220, 150), "speed": 5,  "jump": -13,
+     "punch_dmg": 9,  "kick_dmg": 11, "max_hp": 130, "block": 5,
+     "desc": "Leaves a flower trail that poisons any opponent who walks through it",
+     "double_jump": False, "flower_trail_poison": True, "eartha_variant": True},
+    {"name": "Summer Eartha", "color": (60,  155,  40), "speed": 4,  "jump": -12,
+     "punch_dmg": 11, "kick_dmg": 9,  "max_hp": 145, "block": 6,
+     "desc": "Punches launch a gigantic wildfire ball that burns whoever it hits",
+     "double_jump": False, "summer_wildfire": True,    "eartha_variant": True},
+    {"name": "Autumn Eartha", "color": (185, 100,  30), "speed": 5,  "jump": -12,
+     "punch_dmg": 10, "kick_dmg": 13, "max_hp": 135, "block": 5,
+     "desc": "Constantly rains sharp leaves around her — opponents in range take ongoing damage",
+     "double_jump": False, "leaf_rain": True,          "eartha_variant": True},
+    {"name": "Winter Eartha", "color": (175, 210, 235), "speed": 3,  "jump": -11,
+     "punch_dmg": 10, "kick_dmg": 8,  "max_hp": 160, "block": 8,
+     "desc": "Constantly snows around her — opponents caught in the blizzard are slowed and chilled",
+     "double_jump": False, "snow_aura": True,          "eartha_variant": True},
 ]
 
 POWERUPS = [

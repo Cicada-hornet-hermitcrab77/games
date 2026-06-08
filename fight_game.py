@@ -21,7 +21,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             RemoteController, Apple, VenomBean, PlantSpike,
                             ChargedOrb, BubbleShot, PoisonOrb, BlackHole, MusicNote, ArcaneOrb,
                             SunBeam, LibertyDove, PumpkinSeed,
-                            FruitProj, CoalProj)
+                            FruitProj, CoalProj, WildfireBall)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop
 from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
@@ -465,6 +465,11 @@ UNLOCK_CONDITIONS = {
     "Vex":               ("win_with",        "Hexer",           3,  "Win 3 matches as Hexer"),
     "Stalwart":          ("win_with",        "Iron Wall",       5,  "Win 5 matches as Iron Wall"),
     "Ditto":             ("win_with",        "Mimic",           3,  "Win 3 matches as Mimic"),
+    # ── Eartha seasonal variants (Giants Among Us only — 0.1% each) ─────────
+    "Spring Eartha":     ("giants_eartha_spring", None,  1,  "Obtainable from Giants Among Us"),
+    "Summer Eartha":     ("giants_eartha_summer", None,  1,  "Obtainable from Giants Among Us"),
+    "Autumn Eartha":     ("giants_eartha_autumn", None,  1,  "Obtainable from Giants Among Us"),
+    "Winter Eartha":     ("giants_eartha_winter", None,  1,  "Obtainable from Giants Among Us"),
     # ── Seasonal shop ────────────────────────────────────────────────────────
     "Nian":           ("seasonal_purchased", "Nian",           1, "Buy in Seasonal Shop (New Dynasties)"),
     "Smoochie":       ("seasonal_purchased", "Smoochie",       1, "Buy in Seasonal Shop (Hearts and Harmonies)"),
@@ -1101,6 +1106,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     quake_waves   = []   # active ground shockwaves (Fault Line)
     mines         = []   # active ground mines (Trap Master)
     arcane_orbs   = []   # active ArcaneOrb objects (Arcanist)
+    wildfire_balls = []  # active WildfireBall objects (Summer Eartha)
     sun_beams     = []   # active SunBeam objects (Solara)
     nian_breaths  = []   # active NianBreath cones (Nian)
     liberty_doves      = []   # active LibertyDove companions (Stickman of Liberty)
@@ -1382,6 +1388,34 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             for blazer, opp in [(p1, p2), (p2, p1)]:
                 _flame_trail_hit(blazer, opp)
 
+            # Autumn Eartha: leaf rain — area damage within 140px
+            for _lr_owner, _lr_vic in [(p1, p2), (p2, p1)]:
+                if (_lr_owner.char.get("leaf_rain") and _lr_owner.flower_dmg_cd == 0
+                        and abs(_lr_owner.x - _lr_vic.x) < 140):
+                    if not _lr_vic.bubble_shield:
+                        _lr_vic.hp = max(0, _lr_vic.hp - 2)
+                        _lr_vic.flash_timer = max(_lr_vic.flash_timer, 4)
+                    _lr_owner.flower_dmg_cd = 30  # reuse existing cd field
+
+            # Winter Eartha: snow aura — slows opponent within 130px
+            for _sa_owner, _sa_vic in [(p1, p2), (p2, p1)]:
+                if (_sa_owner.char.get("snow_aura") and _sa_owner.flower_dmg_cd == 0
+                        and abs(_sa_owner.x - _sa_vic.x) < 130):
+                    _sa_vic.speed_boost = max(0.45, _sa_vic.speed_boost - 0.08)
+                    _sa_owner.flower_dmg_cd = 45
+
+            # Flower trail poison — Spring Eartha
+            def _flower_trail_hit(owner, victim):
+                if owner.char.get("flower_trail_poison") and owner.flower_dmg_cd == 0:
+                    for fx, fy, _ in owner.flower_trail:
+                        if abs(victim.x - fx) < 30 and abs(victim.y - fy) < 40:
+                            if victim.poison_frames == 0: victim.poison_tick = 180
+                            victim.poison_frames = max(victim.poison_frames, 240)
+                            owner.flower_dmg_cd = 60
+                            break
+            for _f_owner, _f_vic in [(p1, p2), (p2, p1)]:
+                _flower_trail_hit(_f_owner, _f_vic)
+
             # Cactus contact damage + poison
             for cactus, victim in [(p1, p2), (p2, p1)]:
                 if (cactus.char.get("contact_dmg") and
@@ -1534,6 +1568,25 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         victim.flash_timer = 8
                         ao.alive = False
             arcane_orbs = [ao for ao in arcane_orbs if ao.alive]
+
+            # Summer Eartha: WildfireBall on punch
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_wildfire:
+                    shooter.pending_wildfire = False
+                    wildfire_balls.append(WildfireBall(
+                        shooter.x + shooter.facing * 40, shooter.y - 55, shooter.facing, shooter))
+            for wb in wildfire_balls:
+                wb.update()
+                if wb.alive:
+                    victim = p2 if wb.owner is p1 else p1
+                    if wb.collides(victim) and not victim.bubble_shield:
+                        victim.take_proj_dmg(WildfireBall.DMG)
+                        victim.flash_timer = 14
+                        if victim.fire_frames == 0: victim.fire_tick = 480
+                        victim.fire_frames = max(victim.fire_frames, 300)
+                        wb.alive = False
+                wb.draw(surface)
+            wildfire_balls = [wb for wb in wildfire_balls if wb.alive]
 
             # Spawn orbs from bazooka_kick
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -3408,6 +3461,23 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 _flame_trail_hit_surv(blazer, enemies)
             for blazer in enemies:
                 _flame_trail_hit_surv(blazer, living)
+
+            # Flower trail poison — survival
+            def _flower_trail_hit_surv(owner, victims):
+                if owner.char.get("flower_trail_poison") and owner.flower_dmg_cd == 0:
+                    for victim in victims:
+                        if victim.hp <= 0:
+                            continue
+                        for fx, fy, _ in owner.flower_trail:
+                            if abs(victim.x - fx) < 30 and abs(victim.y - fy) < 40:
+                                if victim.poison_frames == 0: victim.poison_tick = 180
+                                victim.poison_frames = max(victim.poison_frames, 240)
+                                owner.flower_dmg_cd = 60
+                                break
+            for _sfl in players:
+                _flower_trail_hit_surv(_sfl, enemies)
+            for _sfl in enemies:
+                _flower_trail_hit_surv(_sfl, living)
 
             # Boomerang damage: player boomerangs hit enemies, enemy boomerangs hit players
             for thrower in players:
@@ -5629,6 +5699,34 @@ def main():
                 break
             continue
 
+        # --- The Casino (Emerald Echoes event) path ---
+        if mode == 'the_casino':
+            _CASINO_FILTER = frozenset({
+                "Wildcard", "Tycoon", "Gambler", "Fortune",
+                "High Roller", "Lucky", "Clover",
+            })
+            p1_idx, p2_idx = character_select(
+                vs_ai=False, unlocked=_CASINO_FILTER,
+                char_filter=_CASINO_FILTER,
+                select_title="THE CASINO",
+            )
+            if p1_idx is None:
+                continue
+            s_idx = stage_select()
+            while True:
+                result = run_fight(p1_idx, p2_idx, vs_ai=False, stage_idx=s_idx)
+                action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
+                p1_won = info[0] if isinstance(info, tuple) else False
+                if p1_won:
+                    stats["casino_wins"] = stats.get("casino_wins", 0) + 1
+                if _konami_flag[0]:
+                    stats["konami_unlocked"] = True
+                    _konami_flag[0] = False
+                if action == 'rematch':
+                    continue
+                break
+            continue
+
         # --- Giants Among Us (seasonal event) path ---
         if mode == 'giants_among_us':
             _GIANTS_FILTER = frozenset({
@@ -5652,14 +5750,18 @@ def main():
                     if stats["giants_wins"] % 10 == 0:
                         # Weighted drop table — rarer characters have lower odds
                         _giant_weights = [
-                            ("Giant",       22),
-                            ("Morph",       20),
-                            ("Minotaur",    18),
-                            ("Titan Smash", 15),
-                            ("Colossus",    12),
-                            ("Abomination",  8),
-                            ("Emperor",      4),
-                            ("Eartha",       1),
+                            ("Giant",          220),
+                            ("Morph",          200),
+                            ("Minotaur",       180),
+                            ("Titan Smash",    150),
+                            ("Colossus",       120),
+                            ("Abomination",     80),
+                            ("Emperor",         40),
+                            ("Eartha",          10),
+                            ("Spring Eartha",    1),
+                            ("Summer Eartha",    1),
+                            ("Autumn Eartha",    1),
+                            ("Winter Eartha",    1),
                         ]
                         _pool = [n for n, w in _giant_weights for _ in range(w)]
                         _reward = random.choice(_pool)

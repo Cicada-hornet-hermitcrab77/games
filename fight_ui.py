@@ -564,6 +564,22 @@ CHEAT_CODES = {
     "lion_dance":           "Nian",
     "pucker_up":            "Smoochie",
     "luck_of_the_irish":    "Clover",
+    # batch 10 — new unlockable characters
+    "blink_out":            "Blink",
+    "desert_storm":         "Sandstorm",
+    "spirit_wail":          "Wail",
+    "iron_keep":            "Fortress",
+    "puppet_dance":         "Marionette",
+    "ice_wall_go":          "Glacier",
+    "burn_bright":          "Wildfire",
+    "hex_vex":              "Vex",
+    "steadfast_go":         "Stalwart",
+    "all_same":             "Ditto",
+    # seasonal Eartha variants (Giants Among Us drops)
+    "spring_eartha":        "Spring Eartha",
+    "summer_eartha":        "Summer Eartha",
+    "autumn_eartha":        "Autumn Eartha",
+    "winter_eartha":        "Winter Eartha",
 }
 
 # ---------------------------------------------------------------------------
@@ -905,14 +921,26 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
     char_filter: optional set of character names — only those characters are shown.
     Returned indices are always into the global CHARACTERS list.
     """
+    # Build eartha variant lookup (Original + 4 seasonal, excluded from main grid)
+    _eartha_variant_names   = ["Eartha", "Spring Eartha", "Summer Eartha", "Autumn Eartha", "Winter Eartha"]
+    _eartha_variant_labels  = ["Original", "Spring", "Summer", "Autumn", "Winter"]
+    _eartha_variant_indices = []
+    for _evn in _eartha_variant_names:
+        for _evi2, _evc2 in enumerate(CHARACTERS):
+            if _evc2["name"] == _evn:
+                _eartha_variant_indices.append(_evi2)
+                break
+
     if char_filter is not None:
-        _cf_pairs   = [(i, c) for i, c in enumerate(CHARACTERS) if c["name"] in char_filter]
-        _CHARS      = [c for _, c in _cf_pairs]
-        _orig_idx   = [i for i, _ in _cf_pairs]
-        COLS        = min(4, max(1, len(_CHARS)))
+        _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS)
+                     if c["name"] in char_filter and not c.get("eartha_variant")]
+        _CHARS    = [c for _, c in _cf_pairs]
+        _orig_idx = [i for i, _ in _cf_pairs]
+        COLS      = min(4, max(1, len(_CHARS)))
     else:
-        _CHARS    = CHARACTERS
-        _orig_idx = None
+        _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS) if not c.get("eartha_variant")]
+        _CHARS    = [c for _, c in _cf_pairs]
+        _orig_idx = [i for i, _ in _cf_pairs]
         COLS      = 7
     if unlocked is None:
         unlocked = {ch["name"] for ch in _CHARS}
@@ -952,6 +980,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
     preview_t = 0.0
     flash_t   = 0   # for ready flash
     scroll_top = 0  # first visible row
+    p1_ev = 0   # eartha variant index (0 = Original Eartha)
+    p2_ev = 0
 
     def clip_scroll(idx):
         nonlocal scroll_top
@@ -988,54 +1018,109 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                         p1_idx = _ni; clip_scroll(p1_idx)
                     elif not vs_ai and not p2_ready:
                         p2_idx = _ni; clip_scroll(p2_idx)
+                # Eartha variant tabs
+                _td_idx = p2_idx if (p1_ready and not p2_ready) else p1_idx
+                _td_ch  = _CHARS[_td_idx]
+                if _td_ch["name"] == "Eartha" and _eartha_variant_indices:
+                    _vp_ty = PY + PH - 132
+                    _vp_tbw = (PW - 20) // len(_eartha_variant_indices)
+                    for _vti in range(len(_eartha_variant_indices)):
+                        _vtx = PX + 10 + _vti * _vp_tbw
+                        if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if not p1_ready:
+                                p1_ev = _vti
+                            elif not vs_ai and not p2_ready:
+                                p2_ev = _vti
                 # Tap READY button (drawn at bottom-right of detail panel)
                 _ready_rect = pygame.Rect(PX, PY + PH - 52, PW, 44)
                 if _ready_rect.collidepoint(_tp):
                     if not p1_ready:
                         if _CHARS[p1_idx]["name"] in unlocked:
-                            p1_ready = True
-                            if vs_ai:
-                                _ul = [i for i, c in enumerate(_CHARS) if c["name"] in unlocked]
-                                p2_idx = random.choice(_ul) if _ul else random.randint(0, n - 1)
+                            _ev_ok_t = True
+                            if _CHARS[p1_idx]["name"] == "Eartha" and _eartha_variant_indices:
+                                _vnt = CHARACTERS[_eartha_variant_indices[p1_ev]]["name"]
+                                if _vnt not in unlocked:
+                                    _ev_ok_t = False
+                            if _ev_ok_t:
+                                p1_ready = True
+                                if vs_ai:
+                                    _ul = [i for i, c in enumerate(_CHARS) if c["name"] in unlocked]
+                                    p2_idx = random.choice(_ul) if _ul else random.randint(0, n - 1)
                     elif not vs_ai and not p2_ready:
                         if _CHARS[p2_idx]["name"] in unlocked:
-                            p2_ready = True
+                            _ev_ok_t2 = True
+                            if _CHARS[p2_idx]["name"] == "Eartha" and _eartha_variant_indices:
+                                _vnt2 = CHARACTERS[_eartha_variant_indices[p2_ev]]["name"]
+                                if _vnt2 not in unlocked:
+                                    _ev_ok_t2 = False
+                            if _ev_ok_t2:
+                                p2_ready = True
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return None, None
                 # P1 navigation (WASD or arrows while P1 not ready)
                 if not p1_ready:
-                    if event.key in (pygame.K_a, pygame.K_LEFT):  p1_idx = move(p1_idx, 0, -1); clip_scroll(p1_idx)
-                    if event.key in (pygame.K_d, pygame.K_RIGHT): p1_idx = move(p1_idx, 0,  1); clip_scroll(p1_idx)
-                    if event.key in (pygame.K_w, pygame.K_UP):    p1_idx = move(p1_idx, -1, 0); clip_scroll(p1_idx)
-                    if event.key in (pygame.K_s, pygame.K_DOWN):  p1_idx = move(p1_idx,  1, 0); clip_scroll(p1_idx)
+                    if event.key in (pygame.K_a, pygame.K_LEFT):  p1_idx = move(p1_idx, 0, -1); clip_scroll(p1_idx); p1_ev = 0
+                    if event.key in (pygame.K_d, pygame.K_RIGHT): p1_idx = move(p1_idx, 0,  1); clip_scroll(p1_idx); p1_ev = 0
+                    if event.key in (pygame.K_w, pygame.K_UP):    p1_idx = move(p1_idx, -1, 0); clip_scroll(p1_idx); p1_ev = 0
+                    if event.key in (pygame.K_s, pygame.K_DOWN):  p1_idx = move(p1_idx,  1, 0); clip_scroll(p1_idx); p1_ev = 0
+                    if _CHARS[p1_idx]["name"] == "Eartha" and _eartha_variant_indices:
+                        if event.key == pygame.K_e:
+                            p1_ev = (p1_ev + 1) % len(_eartha_variant_indices)
+                        elif event.key == pygame.K_q:
+                            p1_ev = (p1_ev - 1) % len(_eartha_variant_indices)
                     if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_f):
                         if _CHARS[p1_idx]["name"] not in unlocked:
                             pass  # locked — do nothing
                         else:
-                            p1_ready = True
-                            if vs_ai:
-                                _ul = [i for i, c in enumerate(_CHARS) if c["name"] in unlocked]
-                                p2_idx = random.choice(_ul) if _ul else random.randint(0, n - 1)
+                            _ev_ok = True
+                            if _CHARS[p1_idx]["name"] == "Eartha" and _eartha_variant_indices:
+                                _vn = CHARACTERS[_eartha_variant_indices[p1_ev]]["name"]
+                                if _vn not in unlocked:
+                                    _ev_ok = False
+                            if _ev_ok:
+                                p1_ready = True
+                                if vs_ai:
+                                    _ul = [i for i, c in enumerate(_CHARS) if c["name"] in unlocked]
+                                    p2_idx = random.choice(_ul) if _ul else random.randint(0, n - 1)
                 # P2 navigation (arrows only, after P1 locked in)
                 elif not vs_ai and not p2_ready:
-                    if event.key == pygame.K_LEFT:  p2_idx = move(p2_idx, 0, -1); clip_scroll(p2_idx)
-                    if event.key == pygame.K_RIGHT: p2_idx = move(p2_idx, 0,  1); clip_scroll(p2_idx)
-                    if event.key == pygame.K_UP:    p2_idx = move(p2_idx, -1, 0); clip_scroll(p2_idx)
-                    if event.key == pygame.K_DOWN:  p2_idx = move(p2_idx,  1, 0); clip_scroll(p2_idx)
+                    if event.key == pygame.K_LEFT:  p2_idx = move(p2_idx, 0, -1); clip_scroll(p2_idx); p2_ev = 0
+                    if event.key == pygame.K_RIGHT: p2_idx = move(p2_idx, 0,  1); clip_scroll(p2_idx); p2_ev = 0
+                    if event.key == pygame.K_UP:    p2_idx = move(p2_idx, -1, 0); clip_scroll(p2_idx); p2_ev = 0
+                    if event.key == pygame.K_DOWN:  p2_idx = move(p2_idx,  1, 0); clip_scroll(p2_idx); p2_ev = 0
+                    if _CHARS[p2_idx]["name"] == "Eartha" and _eartha_variant_indices:
+                        if event.key == pygame.K_l:
+                            p2_ev = (p2_ev + 1) % len(_eartha_variant_indices)
+                        elif event.key == pygame.K_j:
+                            p2_ev = (p2_ev - 1) % len(_eartha_variant_indices)
                     if event.key in (pygame.K_RETURN, pygame.K_k):
                         if _CHARS[p2_idx]["name"] in unlocked:
-                            p2_ready = True
+                            _ev_ok2 = True
+                            if _CHARS[p2_idx]["name"] == "Eartha" and _eartha_variant_indices:
+                                _vn2 = CHARACTERS[_eartha_variant_indices[p2_ev]]["name"]
+                                if _vn2 not in unlocked:
+                                    _ev_ok2 = False
+                            if _ev_ok2:
+                                p2_ready = True
 
         if p1_ready and p2_ready:
-            if _orig_idx:
-                return _orig_idx[p1_idx], _orig_idx[p2_idx]
-            return p1_idx, p2_idx
+            _r1 = _orig_idx[p1_idx]
+            _r2 = _orig_idx[p2_idx]
+            if _CHARS[p1_idx]["name"] == "Eartha" and _eartha_variant_indices:
+                _r1 = _eartha_variant_indices[p1_ev]
+            if not vs_ai and _CHARS[p2_idx]["name"] == "Eartha" and _eartha_variant_indices:
+                _r2 = _eartha_variant_indices[p2_ev]
+            return _r1, _r2
 
         # Whose detail to show: the active picker
         detail_idx = p2_idx if (p1_ready and not p2_ready) else p1_idx
         detail_ch  = _CHARS[detail_idx]
         active_col = ORANGE if (p1_ready and not p2_ready) else BLUE
+        _active_ev = p2_ev if (p1_ready and not p2_ready) else p1_ev
+        _detail_display = detail_ch
+        if detail_ch["name"] == "Eartha" and detail_ch["name"] in unlocked and _eartha_variant_indices:
+            _detail_display = CHARACTERS[_eartha_variant_indices[_active_ev]]
 
         # ── Background ──────────────────────────────────────────────────────
         screen.fill((18, 18, 28))
@@ -1171,16 +1256,16 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         else:
             # Large animated stickman
             sm_y = PY + 155
-            draw_stickman(screen, PX + PW//2, sm_y, detail_ch["color"], 1, 'walk', preview_t, scale=1.15,
-                          char_name=detail_ch["name"])
+            draw_stickman(screen, PX + PW//2, sm_y, _detail_display["color"], 1, 'walk', preview_t, scale=1.15,
+                          char_name=_detail_display["name"])
 
             # Character name
-            nm_big = font_medium.render(detail_ch["name"], True, detail_ch["color"])
+            nm_big = font_medium.render(_detail_display["name"], True, _detail_display["color"])
             screen.blit(nm_big, (PX + PW//2 - nm_big.get_width()//2, PY + 8))
 
         if not detail_locked:
             # Description (word-wrap)
-            words, line, desc_lines = detail_ch["desc"].split(), "", []
+            words, line, desc_lines = _detail_display["desc"].split(), "", []
             for w in words:
                 test = (line + " " + w).strip()
                 if font_tiny.size(test)[0] > PW - 16:
@@ -1199,11 +1284,11 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             bar_h  = 14
             bar_gap = 23
             for si, (lbl, val, mx, col) in enumerate([
-                ("HP",    detail_ch["max_hp"],              400, (60,  210,  80)),
-                ("SPD",   detail_ch["speed"],                10, (80,  170, 255)),
-                ("PUNCH", detail_ch["punch_dmg"],            30, (255, 120,  50)),
-                ("KICK",  detail_ch["kick_dmg"],             30, (255,  60, 180)),
-                ("BLOCK", detail_ch.get("block", 5),         10, (200, 200,  60)),
+                ("HP",    _detail_display["max_hp"],              400, (60,  210,  80)),
+                ("SPD",   _detail_display["speed"],                10, (80,  170, 255)),
+                ("PUNCH", _detail_display["punch_dmg"],            30, (255, 120,  50)),
+                ("KICK",  _detail_display["kick_dmg"],             30, (255,  60, 180)),
+                ("BLOCK", _detail_display.get("block", 5),         10, (200, 200,  60)),
             ]):
                 by  = bar_y + si * bar_gap
                 lbs = font_small.render(lbl, True, (220, 220, 220))
@@ -1221,249 +1306,253 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             # Badges row
             badge_y = bar_y + 5 * bar_gap + 6
             badges  = []
-            if detail_ch.get("double_jump"):    badges.append(("2x JUMP",      CYAN))
-            if detail_ch.get("giant"):          badges.append(("GIANT",         GREEN))
-            if detail_ch.get("tiny"):           badges.append(("TINY",          (220, 200, 180)))
-            if detail_ch.get("phase"):          badges.append(("PHASES WALLS",  (200, 200, 255)))
-            if detail_ch.get("vampire"):        badges.append(("VAMPIRE",       (200, 0, 80)))
-            if detail_ch.get("anti_gravity"):   badges.append(("ANTI-GRAVITY",  (180, 220, 255)))
-            if detail_ch.get("wall_cling"):     badges.append(("WALL CLING",    ORANGE))
-            if detail_ch.get("regen"):          badges.append(("REGEN",         (120, 255, 120)))
-            if detail_ch.get("fire_punch"):     badges.append(("FIRE PUNCH",    (255, 100, 20)))
-            if detail_ch.get("freeze_kick"):    badges.append(("FREEZE KICK",   (120, 200, 255)))
-            if detail_ch.get("shock_punch"):    badges.append(("SHOCK PUNCH",   YELLOW))
-            if detail_ch.get("magnet"):         badges.append(("MAGNET",        PURPLE))
-            if detail_ch.get("teleport_kick"):  badges.append(("TELEPORT KICK", (220, 80, 255)))
-            if detail_ch.get("random_stats"):   badges.append(("RANDOM STATS",  GRAY))
-            if detail_ch.get("shoot_kick"):     badges.append(("SHOOTS BALLS",  (60, 200, 80)))
-            if detail_ch.get("bazooka_kick"):   badges.append(("BAZOOKA",       (220, 60, 60)))
-            if detail_ch.get("bounce_kick"):    badges.append(("BOUNCE BALL",   (255, 80, 200)))
-            if detail_ch.get("size_kick"):      badges.append(("SIZE SHIFT",    (80, 200, 220)))
-            if detail_ch.get("grapple_kick"):   badges.append(("SNAKE HOOK",    (40, 200, 60)))
-            if detail_ch.get("pumpkin_kick"):   badges.append(("PUMPKIN BOMB",  (215, 118, 0)))
-            if detail_ch.get("contact_dmg"):    badges.append(("POISON TOUCH",  (100, 220, 60)))
-            if detail_ch.get("hammer_punch"):   badges.append(("HAMMER SMASH",  (160, 120, 60)))
-            if detail_ch.get("berserker"):      badges.append(("BERSERKER",      (220, 60, 30)))
-            if detail_ch.get("bounce_punch"):   badges.append(("MAGIC ORB",      (160, 80, 255)))
-            if detail_ch.get("slam_kick"):      badges.append(("SLAM KICK",      (220, 100, 40)))
-            if detail_ch.get("confuse_kick"):   badges.append(("CONFUSE KICK",   (255, 60, 120)))
-            if detail_ch.get("speedster"):      badges.append(("SPEED TRAIL",    (255, 220, 0)))
-            if detail_ch.get("slow_fall"):      badges.append(("SLOW FALL",      (255, 240, 180)))
-            if detail_ch.get("stealth_punch"):  badges.append(("STEALTH",        (200, 200, 220)))
-            if detail_ch.get("wide_punch"):     badges.append(("WIDE REACH",     (160, 80, 30)))
-            if detail_ch.get("reflect_block"):  badges.append(("REFLECT",        (80, 200, 80)))
-            if detail_ch.get("laser_eyes"):     badges.append(("LASER EYES",     (255, 60,  0)))
-            if detail_ch.get("whip_punch"):     badges.append(("WHIP",           (160, 90, 20)))
-            if detail_ch.get("always_crit"):    badges.append(("ALWAYS CRIT",    (255, 215, 0)))
-            if detail_ch.get("chameleon"):      badges.append(("CAMOUFLAGE",     (60, 180, 80)))
-            if detail_ch.get("ink_kick"):       badges.append(("INK CLONE",      (20,  20, 40)))
-            if detail_ch.get("ghost_float"):    badges.append(("GHOST FLOAT",    (210, 210, 255)))
+            if _detail_display.get("double_jump"):    badges.append(("2x JUMP",      CYAN))
+            if _detail_display.get("giant"):          badges.append(("GIANT",         GREEN))
+            if _detail_display.get("tiny"):           badges.append(("TINY",          (220, 200, 180)))
+            if _detail_display.get("phase"):          badges.append(("PHASES WALLS",  (200, 200, 255)))
+            if _detail_display.get("vampire"):        badges.append(("VAMPIRE",       (200, 0, 80)))
+            if _detail_display.get("anti_gravity"):   badges.append(("ANTI-GRAVITY",  (180, 220, 255)))
+            if _detail_display.get("wall_cling"):     badges.append(("WALL CLING",    ORANGE))
+            if _detail_display.get("regen"):          badges.append(("REGEN",         (120, 255, 120)))
+            if _detail_display.get("fire_punch"):     badges.append(("FIRE PUNCH",    (255, 100, 20)))
+            if _detail_display.get("freeze_kick"):    badges.append(("FREEZE KICK",   (120, 200, 255)))
+            if _detail_display.get("shock_punch"):    badges.append(("SHOCK PUNCH",   YELLOW))
+            if _detail_display.get("magnet"):         badges.append(("MAGNET",        PURPLE))
+            if _detail_display.get("teleport_kick"):  badges.append(("TELEPORT KICK", (220, 80, 255)))
+            if _detail_display.get("random_stats"):   badges.append(("RANDOM STATS",  GRAY))
+            if _detail_display.get("shoot_kick"):     badges.append(("SHOOTS BALLS",  (60, 200, 80)))
+            if _detail_display.get("bazooka_kick"):   badges.append(("BAZOOKA",       (220, 60, 60)))
+            if _detail_display.get("bounce_kick"):    badges.append(("BOUNCE BALL",   (255, 80, 200)))
+            if _detail_display.get("size_kick"):      badges.append(("SIZE SHIFT",    (80, 200, 220)))
+            if _detail_display.get("grapple_kick"):   badges.append(("SNAKE HOOK",    (40, 200, 60)))
+            if _detail_display.get("pumpkin_kick"):   badges.append(("PUMPKIN BOMB",  (215, 118, 0)))
+            if _detail_display.get("contact_dmg"):    badges.append(("POISON TOUCH",  (100, 220, 60)))
+            if _detail_display.get("hammer_punch"):   badges.append(("HAMMER SMASH",  (160, 120, 60)))
+            if _detail_display.get("berserker"):      badges.append(("BERSERKER",      (220, 60, 30)))
+            if _detail_display.get("bounce_punch"):   badges.append(("MAGIC ORB",      (160, 80, 255)))
+            if _detail_display.get("slam_kick"):      badges.append(("SLAM KICK",      (220, 100, 40)))
+            if _detail_display.get("confuse_kick"):   badges.append(("CONFUSE KICK",   (255, 60, 120)))
+            if _detail_display.get("speedster"):      badges.append(("SPEED TRAIL",    (255, 220, 0)))
+            if _detail_display.get("slow_fall"):      badges.append(("SLOW FALL",      (255, 240, 180)))
+            if _detail_display.get("stealth_punch"):  badges.append(("STEALTH",        (200, 200, 220)))
+            if _detail_display.get("wide_punch"):     badges.append(("WIDE REACH",     (160, 80, 30)))
+            if _detail_display.get("reflect_block"):  badges.append(("REFLECT",        (80, 200, 80)))
+            if _detail_display.get("laser_eyes"):     badges.append(("LASER EYES",     (255, 60,  0)))
+            if _detail_display.get("whip_punch"):     badges.append(("WHIP",           (160, 90, 20)))
+            if _detail_display.get("always_crit"):    badges.append(("ALWAYS CRIT",    (255, 215, 0)))
+            if _detail_display.get("chameleon"):      badges.append(("CAMOUFLAGE",     (60, 180, 80)))
+            if _detail_display.get("ink_kick"):       badges.append(("INK CLONE",      (20,  20, 40)))
+            if _detail_display.get("ghost_float"):    badges.append(("GHOST FLOAT",    (210, 210, 255)))
             # new characters
-            if detail_ch.get("kitsune_barrage"): badges.append(("九 BARRAGE",    (255, 160,  0)))
-            if detail_ch.get("freeze_laser"):    badges.append(("FREEZE GAZE",   (0,  210, 255)))
-            if detail_ch.get("creator_kick"):    badges.append(("CREATES WALLS", (220, 180, 40)))
-            if detail_ch.get("disorientated"):   badges.append(("ALL REVERSED",  (200,  80, 255)))
-            if detail_ch.get("immune"):          badges.append(("STATUS IMMUNE", (210, 210, 180)))
-            if detail_ch.get("water_kick"):      badges.append(("WATER BALL",    (0,  180, 240)))
-            if detail_ch.get("momentum"):        badges.append(("MOMENTUM",      (0,  160, 220)))
-            if detail_ch.get("smoke_trail"):     badges.append(("SMOKE TRAIL",   (180, 180, 220)))
-            if detail_ch.get("snake"):           badges.append(("SNAKE BODY",    (20, 200, 60)))
-            if detail_ch.get("always_berserk"):  badges.append(("ALWAYS ENRAGED",(220, 50,  0)))
-            if detail_ch.get("bee_punch"):       badges.append(("BEE SWARM",     (220,180,  0)))
-            if detail_ch.get("plague_punch"):    badges.append(("PLAGUE",        (120,200, 80)))
-            if detail_ch.get("undead"):          badges.append(("REVIVES ONCE",  (80,  40,120)))
-            if detail_ch.get("chaos_timer"):     badges.append(("CHAOS MAGIC",   (200, 80,255)))
-            if detail_ch.get("rapid_fire"):      badges.append(("RAPID PUNCH",   (255,160,  0)))
-            if detail_ch.get("drain_kick"):      badges.append(("DRAIN KICK",    (160,  0,160)))
-            if detail_ch.get("iron_fist"):       badges.append(("IRON FIST",     (180,180,200)))
-            if detail_ch.get("toxic_aura"):      badges.append(("TOXIC AURA",    (60, 220, 60)))
-            if detail_ch.get("time_freeze"):     badges.append(("TIME FREEZE",   (100,180,255)))
-            if detail_ch.get("cycle_attack"):    badges.append(("CYCLE ATTACK",  (160,120,255)))
-            if detail_ch.get("explode_death"):   badges.append(("DEATH EXPLODE", (255,100,  0)))
-            if detail_ch.get("shrink_kick"):     badges.append(("SHRINK KICK",   (120,255,200)))
-            if detail_ch.get("launch_kick"):     badges.append(("LAUNCH KICK",   (200,160,255)))
-            if detail_ch.get("speed_steal"):     badges.append(("SPEED STEAL",   ( 60, 80, 60)))
-            if detail_ch.get("reflect_proj"):    badges.append(("REFLECT PROJ",  (200,220,240)))
-            if detail_ch.get("auto_fire"):       badges.append(("AUTO FIRE",     (255, 80,  0)))
-            if detail_ch.get("thunder_punch"):   badges.append(("THUNDER",       (255,240, 80)))
-            if detail_ch.get("auto_teleport"):   badges.append(("AUTO TELEPORT", ( 80,200,220)))
-            if detail_ch.get("sticky_punch"):    badges.append(("STICKY PUNCH",  (200,180, 60)))
+            if _detail_display.get("kitsune_barrage"): badges.append(("九 BARRAGE",    (255, 160,  0)))
+            if _detail_display.get("freeze_laser"):    badges.append(("FREEZE GAZE",   (0,  210, 255)))
+            if _detail_display.get("creator_kick"):    badges.append(("CREATES WALLS", (220, 180, 40)))
+            if _detail_display.get("disorientated"):   badges.append(("ALL REVERSED",  (200,  80, 255)))
+            if _detail_display.get("immune"):          badges.append(("STATUS IMMUNE", (210, 210, 180)))
+            if _detail_display.get("water_kick"):      badges.append(("WATER BALL",    (0,  180, 240)))
+            if _detail_display.get("momentum"):        badges.append(("MOMENTUM",      (0,  160, 220)))
+            if _detail_display.get("smoke_trail"):     badges.append(("SMOKE TRAIL",   (180, 180, 220)))
+            if _detail_display.get("snake"):           badges.append(("SNAKE BODY",    (20, 200, 60)))
+            if _detail_display.get("always_berserk"):  badges.append(("ALWAYS ENRAGED",(220, 50,  0)))
+            if _detail_display.get("bee_punch"):       badges.append(("BEE SWARM",     (220,180,  0)))
+            if _detail_display.get("plague_punch"):    badges.append(("PLAGUE",        (120,200, 80)))
+            if _detail_display.get("undead"):          badges.append(("REVIVES ONCE",  (80,  40,120)))
+            if _detail_display.get("chaos_timer"):     badges.append(("CHAOS MAGIC",   (200, 80,255)))
+            if _detail_display.get("rapid_fire"):      badges.append(("RAPID PUNCH",   (255,160,  0)))
+            if _detail_display.get("drain_kick"):      badges.append(("DRAIN KICK",    (160,  0,160)))
+            if _detail_display.get("iron_fist"):       badges.append(("IRON FIST",     (180,180,200)))
+            if _detail_display.get("toxic_aura"):      badges.append(("TOXIC AURA",    (60, 220, 60)))
+            if _detail_display.get("time_freeze"):     badges.append(("TIME FREEZE",   (100,180,255)))
+            if _detail_display.get("cycle_attack"):    badges.append(("CYCLE ATTACK",  (160,120,255)))
+            if _detail_display.get("explode_death"):   badges.append(("DEATH EXPLODE", (255,100,  0)))
+            if _detail_display.get("shrink_kick"):     badges.append(("SHRINK KICK",   (120,255,200)))
+            if _detail_display.get("launch_kick"):     badges.append(("LAUNCH KICK",   (200,160,255)))
+            if _detail_display.get("speed_steal"):     badges.append(("SPEED STEAL",   ( 60, 80, 60)))
+            if _detail_display.get("reflect_proj"):    badges.append(("REFLECT PROJ",  (200,220,240)))
+            if _detail_display.get("auto_fire"):       badges.append(("AUTO FIRE",     (255, 80,  0)))
+            if _detail_display.get("thunder_punch"):   badges.append(("THUNDER",       (255,240, 80)))
+            if _detail_display.get("auto_teleport"):   badges.append(("AUTO TELEPORT", ( 80,200,220)))
+            if _detail_display.get("sticky_punch"):    badges.append(("STICKY PUNCH",  (200,180, 60)))
             # --- batch: missing mechanics ---
-            if detail_ch.get("shock_kick"):      badges.append(("SHOCK KICK",    (255,240, 80)))
-            if detail_ch.get("storm_punch"):     badges.append(("STORM PUNCH",   ( 80,120,255)))
-            if detail_ch.get("magnet_punch"):    badges.append(("MAGNET PULL",   (160, 80,255)))
-            if detail_ch.get("combo_punch"):     badges.append(("COMBO PUNCH",   ( 80,200,180)))
-            if detail_ch.get("steal_kick"):      badges.append(("STEAL KICK",    ( 60, 60,100)))
-            if detail_ch.get("cloned"):          badges.append(("CLONE",         (100,200,160)))
-            if detail_ch.get("bomb_character"):  badges.append(("BOMB SPAWNER",  (200, 80, 20)))
-            if detail_ch.get("halves_punch"):    badges.append(("HALVES HP",     (220, 80,220)))
-            if detail_ch.get("godslayer"):       badges.append(("GODSLAYER",     (180, 20, 60)))
-            if detail_ch.get("scroll_kick"):     badges.append(("SCROLL BOMB",   (180,150, 80)))
-            if detail_ch.get("flash_kick"):      badges.append(("FLASH KICK",    (255,200,  0)))
-            if detail_ch.get("portal_kick"):     badges.append(("PORTAL KICK",   ( 80,200,255)))
-            if detail_ch.get("apple_kick"):      badges.append(("APPLE RAIN",    (120, 80,200)))
-            if detail_ch.get("totem_kick"):      badges.append(("TOTEM RAIN",    (190,110, 30)))
-            if detail_ch.get("remote_kick"):     badges.append(("REMOTE BOMB",   (220, 40,  0)))
-            if detail_ch.get("prime_dmg"):       badges.append(("PRIME DAMAGE",  ( 60,180,255)))
-            if detail_ch.get("lucky_strike"):    badges.append(("LUCKY STRIKE",  (255,215,  0)))
-            if detail_ch.get("drain_punch"):     badges.append(("DRAIN PUNCH",   ( 20,  0, 60)))
-            if detail_ch.get("sleep_punch"):     badges.append(("SLEEP PUNCH",   (220,190,120)))
-            if detail_ch.get("reaper_kick"):     badges.append(("REAPER KICK",   ( 40, 40, 40)))
-            if detail_ch.get("chainsaw"):        badges.append(("CHAINSAW",      (200, 60, 30)))
-            if detail_ch.get("crush_punch"):     badges.append(("BLOCK BREAK",   (140, 80,200)))
-            if detail_ch.get("quake_land"):      badges.append(("QUAKE LAND",    (160,120, 60)))
-            if detail_ch.get("seven_punch"):     badges.append(("777 PUNCH",     (255,215,  0)))
-            if detail_ch.get("void_immune"):     badges.append(("VOID IMMUNE",   ( 30,  0, 60)))
-            if detail_ch.get("screentime"):      badges.append(("TIME WARP",     (100,200,255)))
+            if _detail_display.get("shock_kick"):      badges.append(("SHOCK KICK",    (255,240, 80)))
+            if _detail_display.get("storm_punch"):     badges.append(("STORM PUNCH",   ( 80,120,255)))
+            if _detail_display.get("magnet_punch"):    badges.append(("MAGNET PULL",   (160, 80,255)))
+            if _detail_display.get("combo_punch"):     badges.append(("COMBO PUNCH",   ( 80,200,180)))
+            if _detail_display.get("steal_kick"):      badges.append(("STEAL KICK",    ( 60, 60,100)))
+            if _detail_display.get("cloned"):          badges.append(("CLONE",         (100,200,160)))
+            if _detail_display.get("bomb_character"):  badges.append(("BOMB SPAWNER",  (200, 80, 20)))
+            if _detail_display.get("halves_punch"):    badges.append(("HALVES HP",     (220, 80,220)))
+            if _detail_display.get("godslayer"):       badges.append(("GODSLAYER",     (180, 20, 60)))
+            if _detail_display.get("scroll_kick"):     badges.append(("SCROLL BOMB",   (180,150, 80)))
+            if _detail_display.get("flash_kick"):      badges.append(("FLASH KICK",    (255,200,  0)))
+            if _detail_display.get("portal_kick"):     badges.append(("PORTAL KICK",   ( 80,200,255)))
+            if _detail_display.get("apple_kick"):      badges.append(("APPLE RAIN",    (120, 80,200)))
+            if _detail_display.get("totem_kick"):      badges.append(("TOTEM RAIN",    (190,110, 30)))
+            if _detail_display.get("remote_kick"):     badges.append(("REMOTE BOMB",   (220, 40,  0)))
+            if _detail_display.get("prime_dmg"):       badges.append(("PRIME DAMAGE",  ( 60,180,255)))
+            if _detail_display.get("lucky_strike"):    badges.append(("LUCKY STRIKE",  (255,215,  0)))
+            if _detail_display.get("drain_punch"):     badges.append(("DRAIN PUNCH",   ( 20,  0, 60)))
+            if _detail_display.get("sleep_punch"):     badges.append(("SLEEP PUNCH",   (220,190,120)))
+            if _detail_display.get("reaper_kick"):     badges.append(("REAPER KICK",   ( 40, 40, 40)))
+            if _detail_display.get("chainsaw"):        badges.append(("CHAINSAW",      (200, 60, 30)))
+            if _detail_display.get("crush_punch"):     badges.append(("BLOCK BREAK",   (140, 80,200)))
+            if _detail_display.get("quake_land"):      badges.append(("QUAKE LAND",    (160,120, 60)))
+            if _detail_display.get("seven_punch"):     badges.append(("777 PUNCH",     (255,215,  0)))
+            if _detail_display.get("void_immune"):     badges.append(("VOID IMMUNE",   ( 30,  0, 60)))
+            if _detail_display.get("screentime"):      badges.append(("TIME WARP",     (100,200,255)))
             # --- new characters batch ---
-            if detail_ch.get("swap_kick"):       badges.append(("SWAP KICK",     (200,120, 60)))
-            if detail_ch.get("rage_build"):      badges.append(("RAGE BUILD",    (180, 60, 60)))
-            if detail_ch.get("grab_punch"):      badges.append(("GRAB PUNCH",    ( 80,140,200)))
-            if detail_ch.get("confuse_punch"):   badges.append(("CONFUSE PUNCH", (200, 80,200)))
-            if detail_ch.get("wild_attack"):     badges.append(("WILD ATTACK",   (255,180,  0)))
-            if detail_ch.get("stone_skin"):      badges.append(("ARMOR SKIN",    (150,150,170)))
-            if detail_ch.get("siphon_leech"):    badges.append(("SIPHON",        (160, 40,160)))
-            if detail_ch.get("slow_punch"):      badges.append(("SLOW PUNCH",    (100,200,240)))
-            if detail_ch.get("copy_punch"):      badges.append(("COPY PUNCH",    (180,230,255)))
-            if detail_ch.get("hp_swap"):         badges.append(("HP SWAP",       ( 80, 40,200)))
-            if detail_ch.get("rainbow_poop"):    badges.append(("POOP POWERUPS", (255,100,180)))
-            if detail_ch.get("venom_kick"):      badges.append(("VENOM KICK",    ( 60,180, 40)))
-            if detail_ch.get("jetpack"):         badges.append(("JETPACK",       (200,100,255)))
-            if detail_ch.get("chomp"):           badges.append(("CHOMP",         (255,220,  0)))
-            if detail_ch.get("chicken_banana"):  badges.append(("RAM CHARGE",    (255,180,  0)))
-            if detail_ch.get("soul_master"):     badges.append(("SOUL HOP",      ( 80,  0,160)))
-            if detail_ch.get("copycat"):         badges.append(("COPYCAT",       (180,180,180)))
-            if detail_ch.get("orb_shooter"):     badges.append(("CHARGE ORB",    ( 80,160,255)))
-            if detail_ch.get("glitch_strike"):   badges.append(("GLITCH HIT",    (  0,255,180)))
-            if detail_ch.get("death_defyer"):    badges.append(("DEATH DEFYER",  (200,230,255)))
-            if detail_ch.get("bubble_kick"):     badges.append(("BUBBLE KICK",   ( 80,200,160)))
+            if _detail_display.get("swap_kick"):       badges.append(("SWAP KICK",     (200,120, 60)))
+            if _detail_display.get("rage_build"):      badges.append(("RAGE BUILD",    (180, 60, 60)))
+            if _detail_display.get("grab_punch"):      badges.append(("GRAB PUNCH",    ( 80,140,200)))
+            if _detail_display.get("confuse_punch"):   badges.append(("CONFUSE PUNCH", (200, 80,200)))
+            if _detail_display.get("wild_attack"):     badges.append(("WILD ATTACK",   (255,180,  0)))
+            if _detail_display.get("stone_skin"):      badges.append(("ARMOR SKIN",    (150,150,170)))
+            if _detail_display.get("siphon_leech"):    badges.append(("SIPHON",        (160, 40,160)))
+            if _detail_display.get("slow_punch"):      badges.append(("SLOW PUNCH",    (100,200,240)))
+            if _detail_display.get("copy_punch"):      badges.append(("COPY PUNCH",    (180,230,255)))
+            if _detail_display.get("hp_swap"):         badges.append(("HP SWAP",       ( 80, 40,200)))
+            if _detail_display.get("rainbow_poop"):    badges.append(("POOP POWERUPS", (255,100,180)))
+            if _detail_display.get("venom_kick"):      badges.append(("VENOM KICK",    ( 60,180, 40)))
+            if _detail_display.get("jetpack"):         badges.append(("JETPACK",       (200,100,255)))
+            if _detail_display.get("chomp"):           badges.append(("CHOMP",         (255,220,  0)))
+            if _detail_display.get("chicken_banana"):  badges.append(("RAM CHARGE",    (255,180,  0)))
+            if _detail_display.get("soul_master"):     badges.append(("SOUL HOP",      ( 80,  0,160)))
+            if _detail_display.get("copycat"):         badges.append(("COPYCAT",       (180,180,180)))
+            if _detail_display.get("orb_shooter"):     badges.append(("CHARGE ORB",    ( 80,160,255)))
+            if _detail_display.get("glitch_strike"):   badges.append(("GLITCH HIT",    (  0,255,180)))
+            if _detail_display.get("death_defyer"):    badges.append(("DEATH DEFYER",  (200,230,255)))
+            if _detail_display.get("bubble_kick"):     badges.append(("BUBBLE KICK",   ( 80,200,160)))
             # --- mechanics without badges yet ---
-            if detail_ch.get("shade"):           badges.append(("SHADE",         ( 80,  0,120)))
-            if detail_ch.get("shock_aura"):      badges.append(("SHOCK AURA",    (240,230, 60)))
-            if detail_ch.get("mirage"):          badges.append(("35% DODGE",     (160,140,220)))
-            if detail_ch.get("quake_punch"):     badges.append(("QUAKE PUNCH",   (160,120, 60)))
-            if detail_ch.get("feedback"):        badges.append(("FEEDBACK",      ( 60,200,175)))
-            if detail_ch.get("growing_dmg"):     badges.append(("ESCALATES",     (200,145,  0)))
-            if detail_ch.get("pacifist"):        badges.append(("REFLECTS 50%",  (235,255,235)))
-            if detail_ch.get("execute"):         badges.append(("EXECUTE",       (180, 20, 40)))
-            if detail_ch.get("voodoo"):          badges.append(("VOODOO",        (120,  0,200)))
-            if detail_ch.get("desperation_speed"): badges.append(("DESPERATION", (220, 40, 40)))
-            if detail_ch.get("crazy_teleport"):  badges.append(("1S TELEPORT",  (255, 50,220)))
-            if detail_ch.get("giant_killer"):    badges.append(("GIANT KILLER",  ( 80,180,220)))
-            if detail_ch.get("speed_stack"):     badges.append(("SPEED STACK",   (255,140,  0)))
-            if detail_ch.get("all_or_nothing"):  badges.append(("ALL OR NOTHING",(200, 80,200)))
-            if detail_ch.get("long_range"):      badges.append(("LONG RANGE 3×", (180,150, 80)))
-            if detail_ch.get("stillness_regen"): badges.append(("STILL = HEAL",  (160,200,130)))
-            if detail_ch.get("chef"):            badges.append(("BAKES POWERUP",(255,200, 80)))
-            if detail_ch.get("backstab"):        badges.append(("BACKSTAB 3×",  ( 40, 30, 60)))
-            if detail_ch.get("rainbow_snake"):   badges.append(("FOREVER POWER", (200,100,255)))
-            if detail_ch.get("taipan_punch"):    badges.append(("SUPPRESS PUNCH",(120, 80, 40)))
-            if detail_ch.get("cobra_orb"):       badges.append(("POISON ORB",    ( 30,100, 30)))
-            if detail_ch.get("giant_bug_kick"):  badges.append(("GIANT BUG",     ( 60,160, 60)))
-            if detail_ch.get("black_hole_kick"): badges.append(("BLACK HOLE",    ( 80,  0,180)))
-            if detail_ch.get("bug_spawner_kick"):badges.append(("BUG SPAWNER",   (255,200,  0)))
-            if detail_ch.get("widow_kick"):      badges.append(("WALL BUGS",     ( 10, 10, 10)))
-            if detail_ch.get("ai_clones"):       badges.append(("5 CLONES",      (  0,220,200)))
-            if detail_ch.get("auto_forcefield"): badges.append(("FORCEFIELD",    (100,180,255)))
-            if detail_ch.get("possess_kick"):    badges.append(("POSSESS",       (180, 80,255)))
-            if detail_ch.get("armor_proj"):      badges.append(("PROJ IMMUNE",   (160,160,180)))
-            if detail_ch.get("deflect_proj"):    badges.append(("DEFLECT",       (100,220,255)))
-            if detail_ch.get("unhittable"):      badges.append(("60% DODGE",     (240,240,100)))
-            if detail_ch.get("mega_unhittable"): badges.append(("99.9% DODGE",   (255,255,150)))
+            if _detail_display.get("shade"):           badges.append(("SHADE",         ( 80,  0,120)))
+            if _detail_display.get("shock_aura"):      badges.append(("SHOCK AURA",    (240,230, 60)))
+            if _detail_display.get("mirage"):          badges.append(("35% DODGE",     (160,140,220)))
+            if _detail_display.get("quake_punch"):     badges.append(("QUAKE PUNCH",   (160,120, 60)))
+            if _detail_display.get("feedback"):        badges.append(("FEEDBACK",      ( 60,200,175)))
+            if _detail_display.get("growing_dmg"):     badges.append(("ESCALATES",     (200,145,  0)))
+            if _detail_display.get("pacifist"):        badges.append(("REFLECTS 50%",  (235,255,235)))
+            if _detail_display.get("execute"):         badges.append(("EXECUTE",       (180, 20, 40)))
+            if _detail_display.get("voodoo"):          badges.append(("VOODOO",        (120,  0,200)))
+            if _detail_display.get("desperation_speed"): badges.append(("DESPERATION", (220, 40, 40)))
+            if _detail_display.get("crazy_teleport"):  badges.append(("1S TELEPORT",  (255, 50,220)))
+            if _detail_display.get("giant_killer"):    badges.append(("GIANT KILLER",  ( 80,180,220)))
+            if _detail_display.get("speed_stack"):     badges.append(("SPEED STACK",   (255,140,  0)))
+            if _detail_display.get("all_or_nothing"):  badges.append(("ALL OR NOTHING",(200, 80,200)))
+            if _detail_display.get("long_range"):      badges.append(("LONG RANGE 3×", (180,150, 80)))
+            if _detail_display.get("stillness_regen"): badges.append(("STILL = HEAL",  (160,200,130)))
+            if _detail_display.get("chef"):            badges.append(("BAKES POWERUP",(255,200, 80)))
+            if _detail_display.get("backstab"):        badges.append(("BACKSTAB 3×",  ( 40, 30, 60)))
+            if _detail_display.get("rainbow_snake"):   badges.append(("FOREVER POWER", (200,100,255)))
+            if _detail_display.get("taipan_punch"):    badges.append(("SUPPRESS PUNCH",(120, 80, 40)))
+            if _detail_display.get("cobra_orb"):       badges.append(("POISON ORB",    ( 30,100, 30)))
+            if _detail_display.get("giant_bug_kick"):  badges.append(("GIANT BUG",     ( 60,160, 60)))
+            if _detail_display.get("black_hole_kick"): badges.append(("BLACK HOLE",    ( 80,  0,180)))
+            if _detail_display.get("bug_spawner_kick"):badges.append(("BUG SPAWNER",   (255,200,  0)))
+            if _detail_display.get("widow_kick"):      badges.append(("WALL BUGS",     ( 10, 10, 10)))
+            if _detail_display.get("ai_clones"):       badges.append(("5 CLONES",      (  0,220,200)))
+            if _detail_display.get("auto_forcefield"): badges.append(("FORCEFIELD",    (100,180,255)))
+            if _detail_display.get("possess_kick"):    badges.append(("POSSESS",       (180, 80,255)))
+            if _detail_display.get("armor_proj"):      badges.append(("PROJ IMMUNE",   (160,160,180)))
+            if _detail_display.get("deflect_proj"):    badges.append(("DEFLECT",       (100,220,255)))
+            if _detail_display.get("unhittable"):      badges.append(("60% DODGE",     (240,240,100)))
+            if _detail_display.get("mega_unhittable"): badges.append(("99.9% DODGE",   (255,255,150)))
             # 11 new characters
-            if detail_ch.get("note_kick"):       badges.append(("NOTE KICK",     (180,100,200)))
-            if detail_ch.get("cleave_kick"):     badges.append(("CLEAVE KICK",   (140, 60, 40)))
-            if detail_ch.get("heavy"):           badges.append(("HEAVY",         (120,110,100)))
-            if detail_ch.get("money_hit"):       badges.append(("MONEY HIT",     (220,180,  0)))
-            if detail_ch.get("glass_jaw"):       badges.append(("GLASS JAW",     (200,160,200)))
-            if detail_ch.get("drain_aura"):      badges.append(("DRAIN AURA",    (160, 20, 80)))
-            if detail_ch.get("lance_punch"):     badges.append(("LANCE PUNCH",   (200,160, 60)))
-            if detail_ch.get("absorb_hit"):      badges.append(("ABSORB HIT",    (100,200,160)))
-            if detail_ch.get("hex_kick"):        badges.append(("HEX KICK",      ( 80, 30,120)))
-            if detail_ch.get("gamble_kick"):     badges.append(("GAMBLE KICK",   (100,200, 80)))
-            if detail_ch.get("auto_counter"):    badges.append(("AUTO COUNTER",  (180,100, 60)))
-            if detail_ch.get("fire_aura"):       badges.append(("FIRE AURA",     (220, 90, 20)))
-            if detail_ch.get("colossus"):        badges.append(("COLOSSUS",      (100,130, 70)))
-            if detail_ch.get("stomp_punch"):     badges.append(("STOMP PUNCH",   ( 60, 70,180)))
-            if detail_ch.get("spike_body"):      badges.append(("SPIKE BODY",    ( 80,160, 60)))
-            if detail_ch.get("anchor_body"):     badges.append(("ANCHOR",        ( 60, 60,100)))
-            if detail_ch.get("sleep_body"):      badges.append(("SLEEP AURA",    (120, 80,180)))
-            if detail_ch.get("berserk_low"):     badges.append(("BERSERK MODE",  (200, 40, 20)))
-            if detail_ch.get("twin_strike"):     badges.append(("TWIN STRIKE",   ( 80,180,200)))
-            if detail_ch.get("sap_kick"):        badges.append(("SAP KICK",      (120, 60, 30)))
-            if detail_ch.get("mimic_stats"):     badges.append(("MIMIC STATS",   (150,150,160)))
-            if detail_ch.get("boomerang_kick"):  badges.append(("BOOMERANG",     (200,110, 30)))
-            if detail_ch.get("parry_strike"):    badges.append(("PARRY STRIKE",  ( 60,120,200)))
-            if detail_ch.get("combat_regen"):    badges.append(("COMBAT REGEN",  (100,200,120)))
-            if detail_ch.get("iron_block"):      badges.append(("IRON BLOCK",    ( 80, 80,100)))
-            if detail_ch.get("pierce_kick"):     badges.append(("PIERCE KICK",   (160,160,180)))
-            if detail_ch.get("rage_stack"):      badges.append(("RAGE STACK",    (180, 50, 50)))
-            if detail_ch.get("phoenix_revive"):  badges.append(("PHOENIX",       (220,120, 20)))
-            if detail_ch.get("chain_hits"):      badges.append(("CHAIN HITS",    ( 60,160,160)))
-            if detail_ch.get("block_break"):     badges.append(("BLOCK BREAK",   (100, 80,160)))
-            if detail_ch.get("titan_grip"):      badges.append(("TITAN GRIP",    ( 90, 60,130)))
-            if detail_ch.get("overload"):        badges.append(("OVERLOAD",      (255, 80,220)))
-            if detail_ch.get("glitch_char"):     badges.append(("GLITCH",        ( 60,255,120)))
-            if detail_ch.get("nick_of_time"):    badges.append(("NICK OF TIME",  ( 60,200,255)))
-            if detail_ch.get("buffer_char"):     badges.append(("BUFFER",        (100,220,100)))
-            if detail_ch.get("cursed_drain"):    badges.append(("CURSED",        ( 80,  0, 80)))
+            if _detail_display.get("note_kick"):       badges.append(("NOTE KICK",     (180,100,200)))
+            if _detail_display.get("cleave_kick"):     badges.append(("CLEAVE KICK",   (140, 60, 40)))
+            if _detail_display.get("heavy"):           badges.append(("HEAVY",         (120,110,100)))
+            if _detail_display.get("money_hit"):       badges.append(("MONEY HIT",     (220,180,  0)))
+            if _detail_display.get("glass_jaw"):       badges.append(("GLASS JAW",     (200,160,200)))
+            if _detail_display.get("drain_aura"):      badges.append(("DRAIN AURA",    (160, 20, 80)))
+            if _detail_display.get("lance_punch"):     badges.append(("LANCE PUNCH",   (200,160, 60)))
+            if _detail_display.get("absorb_hit"):      badges.append(("ABSORB HIT",    (100,200,160)))
+            if _detail_display.get("hex_kick"):        badges.append(("HEX KICK",      ( 80, 30,120)))
+            if _detail_display.get("gamble_kick"):     badges.append(("GAMBLE KICK",   (100,200, 80)))
+            if _detail_display.get("auto_counter"):    badges.append(("AUTO COUNTER",  (180,100, 60)))
+            if _detail_display.get("fire_aura"):       badges.append(("FIRE AURA",     (220, 90, 20)))
+            if _detail_display.get("colossus"):        badges.append(("COLOSSUS",      (100,130, 70)))
+            if _detail_display.get("stomp_punch"):     badges.append(("STOMP PUNCH",   ( 60, 70,180)))
+            if _detail_display.get("spike_body"):      badges.append(("SPIKE BODY",    ( 80,160, 60)))
+            if _detail_display.get("anchor_body"):     badges.append(("ANCHOR",        ( 60, 60,100)))
+            if _detail_display.get("sleep_body"):      badges.append(("SLEEP AURA",    (120, 80,180)))
+            if _detail_display.get("berserk_low"):     badges.append(("BERSERK MODE",  (200, 40, 20)))
+            if _detail_display.get("twin_strike"):     badges.append(("TWIN STRIKE",   ( 80,180,200)))
+            if _detail_display.get("sap_kick"):        badges.append(("SAP KICK",      (120, 60, 30)))
+            if _detail_display.get("mimic_stats"):     badges.append(("MIMIC STATS",   (150,150,160)))
+            if _detail_display.get("boomerang_kick"):  badges.append(("BOOMERANG",     (200,110, 30)))
+            if _detail_display.get("parry_strike"):    badges.append(("PARRY STRIKE",  ( 60,120,200)))
+            if _detail_display.get("combat_regen"):    badges.append(("COMBAT REGEN",  (100,200,120)))
+            if _detail_display.get("iron_block"):      badges.append(("IRON BLOCK",    ( 80, 80,100)))
+            if _detail_display.get("pierce_kick"):     badges.append(("PIERCE KICK",   (160,160,180)))
+            if _detail_display.get("rage_stack"):      badges.append(("RAGE STACK",    (180, 50, 50)))
+            if _detail_display.get("phoenix_revive"):  badges.append(("PHOENIX",       (220,120, 20)))
+            if _detail_display.get("chain_hits"):      badges.append(("CHAIN HITS",    ( 60,160,160)))
+            if _detail_display.get("block_break"):     badges.append(("BLOCK BREAK",   (100, 80,160)))
+            if _detail_display.get("titan_grip"):      badges.append(("TITAN GRIP",    ( 90, 60,130)))
+            if _detail_display.get("overload"):        badges.append(("OVERLOAD",      (255, 80,220)))
+            if _detail_display.get("glitch_char"):     badges.append(("GLITCH",        ( 60,255,120)))
+            if _detail_display.get("nick_of_time"):    badges.append(("NICK OF TIME",  ( 60,200,255)))
+            if _detail_display.get("buffer_char"):     badges.append(("BUFFER",        (100,220,100)))
+            if _detail_display.get("cursed_drain"):    badges.append(("CURSED",        ( 80,  0, 80)))
             # --- batch 9 ---
-            if detail_ch.get("moving_punch"):    badges.append(("DASH PUNCH",    (200, 60, 60)))
-            if detail_ch.get("wind_kick"):       badges.append(("WIND KICK",     ( 80,160,230)))
-            if detail_ch.get("phase_dodge"):     badges.append(("PHASE DODGE",   (140, 80,200)))
-            if detail_ch.get("chaos_strike"):    badges.append(("CHAOS HIT",     (220, 80,220)))
-            if detail_ch.get("rage_damage"):     badges.append(("LOW HP RAGE",   (200, 30, 20)))
-            if detail_ch.get("thorn_block"):     badges.append(("THORNS",        ( 80,160, 60)))
-            if detail_ch.get("oracle_dodge"):    badges.append(("ORACLE DODGE",  (160, 80,200)))
-            if detail_ch.get("triple_slash"):    badges.append(("TRIPLE SLASH",  ( 30,120,170)))
-            if detail_ch.get("first_strike"):    badges.append(("FIRST STRIKE",  (160, 80, 30)))
-            if detail_ch.get("arcane_orb"):      badges.append(("ARCANE ORB",    (150, 60,220)))
-            if detail_ch.get("bbboomerang_kick"):badges.append(("5 BOOMERANGS",  (220,140, 20)))
-            if detail_ch.get("web_kick"):        badges.append(("WEB KICK",      (200,160, 40)))
-            if detail_ch.get("spider_dodge"):    badges.append(("25% DODGE",     (180,130, 30)))
-            if detail_ch.get("river_pull"):      badges.append(("RIVER PULL",    ( 30,160,120)))
-            if detail_ch.get("shell_body"):      badges.append(("SHELL -25%",    ( 40,120, 80)))
-            if detail_ch.get("poison_kick"):     badges.append(("POISON KICK",   ( 80,160, 40)))
-            if detail_ch.get("flame_trail"):     badges.append(("FLAME TRAIL",   (220, 80, 10)))
+            if _detail_display.get("moving_punch"):    badges.append(("DASH PUNCH",    (200, 60, 60)))
+            if _detail_display.get("wind_kick"):       badges.append(("WIND KICK",     ( 80,160,230)))
+            if _detail_display.get("phase_dodge"):     badges.append(("PHASE DODGE",   (140, 80,200)))
+            if _detail_display.get("chaos_strike"):    badges.append(("CHAOS HIT",     (220, 80,220)))
+            if _detail_display.get("rage_damage"):     badges.append(("LOW HP RAGE",   (200, 30, 20)))
+            if _detail_display.get("thorn_block"):     badges.append(("THORNS",        ( 80,160, 60)))
+            if _detail_display.get("oracle_dodge"):    badges.append(("ORACLE DODGE",  (160, 80,200)))
+            if _detail_display.get("triple_slash"):    badges.append(("TRIPLE SLASH",  ( 30,120,170)))
+            if _detail_display.get("first_strike"):    badges.append(("FIRST STRIKE",  (160, 80, 30)))
+            if _detail_display.get("arcane_orb"):      badges.append(("ARCANE ORB",    (150, 60,220)))
+            if _detail_display.get("bbboomerang_kick"):badges.append(("5 BOOMERANGS",  (220,140, 20)))
+            if _detail_display.get("web_kick"):        badges.append(("WEB KICK",      (200,160, 40)))
+            if _detail_display.get("spider_dodge"):    badges.append(("25% DODGE",     (180,130, 30)))
+            if _detail_display.get("river_pull"):      badges.append(("RIVER PULL",    ( 30,160,120)))
+            if _detail_display.get("shell_body"):      badges.append(("SHELL -25%",    ( 40,120, 80)))
+            if _detail_display.get("poison_kick"):     badges.append(("POISON KICK",   ( 80,160, 40)))
+            if _detail_display.get("flame_trail"):     badges.append(("FLAME TRAIL",   (220, 80, 10)))
             # --- seasonal / special characters ---
-            if detail_ch.get("nian_breath"):     badges.append(("FIRE BREATH",   (220, 60, 20)))
-            if detail_ch.get("saint_nix_coal"):  badges.append(("COAL CYCLE",    (200,  50,  50)))
-            if detail_ch.get("scorpio_kick"):    badges.append(("FREEZE+POISON", ( 80, 160, 200)))
-            if detail_ch.get("plant_kick"):      badges.append(("PLANT SPIKE",   ( 40, 180,  60)))
-            if detail_ch.get("dementor_heal"):   badges.append(("TIMED HEAL",    (120, 100, 200)))
-            if detail_ch.get("decay_punch"):     badges.append(("DECAY PUNCH",   (120, 100,  60)))
-            if detail_ch.get("f13_dmg"):         badges.append(("×13 MULT",      ( 40,  40,  40)))
-            if detail_ch.get("sniper_shot"):     badges.append(("SNIPER SHOT",   (180, 140,  60)))
-            if detail_ch.get("map_kick"):        badges.append(("STAGE SWAP",    (180, 140,  80)))
-            if detail_ch.get("bookzworm_books"): badges.append(("BOOK ORBIT",    ( 70, 145,  50)))
-            if detail_ch.get("yellowstone_kick"):badges.append(("GEYSER KICK",   (118,  98,  72)))
-            if detail_ch.get("jack_tank"):       badges.append(("PUMPKIN TANK",  (220, 110,  20)))
-            if detail_ch.get("cornucopia_fruits"):badges.append(("FRUIT SHOT",   (180, 140,  55)))
-            if detail_ch.get("ngs_dreidel"):     badges.append(("DREIDEL SPIN",  ( 40, 110, 210)))
-            if detail_ch.get("smoochie_revivals"):badges.append(("5 REVIVALS",   (255, 100, 180)))
-            if detail_ch.get("baddit"):          badges.append(("POWERUP SWAP",  (240, 220, 200)))
-            if detail_ch.get("clover_kick"):     badges.append(("SNAKE KICK",    ( 40, 200,  80)))
-            if detail_ch.get("clover_luck"):     badges.append(("IMMUNE BAD",    (150, 220, 100)))
-            if detail_ch.get("eartha_grow"):     badges.append(("GROWS/SEC",     (120,  80,  40)))
-            if detail_ch.get("tombstone_reflect"):badges.append(("99.9% REFLECT", (155, 150, 140)))
-            if detail_ch.get("absorb_block"):    badges.append(("HEAL BLOCK",    ( 70, 160, 100)))
-            if detail_ch.get("overdrive"):       badges.append(("OVERDRIVE",     (255, 130,   0)))
-            if detail_ch.get("crit_only"):       badges.append(("CRIT ONLY",     ( 75,  50,  25)))
-            if detail_ch.get("phantom_strike"):  badges.append(("PHANTOM STRIKE", ( 50,  50, 160)))
-            if detail_ch.get("mine_kick"):       badges.append(("GROUND MINE",    (110,  85,  40)))
-            if detail_ch.get("juggernaut"):      badges.append(("NO KNOCKBACK",   (180,  60,  20)))
-            if detail_ch.get("revenant"):        badges.append(("2× REVIVE",      (160,  90, 200)))
-            if detail_ch.get("hypno_kick"):      badges.append(("HYPNO KICK",     (140,  60, 200)))
-            if detail_ch.get("blink_kick"):      badges.append(("BLINK KICK",     ( 80, 220, 255)))
-            if detail_ch.get("sand_punch"):      badges.append(("SAND CLOUD",     (210, 170,  90)))
-            if detail_ch.get("poltergeist_fling"):badges.append(("RANDOM FLING",  (200, 195, 230)))
-            if detail_ch.get("armor_threshold"): badges.append(("40% ARMOR",     (130, 130, 145)))
-            if detail_ch.get("marionette_kick"): badges.append(("PUPPET KICK",   (220, 110, 180)))
-            if detail_ch.get("glacier_punch"):   badges.append(("SLOW PUNCH",    (170, 225, 255)))
-            if detail_ch.get("wildfire"):        badges.append(("WILDFIRE",      (255,  80,  10)))
-            if detail_ch.get("vex_debuff"):      badges.append(("VEX DEBUFF",    (160,  40, 200)))
-            if detail_ch.get("stalwart_counter"):badges.append(("COUNTER HIT",   ( 80, 110, 160)))
-            if detail_ch.get("mimic_move"):      badges.append(("MIMIC MOVE",    (160, 160, 160)))
+            if _detail_display.get("nian_breath"):     badges.append(("FIRE BREATH",   (220, 60, 20)))
+            if _detail_display.get("saint_nix_coal"):  badges.append(("COAL CYCLE",    (200,  50,  50)))
+            if _detail_display.get("scorpio_kick"):    badges.append(("FREEZE+POISON", ( 80, 160, 200)))
+            if _detail_display.get("plant_kick"):      badges.append(("PLANT SPIKE",   ( 40, 180,  60)))
+            if _detail_display.get("dementor_heal"):   badges.append(("TIMED HEAL",    (120, 100, 200)))
+            if _detail_display.get("decay_punch"):     badges.append(("DECAY PUNCH",   (120, 100,  60)))
+            if _detail_display.get("f13_dmg"):         badges.append(("×13 MULT",      ( 40,  40,  40)))
+            if _detail_display.get("sniper_shot"):     badges.append(("SNIPER SHOT",   (180, 140,  60)))
+            if _detail_display.get("map_kick"):        badges.append(("STAGE SWAP",    (180, 140,  80)))
+            if _detail_display.get("bookzworm_books"): badges.append(("BOOK ORBIT",    ( 70, 145,  50)))
+            if _detail_display.get("yellowstone_kick"):badges.append(("GEYSER KICK",   (118,  98,  72)))
+            if _detail_display.get("jack_tank"):       badges.append(("PUMPKIN TANK",  (220, 110,  20)))
+            if _detail_display.get("cornucopia_fruits"):badges.append(("FRUIT SHOT",   (180, 140,  55)))
+            if _detail_display.get("ngs_dreidel"):     badges.append(("DREIDEL SPIN",  ( 40, 110, 210)))
+            if _detail_display.get("smoochie_revivals"):badges.append(("5 REVIVALS",   (255, 100, 180)))
+            if _detail_display.get("baddit"):          badges.append(("POWERUP SWAP",  (240, 220, 200)))
+            if _detail_display.get("clover_kick"):     badges.append(("SNAKE KICK",    ( 40, 200,  80)))
+            if _detail_display.get("clover_luck"):     badges.append(("IMMUNE BAD",    (150, 220, 100)))
+            if _detail_display.get("eartha_grow"):     badges.append(("GROWS/SEC",     (120,  80,  40)))
+            if _detail_display.get("tombstone_reflect"):badges.append(("99.9% REFLECT", (155, 150, 140)))
+            if _detail_display.get("absorb_block"):    badges.append(("HEAL BLOCK",    ( 70, 160, 100)))
+            if _detail_display.get("overdrive"):       badges.append(("OVERDRIVE",     (255, 130,   0)))
+            if _detail_display.get("crit_only"):       badges.append(("CRIT ONLY",     ( 75,  50,  25)))
+            if _detail_display.get("phantom_strike"):  badges.append(("PHANTOM STRIKE", ( 50,  50, 160)))
+            if _detail_display.get("mine_kick"):       badges.append(("GROUND MINE",    (110,  85,  40)))
+            if _detail_display.get("juggernaut"):      badges.append(("NO KNOCKBACK",   (180,  60,  20)))
+            if _detail_display.get("revenant"):        badges.append(("2× REVIVE",      (160,  90, 200)))
+            if _detail_display.get("hypno_kick"):      badges.append(("HYPNO KICK",     (140,  60, 200)))
+            if _detail_display.get("blink_kick"):      badges.append(("BLINK KICK",     ( 80, 220, 255)))
+            if _detail_display.get("sand_punch"):      badges.append(("SAND CLOUD",     (210, 170,  90)))
+            if _detail_display.get("poltergeist_fling"):badges.append(("RANDOM FLING",  (200, 195, 230)))
+            if _detail_display.get("armor_threshold"): badges.append(("40% ARMOR",     (130, 130, 145)))
+            if _detail_display.get("marionette_kick"): badges.append(("PUPPET KICK",   (220, 110, 180)))
+            if _detail_display.get("glacier_punch"):   badges.append(("SLOW PUNCH",    (170, 225, 255)))
+            if _detail_display.get("wildfire"):        badges.append(("WILDFIRE",      (255,  80,  10)))
+            if _detail_display.get("vex_debuff"):      badges.append(("VEX DEBUFF",    (160,  40, 200)))
+            if _detail_display.get("stalwart_counter"):badges.append(("COUNTER HIT",   ( 80, 110, 160)))
+            if _detail_display.get("mimic_move"):           badges.append(("MIMIC MOVE",     (160, 160, 160)))
+            if _detail_display.get("flower_trail_poison"): badges.append(("FLOWER POISON",  (180, 240, 140)))
+            if _detail_display.get("summer_wildfire"):     badges.append(("WILDFIRE SHOT",  (255,  90,  10)))
+            if _detail_display.get("leaf_rain"):           badges.append(("LEAF RAIN",      (120, 180,  40)))
+            if _detail_display.get("snow_aura"):           badges.append(("SNOW AURA",      (175, 215, 250)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)
@@ -1473,6 +1562,27 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 pygame.draw.rect(screen, (40, 40, 60), (bx_off - 2, badge_y - 1, bs.get_width() + 8, 16), border_radius=3)
                 screen.blit(bs, (bx_off + 2, badge_y))
                 bx_off += bs.get_width() + 14
+
+        # Eartha variant picker
+        if detail_ch["name"] == "Eartha" and detail_ch["name"] in unlocked and _eartha_variant_indices:
+            _vp_y   = PY + PH - 132
+            _vp_lbl = font_tiny.render("VARIANT  (Q/E  or  J/L)", True, (160, 160, 185))
+            screen.blit(_vp_lbl, (PX + PW//2 - _vp_lbl.get_width()//2, _vp_y - 16))
+            _vp_bw = (PW - 20) // len(_eartha_variant_indices)
+            for _vi3, _vlb3 in enumerate(_eartha_variant_labels):
+                _vx3   = PX + 10 + _vi3 * _vp_bw
+                _vc3   = CHARACTERS[_eartha_variant_indices[_vi3]]["color"]
+                _vn3   = CHARACTERS[_eartha_variant_indices[_vi3]]["name"]
+                _vlk3  = _vn3 not in unlocked
+                _vsel3 = (_vi3 == _active_ev)
+                _vbg3  = tuple(max(8, c // 5) for c in _vc3)
+                pygame.draw.rect(screen, _vbg3, (_vx3+1, _vp_y+1, _vp_bw-2, 28), border_radius=4)
+                _vbrd3 = _vc3 if _vsel3 else tuple(c // 2 for c in _vc3)
+                _vbw3  = 2 if _vsel3 else 1
+                pygame.draw.rect(screen, _vbrd3, (_vx3+1, _vp_y+1, _vp_bw-2, 28), _vbw3, border_radius=4)
+                _vtc3  = (90, 90, 90) if _vlk3 else (WHITE if _vsel3 else _vc3)
+                _vtxt3 = font_tiny.render(("?" + _vlb3[0]) if _vlk3 else _vlb3, True, _vtc3)
+                screen.blit(_vtxt3, (_vx3 + _vp_bw//2 - _vtxt3.get_width()//2, _vp_y + 8))
 
         # READY touch button
         _rdy_col = BLUE if not p1_ready else ORANGE

@@ -77,6 +77,7 @@ class Fighter:
         self.bbboomerang_hit_cd   = 0
         self.pending_ball       = False  # shoot_kick: spawn a ball this frame
         self.pending_orb        = False  # bazooka_kick: spawn an orb this frame
+        self.pending_wildfire   = False  # summer_wildfire: spawn a WildfireBall this frame
         self.bazooka_cooldown   = 0      # 5-second cooldown between orb shots
         self.pending_bounce     = False  # bounce_kick: spawn a bouncing ball this frame
         self.pending_scroll     = False  # scroll_kick: spawn a growing scroll this frame
@@ -246,6 +247,8 @@ class Fighter:
         self.flame_trail         = []    # Trailblazer: list of (x, y, ttl) trail segments
         self.trail_dmg_cd        = 0     # Trailblazer: cooldown before trail can damage again
         self._prev_x             = float(x)  # for flame_trail movement detection
+        self.flower_trail        = []    # Spring Eartha: list of [x, y, ttl] poison flowers
+        self.flower_dmg_cd       = 0     # Spring Eartha: cooldown between flower poison ticks
 
     def _reinit_ability_timers(self):
         c = self.char
@@ -1115,6 +1118,14 @@ class Fighter:
         # Note: flame trail damage is applied in the game loop so it never
         # hits co-op allies — see fight_game.py _apply_flame_trail_dmg
 
+        # Spring Eartha: lay flower tiles while moving, expire after 5 seconds
+        if self.char.get("flower_trail_poison"):
+            if abs(self.x - self._prev_x) > 1.5:
+                self.flower_trail.append([int(self.x), int(self.y), 300])
+            self.flower_trail = [[x, y, t-1] for x, y, t in self.flower_trail if t > 1]
+            if self.flower_dmg_cd > 0:
+                self.flower_dmg_cd -= 1
+
         if self.attacking and self.action in ('punch', 'kick'):
             self.action_t = min(1.0, self.action_t + self._attack_speed)
             if self.action_t >= 1.0:
@@ -1244,6 +1255,9 @@ class Fighter:
                 self.attack_hit = True
                 return
             if self.char.get("phantom_strike") and self.action == 'punch':
+                self.x = max(30.0, min(float(WIDTH - 30), other.x - self.facing * 55))
+                self.flash_timer = 8
+            if self.char.get("blink_kick") and self.action == 'kick':
                 self.x = max(30.0, min(float(WIDTH - 30), other.x - self.facing * 55))
                 self.flash_timer = 8
             if self.char.get("lucky_strike") and random.random() < 0.25:
@@ -1397,6 +1411,8 @@ class Fighter:
                 self.stealth_frames = 120   # 2 seconds invisible
             # Janitor: status effects cannot be applied to him
             if not other.char.get("immune"):
+                if self.char.get("summer_wildfire") and self.action == 'punch':
+                    self.pending_wildfire = True
                 if self.char.get("fire_punch") and self.action == 'punch':
                     if other.fire_frames == 0:
                         other.fire_tick = 480
@@ -1615,6 +1631,16 @@ class Fighter:
                 pygame.draw.circle(fsurf, (255, int(120 * intensity), 0, int(180 * intensity)),
                                    (r+1, r+1), r)
                 surface.blit(fsurf, (tx - r - 1, ty - r - 1))
+
+        # Spring Eartha: draw flower trail tiles on the ground
+        if self.char.get("flower_trail_poison"):
+            for _fx, _fy, _fttl in self.flower_trail:
+                _fint = _fttl / 300.0
+                _fr = max(4, int(8 * _fint))
+                _fsurf = pygame.Surface((_fr*2+2, _fr*2+2), pygame.SRCALPHA)
+                pygame.draw.circle(_fsurf, (255, 140, 180, int(200 * _fint)), (_fr+1, _fr+1), _fr)
+                pygame.draw.circle(_fsurf, (255, 220, 230, int(160 * _fint)), (_fr+1, _fr+1), max(1, _fr//2))
+                surface.blit(_fsurf, (_fx - _fr - 1, _fy - _fr - 1))
 
         # Speedster: draw afterimage trail before main body
         if self.char.get("speedster"):

@@ -10,7 +10,8 @@ from constants import *
 SEASONAL_EVENTS = [
     {"name": "New Dynasties",        "start": (1,  1),  "end": (1,  7),  "deco": "new_dynasties"},
     {"name": "Hearts and Harmonies", "start": (2, 14),  "end": (2, 20),  "deco": "hearts"},
-    {"name": "Emerald Echoes",       "start": (3, 17),  "end": (3, 23),  "deco": "emerald"},
+    {"name": "Emerald Echoes",       "start": (3, 17),  "end": (3, 23),  "deco": "emerald",
+     "special_mode": "the_casino", "special_mode_label": "The Casino"},
     {"name": "April Rain",           "start": (3, 28),  "end": (4,  4),  "deco": "easter"},
     {"name": "Bound to the Ground",  "start": (4, 22),  "end": (4, 28),  "deco": "earth",
      "special_mode": "giants_among_us", "special_mode_label": "Giants Among Us"},

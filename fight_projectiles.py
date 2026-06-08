@@ -1917,3 +1917,52 @@ class CoalProj:
     def collides(self, fighter):
         hit_r = self.radius + (20 if self.coal_idx == 2 else 0)
         return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < hit_r + 28
+
+
+# ---------------------------------------------------------------------------
+# WildfireBall  (Summer Eartha — gigantic fire ball, burns on hit)
+# ---------------------------------------------------------------------------
+
+class WildfireBall:
+    RADIUS = 38
+    SPEED  = 7
+    DMG    = 18
+
+    def __init__(self, x, y, facing, owner):
+        self.x      = float(x)
+        self.y      = float(y)
+        self.vx     = self.SPEED * facing
+        self.owner  = owner
+        self.alive  = True
+        self._t     = 0
+
+    def update(self):
+        self._t += 1
+        self.x += self.vx
+        if self.x < -self.RADIUS * 2 or self.x > WIDTH + self.RADIUS * 2:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        r = self.RADIUS
+        t = self._t
+        # Outer glow
+        _gsurf = pygame.Surface((r * 4, r * 4), pygame.SRCALPHA)
+        pygame.draw.circle(_gsurf, (255, 80, 0, 60), (r * 2, r * 2), r + int(8 + 4 * abs(math.sin(t * 0.15))))
+        surface.blit(_gsurf, (cx - r * 2, cy - r * 2))
+        # Core ball
+        pygame.draw.circle(surface, (200, 55, 0),  (cx, cy), r)
+        pygame.draw.circle(surface, (255, 120, 0), (cx, cy), r - 6)
+        pygame.draw.circle(surface, (255, 200, 50),(cx, cy), r - 14)
+        pygame.draw.circle(surface, (255, 240, 180),(cx, cy), max(4, r - 22))
+        # Animated flame tongues
+        for _fi in range(6):
+            _fa = math.radians(t * 6 + _fi * 60)
+            _fr = r + int(6 + 8 * abs(math.sin(t * 0.2 + _fi)))
+            _fex = cx + int(math.cos(_fa) * _fr)
+            _fey = cy + int(math.sin(_fa) * _fr)
+            pygame.draw.circle(surface, (255, max(40, 160 - _fi * 18), 0),
+                               (_fex, _fey), max(3, r // 5))
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 32
