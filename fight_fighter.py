@@ -406,7 +406,7 @@ class Fighter:
                 self.forcefield_timer -= 1
             else:
                 self.bubble_shield        = True
-                self.active_powerups['Forcefield'] = FPS * 4
+                self.active_powerups['Bubble Shield'] = FPS * 4
                 self.forcefield_timer     = FPS * 20
         if self.poop_cd > 0:
             self.poop_cd -= 1

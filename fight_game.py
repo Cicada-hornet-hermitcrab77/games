@@ -454,6 +454,17 @@ UNLOCK_CONDITIONS = {
     "Wendigo":            ("win_on_stage",    "Arctic Tundra",   5,  "Win 5 matches on Arctic Tundra"),
     "Trailblazer":        ("total_wins",      None,              20, "Win 20 total matches"),
     "Aqrabuamelu":        ("win_with",       "Scorpio",         3,  "Win 3 matches as Scorpio"),
+    # ── new batch: Blink through Ditto ──────────────────────────────────────
+    "Blink":             ("win_with",        "Flash",           3,  "Win 3 matches as Flash"),
+    "Sandstorm":         ("win_on_stage",    "Desert",          3,  "Win 3 matches on Desert"),
+    "Wail":              ("win_with",        "Banshee",         3,  "Win 3 matches as Banshee"),
+    "Fortress":          ("win_with",        "Bulwark",         3,  "Win 3 matches as Bulwark"),
+    "Marionette":        ("win_with",        "Puppet Master",   3,  "Win 3 matches as Puppet Master"),
+    "Glacier":           ("win_on_stage",    "Ice Cave",        4,  "Win 4 matches on Ice Cave"),
+    "Wildfire":          ("win_with",        "Inferno",         3,  "Win 3 matches as Inferno"),
+    "Vex":               ("win_with",        "Hexer",           3,  "Win 3 matches as Hexer"),
+    "Stalwart":          ("win_with",        "Iron Wall",       5,  "Win 5 matches as Iron Wall"),
+    "Ditto":             ("win_with",        "Mimic",           3,  "Win 3 matches as Mimic"),
     # ── Seasonal shop ────────────────────────────────────────────────────────
     "Nian":           ("seasonal_purchased", "Nian",           1, "Buy in Seasonal Shop (New Dynasties)"),
     "Smoochie":       ("seasonal_purchased", "Smoochie",       1, "Buy in Seasonal Shop (Hearts and Harmonies)"),
@@ -5639,7 +5650,19 @@ def main():
                 if p1_won:
                     stats["giants_wins"] = stats.get("giants_wins", 0) + 1
                     if stats["giants_wins"] % 10 == 0:
-                        _reward = random.choice(list(_GIANTS_FILTER))
+                        # Weighted drop table — rarer characters have lower odds
+                        _giant_weights = [
+                            ("Giant",       22),
+                            ("Morph",       20),
+                            ("Minotaur",    18),
+                            ("Titan Smash", 15),
+                            ("Colossus",    12),
+                            ("Abomination",  8),
+                            ("Emperor",      4),
+                            ("Eartha",       1),
+                        ]
+                        _pool = [n for n, w in _giant_weights for _ in range(w)]
+                        _reward = random.choice(_pool)
                         if _reward not in unlocked:
                             unlocked.add(_reward)
                             _save_data(unlocked, stats)
