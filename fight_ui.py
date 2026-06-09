@@ -530,7 +530,7 @@ CHEAT_CODES = {
     "eye_of_the_storm":    "Typhoon",
     "iron_curtain":        "Ironveil",
     "shock_wave":          "Pulse",
-    "all_that_glitters":   "Gilded",
+    "all_that_glitters":   "Gilded Clover",
     "twilight_strike":     "Dusk",
     "light_refraction":    "Chaos",
     "cold_ashes":          "Ashen",
