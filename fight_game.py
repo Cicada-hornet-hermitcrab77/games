@@ -1590,7 +1590,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         if victim.fire_frames == 0: victim.fire_tick = 480
                         victim.fire_frames = max(victim.fire_frames, 300)
                         wb.alive = False
-                wb.draw(surface)
+                wb.draw(screen)
             wildfire_balls = [wb for wb in wildfire_balls if wb.alive]
 
             # Spawn orbs from bazooka_kick

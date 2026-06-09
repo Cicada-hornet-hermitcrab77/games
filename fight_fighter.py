@@ -1124,8 +1124,9 @@ class Fighter:
             if abs(self.x - self._prev_x) > 1.5:
                 self.flower_trail.append([int(self.x), int(self.y), 300])
             self.flower_trail = [[x, y, t-1] for x, y, t in self.flower_trail if t > 1]
-            if self.flower_dmg_cd > 0:
-                self.flower_dmg_cd -= 1
+        # flower_dmg_cd is shared by all Eartha variants (leaf_rain, snow_aura, flower_trail_poison)
+        if self.flower_dmg_cd > 0:
+            self.flower_dmg_cd -= 1
 
         if self.attacking and self.action in ('punch', 'kick'):
             self.action_t = min(1.0, self.action_t + self._attack_speed)
