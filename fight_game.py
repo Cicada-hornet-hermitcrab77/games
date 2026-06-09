@@ -5749,9 +5749,13 @@ def main():
                                             font_small,  (255, 220, 120),    20),
                 ("gamble everything on every hit.",
                                             font_small,  (255, 220, 120),    40),
+                ("Win 10 matches and a random casino",
+                                            font_small,  (255, 220, 120),    80),
+                ("fighter joins your full roster.",
+                                            font_small,  (255, 220, 120),   100),
                 ("Available during Emerald Echoes only.",
-                                            font_small,  (160, 220, 160),    90),
-                ("press any key to continue",font_tiny,  (110, 110, 110),   160),
+                                            font_small,  (160, 220, 160),   140),
+                ("press any key to continue",font_tiny,  (110, 110, 110),   190),
             ]
             _cas_start = pygame.time.get_ticks()
             _cas_done  = False
@@ -5791,6 +5795,19 @@ def main():
                 p1_won = info[0] if isinstance(info, tuple) else False
                 if p1_won:
                     stats["casino_wins"] = stats.get("casino_wins", 0) + 1
+                    if stats["casino_wins"] % 10 == 0:
+                        _casino_pool = [
+                            "Wildcard", "Tycoon", "Gambler", "Fortune",
+                            "High Roller", "Lucky", "Clover",
+                        ]
+                        _cas_locked = [n for n in _casino_pool if n not in unlocked]
+                        _cas_reward = random.choice(_cas_locked) if _cas_locked else random.choice(_casino_pool)
+                        if _cas_reward not in unlocked:
+                            unlocked.add(_cas_reward)
+                            _save_data(unlocked, stats)
+                            _show_unlocks([_cas_reward])
+                        else:
+                            _save_data(unlocked, stats)
                 if _konami_flag[0]:
                     stats["konami_unlocked"] = True
                     _konami_flag[0] = False
