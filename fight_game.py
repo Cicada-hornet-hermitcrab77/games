@@ -5603,7 +5603,43 @@ def run_relay_fight(lobby, is_host, p1_char_idx, p2_char_idx,
 # Entry point
 # ---------------------------------------------------------------------------
 
+def _show_intro():
+    """One-time intro screen shown at game start. Skip with any key or tap."""
+    lines = [
+        ("STICKMAN FIGHTER",        font_large,  YELLOW,         -120),
+        ("In a world made of lines and circles,",   font_small, (200, 200, 220),  -40),
+        ("warriors rise from every corner of the",  font_small, (200, 200, 220),  -20),
+        ("earth to prove who is the greatest",      font_small, (200, 200, 220),    0),
+        ("fighter of them all.",                    font_small, (200, 200, 220),   20),
+        ("Punch, kick, and outsmart your rivals.", font_small, (180, 220, 180),    60),
+        ("Unlock new challengers.  Master every",  font_small, (180, 220, 180),    80),
+        ("stage.  Become a legend.",               font_small, (180, 220, 180),   100),
+        ("press any key to begin",                 font_tiny,  (120, 120, 120),   160),
+    ]
+    start = pygame.time.get_ticks()
+    while True:
+        clock.tick(FPS)
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if ev.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                return
+        elapsed = pygame.time.get_ticks() - start
+        if elapsed > 12000:
+            return
+        # fade in over 800 ms
+        alpha = min(255, int(elapsed / 800 * 255))
+        screen.fill((10, 10, 18))
+        cy = HEIGHT // 2
+        for text, fnt, col, dy in lines:
+            surf = fnt.render(text, True, col)
+            surf.set_alpha(alpha)
+            screen.blit(surf, (WIDTH // 2 - surf.get_width() // 2, cy + dy))
+        pygame.display.flip()
+
+
 def main():
+    _show_intro()
     unlocked, stats = load_save()
     hints = {name: ("???" if (len(cond) > 4 and cond[4]) else cond[3])
              for name, cond in UNLOCK_CONDITIONS.items()}
