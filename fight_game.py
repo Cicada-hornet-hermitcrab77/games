@@ -5639,7 +5639,6 @@ def _show_intro():
 
 
 def main():
-    _show_intro()
     unlocked, stats = load_save()
     hints = {name: ("???" if (len(cond) > 4 and cond[4]) else cond[3])
              for name, cond in UNLOCK_CONDITIONS.items()}
@@ -5737,6 +5736,43 @@ def main():
 
         # --- The Casino (Emerald Echoes event) path ---
         if mode == 'the_casino':
+            # Mode intro screen
+            _cas_lines = [
+                ("THE CASINO",              font_large,  (255, 200, 0),    -130),
+                ("The house always wins — or does it?",
+                                            font_small,  (230, 210, 180),   -60),
+                ("Only the luckiest and most cunning",
+                                            font_small,  (230, 210, 180),   -40),
+                ("fighters are welcome at this table.",
+                                            font_small,  (230, 210, 180),   -20),
+                ("Pick from 7 high-stakes brawlers and",
+                                            font_small,  (255, 220, 120),    20),
+                ("gamble everything on every hit.",
+                                            font_small,  (255, 220, 120),    40),
+                ("Available during Emerald Echoes only.",
+                                            font_small,  (160, 220, 160),    90),
+                ("press any key to continue",font_tiny,  (110, 110, 110),   160),
+            ]
+            _cas_start = pygame.time.get_ticks()
+            _cas_done  = False
+            while not _cas_done:
+                clock.tick(FPS)
+                for _cev in pygame.event.get():
+                    if _cev.type == pygame.QUIT:
+                        pygame.quit(); sys.exit()
+                    if _cev.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                        _cas_done = True
+                if pygame.time.get_ticks() - _cas_start > 10000:
+                    _cas_done = True
+                _ca = min(255, int((pygame.time.get_ticks() - _cas_start) / 600 * 255))
+                screen.fill((15, 10, 5))
+                _ccy = HEIGHT // 2
+                for _ct, _cf, _cc, _cdy in _cas_lines:
+                    _cs = _cf.render(_ct, True, _cc)
+                    _cs.set_alpha(_ca)
+                    screen.blit(_cs, (WIDTH // 2 - _cs.get_width() // 2, _ccy + _cdy))
+                pygame.display.flip()
+
             _CASINO_FILTER = frozenset({
                 "Wildcard", "Tycoon", "Gambler", "Fortune",
                 "High Roller", "Lucky", "Clover",
@@ -5765,6 +5801,47 @@ def main():
 
         # --- Giants Among Us (seasonal event) path ---
         if mode == 'giants_among_us':
+            # Mode intro screen
+            _gau_lines = [
+                ("GIANTS AMONG US",         font_large,  (100, 220, 100),  -130),
+                ("Only the mightiest beings are allowed here.",
+                                            font_small,  (200, 230, 200),   -60),
+                ("Choose from 8 colossal fighters and battle",
+                                            font_small,  (200, 230, 200),   -40),
+                ("your opponent in an all-out clash of giants.",
+                                            font_small,  (200, 230, 200),   -20),
+                ("Win 10 matches and a powerful new",
+                                            font_small,  (255, 220, 100),    20),
+                ("fighter will be added to your roster —",
+                                            font_small,  (255, 220, 100),    40),
+                ("rarer ones are much harder to get.",
+                                            font_small,  (255, 220, 100),    60),
+                ("Eartha has a 1% chance.  The four seasonal",
+                                            font_small,  (160, 200, 255),   100),
+                ("Eartha variants are each only 0.1%.",
+                                            font_small,  (160, 200, 255),   120),
+                ("press any key to continue",font_tiny,  (110, 110, 110),   170),
+            ]
+            _gau_start = pygame.time.get_ticks()
+            _gau_done  = False
+            while not _gau_done:
+                clock.tick(FPS)
+                for _gev in pygame.event.get():
+                    if _gev.type == pygame.QUIT:
+                        pygame.quit(); sys.exit()
+                    if _gev.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                        _gau_done = True
+                if pygame.time.get_ticks() - _gau_start > 10000:
+                    _gau_done = True
+                _ga = min(255, int((pygame.time.get_ticks() - _gau_start) / 600 * 255))
+                screen.fill((8, 20, 8))
+                _cy = HEIGHT // 2
+                for _gt, _gf, _gc, _gdy in _gau_lines:
+                    _gs = _gf.render(_gt, True, _gc)
+                    _gs.set_alpha(_ga)
+                    screen.blit(_gs, (WIDTH // 2 - _gs.get_width() // 2, _cy + _gdy))
+                pygame.display.flip()
+
             _GIANTS_FILTER = frozenset({
                 "Giant", "Minotaur", "Colossus", "Eartha",
                 "Morph", "Titan Smash", "Abomination", "Emperor",
