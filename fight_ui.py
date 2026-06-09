@@ -931,14 +931,25 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _eartha_variant_indices.append(_evi2)
                 break
 
+    # Build clover variant lookup (Original + Gilded, excluded from main grid)
+    _clover_variant_names   = ["Clover", "Gilded Clover"]
+    _clover_variant_labels  = ["Original", "Gilded"]
+    _clover_variant_indices = []
+    for _cvn in _clover_variant_names:
+        for _cvi2, _cvc2 in enumerate(CHARACTERS):
+            if _cvc2["name"] == _cvn:
+                _clover_variant_indices.append(_cvi2)
+                break
+
     if char_filter is not None:
         _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS)
-                     if c["name"] in char_filter and not c.get("eartha_variant")]
+                     if c["name"] in char_filter and not c.get("eartha_variant") and not c.get("clover_variant")]
         _CHARS    = [c for _, c in _cf_pairs]
         _orig_idx = [i for i, _ in _cf_pairs]
         COLS      = min(4, max(1, len(_CHARS)))
     else:
-        _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS) if not c.get("eartha_variant")]
+        _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS)
+                     if not c.get("eartha_variant") and not c.get("clover_variant")]
         _CHARS    = [c for _, c in _cf_pairs]
         _orig_idx = [i for i, _ in _cf_pairs]
         COLS      = 7
@@ -982,6 +993,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
     scroll_top = 0  # first visible row
     p1_ev = 0   # eartha variant index (0 = Original Eartha)
     p2_ev = 0
+    p1_cv = 0   # clover variant index (0 = Original Clover)
+    p2_cv = 0
 
     def clip_scroll(idx):
         nonlocal scroll_top
@@ -1018,7 +1031,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                         p1_idx = _ni; clip_scroll(p1_idx)
                     elif not vs_ai and not p2_ready:
                         p2_idx = _ni; clip_scroll(p2_idx)
-                # Eartha variant tabs
+                # Variant tabs (Eartha and Clover)
                 _td_idx = p2_idx if (p1_ready and not p2_ready) else p1_idx
                 _td_ch  = _CHARS[_td_idx]
                 if _td_ch["name"] == "Eartha" and _eartha_variant_indices:
@@ -1031,6 +1044,16 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 p1_ev = _vti
                             elif not vs_ai and not p2_ready:
                                 p2_ev = _vti
+                elif _td_ch["name"] == "Clover" and _clover_variant_indices:
+                    _vp_ty = PY + PH - 132
+                    _vp_tbw = (PW - 20) // len(_clover_variant_indices)
+                    for _vti in range(len(_clover_variant_indices)):
+                        _vtx = PX + 10 + _vti * _vp_tbw
+                        if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if not p1_ready:
+                                p1_cv = _vti
+                            elif not vs_ai and not p2_ready:
+                                p2_cv = _vti
                 # Tap READY button (drawn at bottom-right of detail panel)
                 _ready_rect = pygame.Rect(PX, PY + PH - 52, PW, 44)
                 if _ready_rect.collidepoint(_tp):
@@ -1040,6 +1063,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             if _CHARS[p1_idx]["name"] == "Eartha" and _eartha_variant_indices:
                                 _vnt = CHARACTERS[_eartha_variant_indices[p1_ev]]["name"]
                                 if _vnt not in unlocked:
+                                    _ev_ok_t = False
+                            if _CHARS[p1_idx]["name"] == "Clover" and _clover_variant_indices:
+                                _vcn = CHARACTERS[_clover_variant_indices[p1_cv]]["name"]
+                                if _vcn not in unlocked:
                                     _ev_ok_t = False
                             if _ev_ok_t:
                                 p1_ready = True
@@ -1053,6 +1080,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 _vnt2 = CHARACTERS[_eartha_variant_indices[p2_ev]]["name"]
                                 if _vnt2 not in unlocked:
                                     _ev_ok_t2 = False
+                            if _CHARS[p2_idx]["name"] == "Clover" and _clover_variant_indices:
+                                _vcn2 = CHARACTERS[_clover_variant_indices[p2_cv]]["name"]
+                                if _vcn2 not in unlocked:
+                                    _ev_ok_t2 = False
                             if _ev_ok_t2:
                                 p2_ready = True
             if event.type == pygame.KEYDOWN:
@@ -1060,15 +1091,20 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                     return None, None
                 # P1 navigation (WASD or arrows while P1 not ready)
                 if not p1_ready:
-                    if event.key in (pygame.K_a, pygame.K_LEFT):  p1_idx = move(p1_idx, 0, -1); clip_scroll(p1_idx); p1_ev = 0
-                    if event.key in (pygame.K_d, pygame.K_RIGHT): p1_idx = move(p1_idx, 0,  1); clip_scroll(p1_idx); p1_ev = 0
-                    if event.key in (pygame.K_w, pygame.K_UP):    p1_idx = move(p1_idx, -1, 0); clip_scroll(p1_idx); p1_ev = 0
-                    if event.key in (pygame.K_s, pygame.K_DOWN):  p1_idx = move(p1_idx,  1, 0); clip_scroll(p1_idx); p1_ev = 0
+                    if event.key in (pygame.K_a, pygame.K_LEFT):  p1_idx = move(p1_idx, 0, -1); clip_scroll(p1_idx); p1_ev = 0; p1_cv = 0
+                    if event.key in (pygame.K_d, pygame.K_RIGHT): p1_idx = move(p1_idx, 0,  1); clip_scroll(p1_idx); p1_ev = 0; p1_cv = 0
+                    if event.key in (pygame.K_w, pygame.K_UP):    p1_idx = move(p1_idx, -1, 0); clip_scroll(p1_idx); p1_ev = 0; p1_cv = 0
+                    if event.key in (pygame.K_s, pygame.K_DOWN):  p1_idx = move(p1_idx,  1, 0); clip_scroll(p1_idx); p1_ev = 0; p1_cv = 0
                     if _CHARS[p1_idx]["name"] == "Eartha" and _eartha_variant_indices:
                         if event.key == pygame.K_e:
                             p1_ev = (p1_ev + 1) % len(_eartha_variant_indices)
                         elif event.key == pygame.K_q:
                             p1_ev = (p1_ev - 1) % len(_eartha_variant_indices)
+                    if _CHARS[p1_idx]["name"] == "Clover" and _clover_variant_indices:
+                        if event.key == pygame.K_e:
+                            p1_cv = (p1_cv + 1) % len(_clover_variant_indices)
+                        elif event.key == pygame.K_q:
+                            p1_cv = (p1_cv - 1) % len(_clover_variant_indices)
                     if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_f):
                         if _CHARS[p1_idx]["name"] not in unlocked:
                             pass  # locked — do nothing
@@ -1078,6 +1114,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 _vn = CHARACTERS[_eartha_variant_indices[p1_ev]]["name"]
                                 if _vn not in unlocked:
                                     _ev_ok = False
+                            if _CHARS[p1_idx]["name"] == "Clover" and _clover_variant_indices:
+                                _vcn = CHARACTERS[_clover_variant_indices[p1_cv]]["name"]
+                                if _vcn not in unlocked:
+                                    _ev_ok = False
                             if _ev_ok:
                                 p1_ready = True
                                 if vs_ai:
@@ -1085,21 +1125,30 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                     p2_idx = random.choice(_ul) if _ul else random.randint(0, n - 1)
                 # P2 navigation (arrows only, after P1 locked in)
                 elif not vs_ai and not p2_ready:
-                    if event.key == pygame.K_LEFT:  p2_idx = move(p2_idx, 0, -1); clip_scroll(p2_idx); p2_ev = 0
-                    if event.key == pygame.K_RIGHT: p2_idx = move(p2_idx, 0,  1); clip_scroll(p2_idx); p2_ev = 0
-                    if event.key == pygame.K_UP:    p2_idx = move(p2_idx, -1, 0); clip_scroll(p2_idx); p2_ev = 0
-                    if event.key == pygame.K_DOWN:  p2_idx = move(p2_idx,  1, 0); clip_scroll(p2_idx); p2_ev = 0
+                    if event.key == pygame.K_LEFT:  p2_idx = move(p2_idx, 0, -1); clip_scroll(p2_idx); p2_ev = 0; p2_cv = 0
+                    if event.key == pygame.K_RIGHT: p2_idx = move(p2_idx, 0,  1); clip_scroll(p2_idx); p2_ev = 0; p2_cv = 0
+                    if event.key == pygame.K_UP:    p2_idx = move(p2_idx, -1, 0); clip_scroll(p2_idx); p2_ev = 0; p2_cv = 0
+                    if event.key == pygame.K_DOWN:  p2_idx = move(p2_idx,  1, 0); clip_scroll(p2_idx); p2_ev = 0; p2_cv = 0
                     if _CHARS[p2_idx]["name"] == "Eartha" and _eartha_variant_indices:
                         if event.key == pygame.K_l:
                             p2_ev = (p2_ev + 1) % len(_eartha_variant_indices)
                         elif event.key == pygame.K_j:
                             p2_ev = (p2_ev - 1) % len(_eartha_variant_indices)
+                    if _CHARS[p2_idx]["name"] == "Clover" and _clover_variant_indices:
+                        if event.key == pygame.K_l:
+                            p2_cv = (p2_cv + 1) % len(_clover_variant_indices)
+                        elif event.key == pygame.K_j:
+                            p2_cv = (p2_cv - 1) % len(_clover_variant_indices)
                     if event.key in (pygame.K_RETURN, pygame.K_k):
                         if _CHARS[p2_idx]["name"] in unlocked:
                             _ev_ok2 = True
                             if _CHARS[p2_idx]["name"] == "Eartha" and _eartha_variant_indices:
                                 _vn2 = CHARACTERS[_eartha_variant_indices[p2_ev]]["name"]
                                 if _vn2 not in unlocked:
+                                    _ev_ok2 = False
+                            if _CHARS[p2_idx]["name"] == "Clover" and _clover_variant_indices:
+                                _vcn2 = CHARACTERS[_clover_variant_indices[p2_cv]]["name"]
+                                if _vcn2 not in unlocked:
                                     _ev_ok2 = False
                             if _ev_ok2:
                                 p2_ready = True
@@ -1111,6 +1160,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _r1 = _eartha_variant_indices[p1_ev]
             if not vs_ai and _CHARS[p2_idx]["name"] == "Eartha" and _eartha_variant_indices:
                 _r2 = _eartha_variant_indices[p2_ev]
+            if _CHARS[p1_idx]["name"] == "Clover" and _clover_variant_indices:
+                _r1 = _clover_variant_indices[p1_cv]
+            if not vs_ai and _CHARS[p2_idx]["name"] == "Clover" and _clover_variant_indices:
+                _r2 = _clover_variant_indices[p2_cv]
             return _r1, _r2
 
         # Whose detail to show: the active picker
@@ -1118,9 +1171,12 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         detail_ch  = _CHARS[detail_idx]
         active_col = ORANGE if (p1_ready and not p2_ready) else BLUE
         _active_ev = p2_ev if (p1_ready and not p2_ready) else p1_ev
+        _active_cv = p2_cv if (p1_ready and not p2_ready) else p1_cv
         _detail_display = detail_ch
         if detail_ch["name"] == "Eartha" and detail_ch["name"] in unlocked and _eartha_variant_indices:
             _detail_display = CHARACTERS[_eartha_variant_indices[_active_ev]]
+        if detail_ch["name"] == "Clover" and detail_ch["name"] in unlocked and _clover_variant_indices:
+            _detail_display = CHARACTERS[_clover_variant_indices[_active_cv]]
 
         # ── Background ──────────────────────────────────────────────────────
         screen.fill((18, 18, 28))
@@ -1527,7 +1583,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if _detail_display.get("ngs_dreidel"):     badges.append(("DREIDEL SPIN",  ( 40, 110, 210)))
             if _detail_display.get("smoochie_revivals"):badges.append(("5 REVIVALS",   (255, 100, 180)))
             if _detail_display.get("baddit"):          badges.append(("POWERUP SWAP",  (240, 220, 200)))
-            if _detail_display.get("clover_kick"):     badges.append(("SNAKE KICK",    ( 40, 200,  80)))
+            if _detail_display.get("clover_kick"):       badges.append(("SNAKE KICK",    ( 40, 200,  80)))
+            if _detail_display.get("golden_snake_kick"):badges.append(("GOLD SNAKE KICK",(220, 180,  20)))
             if _detail_display.get("clover_luck"):     badges.append(("IMMUNE BAD",    (150, 220, 100)))
             if _detail_display.get("eartha_grow"):     badges.append(("GROWS/SEC",     (120,  80,  40)))
             if _detail_display.get("tombstone_reflect"):badges.append(("99.9% REFLECT", (155, 150, 140)))
@@ -1562,6 +1619,27 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 pygame.draw.rect(screen, (40, 40, 60), (bx_off - 2, badge_y - 1, bs.get_width() + 8, 16), border_radius=3)
                 screen.blit(bs, (bx_off + 2, badge_y))
                 bx_off += bs.get_width() + 14
+
+        # Clover variant picker
+        if detail_ch["name"] == "Clover" and detail_ch["name"] in unlocked and _clover_variant_indices:
+            _vp_y   = PY + PH - 132
+            _vp_lbl = font_tiny.render("VARIANT  (Q/E  or  J/L)", True, (160, 160, 185))
+            screen.blit(_vp_lbl, (PX + PW//2 - _vp_lbl.get_width()//2, _vp_y - 16))
+            _vp_bw = (PW - 20) // len(_clover_variant_indices)
+            for _vi4, _vlb4 in enumerate(_clover_variant_labels):
+                _vx4   = PX + 10 + _vi4 * _vp_bw
+                _vc4   = CHARACTERS[_clover_variant_indices[_vi4]]["color"]
+                _vn4   = CHARACTERS[_clover_variant_indices[_vi4]]["name"]
+                _vlk4  = _vn4 not in unlocked
+                _vsel4 = (_vi4 == _active_cv)
+                _vbg4  = tuple(max(8, c // 5) for c in _vc4)
+                pygame.draw.rect(screen, _vbg4, (_vx4+1, _vp_y+1, _vp_bw-2, 28), border_radius=4)
+                _vbrd4 = _vc4 if _vsel4 else tuple(c // 2 for c in _vc4)
+                _vbw4  = 2 if _vsel4 else 1
+                pygame.draw.rect(screen, _vbrd4, (_vx4+1, _vp_y+1, _vp_bw-2, 28), _vbw4, border_radius=4)
+                _vtc4  = (90, 90, 90) if _vlk4 else (WHITE if _vsel4 else _vc4)
+                _vtxt4 = font_tiny.render(("?" + _vlb4[0]) if _vlk4 else _vlb4, True, _vtc4)
+                screen.blit(_vtxt4, (_vx4 + _vp_bw//2 - _vtxt4.get_width()//2, _vp_y + 8))
 
         # Eartha variant picker
         if detail_ch["name"] == "Eartha" and detail_ch["name"] in unlocked and _eartha_variant_indices:

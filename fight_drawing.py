@@ -12187,27 +12187,46 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                 (_hx, _hy + int(_hsz * 0.72)),
             ])
 
-    elif char_name == "Clover":
-        # Replace head with a three-leaf clover
-        _lgreen = (30, 160, 60)
-        _dgreen = (20, 110, 40)
+    elif char_name in ("Clover", "Gilded Clover"):
+        _is_gilded = (char_name == "Gilded Clover")
+        if _is_gilded:
+            # Faint gold shimmer/glow around body
+            _glow_surf = pygame.Surface((int(60*s)+8, int(bl + 80*s)+8), pygame.SRCALPHA)
+            pygame.draw.ellipse(_glow_surf, (220, 180, 20, 30),
+                                (0, 0, int(60*s)+8, int(bl + 80*s)+8))
+            surface.blit(_glow_surf, (sx - int(30*s) - 4, sy - int(40*s) - 4))
+            _leaf_col  = (220, 180, 20)
+            _leaf_dark = (170, 130, 10)
+        else:
+            _leaf_col  = (30, 160, 60)
+            _leaf_dark = (20, 110, 40)
+        # Replace head with a clover
         _leaf_r = int(hd * 0.72)
         _leaf_d = int(hd * 0.52)
         # Cover the default head circle
-        pygame.draw.circle(surface, _lgreen, (hx, hy), hd + 1)
-        # Three leaves at 120° positions (top, bottom-left, bottom-right)
-        _leaves = [
-            (hx, hy - _leaf_d),
-            (hx - int(_leaf_d * 0.87), hy + int(_leaf_d * 0.5)),
-            (hx + int(_leaf_d * 0.87), hy + int(_leaf_d * 0.5)),
-        ]
+        pygame.draw.circle(surface, _leaf_col, (hx, hy), hd + 1)
+        if _is_gilded:
+            # Four-leaf clover (golden): top, bottom-left, bottom-right, right
+            _leaves = [
+                (hx, hy - _leaf_d),
+                (hx - int(_leaf_d * 0.87), hy + int(_leaf_d * 0.5)),
+                (hx + int(_leaf_d * 0.87), hy + int(_leaf_d * 0.5)),
+                (hx + _leaf_d, hy),
+            ]
+        else:
+            # Three leaves at 120° positions (top, bottom-left, bottom-right)
+            _leaves = [
+                (hx, hy - _leaf_d),
+                (hx - int(_leaf_d * 0.87), hy + int(_leaf_d * 0.5)),
+                (hx + int(_leaf_d * 0.87), hy + int(_leaf_d * 0.5)),
+            ]
         for _lx, _ly in _leaves:
-            pygame.draw.circle(surface, _lgreen, (_lx, _ly), _leaf_r)
+            pygame.draw.circle(surface, _leaf_col, (_lx, _ly), _leaf_r)
         # Vein from center to each leaf
         for _lx, _ly in _leaves:
-            pygame.draw.line(surface, _dgreen, (hx, hy), (_lx, _ly), max(1, int(s)))
+            pygame.draw.line(surface, _leaf_dark, (hx, hy), (_lx, _ly), max(1, int(s)))
         # Stem below head
-        pygame.draw.line(surface, _dgreen,
+        pygame.draw.line(surface, _leaf_dark,
                          (hx, hy + hd),
                          (hx, hy + int(hd * 1.9)), max(1, int(2*s)))
 
@@ -14498,6 +14517,79 @@ def draw_bg(surface, stage_idx=0):
             _glsurf = pygame.Surface((WIDTH, 4), pygame.SRCALPHA)
             pygame.draw.line(_glsurf, (120, 60, 200, 60 - _gl * 18), (0, 0), (WIDTH, 0), 2)
             surface.blit(_glsurf, (0, GROUND_Y + 4 + _gl * 5))
+
+    elif s == 26:  # Giants Among Us
+        surface.fill((15, 22, 45))
+        # Distant mountains as silhouettes
+        pygame.draw.polygon(surface, (12, 18, 35),
+                            [(0, GROUND_Y+2), (110, 190), (230, GROUND_Y+2)])
+        pygame.draw.polygon(surface, (12, 18, 35),
+                            [(190, GROUND_Y+2), (370, 130), (560, GROUND_Y+2)])
+        pygame.draw.polygon(surface, (15, 22, 38),
+                            [(480, GROUND_Y+2), (640, 165), (810, GROUND_Y+2)])
+        pygame.draw.polygon(surface, (15, 22, 38),
+                            [(700, GROUND_Y+2), (860, 205), (WIDTH+10, GROUND_Y+2)])
+        # 3 giant stickman silhouettes in the far background
+        _gc = (10, 16, 30)
+        for _gx in (170, 450, 740):
+            _gsc = 3.2
+            _ghy = GROUND_Y - 10
+            _gbl = int(50 * _gsc)
+            _gal = int(40 * _gsc)
+            _gll = int(55 * _gsc)
+            _ghd = int(20 * _gsc)
+            pygame.draw.line(surface, _gc, (_gx, _ghy),
+                             (_gx - int(18*_gsc), _ghy + _gll), max(3, int(5*_gsc)))
+            pygame.draw.line(surface, _gc, (_gx, _ghy),
+                             (_gx + int(18*_gsc), _ghy + _gll), max(3, int(5*_gsc)))
+            pygame.draw.line(surface, _gc, (_gx, _ghy),
+                             (_gx, _ghy - _gbl), max(3, int(4*_gsc)))
+            pygame.draw.line(surface, _gc,
+                             (_gx, _ghy - int(_gbl * 0.6)),
+                             (_gx - _gal, _ghy - int(_gbl * 0.3)), max(3, int(3*_gsc)))
+            pygame.draw.line(surface, _gc,
+                             (_gx, _ghy - int(_gbl * 0.6)),
+                             (_gx + _gal, _ghy - int(_gbl * 0.3)), max(3, int(3*_gsc)))
+            pygame.draw.circle(surface, _gc, (_gx, _ghy - _gbl - _ghd // 2), _ghd // 2)
+        # Ground
+        pygame.draw.rect(surface, (22, 35, 55),
+                         (0, GROUND_Y+2, WIDTH, HEIGHT - GROUND_Y - 2))
+        pygame.draw.line(surface, (50, 80, 120),
+                         (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+
+    elif s == 27:  # The Casino
+        surface.fill((12, 8, 22))
+        # Casino floor — dark green felt
+        pygame.draw.rect(surface, (12, 75, 30),
+                         (0, GROUND_Y+2, WIDTH, HEIGHT - GROUND_Y - 2))
+        pygame.draw.line(surface, (20, 110, 45),
+                         (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+        # Card tables in the mid-ground
+        for _tx in (90, 380, 680):
+            pygame.draw.ellipse(surface, (18, 90, 35),
+                                (_tx - 85, GROUND_Y - 75, 170, 58))
+            pygame.draw.ellipse(surface, (28, 120, 50),
+                                (_tx - 85, GROUND_Y - 75, 170, 58), 2)
+        # Neon sign strips along ceiling
+        for _nx, _nc in ((55, (255, 30, 70)), (440, (255, 200, 10)), (790, (30, 200, 255))):
+            pygame.draw.rect(surface, _nc, (_nx - 28, 50, 56, 18), border_radius=4)
+            pygame.draw.rect(surface, tuple(max(0, c - 120) for c in _nc),
+                             (_nx - 28, 50, 56, 18), 2, border_radius=4)
+        # Spotlights from ceiling
+        for _lx in (160, 450, 740):
+            _lsurf = pygame.Surface((140, GROUND_Y), pygame.SRCALPHA)
+            pygame.draw.polygon(_lsurf, (255, 220, 80, 18),
+                                [(70, 0), (0, GROUND_Y - 20), (140, GROUND_Y - 20)])
+            surface.blit(_lsurf, (_lx - 70, 0))
+        # Central chandelier
+        pygame.draw.circle(surface, (255, 235, 100), (WIDTH // 2, 14), 16)
+        pygame.draw.circle(surface, (255, 250, 200), (WIDTH // 2, 14), 8)
+        for _li in range(8):
+            _la = math.pi * 2 / 8 * _li
+            pygame.draw.line(surface, (255, 225, 80),
+                             (WIDTH // 2, 30),
+                             (WIDTH // 2 + int(math.cos(_la) * 48),
+                              30 + int(math.sin(_la) * 28)), 1)
 
 
 def draw_health_bars(surface, p1, p2):

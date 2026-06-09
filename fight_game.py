@@ -13,7 +13,7 @@ from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt, SlantedConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull, HazardZone,
-                            JungleSnake, ComputerBug, MousePlatform,
+                            JungleSnake, GoldenJungleSnake, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall, Whip, HotPotato,
                             FallingPot, RollingCoin, FallingMerlin,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
@@ -1006,6 +1006,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             _gf.hp      = _gf.max_hp
             _gf.char    = dict(_gf.char)
             _gf.char["speed"] = max(1, int(_gf.char.get("speed", 4) * 0.65))
+    _gnpc_spawn_cd = 600   # 10 s at 60 fps until first giant NPC appears
+    _gnpc          = None  # dict when active, None otherwise
 
     # Copycat: copy opponent's ability flags at fight start
     _COPY_EXCLUDE = {"name", "color", "speed", "jump", "punch_dmg", "kick_dmg",
@@ -1125,6 +1127,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     bug_spawn_timer    = 150
     falling_skulls     = []
     skull_spawn_timer  = 200
+    casino_coins     = []   # falling coins on The Casino stage
+    casino_coin_cd   = 90
+    is_casino        = stage_data["name"] == "The Casino"
     stage_pencil = None
     stage_eraser = None
     if is_computer:
@@ -2413,6 +2418,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 if fighter.pending_clover_snake:
                     fighter.pending_clover_snake = False
                     jungle_snakes.append(JungleSnake())
+                if fighter.pending_golden_snake:
+                    fighter.pending_golden_snake = False
+                    jungle_snakes.append(GoldenJungleSnake())
             # Solara — sun beams (shock + burn)
             for shooter, victim in [(p1, p2), (p2, p1)]:
                 if shooter.pending_sun_beam:
@@ -2805,7 +2813,89 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         break
             powerups = [pu for pu in powerups if not pu.picked_up]
 
+        # Giant NPC hazard (Giants Among Us stage only)
+        if giant_mode and not game_over:
+            if _gnpc is None:
+                _gnpc_spawn_cd -= 1
+                if _gnpc_spawn_cd <= 0:
+                    _from_left = random.choice([True, False])
+                    _gnpc = {
+                        "x":       float(-130 if _from_left else WIDTH + 130),
+                        "facing":  1 if _from_left else -1,
+                        "target_x": float(random.randint(WIDTH // 4, 3 * WIDTH // 4)),
+                        "phase":   "walk",
+                        "timer":   0,
+                        "attack":  random.choice(["stomp", "sweep", "slam"]),
+                        "hit_done": False,
+                        "flash":   0,
+                    }
+            else:
+                _gnpc["timer"] += 1
+                _gspd = 4.5
+                if _gnpc["phase"] == "walk":
+                    _gnpc["x"] += _gspd * _gnpc["facing"]
+                    if abs(_gnpc["x"] - _gnpc["target_x"]) < _gspd * 2:
+                        _gnpc["phase"] = "attack"
+                        _gnpc["timer"] = 0
+                elif _gnpc["phase"] == "attack":
+                    if _gnpc["timer"] == 28 and not _gnpc["hit_done"]:
+                        for _af in (p1, p2):
+                            if abs(_af.x - _gnpc["x"]) < 210:
+                                _af.hp  = max(0, _af.hp - 22)
+                                _af.vx += (_af.x - _gnpc["x"]) / 25
+                                _af.vy  = -9
+                                _af.flash_timer = max(_af.flash_timer, 14)
+                        _gnpc["hit_done"] = True
+                        _gnpc["flash"] = 14
+                    if _gnpc["flash"] > 0:
+                        _gnpc["flash"] -= 1
+                    if _gnpc["timer"] >= 85:
+                        _gnpc["phase"]   = "retreat"
+                        _gnpc["facing"]  = -_gnpc["facing"]
+                        _gnpc["timer"]   = 0
+                elif _gnpc["phase"] == "retreat":
+                    _gnpc["x"] += _gspd * _gnpc["facing"]
+                    if _gnpc["x"] < -160 or _gnpc["x"] > WIDTH + 160:
+                        _gnpc          = None
+                        _gnpc_spawn_cd = 600
+
+        # Casino coin rain
+        if is_casino and not game_over:
+            casino_coin_cd -= 1
+            if casino_coin_cd <= 0:
+                casino_coins.append({
+                    "x": float(random.randint(60, WIDTH - 60)),
+                    "y": 0.0, "vy": 3.0 + random.random() * 2,
+                    "hit": set()
+                })
+                casino_coin_cd = random.randint(60, 120)
+            for _cc in casino_coins:
+                _cc["y"] += _cc["vy"]
+                _cc["vy"] = min(10.0, _cc["vy"] + 0.15)
+                for _cf2 in (p1, p2):
+                    if id(_cf2) not in _cc["hit"] and abs(_cf2.x - _cc["x"]) < 30 and abs((_cf2.y - 60) - _cc["y"]) < 30:
+                        _cf2.hp = max(0, _cf2.hp - 5)
+                        _cf2.flash_timer = max(_cf2.flash_timer, 6)
+                        _cc["hit"].add(id(_cf2))
+            casino_coins = [c for c in casino_coins if c["y"] < GROUND_Y + 30]
+
         draw_bg(screen, stage_idx)
+        # Draw giant NPC (Giants Among Us)
+        if giant_mode and _gnpc is not None:
+            _gn_act = 'walk' if _gnpc["phase"] in ("walk", "retreat") else 'punch'
+            _gn_col = (255, 120, 30) if _gnpc["flash"] > 0 else (60, 160, 60)
+            _gn_pt  = pygame.time.get_ticks() / 1000.0 * 0.15
+            draw_stickman(screen, int(_gnpc["x"]), GROUND_Y, _gn_col,
+                          _gnpc["facing"], _gn_act, _gn_pt, scale=4.2, char_name="Giant")
+            if _gnpc["phase"] == "attack" and not _gnpc["hit_done"]:
+                _warn_prog = min(1.0, _gnpc["timer"] / 28)
+                _warn_r    = int(210 * _warn_prog)
+                if _warn_r > 4:
+                    _wsurf = pygame.Surface((_warn_r*2+4, _warn_r*2+4), pygame.SRCALPHA)
+                    pygame.draw.circle(_wsurf, (255, 100, 0, 70),
+                                       (_warn_r+2, _warn_r+2), _warn_r, 4)
+                    screen.blit(_wsurf, (int(_gnpc["x"]) - _warn_r - 2,
+                                         GROUND_Y - _warn_r - 2))
         pygame.draw.rect(screen, (60, 60, 70), (0, 0, WIDTH, 20))
         pygame.draw.line(screen, (180, 180, 200), (0, 20), (WIDTH, 20), 3)
         for portal in portals_obj:
@@ -2961,6 +3051,12 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             sk.draw(screen)
         for b in computer_bugs:
             b.draw(screen)
+        # Draw casino coins
+        for _cc2 in casino_coins:
+            pygame.draw.circle(screen, (255, 210, 0), (int(_cc2["x"]), int(_cc2["y"])), 8)
+            pygame.draw.circle(screen, (200, 160, 0), (int(_cc2["x"]), int(_cc2["y"])), 8, 2)
+            _cdollar = font_tiny.render("$", True, (180, 130, 0))
+            screen.blit(_cdollar, (int(_cc2["x"]) - _cdollar.get_width()//2, int(_cc2["y"]) - _cdollar.get_height()//2))
         if is_computer and stage_pencil:
             stage_pencil.draw(screen)
             stage_eraser.draw(screen)
@@ -5788,20 +5884,28 @@ def main():
             )
             if p1_idx is None:
                 continue
-            s_idx = stage_select()
+            _cas_stage_idx = next((i for i, st in enumerate(STAGES) if st["name"] == "The Casino"), 0)
             while True:
-                result = run_fight(p1_idx, p2_idx, vs_ai=False, stage_idx=s_idx)
+                result = run_fight(p1_idx, p2_idx, vs_ai=False, stage_idx=_cas_stage_idx)
                 action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
                 p1_won = info[0] if isinstance(info, tuple) else False
                 if p1_won:
                     stats["casino_wins"] = stats.get("casino_wins", 0) + 1
                     if stats["casino_wins"] % 10 == 0:
-                        _casino_pool = [
-                            "Wildcard", "Tycoon", "Gambler", "Fortune",
-                            "High Roller", "Lucky", "Clover",
+                        _casino_weights = [
+                            ("Clover",      300),
+                            ("Tycoon",      250),
+                            ("Gambler",     200),
+                            ("Fortune",     150),
+                            ("High Roller",  80),
+                            ("Lucky",        40),
+                            ("Wildcard",     20),
+                            ("Gilded Clover", 5),
                         ]
-                        _cas_locked = [n for n in _casino_pool if n not in unlocked]
-                        _cas_reward = random.choice(_cas_locked) if _cas_locked else random.choice(_casino_pool)
+                        _casino_pool_w = [n for n, w in _casino_weights for _ in range(w)]
+                        _cas_locked = [n for n in {n for n, _ in _casino_weights} if n not in unlocked]
+                        _cas_locked_w = [n for n in _casino_pool_w if n in set(_cas_locked)]
+                        _cas_reward = random.choice(_cas_locked_w) if _cas_locked_w else random.choice(_casino_pool_w)
                         if _cas_reward not in unlocked:
                             unlocked.add(_cas_reward)
                             _save_data(unlocked, stats)
@@ -5870,9 +5974,9 @@ def main():
             )
             if p1_idx is None:
                 continue
-            s_idx = stage_select()
+            _gau_stage_idx = next((i for i, st in enumerate(STAGES) if st["name"] == "Giants Among Us"), 0)
             while True:
-                result = run_fight(p1_idx, p2_idx, vs_ai=False, stage_idx=s_idx, giant_mode=True)
+                result = run_fight(p1_idx, p2_idx, vs_ai=False, stage_idx=_gau_stage_idx, giant_mode=True)
                 action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
                 p1_won = info[0] if isinstance(info, tuple) else False
                 if p1_won:

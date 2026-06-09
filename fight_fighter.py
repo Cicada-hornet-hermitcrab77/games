@@ -229,7 +229,8 @@ class Fighter:
         self.pending_nian_breath = False  # Nian: breathe fire while blocking
         self.nian_breath_timer   = 0      # Nian: frames since last breath shot
         self.smoochie_revivals   = 0      # Smoochie: revivals used (max 5)
-        self.pending_clover_snake = False # Clover: spawn snake on kick
+        self.pending_clover_snake  = False # Clover: spawn snake on kick
+        self.pending_golden_snake  = False # Gilded Clover: spawn golden snake on kick
         self.eartha_grow_timer   = 0      # Eartha: frames toward next size increase
         self.pending_sun_beam    = False  # Solara: fire a sun beam this frame
         self.sun_beam_timer      = FPS * 3 if char_data.get("solara_beam") else 0
@@ -1563,6 +1564,8 @@ class Fighter:
                 other.hurt_timer = max(other.hurt_timer, 120)
             if self.char.get("clover_kick") and self.action == 'kick':
                 self.pending_clover_snake = True
+            if self.char.get("golden_snake_kick") and self.action == 'kick':
+                self.pending_golden_snake = True
             if self.char.get("yellowstone_kick") and self.action == 'kick':
                 self.pending_yellowstone_geysers = True
 

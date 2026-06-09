@@ -838,6 +838,36 @@ class JungleSnake:
         pygame.draw.rect(surface, (60, 220, 60),  (bx_l, by_t, int(bw * self.hp / self.MAX_HP), 4))
 
 
+class GoldenJungleSnake(JungleSnake):
+    SPEED         = 4.0    # faster than normal
+    MAX_HP        = 35
+    BITE_DMG      = 8      # hits harder
+    BITE_COOLDOWN = 80
+
+    def __init__(self):
+        super().__init__()
+        self.gold = True
+
+    def draw(self, surface):
+        # Gold body
+        _blen = 30
+        _seg_r = 7
+        for _si in range(5):
+            _sx = int(self.x + math.cos(self.t * 0.12 + _si * 0.7) * _si * 5 * (-self.facing))
+            _sy = int(self.y - 10 + math.sin(self.t * 0.12 + _si * 0.7) * 4)
+            _scol = (220, 180, 20) if _si % 2 == 0 else (255, 215, 50)
+            pygame.draw.circle(surface, _scol, (_sx, _sy), max(3, _seg_r - _si))
+        pygame.draw.circle(surface, (240, 200, 30), (int(self.x), int(self.y) - 10), _seg_r)
+        pygame.draw.circle(surface, (20, 10, 5),
+                           (int(self.x) + self.facing * 5, int(self.y) - 12), 2)
+        # HP bar
+        _bw   = 32
+        _bx_l = int(self.x) - _bw // 2
+        _by_t = int(self.y) - 32
+        pygame.draw.rect(surface, (160, 0, 0),   (_bx_l, _by_t, _bw, 4))
+        pygame.draw.rect(surface, (220, 180, 20), (_bx_l, _by_t, int(_bw * self.hp / self.MAX_HP), 4))
+
+
 # ---------------------------------------------------------------------------
 # Computer bug NPC
 # ---------------------------------------------------------------------------

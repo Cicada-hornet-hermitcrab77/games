@@ -1530,6 +1530,10 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 8,  "max_hp": 160, "block": 8,
      "desc": "Constantly snows around her — opponents caught in the blizzard are slowed and chilled",
      "double_jump": False, "snow_aura": True,          "eartha_variant": True},
+    {"name": "Gilded Clover", "color": (220, 180, 20), "speed": 7, "jump": -15,
+     "punch_dmg": 11, "kick_dmg": 14, "max_hp": 110, "block": 7,
+     "desc": "Kicks summon powerful golden snakes that hit harder and move faster",
+     "double_jump": False, "golden_snake_kick": True, "clover_luck": True, "clover_variant": True},
 ]
 
 POWERUPS = [
@@ -1915,6 +1919,18 @@ STAGES = [
         (556, -22), (592, -28), (628, -22), (664, -28), (700, -22),
         (736, -28), (772, -22), (808, -28), (844, -22), (878, -28),
     ], "conveyors": [], "portals": [], "hazards": []},
+    # Giants Among Us (dedicated mode stage — index 26)
+    {"name": "Giants Among Us", "platforms": [
+        (180, GROUND_Y-120, 150, 0, 0),
+        (560, GROUND_Y-120, 150, 0, 0),
+        (360, GROUND_Y-270, 170, 0, 0),
+    ], "springs": [], "conveyors": [], "portals": [], "hazards": []},
+    # The Casino (dedicated mode stage — index 27)
+    {"name": "The Casino", "platforms": [
+        (90,  GROUND_Y-110, 140, 0, 0),
+        (570, GROUND_Y-110, 140, 0, 0),
+        (320, GROUND_Y-230, 160, 0, 0),
+    ], "springs": [], "conveyors": [], "portals": [], "hazards": []},
 ]
 
 # Stage-specific character advantages and disadvantages.
