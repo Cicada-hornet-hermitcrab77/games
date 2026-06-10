@@ -6100,6 +6100,7 @@ def main():
                     stats["chaos_aura_wins"] = stats.get("chaos_aura_wins", 0) + 1
                     if stats["chaos_aura_wins"] % 10 == 0:
                         _cau_weights = [
+                            ("Ran-Doom",                350),
                             ("Crazy",                   220),
                             ("Joker",                   200),
                             ("Swapper",                 180),
@@ -6107,7 +6108,6 @@ def main():
                             ("Disorientated",           140),
                             ("Elemental",               120),
                             ("Soul Master",             100),
-                            ("Ran-Doom",                 80),
                             ("Rainbow Man",              60),
                             ("Nun-Gimel-Hei-Shin",       12),
                             ("Chaos Nun-Gimel-Hei-Shin",  1),
