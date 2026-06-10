@@ -1210,9 +1210,15 @@ class Fighter:
                 if self.triple_slash_count == 0:
                     dmg *= 3
                     other.flash_timer = max(other.flash_timer, 14)
+            # Chaos NGHS: 200, 25, 0, or -2 (negative = heal victim)
+            if self.char.get("chaos_nghs"):
+                dmg = random.choice([200, 25, 0, -2])
             # Nun-Gimel-Hei-Shin: dreidel spin — 0, heal opp 1, 50, or 100
-            if self.char.get("ngs_dreidel"):
+            elif self.char.get("ngs_dreidel"):
                 dmg = random.choice([0, -1, 50, 100])
+            # Random: random damage per attack type
+            elif self.char.get("random_dmg"):
+                dmg = random.randint(5, 55) if self.action == 'punch' else random.randint(5, 65)
             # Mirage: 35% dodge chance — sidestep and skip all damage
             # Tombstone: reflect melee damage back to the attacker
             if other.char.get("tombstone_reflect"):
@@ -1364,7 +1370,10 @@ class Fighter:
             if self.char.get("feedback") and self.action == 'punch' and self.feedback_stored > 0:
                 dmg += self.feedback_stored
                 self.feedback_stored = 0
-            other.hp = max(0, other.hp - dmg)
+            if dmg < 0:
+                other.hp = min(other.max_hp, other.hp - dmg)
+            else:
+                other.hp = max(0, other.hp - dmg)
             # Feedback: defender absorbs damage into reserve
             if other.char.get("feedback") and dmg > 0:
                 other.feedback_stored += dmg

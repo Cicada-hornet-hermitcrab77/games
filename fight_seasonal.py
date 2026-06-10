@@ -23,7 +23,8 @@ SEASONAL_EVENTS = [
     {"name": "Project Yellowstone",  "start": (8, 25),  "end": (8, 25),  "deco": "mountain"},
     {"name": "Echoes of the Undying","start": (10,31),  "end": (11, 6),  "deco": "halloween"},
     {"name": "Feasterween",          "start": (11,26),  "end": (12, 2),  "deco": "thanksgiving"},
-    {"name": "Aura of Menorah",      "start": (12, 4),  "end": (12,12),  "deco": "hanukkah"},
+    {"name": "Aura of Menorah",      "start": (12, 4),  "end": (12,12),  "deco": "hanukkah",
+     "special_mode": "chaos_aura", "special_mode_label": "Chaos Aura"},
     {"name": "Yuletide Gatherings",  "start": (12,25),  "end": (12,31),  "deco": "christmas"},
 ]
 
@@ -48,13 +49,6 @@ SEASONAL_SHOP_CHARS = [
     {"name": "Eartha",         "event": "Bound to the Ground",  "cost": 270},
     {"name": "Tombstone",      "event": "Legacy of Valor",      "cost": 1000},
     {"name": "Solara",         "event": "Summer Solstice",      "cost": 270},
-    {"name": "Arsonist",     "event": "Summer Solstice",    "cost":  60},
-    {"name": "Lava Man",     "event": "Summer Solstice",    "cost":  80},
-    {"name": "Pyro",         "event": "Summer Solstice",    "cost":  55},
-    {"name": "Blazer",       "event": "Summer Solstice",    "cost":  70},
-    {"name": "Inferno",      "event": "Summer Solstice",    "cost":  90},
-    {"name": "Magma",        "event": "Summer Solstice",    "cost": 100},
-    {"name": "Trailblazer",  "event": "Summer Solstice",    "cost": 120},
     {"name": "Stickman of Liberty", "event": "Red White and Boom", "cost": 280},
     {"name": "Veteran",             "event": "Red White and Boom", "cost":  80},
     {"name": "Gunner",              "event": "Red White and Boom", "cost":  50},

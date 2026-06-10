@@ -467,6 +467,8 @@ UNLOCK_CONDITIONS = {
     "Ditto":             ("win_with",        "Mimic",           3,  "Win 3 matches as Mimic"),
     # ── Floor is Lava mode drop ──────────────────────────────────────────────
     "Performer Solara":  ("floor_lava_solara",  None, 1,  "Obtainable from Floor is Lava"),
+    # ── Chaos Aura mode drop ─────────────────────────────────────────────────
+    "Chaos Nun-Gimel-Hei-Shin": ("chaos_aura_nghs", None, 1, "Obtainable from Chaos Aura"),
     # ── Eartha seasonal variants (Giants Among Us only — 0.1% each) ─────────
     "Spring Eartha":     ("giants_eartha_spring", None,  1,  "Obtainable from Giants Among Us"),
     "Summer Eartha":     ("giants_eartha_summer", None,  1,  "Obtainable from Giants Among Us"),
@@ -5963,9 +5965,10 @@ def main():
                                             font_small,  (255, 220, 100),   80),
                 ("may join your roster.",
                                             font_small,  (255, 220, 100),  100),
-                ("Performer Solara has a 0.1% chance.",
-                                            font_small,  (160, 200, 255),  140),
-                ("press any key to continue",font_tiny,  (110, 110, 110),  190),
+                ("Available during Summer Solstice only.",
+                                            font_small,  (160, 220, 160),  140),
+                ("press any key to continue",
+                                            font_tiny,  (110, 110, 110),  190),
             ]
             _fil_start = pygame.time.get_ticks()
             _fil_done  = False
@@ -6035,6 +6038,98 @@ def main():
                 break
             continue
 
+        # --- Chaos Aura (Aura of Menorah event) ---
+        if mode == 'chaos_aura':
+            _cau_lines = [
+                ("CHAOS AURA",              font_large,  (255, 80, 200),   -130),
+                ("Order has no place here.",
+                                            font_small,  (255, 200, 255),   -60),
+                ("Choose from 11 chaotic fighters and",
+                                            font_small,  (255, 200, 255),   -40),
+                ("clash on a stage of pure mayhem.",
+                                            font_small,  (255, 200, 255),   -20),
+                ("Springs, conveyors, and portals",
+                                            font_small,  (255, 220, 100),    20),
+                ("fill the arena — nothing is safe.",
+                                            font_small,  (255, 220, 100),    40),
+                ("Win 10 matches and a rare fighter",
+                                            font_small,  (255, 220, 100),    80),
+                ("may join your roster.",
+                                            font_small,  (255, 220, 100),   100),
+                ("Available during Aura of Menorah only.",
+                                            font_small,  (160, 200, 255),   140),
+                ("press any key to continue",font_tiny,  (110, 110, 110),   190),
+            ]
+            _cau_start = pygame.time.get_ticks()
+            _cau_done  = False
+            while not _cau_done:
+                clock.tick(FPS)
+                for _caev in pygame.event.get():
+                    if _caev.type == pygame.QUIT:
+                        pygame.quit(); sys.exit()
+                    if _caev.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                        _cau_done = True
+                if pygame.time.get_ticks() - _cau_start > 10000:
+                    _cau_done = True
+                _caa = min(255, int((pygame.time.get_ticks() - _cau_start) / 600 * 255))
+                screen.fill((18, 5, 28))
+                _caucy = HEIGHT // 2
+                for _caut, _cauf, _cauc, _caudy in _cau_lines:
+                    _caus = _cauf.render(_caut, True, _cauc)
+                    _caus.set_alpha(_caa)
+                    screen.blit(_caus, (WIDTH // 2 - _caus.get_width() // 2, _caucy + _caudy))
+                pygame.display.flip()
+
+            _CAU_FILTER = frozenset({
+                "Random", "Elemental", "Disorientated", "Joker", "Swapper",
+                "Rainbow Man", "Soul Master", "Crazy", "Chaos", "Nun-Gimel-Hei-Shin",
+            })
+            p1_idx, p2_idx = character_select(
+                vs_ai=False, unlocked=_CAU_FILTER,
+                char_filter=_CAU_FILTER,
+                select_title="CHAOS AURA",
+            )
+            if p1_idx is None:
+                continue
+            _cau_stage_idx = next((i for i, st in enumerate(STAGES) if st["name"] == "Chaos Arena"), 0)
+            while True:
+                result = run_fight(p1_idx, p2_idx, vs_ai=False, stage_idx=_cau_stage_idx)
+                action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
+                p1_won = info[0] if isinstance(info, tuple) else False
+                if p1_won:
+                    stats["chaos_aura_wins"] = stats.get("chaos_aura_wins", 0) + 1
+                    if stats["chaos_aura_wins"] % 10 == 0:
+                        _cau_weights = [
+                            ("Crazy",                   220),
+                            ("Joker",                   200),
+                            ("Swapper",                 180),
+                            ("Chaos",                   160),
+                            ("Disorientated",           140),
+                            ("Elemental",               120),
+                            ("Soul Master",             100),
+                            ("Random",                   80),
+                            ("Rainbow Man",              60),
+                            ("Nun-Gimel-Hei-Shin",       12),
+                            ("Chaos Nun-Gimel-Hei-Shin",  1),
+                        ]
+                        _cau_pool = [n for n, w in _cau_weights for _ in range(w)]
+                        _cau_locked = [n for n in {n for n, _ in _cau_weights} if n not in unlocked]
+                        _cau_locked_w = [n for n in _cau_pool if n in set(_cau_locked)]
+                        _cau_reward = random.choice(_cau_locked_w) if _cau_locked_w else random.choice(_cau_pool)
+                        if _cau_reward not in unlocked:
+                            unlocked.add(_cau_reward)
+                            _save_data(unlocked, stats)
+                            _show_unlocks([_cau_reward])
+                        else:
+                            _save_data(unlocked, stats)
+                if _konami_flag[0]:
+                    stats["konami_unlocked"] = True
+                    _konami_flag[0] = False
+                if action == 'rematch':
+                    continue
+                break
+            continue
+
         # --- Giants Among Us (seasonal event) path ---
         if mode == 'giants_among_us':
             # Mode intro screen
@@ -6042,7 +6137,7 @@ def main():
                 ("GIANTS AMONG US",         font_large,  (100, 220, 100),  -130),
                 ("Only the mightiest beings are allowed here.",
                                             font_small,  (200, 230, 200),   -60),
-                ("Choose from 8 colossal fighters and battle",
+                ("Choose from 12 colossal fighters and battle",
                                             font_small,  (200, 230, 200),   -40),
                 ("your opponent in an all-out clash of giants.",
                                             font_small,  (200, 230, 200),   -20),
@@ -6052,11 +6147,10 @@ def main():
                                             font_small,  (255, 220, 100),    40),
                 ("rarer ones are much harder to get.",
                                             font_small,  (255, 220, 100),    60),
-                ("Eartha has a 1% chance.  The four seasonal",
-                                            font_small,  (160, 200, 255),   100),
-                ("Eartha variants are each only 0.1%.",
-                                            font_small,  (160, 200, 255),   120),
-                ("press any key to continue",font_tiny,  (110, 110, 110),   170),
+                ("Available during Giants Among Us only.",
+                                            font_small,  (160, 220, 160),   140),
+                ("press any key to continue",
+                                            font_tiny,  (110, 110, 110),   170),
             ]
             _gau_start = pygame.time.get_ticks()
             _gau_done  = False

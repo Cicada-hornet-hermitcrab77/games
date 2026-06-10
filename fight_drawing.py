@@ -12206,12 +12206,12 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         # Cover the default head circle
         pygame.draw.circle(surface, _leaf_col, (hx, hy), hd + 1)
         if _is_gilded:
-            # Four-leaf clover (golden): top, bottom-left, bottom-right, right
+            # Four-leaf clover: N / S / W / E
             _leaves = [
-                (hx, hy - _leaf_d),
-                (hx - int(_leaf_d * 0.87), hy + int(_leaf_d * 0.5)),
-                (hx + int(_leaf_d * 0.87), hy + int(_leaf_d * 0.5)),
-                (hx + _leaf_d, hy),
+                (hx,             hy - _leaf_d),
+                (hx,             hy + _leaf_d),
+                (hx - _leaf_d,   hy),
+                (hx + _leaf_d,   hy),
             ]
         else:
             # Three leaves at 120° positions (top, bottom-left, bottom-right)
@@ -13440,6 +13440,75 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.polygon(surface, _sd_c, _tri2, max(1, int(2*s)))
         pygame.draw.circle(surface, _sd_c, (hx, hy), hd, max(1, int(2*s)))
 
+    elif char_name == "Chaos Nun-Gimel-Hei-Shin":
+        _chc = (255, 80, 200)
+        _t_cn = pygame.time.get_ticks() / 750.0
+        _spin_cn = _t_cn % (2 * math.pi)
+        _cos_cn = math.cos(_spin_cn)
+        _face_cn = int(120 + 80 * abs(_cos_cn))
+        _c_front_cn = (min(255, 80 + _face_cn // 3), 0, min(255, 100 + _face_cn // 3))
+        _c_side_cn  = (60, 0, 80)
+        _c_edge_cn  = (255, 80, 200)
+        _d_top_cn = sy + int(bl * 0.05)
+        _d_bot_cn = wy - int(bl * 0.05)
+        _d_h_cn   = _d_bot_cn - _d_top_cn
+        _d_hw_cn  = int(hd * 1.5)
+        pygame.draw.rect(surface, _c_front_cn,
+                         (hx - _d_hw_cn, _d_top_cn, _d_hw_cn * 2, _d_h_cn),
+                         border_radius=max(3, int(5*s)))
+        _shade_w_cn = max(4, int(_d_hw_cn * 0.3))
+        pygame.draw.rect(surface, _c_side_cn,
+                         (hx - _d_hw_cn, _d_top_cn, _shade_w_cn, _d_h_cn),
+                         border_radius=max(3, int(5*s)))
+        pygame.draw.rect(surface, _c_edge_cn,
+                         (hx - _d_hw_cn, _d_top_cn, _d_hw_cn * 2, max(3, int(4*s))),
+                         border_radius=max(3, int(5*s)))
+        pygame.draw.rect(surface, _c_edge_cn,
+                         (hx - _d_hw_cn, _d_top_cn, _d_hw_cn * 2, _d_h_cn),
+                         max(1, int(2*s)), border_radius=max(3, int(5*s)))
+        _tip_y_cn = _d_bot_cn + int(_d_hw_cn * 0.95)
+        pygame.draw.polygon(surface, _c_front_cn, [
+            (hx - _d_hw_cn + int(4*s), _d_bot_cn),
+            (hx + _d_hw_cn - int(4*s), _d_bot_cn),
+            (hx, _tip_y_cn),
+        ])
+        pygame.draw.polygon(surface, _c_edge_cn, [
+            (hx - _d_hw_cn + int(4*s), _d_bot_cn),
+            (hx + _d_hw_cn - int(4*s), _d_bot_cn),
+            (hx, _tip_y_cn),
+        ], max(1, int(s)))
+        _hnd_w_cn = max(5, int(hd * 0.32))
+        _hnd_top_cn = hy - hd + int(hd * 0.1)
+        _hnd_bot_cn = _d_top_cn
+        pygame.draw.rect(surface, (155, 60, 130),
+                         (hx - _hnd_w_cn//2, _hnd_top_cn, _hnd_w_cn, _hnd_bot_cn - _hnd_top_cn))
+        pygame.draw.circle(surface, (180, 80, 160), (hx, _hnd_top_cn), _hnd_w_cn // 2)
+        pygame.draw.rect(surface, (100, 30, 80),
+                         (hx - _hnd_w_cn//2, _hnd_top_cn, _hnd_w_cn, _hnd_bot_cn - _hnd_top_cn),
+                         max(1, int(s)))
+        _diam_r = max(5, int(hd * 0.65))
+        pygame.draw.circle(surface, _chc, (hx, hy), hd)
+        pygame.draw.polygon(surface, (30, 0, 50), [
+            (hx,          hy - _diam_r),
+            (hx + _diam_r, hy),
+            (hx,          hy + _diam_r),
+            (hx - _diam_r, hy),
+        ])
+        pygame.draw.polygon(surface, _chc, [
+            (hx,          hy - _diam_r),
+            (hx + _diam_r, hy),
+            (hx,          hy + _diam_r),
+            (hx - _diam_r, hy),
+        ], max(1, int(2*s)))
+        pygame.draw.line(surface, _chc, (hx, hy - _diam_r), (hx, hy - _diam_r - max(4, int(hd*0.4))), max(2, int(2*s)))
+        _cn_orb_r = max(3, int(hd * 0.25))
+        for _cni in range(4):
+            _cn_ang = _t_cn + _cni * math.pi / 2
+            _cn_ox  = hx + int(math.cos(_cn_ang) * hd * 2.0)
+            _cn_oy  = hy + int(math.sin(_cn_ang) * hd * 1.4)
+            pygame.draw.circle(surface, _chc, (_cn_ox, _cn_oy), _cn_orb_r)
+            pygame.draw.circle(surface, (255, 200, 240), (_cn_ox, _cn_oy), max(1, _cn_orb_r - 1), 1)
+
     elif char_name == "Saint Nix":
         # Black boots (drawn first, behind coat hem)
         _boot_top = wy - int(bl * 0.08)
@@ -14658,6 +14727,34 @@ def draw_bg(surface, stage_idx=0):
             surface.blit(_gsurf2, (_gx - _gw // 2, GROUND_Y + 4))
         # Ground line
         pygame.draw.line(surface, (255, 80, 0), (0, GROUND_Y + 2), (WIDTH, GROUND_Y + 2), 2)
+
+
+    elif s == 29:  # Chaos Arena
+        surface.fill((18, 5, 35))
+        _t_ca = pygame.time.get_ticks()
+        _orbs = [
+            (120, HEIGHT//2 - 40, 90, (80, 0, 140, 55)),
+            (WIDTH - 130, HEIGHT//2 - 60, 80, (0, 180, 200, 45)),
+            (WIDTH//2, HEIGHT//3, 100, (200, 60, 20, 40)),
+            (200, HEIGHT//2 + 50, 70, (20, 200, 80, 50)),
+            (WIDTH - 200, HEIGHT//2 + 30, 85, (220, 80, 200, 45)),
+            (WIDTH//2 - 80, HEIGHT//2 + 80, 60, (100, 140, 255, 40)),
+        ]
+        _ca_surf = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        for _ox, _oy, _or, _oc in _orbs:
+            _pulse = int(12 * math.sin(_t_ca / 800.0 + _ox * 0.01))
+            pygame.draw.circle(_ca_surf, _oc, (_ox, _oy + _pulse), _or + _pulse)
+        surface.blit(_ca_surf, (0, 0))
+        _grid_surf = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        for _gx in range(0, WIDTH + HEIGHT, 60):
+            pygame.draw.line(_grid_surf, (100, 30, 120, 30), (_gx, 0), (_gx - HEIGHT, HEIGHT), 1)
+            pygame.draw.line(_grid_surf, (100, 30, 120, 30), (_gx, HEIGHT), (_gx - HEIGHT, 0), 1)
+        surface.blit(_grid_surf, (0, 0))
+        _ground_colors = [(80, 0, 120), (0, 120, 140), (140, 40, 0), (0, 100, 60), (120, 0, 100)]
+        _strip_w = WIDTH // len(_ground_colors)
+        for _si, _sc in enumerate(_ground_colors):
+            pygame.draw.rect(surface, _sc, (_si * _strip_w, GROUND_Y + 2, _strip_w, HEIGHT - GROUND_Y - 2))
+        pygame.draw.line(surface, (255, 80, 200), (0, GROUND_Y + 2), (WIDTH, GROUND_Y + 2), 3)
 
 
 def draw_health_bars(surface, p1, p2):

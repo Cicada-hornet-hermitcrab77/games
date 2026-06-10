@@ -1351,6 +1351,10 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100, "block": 6,
      "desc": "Every hit deals 1–8 random bonus chaos damage",
      "double_jump": True, "chaos_strike": True},
+    {"name": "Random",  "color": (180, 80, 220), "speed": 5,  "jump": -12,
+     "punch_dmg": 15, "kick_dmg": 18, "max_hp": 100, "block": 5,
+     "desc": "All attacks deal a random amount of damage",
+     "double_jump": False, "random_dmg": True},
     {"name": "Ashen", "color": (160, 170, 185), "speed": 5, "jump": -13,
      "punch_dmg": 12, "kick_dmg": 11, "max_hp": 115, "block": 7,
      "desc": "Kicks freeze opponents solid for 3 seconds",
@@ -1539,6 +1543,10 @@ CHARACTERS = [
      "desc": "Shoots beams that burn, poison, shock, and freeze",
      "double_jump": False, "solara_beam": True, "performer_beam": True,
      "solara_variant": True},
+    {"name": "Chaos Nun-Gimel-Hei-Shin", "color": (255, 80, 200), "speed": 5, "jump": -15,
+     "punch_dmg": 25, "kick_dmg": 25, "max_hp": 90, "block": 5,
+     "desc": "Attacks deal 200, 25, 0, or -2 damage — good luck",
+     "double_jump": False, "nghs_variant": True, "chaos_nghs": True, "ngs_dreidel": True},
 ]
 
 POWERUPS = [
@@ -1941,6 +1949,30 @@ STAGES = [
         {"x": 80,  "y": 420, "w": 160},
         {"x": 340, "y": 370, "w": 200},
         {"x": 620, "y": 420, "w": 160},
+    ], "hazards": []},
+    # Chaos Arena (dedicated mode stage — index 29)
+    {"name": "Chaos Arena", "special_mode_only": True, "platforms": [
+        (80,  GROUND_Y-130, 150, 2.5,  100),
+        (670, GROUND_Y-130, 150, -2.5, 100),
+        (350, GROUND_Y-220, 180, -2.0, 120),
+        (130, GROUND_Y-310, 120, 1.5,  90),
+        (620, GROUND_Y-310, 120, -1.5, 90),
+    ], "springs": [
+        (60,-28),(120,-28),(200,-28),(280,-28),(360,-28),(440,-28),(520,-28),(600,-28),(700,-28),(780,-28),
+        (100,-34),(180,-34),(260,-34),(340,-34),(420,-34),(500,-34),(580,-34),(660,-34),(740,-34),(820,-34),
+        (140,-26),(240,-26),(380,-26),(480,-26),(560,-26),(640,-26),(720,-26),
+        (80,-30),(300,-30),(450,-30),
+    ], "conveyors": [
+        (0,   GROUND_Y, 200,  3.0),
+        (200, GROUND_Y, 200, -3.0),
+        (400, GROUND_Y, 200,  3.0),
+        (600, GROUND_Y, 200, -3.0),
+    ], "portals": [
+        (80,  GROUND_Y-200), (780, GROUND_Y-200),
+        (200, GROUND_Y-160), (660, GROUND_Y-160),
+        (120, GROUND_Y-320), (740, GROUND_Y-320),
+        (300, GROUND_Y-130), (560, GROUND_Y-130),
+        (440, GROUND_Y-260), (450, GROUND_Y-70),
     ], "hazards": []},
 ]
 
