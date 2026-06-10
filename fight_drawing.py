@@ -12540,7 +12540,7 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.circle(surface, (190, 195, 255), (_ex, _ey), _er)
             pygame.draw.circle(surface, (230, 235, 255), (_ex, _ey), max(1, _er // 2))
 
-    elif char_name == "Solara":
+    elif char_name in ("Solara", "Performer Solara"):
         # Sun-ray halo around head (8 rays, slowly rotating)
         _rt = pygame.time.get_ticks() / 1400.0
         _ray_len  = int(hd * 1.1)
@@ -12560,6 +12560,28 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.circle(_gsurf, (255, 200, 50, 40),
                            (int(bl), int(bl // 2)), int(bl * 0.7))
         surface.blit(_gsurf, (sx - int(bl), sy - int(bl * 0.1)))
+        if char_name == "Performer Solara":
+            # Cap on the head: flat dark rectangle + brim
+            _cap_w = int(hd * 2.2)
+            _cap_h = int(hd * 0.55)
+            _cap_x = hx - _cap_w // 2
+            _cap_y = hy - hd - _cap_h
+            pygame.draw.rect(surface, (30, 20, 10), (_cap_x, _cap_y, _cap_w, _cap_h),
+                             border_radius=max(1, int(2 * s)))
+            _brim_w = int(hd * 0.9)
+            _brim_x = hx + facing * int(hd * 0.2) - _brim_w // 2
+            pygame.draw.rect(surface, (20, 12, 5),
+                             (_brim_x, _cap_y + _cap_h - int(3 * s),
+                              _brim_w, max(2, int(4 * s))),
+                             border_radius=max(1, int(2 * s)))
+            # T-shirt: bright colored rectangle around torso
+            _shirt_w = int(al * 1.3)
+            _shirt_h = int(bl * 0.7)
+            _shirt_x = sx - _shirt_w // 2
+            _shirt_y = sy - int(bl * 0.05)
+            pygame.draw.rect(surface, (50, 200, 240),
+                             (_shirt_x, _shirt_y, _shirt_w, _shirt_h),
+                             border_radius=max(1, int(3 * s)))
 
     elif char_name == "Stickman of Liberty":
         _liberty   = (88, 152, 132)
@@ -14590,6 +14612,52 @@ def draw_bg(surface, stage_idx=0):
                              (WIDTH // 2, 30),
                              (WIDTH // 2 + int(math.cos(_la) * 48),
                               30 + int(math.sin(_la) * 28)), 1)
+
+    elif s == 28:  # Floor is Lava
+        surface.fill((20, 8, 5))
+        # Orange glow at bottom 80px
+        _lava_gsurf = pygame.Surface((WIDTH, 80), pygame.SRCALPHA)
+        for _lrow in range(80):
+            _lalpha = int(120 * (1 - _lrow / 80))
+            pygame.draw.line(_lava_gsurf, (255, 100, 10, _lalpha), (0, _lrow), (WIDTH, _lrow))
+        surface.blit(_lava_gsurf, (0, HEIGHT - 80))
+        # Distant volcano on left horizon — dark triangle with red glow at top
+        _vlc = (40, 20, 10)
+        pygame.draw.polygon(surface, _vlc, [(0, GROUND_Y), (130, GROUND_Y - 180), (260, GROUND_Y)])
+        _vgsurf = pygame.Surface((60, 60), pygame.SRCALPHA)
+        pygame.draw.circle(_vgsurf, (200, 30, 10, 120), (30, 30), 30)
+        surface.blit(_vgsurf, (100, GROUND_Y - 210))
+        pygame.draw.circle(surface, (255, 60, 10), (130, GROUND_Y - 180), 8)
+        # Jagged rock silhouettes mid-ground
+        for _rx, _rh, _rw in ((60, 90, 80), (310, 70, 90), (580, 100, 75), (780, 60, 65)):
+            _rock_pts = [(_rx, GROUND_Y)]
+            _rx2 = _rx
+            while _rx2 <= _rx + _rw:
+                _rjag = _rh - int((_rh * 0.3) * abs(math.sin(_rx2 * 0.18)))
+                _rock_pts.append((_rx2, GROUND_Y - _rjag))
+                _rx2 += 8
+            _rock_pts.append((_rx + _rw, GROUND_Y))
+            pygame.draw.polygon(surface, (50, 28, 18), _rock_pts)
+        # Lava floor — bottom 60px
+        pygame.draw.rect(surface, (200, 80, 10), (0, GROUND_Y + 2, WIDTH, HEIGHT - GROUND_Y - 2))
+        pygame.draw.line(surface, (255, 130, 20), (0, GROUND_Y + 2), (WIDTH, GROUND_Y + 2), 3)
+        # Lava bubbles scattered across surface
+        _t_lava = pygame.time.get_ticks()
+        for _bi in range(18):
+            _bx = 30 + _bi * 48 + int(8 * math.sin(_t_lava / 600.0 + _bi))
+            _by = GROUND_Y + 8 + int(4 * math.sin(_t_lava / 400.0 + _bi * 1.3))
+            _br = 4 + (_bi % 3) * 2
+            pygame.draw.circle(surface, (255, 160, 20), (_bx, _by), _br)
+            pygame.draw.circle(surface, (255, 220, 80), (_bx, _by), max(1, _br - 2))
+        # Animated glow streaks on lava surface
+        for _gi in range(5):
+            _gx = 60 + _gi * 160 + int(20 * math.sin(_t_lava / 700.0 + _gi * 0.8))
+            _gw = 40 + _gi * 8
+            _gsurf2 = pygame.Surface((_gw, 10), pygame.SRCALPHA)
+            pygame.draw.ellipse(_gsurf2, (255, 200, 50, 90), (0, 0, _gw, 10))
+            surface.blit(_gsurf2, (_gx - _gw // 2, GROUND_Y + 4))
+        # Ground line
+        pygame.draw.line(surface, (255, 80, 0), (0, GROUND_Y + 2), (WIDTH, GROUND_Y + 2), 2)
 
 
 def draw_health_bars(surface, p1, p2):

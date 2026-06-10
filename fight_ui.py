@@ -557,6 +557,7 @@ CHEAT_CODES = {
     "grow_big":             "Eartha",
     "rip_and_rest":         "Tombstone",
     "rise_of_the_sun":      "Solara",
+    "sun_pop":              "Performer Solara",
     "land_of_the_free":     "Stickman of Liberty",
     "read_em":              "Bookzworm",
     "geyser_time":          "Yellowstone",
@@ -588,7 +589,8 @@ CHEAT_CODES = {
 # ---------------------------------------------------------------------------
 
 def stage_select():
-    idx = 0
+    _normal_indices = [i for i, s in enumerate(STAGES) if not s.get("special_mode_only")]
+    _pos = 0   # position in _normal_indices
     _map_man_flag[0] = False
     _start_ticks = pygame.time.get_ticks()
 
@@ -603,19 +605,20 @@ def stage_select():
         return event.pos
 
     while True:
+        idx = _normal_indices[_pos]
         clock.tick(FPS)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_LEFT,  pygame.K_a): idx = (idx - 1) % len(STAGES)
-                if event.key in (pygame.K_RIGHT, pygame.K_d): idx = (idx + 1) % len(STAGES)
+                if event.key in (pygame.K_LEFT,  pygame.K_a): _pos = (_pos - 1) % len(_normal_indices)
+                if event.key in (pygame.K_RIGHT, pygame.K_d): _pos = (_pos + 1) % len(_normal_indices)
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_ESCAPE): return idx
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
                 pos = _touch_pos(event) if event.type == pygame.FINGERDOWN else event.pos
                 if _r_confirm.collidepoint(pos): return idx
-                if _r_left.collidepoint(pos):    idx = (idx - 1) % len(STAGES)
-                if _r_right.collidepoint(pos):   idx = (idx + 1) % len(STAGES)
+                if _r_left.collidepoint(pos):    _pos = (_pos - 1) % len(_normal_indices)
+                if _r_right.collidepoint(pos):   _pos = (_pos + 1) % len(_normal_indices)
         if not _map_man_flag[0] and pygame.time.get_ticks() - _start_ticks >= 30000:
             _map_man_flag[0] = True
 
@@ -638,9 +641,9 @@ def stage_select():
             screen.blit(adv_s, (WIDTH//2 - adv_s.get_width() - 12, HEIGHT//2 + 12))
             screen.blit(dis_s, (WIDTH//2 + 12, HEIGHT//2 + 12))
 
-        for di in range(len(STAGES)):
-            col = WHITE if di == idx else GRAY
-            pygame.draw.circle(screen, col, (WIDTH//2 + (di - len(STAGES)//2)*30, HEIGHT//2 + 40), 6)
+        for _di, _ni in enumerate(_normal_indices):
+            col = WHITE if _ni == idx else GRAY
+            pygame.draw.circle(screen, col, (WIDTH//2 + (_di - len(_normal_indices)//2)*30, HEIGHT//2 + 40), 6)
 
         # Touch nav arrows
         for _arr, _txt, _rx in (('◄', '◄', 20), ('►', '►', WIDTH - 50)):
@@ -942,15 +945,25 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _clover_variant_indices.append(_cvi2)
                 break
 
+    # Build solara variant lookup (Original + Performer, excluded from main grid)
+    _solara_variant_names   = ["Solara", "Performer Solara"]
+    _solara_variant_labels  = ["Original", "Performer"]
+    _solara_variant_indices = []
+    for _svn in _solara_variant_names:
+        for _svi2, _svc2 in enumerate(CHARACTERS):
+            if _svc2["name"] == _svn:
+                _solara_variant_indices.append(_svi2)
+                break
+
     if char_filter is not None:
         _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS)
-                     if c["name"] in char_filter and not c.get("eartha_variant") and not c.get("clover_variant")]
+                     if c["name"] in char_filter and not c.get("eartha_variant") and not c.get("clover_variant") and not c.get("solara_variant")]
         _CHARS    = [c for _, c in _cf_pairs]
         _orig_idx = [i for i, _ in _cf_pairs]
         COLS      = min(4, max(1, len(_CHARS)))
     else:
         _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS)
-                     if not c.get("eartha_variant") and not c.get("clover_variant")]
+                     if not c.get("eartha_variant") and not c.get("clover_variant") and not c.get("solara_variant")]
         _CHARS    = [c for _, c in _cf_pairs]
         _orig_idx = [i for i, _ in _cf_pairs]
         COLS      = 7
@@ -996,6 +1009,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
     p2_ev = 0
     p1_cv = 0   # clover variant index (0 = Original Clover)
     p2_cv = 0
+    p1_sv = 0   # solara variant index (0 = Original Solara)
+    p2_sv = 0
 
     def clip_scroll(idx):
         nonlocal scroll_top
@@ -1055,6 +1070,16 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 p1_cv = _vti
                             elif not vs_ai and not p2_ready:
                                 p2_cv = _vti
+                elif _td_ch["name"] == "Solara" and _solara_variant_indices:
+                    _vp_ty = PY + PH - 132
+                    _vp_tbw = (PW - 20) // len(_solara_variant_indices)
+                    for _vti in range(len(_solara_variant_indices)):
+                        _vtx = PX + 10 + _vti * _vp_tbw
+                        if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if not p1_ready:
+                                p1_sv = _vti
+                            elif not vs_ai and not p2_ready:
+                                p2_sv = _vti
                 # Tap READY button (drawn at bottom-right of detail panel)
                 _ready_rect = pygame.Rect(PX, PY + PH - 52, PW, 44)
                 if _ready_rect.collidepoint(_tp):
@@ -1092,10 +1117,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                     return None, None
                 # P1 navigation (WASD or arrows while P1 not ready)
                 if not p1_ready:
-                    if event.key in (pygame.K_a, pygame.K_LEFT):  p1_idx = move(p1_idx, 0, -1); clip_scroll(p1_idx); p1_ev = 0; p1_cv = 0
-                    if event.key in (pygame.K_d, pygame.K_RIGHT): p1_idx = move(p1_idx, 0,  1); clip_scroll(p1_idx); p1_ev = 0; p1_cv = 0
-                    if event.key in (pygame.K_w, pygame.K_UP):    p1_idx = move(p1_idx, -1, 0); clip_scroll(p1_idx); p1_ev = 0; p1_cv = 0
-                    if event.key in (pygame.K_s, pygame.K_DOWN):  p1_idx = move(p1_idx,  1, 0); clip_scroll(p1_idx); p1_ev = 0; p1_cv = 0
+                    if event.key in (pygame.K_a, pygame.K_LEFT):  p1_idx = move(p1_idx, 0, -1); clip_scroll(p1_idx); p1_ev = 0; p1_cv = 0; p1_sv = 0
+                    if event.key in (pygame.K_d, pygame.K_RIGHT): p1_idx = move(p1_idx, 0,  1); clip_scroll(p1_idx); p1_ev = 0; p1_cv = 0; p1_sv = 0
+                    if event.key in (pygame.K_w, pygame.K_UP):    p1_idx = move(p1_idx, -1, 0); clip_scroll(p1_idx); p1_ev = 0; p1_cv = 0; p1_sv = 0
+                    if event.key in (pygame.K_s, pygame.K_DOWN):  p1_idx = move(p1_idx,  1, 0); clip_scroll(p1_idx); p1_ev = 0; p1_cv = 0; p1_sv = 0
                     if _CHARS[p1_idx]["name"] == "Eartha" and _eartha_variant_indices:
                         if event.key == pygame.K_e:
                             p1_ev = (p1_ev + 1) % len(_eartha_variant_indices)
@@ -1106,6 +1131,11 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             p1_cv = (p1_cv + 1) % len(_clover_variant_indices)
                         elif event.key == pygame.K_q:
                             p1_cv = (p1_cv - 1) % len(_clover_variant_indices)
+                    if _CHARS[p1_idx]["name"] == "Solara" and _solara_variant_indices:
+                        if event.key == pygame.K_e:
+                            p1_sv = (p1_sv + 1) % len(_solara_variant_indices)
+                        elif event.key == pygame.K_q:
+                            p1_sv = (p1_sv - 1) % len(_solara_variant_indices)
                     if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_f):
                         if _CHARS[p1_idx]["name"] not in unlocked:
                             pass  # locked — do nothing
@@ -1119,6 +1149,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 _vcn = CHARACTERS[_clover_variant_indices[p1_cv]]["name"]
                                 if _vcn not in unlocked:
                                     _ev_ok = False
+                            if _CHARS[p1_idx]["name"] == "Solara" and _solara_variant_indices:
+                                _vsn = CHARACTERS[_solara_variant_indices[p1_sv]]["name"]
+                                if _vsn not in unlocked:
+                                    _ev_ok = False
                             if _ev_ok:
                                 p1_ready = True
                                 if vs_ai:
@@ -1126,10 +1160,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                     p2_idx = random.choice(_ul) if _ul else random.randint(0, n - 1)
                 # P2 navigation (arrows only, after P1 locked in)
                 elif not vs_ai and not p2_ready:
-                    if event.key == pygame.K_LEFT:  p2_idx = move(p2_idx, 0, -1); clip_scroll(p2_idx); p2_ev = 0; p2_cv = 0
-                    if event.key == pygame.K_RIGHT: p2_idx = move(p2_idx, 0,  1); clip_scroll(p2_idx); p2_ev = 0; p2_cv = 0
-                    if event.key == pygame.K_UP:    p2_idx = move(p2_idx, -1, 0); clip_scroll(p2_idx); p2_ev = 0; p2_cv = 0
-                    if event.key == pygame.K_DOWN:  p2_idx = move(p2_idx,  1, 0); clip_scroll(p2_idx); p2_ev = 0; p2_cv = 0
+                    if event.key == pygame.K_LEFT:  p2_idx = move(p2_idx, 0, -1); clip_scroll(p2_idx); p2_ev = 0; p2_cv = 0; p2_sv = 0
+                    if event.key == pygame.K_RIGHT: p2_idx = move(p2_idx, 0,  1); clip_scroll(p2_idx); p2_ev = 0; p2_cv = 0; p2_sv = 0
+                    if event.key == pygame.K_UP:    p2_idx = move(p2_idx, -1, 0); clip_scroll(p2_idx); p2_ev = 0; p2_cv = 0; p2_sv = 0
+                    if event.key == pygame.K_DOWN:  p2_idx = move(p2_idx,  1, 0); clip_scroll(p2_idx); p2_ev = 0; p2_cv = 0; p2_sv = 0
                     if _CHARS[p2_idx]["name"] == "Eartha" and _eartha_variant_indices:
                         if event.key == pygame.K_l:
                             p2_ev = (p2_ev + 1) % len(_eartha_variant_indices)
@@ -1140,6 +1174,11 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             p2_cv = (p2_cv + 1) % len(_clover_variant_indices)
                         elif event.key == pygame.K_j:
                             p2_cv = (p2_cv - 1) % len(_clover_variant_indices)
+                    if _CHARS[p2_idx]["name"] == "Solara" and _solara_variant_indices:
+                        if event.key == pygame.K_l:
+                            p2_sv = (p2_sv + 1) % len(_solara_variant_indices)
+                        elif event.key == pygame.K_j:
+                            p2_sv = (p2_sv - 1) % len(_solara_variant_indices)
                     if event.key in (pygame.K_RETURN, pygame.K_k):
                         if _CHARS[p2_idx]["name"] in unlocked:
                             _ev_ok2 = True
@@ -1150,6 +1189,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             if _CHARS[p2_idx]["name"] == "Clover" and _clover_variant_indices:
                                 _vcn2 = CHARACTERS[_clover_variant_indices[p2_cv]]["name"]
                                 if _vcn2 not in unlocked:
+                                    _ev_ok2 = False
+                            if _CHARS[p2_idx]["name"] == "Solara" and _solara_variant_indices:
+                                _vsn2 = CHARACTERS[_solara_variant_indices[p2_sv]]["name"]
+                                if _vsn2 not in unlocked:
                                     _ev_ok2 = False
                             if _ev_ok2:
                                 p2_ready = True
@@ -1165,6 +1208,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _r1 = _clover_variant_indices[p1_cv]
             if not vs_ai and _CHARS[p2_idx]["name"] == "Clover" and _clover_variant_indices:
                 _r2 = _clover_variant_indices[p2_cv]
+            if _CHARS[p1_idx]["name"] == "Solara" and _solara_variant_indices:
+                _r1 = _solara_variant_indices[p1_sv]
+            if not vs_ai and _CHARS[p2_idx]["name"] == "Solara" and _solara_variant_indices:
+                _r2 = _solara_variant_indices[p2_sv]
             return _r1, _r2
 
         # Whose detail to show: the active picker
@@ -1173,11 +1220,14 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         active_col = ORANGE if (p1_ready and not p2_ready) else BLUE
         _active_ev = p2_ev if (p1_ready and not p2_ready) else p1_ev
         _active_cv = p2_cv if (p1_ready and not p2_ready) else p1_cv
+        _active_sv = p2_sv if (p1_ready and not p2_ready) else p1_sv
         _detail_display = detail_ch
         if detail_ch["name"] == "Eartha" and detail_ch["name"] in unlocked and _eartha_variant_indices:
             _detail_display = CHARACTERS[_eartha_variant_indices[_active_ev]]
         if detail_ch["name"] == "Clover" and detail_ch["name"] in unlocked and _clover_variant_indices:
             _detail_display = CHARACTERS[_clover_variant_indices[_active_cv]]
+        if detail_ch["name"] == "Solara" and detail_ch["name"] in unlocked and _solara_variant_indices:
+            _detail_display = CHARACTERS[_solara_variant_indices[_active_sv]]
 
         # ── Background ──────────────────────────────────────────────────────
         screen.fill((18, 18, 28))
@@ -1611,6 +1661,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if _detail_display.get("summer_wildfire"):     badges.append(("WILDFIRE SHOT",  (255,  90,  10)))
             if _detail_display.get("leaf_rain"):           badges.append(("LEAF RAIN",      (120, 180,  40)))
             if _detail_display.get("snow_aura"):           badges.append(("SNOW AURA",      (175, 215, 250)))
+            if _detail_display.get("performer_beam"):      badges.append(("MULTI BEAM",     (255, 140,  20)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)
@@ -1662,6 +1713,27 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _vtc3  = (90, 90, 90) if _vlk3 else (WHITE if _vsel3 else _vc3)
                 _vtxt3 = font_tiny.render(("?" + _vlb3[0]) if _vlk3 else _vlb3, True, _vtc3)
                 screen.blit(_vtxt3, (_vx3 + _vp_bw//2 - _vtxt3.get_width()//2, _vp_y + 8))
+
+        # Solara variant picker
+        if detail_ch["name"] == "Solara" and detail_ch["name"] in unlocked and _solara_variant_indices:
+            _vp_y   = PY + PH - 132
+            _vp_lbl = font_tiny.render("VARIANT  (Q/E  or  J/L)", True, (160, 160, 185))
+            screen.blit(_vp_lbl, (PX + PW//2 - _vp_lbl.get_width()//2, _vp_y - 16))
+            _vp_bw = (PW - 20) // len(_solara_variant_indices)
+            for _vi5, _vlb5 in enumerate(_solara_variant_labels):
+                _vx5   = PX + 10 + _vi5 * _vp_bw
+                _vc5   = CHARACTERS[_solara_variant_indices[_vi5]]["color"]
+                _vn5   = CHARACTERS[_solara_variant_indices[_vi5]]["name"]
+                _vlk5  = _vn5 not in unlocked
+                _vsel5 = (_vi5 == _active_sv)
+                _vbg5  = tuple(max(8, c // 5) for c in _vc5)
+                pygame.draw.rect(screen, _vbg5, (_vx5+1, _vp_y+1, _vp_bw-2, 28), border_radius=4)
+                _vbrd5 = _vc5 if _vsel5 else tuple(c // 2 for c in _vc5)
+                _vbw5  = 2 if _vsel5 else 1
+                pygame.draw.rect(screen, _vbrd5, (_vx5+1, _vp_y+1, _vp_bw-2, 28), _vbw5, border_radius=4)
+                _vtc5  = (90, 90, 90) if _vlk5 else (WHITE if _vsel5 else _vc5)
+                _vtxt5 = font_tiny.render(("?" + _vlb5[0]) if _vlk5 else _vlb5, True, _vtc5)
+                screen.blit(_vtxt5, (_vx5 + _vp_bw//2 - _vtxt5.get_width()//2, _vp_y + 8))
 
         # READY touch button
         _rdy_col = BLUE if not p1_ready else ORANGE

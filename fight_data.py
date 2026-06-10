@@ -1534,6 +1534,11 @@ CHARACTERS = [
      "punch_dmg": 11, "kick_dmg": 14, "max_hp": 110, "block": 7,
      "desc": "Kicks summon powerful golden snakes that hit harder and move faster",
      "double_jump": False, "golden_snake_kick": True, "clover_luck": True, "clover_variant": True},
+    {"name": "Performer Solara", "color": (255, 140, 20), "speed": 6, "jump": -14,
+     "punch_dmg": 11, "kick_dmg": 14, "max_hp": 110, "block": 5,
+     "desc": "Shoots beams that burn, poison, shock, and freeze",
+     "double_jump": False, "solara_beam": True, "performer_beam": True,
+     "solara_variant": True},
 ]
 
 POWERUPS = [
@@ -1920,17 +1925,23 @@ STAGES = [
         (736, -28), (772, -22), (808, -28), (844, -22), (878, -28),
     ], "conveyors": [], "portals": [], "hazards": []},
     # Giants Among Us (dedicated mode stage — index 26)
-    {"name": "Giants Among Us", "platforms": [
+    {"name": "Giants Among Us", "special_mode_only": True, "platforms": [
         (180, GROUND_Y-120, 150, 0, 0),
         (560, GROUND_Y-120, 150, 0, 0),
         (360, GROUND_Y-270, 170, 0, 0),
     ], "springs": [], "conveyors": [], "portals": [], "hazards": []},
     # The Casino (dedicated mode stage — index 27)
-    {"name": "The Casino", "platforms": [
+    {"name": "The Casino", "special_mode_only": True, "platforms": [
         (90,  GROUND_Y-110, 140, 0, 0),
         (570, GROUND_Y-110, 140, 0, 0),
         (320, GROUND_Y-230, 160, 0, 0),
     ], "springs": [], "conveyors": [], "portals": [], "hazards": []},
+    # Floor is Lava (dedicated mode stage — index 28)
+    {"name": "Floor is Lava", "special_mode_only": True, "platforms": [
+        {"x": 80,  "y": 420, "w": 160},
+        {"x": 340, "y": 370, "w": 200},
+        {"x": 620, "y": 420, "w": 160},
+    ], "hazards": []},
 ]
 
 # Stage-specific character advantages and disadvantages.

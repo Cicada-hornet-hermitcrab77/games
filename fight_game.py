@@ -465,6 +465,8 @@ UNLOCK_CONDITIONS = {
     "Vex":               ("win_with",        "Hexer",           3,  "Win 3 matches as Hexer"),
     "Stalwart":          ("win_with",        "Iron Wall",       5,  "Win 5 matches as Iron Wall"),
     "Ditto":             ("win_with",        "Mimic",           3,  "Win 3 matches as Mimic"),
+    # ── Floor is Lava mode drop ──────────────────────────────────────────────
+    "Performer Solara":  ("floor_lava_solara",  None, 1,  "Obtainable from Floor is Lava"),
     # ── Eartha seasonal variants (Giants Among Us only — 0.1% each) ─────────
     "Spring Eartha":     ("giants_eartha_spring", None,  1,  "Obtainable from Giants Among Us"),
     "Summer Eartha":     ("giants_eartha_summer", None,  1,  "Obtainable from Giants Among Us"),
@@ -1130,6 +1132,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     casino_coins     = []   # falling coins on The Casino stage
     casino_coin_cd   = 90
     is_casino        = stage_data["name"] == "The Casino"
+    _lava_burn_p1_cd = 0
+    _lava_burn_p2_cd = 0
     stage_pencil = None
     stage_eraser = None
     if is_computer:
@@ -1359,6 +1363,23 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                                 fighter.fire_frames = max(fighter.fire_frames, 120)
                             if hz.htype == "ice":
                                 fighter.shock_frames = max(fighter.shock_frames, 45)
+
+            # Floor is Lava: ground contact burns
+            if stage_data["name"] == "Floor is Lava":
+                if _lava_burn_p1_cd > 0: _lava_burn_p1_cd -= 1
+                if _lava_burn_p2_cd > 0: _lava_burn_p2_cd -= 1
+                if p1.y >= GROUND_Y - 8 and _lava_burn_p1_cd == 0 and not p1.bubble_shield:
+                    p1.hp = max(0, p1.hp - 3)
+                    p1.flash_timer = max(p1.flash_timer, 6)
+                    if p1.fire_frames == 0: p1.fire_tick = 240
+                    p1.fire_frames = max(p1.fire_frames, 90)
+                    _lava_burn_p1_cd = 45
+                if p2.y >= GROUND_Y - 8 and _lava_burn_p2_cd == 0 and not p2.bubble_shield:
+                    p2.hp = max(0, p2.hp - 3)
+                    p2.flash_timer = max(p2.flash_timer, 6)
+                    if p2.fire_frames == 0: p2.fire_tick = 240
+                    p2.fire_frames = max(p2.fire_frames, 90)
+                    _lava_burn_p2_cd = 45
 
             # Update clones
             new_clones = []
@@ -2448,6 +2469,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                             if not victim.char.get("immune"):
                                 if victim.fire_frames == 0: victim.fire_tick = 480
                                 victim.fire_frames = max(victim.fire_frames, 300)
+                            if sb.owner.char.get("performer_beam") and not victim.char.get("immune"):
+                                if victim.poison_frames == 0: victim.poison_tick = 240
+                                victim.poison_frames = max(victim.poison_frames, 180)
+                                victim.freeze_frames = max(victim.freeze_frames, 60)
                         sb.alive = False
             sun_beams = [sb for sb in sun_beams if sb.alive]
             # Stickman of Liberty — dove companion + bombs
@@ -5893,14 +5918,14 @@ def main():
                     stats["casino_wins"] = stats.get("casino_wins", 0) + 1
                     if stats["casino_wins"] % 10 == 0:
                         _casino_weights = [
-                            ("Clover",      300),
+                            ("Clover",        8),
                             ("Tycoon",      250),
                             ("Gambler",     200),
                             ("Fortune",     150),
                             ("High Roller",  80),
                             ("Lucky",        40),
                             ("Wildcard",     20),
-                            ("Gilded Clover", 5),
+                            ("Gilded Clover", 1),
                         ]
                         _casino_pool_w = [n for n, w in _casino_weights for _ in range(w)]
                         _cas_locked = [n for n in {n for n, _ in _casino_weights} if n not in unlocked]
@@ -5910,6 +5935,96 @@ def main():
                             unlocked.add(_cas_reward)
                             _save_data(unlocked, stats)
                             _show_unlocks([_cas_reward])
+                        else:
+                            _save_data(unlocked, stats)
+                if _konami_flag[0]:
+                    stats["konami_unlocked"] = True
+                    _konami_flag[0] = False
+                if action == 'rematch':
+                    continue
+                break
+            continue
+
+        # --- Floor is Lava (Summer Solstice event) ---
+        if mode == 'floor_is_lava':
+            _fil_lines = [
+                ("FLOOR IS LAVA",           font_large,  (255, 120, 20),  -130),
+                ("The ground itself is your enemy here.",
+                                            font_small,  (255, 200, 150),  -60),
+                ("Choose from 8 fire-type fighters and",
+                                            font_small,  (255, 200, 150),  -40),
+                ("battle over a pool of molten rock.",
+                                            font_small,  (255, 200, 150),  -20),
+                ("The lava floor burns anyone who",
+                                            font_small,  (255, 220, 100),   20),
+                ("touches it — even you. Stay airborne.",
+                                            font_small,  (255, 220, 100),   40),
+                ("Win 10 matches and a rare fighter",
+                                            font_small,  (255, 220, 100),   80),
+                ("may join your roster.",
+                                            font_small,  (255, 220, 100),  100),
+                ("Performer Solara has a 0.1% chance.",
+                                            font_small,  (160, 200, 255),  140),
+                ("press any key to continue",font_tiny,  (110, 110, 110),  190),
+            ]
+            _fil_start = pygame.time.get_ticks()
+            _fil_done  = False
+            while not _fil_done:
+                clock.tick(FPS)
+                for _fev in pygame.event.get():
+                    if _fev.type == pygame.QUIT:
+                        pygame.quit(); sys.exit()
+                    if _fev.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                        _fil_done = True
+                if pygame.time.get_ticks() - _fil_start > 10000:
+                    _fil_done = True
+                _fa = min(255, int((pygame.time.get_ticks() - _fil_start) / 600 * 255))
+                screen.fill((20, 8, 5))
+                _fcy = HEIGHT // 2
+                for _ft, _ff, _fc, _fdy in _fil_lines:
+                    _fs = _ff.render(_ft, True, _fc)
+                    _fs.set_alpha(_fa)
+                    screen.blit(_fs, (WIDTH // 2 - _fs.get_width() // 2, _fcy + _fdy))
+                pygame.display.flip()
+
+            _FIL_FILTER = frozenset({
+                "Arsonist", "Lava Man", "Pyro", "Blazer",
+                "Inferno",  "Magma",    "Trailblazer", "Solara",
+            })
+            p1_idx, p2_idx = character_select(
+                vs_ai=False, unlocked=_FIL_FILTER,
+                char_filter=_FIL_FILTER,
+                select_title="FLOOR IS LAVA",
+            )
+            if p1_idx is None:
+                continue
+            _fil_stage_idx = next((i for i, st in enumerate(STAGES) if st["name"] == "Floor is Lava"), 0)
+            while True:
+                result = run_fight(p1_idx, p2_idx, vs_ai=False, stage_idx=_fil_stage_idx)
+                action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
+                p1_won = info[0] if isinstance(info, tuple) else False
+                if p1_won:
+                    stats["floor_lava_wins"] = stats.get("floor_lava_wins", 0) + 1
+                    if stats["floor_lava_wins"] % 10 == 0:
+                        _lava_weights = [
+                            ("Arsonist",         220),
+                            ("Inferno",          200),
+                            ("Blazer",           180),
+                            ("Pyro",             160),
+                            ("Magma",            140),
+                            ("Lava Man",         120),
+                            ("Trailblazer",       80),
+                            ("Solara",            40),
+                            ("Performer Solara",   1),
+                        ]
+                        _lava_pool = [n for n, w in _lava_weights for _ in range(w)]
+                        _lava_locked = [n for n in {n for n, _ in _lava_weights} if n not in unlocked]
+                        _lava_locked_w = [n for n in _lava_pool if n in set(_lava_locked)]
+                        _lava_reward = random.choice(_lava_locked_w) if _lava_locked_w else random.choice(_lava_pool)
+                        if _lava_reward not in unlocked:
+                            unlocked.add(_lava_reward)
+                            _save_data(unlocked, stats)
+                            _show_unlocks([_lava_reward])
                         else:
                             _save_data(unlocked, stats)
                 if _konami_flag[0]:

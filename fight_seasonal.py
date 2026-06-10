@@ -16,7 +16,8 @@ SEASONAL_EVENTS = [
     {"name": "Bound to the Ground",  "start": (4, 22),  "end": (4, 28),  "deco": "earth",
      "special_mode": "giants_among_us", "special_mode_label": "Giants Among Us"},
     {"name": "Legacy of Valor",      "start": (5, 25),  "end": (5, 25),  "deco": "memorial"},
-    {"name": "Summer Solstice",      "start": (6, 21),  "end": (6, 21),  "deco": "summer"},
+    {"name": "Summer Solstice",      "start": (6, 21),  "end": (6, 27),  "deco": "summer",
+     "special_mode": "floor_is_lava", "special_mode_label": "Floor is Lava"},
     {"name": "Red White and Boom",   "start": (7,  4),  "end": (7, 10),  "deco": "july4"},
     {"name": "Novel Beginnings",     "start": (8, 10),  "end": (8, 16),  "deco": "school"},
     {"name": "Project Yellowstone",  "start": (8, 25),  "end": (8, 25),  "deco": "mountain"},
@@ -47,6 +48,13 @@ SEASONAL_SHOP_CHARS = [
     {"name": "Eartha",         "event": "Bound to the Ground",  "cost": 270},
     {"name": "Tombstone",      "event": "Legacy of Valor",      "cost": 1000},
     {"name": "Solara",         "event": "Summer Solstice",      "cost": 270},
+    {"name": "Arsonist",     "event": "Summer Solstice",    "cost":  60},
+    {"name": "Lava Man",     "event": "Summer Solstice",    "cost":  80},
+    {"name": "Pyro",         "event": "Summer Solstice",    "cost":  55},
+    {"name": "Blazer",       "event": "Summer Solstice",    "cost":  70},
+    {"name": "Inferno",      "event": "Summer Solstice",    "cost":  90},
+    {"name": "Magma",        "event": "Summer Solstice",    "cost": 100},
+    {"name": "Trailblazer",  "event": "Summer Solstice",    "cost": 120},
     {"name": "Stickman of Liberty", "event": "Red White and Boom", "cost": 280},
     {"name": "Veteran",             "event": "Red White and Boom", "cost":  80},
     {"name": "Gunner",              "event": "Red White and Boom", "cost":  50},
@@ -212,20 +220,53 @@ def _deco_memorial(surf):
 
 
 def _deco_summer(surf):
-    A = 200
-    sun_x, sun_y = WIDTH - 28, 28
-    pygame.draw.circle(surf, (255, 220, 0, A), (sun_x, sun_y), 16)
-    for j in range(8):
-        angle = j * math.pi / 4
-        x1 = int(sun_x + 19 * math.cos(angle))
-        y1 = int(sun_y + 19 * math.sin(angle))
-        x2 = int(sun_x + 28 * math.cos(angle))
-        y2 = int(sun_y + 28 * math.sin(angle))
-        pygame.draw.line(surf, (255, 200, 0, A), (x1, y1), (x2, y2), 2)
-    for wx in range(0, WIDTH, 44):
-        pts = [(wx, HEIGHT), (wx + 11, HEIGHT - 7),
-               (wx + 22, HEIGHT), (wx + 33, HEIGHT - 5), (wx + 44, HEIGHT)]
-        pygame.draw.lines(surf, (50, 150, 255, A), False, pts, 2)
+    A = 210
+    # Large sun in top-right corner with 12 rays
+    sun_x, sun_y, sun_r = WIDTH - 44, 44, 26
+    pygame.draw.circle(surf, (255, 230, 30, A), (sun_x, sun_y), sun_r)
+    pygame.draw.circle(surf, (255, 245, 120, A), (sun_x, sun_y), sun_r - 8)
+    for j in range(12):
+        angle = j * math.pi / 6
+        x1 = int(sun_x + (sun_r + 4) * math.cos(angle))
+        y1 = int(sun_y + (sun_r + 4) * math.sin(angle))
+        ray_len = 22 if j % 2 == 0 else 14
+        x2 = int(sun_x + (sun_r + 4 + ray_len) * math.cos(angle))
+        y2 = int(sun_y + (sun_r + 4 + ray_len) * math.sin(angle))
+        lw = 3 if j % 2 == 0 else 2
+        pygame.draw.line(surf, (255, 210, 0, A), (x1, y1), (x2, y2), lw)
+    # Heat shimmer wavy lines in middle of screen
+    mid_y = HEIGHT // 2
+    for row in range(4):
+        wy = mid_y - 30 + row * 18
+        alpha_w = max(40, 110 - row * 20)
+        pts = []
+        x = 80
+        while x <= WIDTH - 80:
+            pts.append((x, wy + int(5 * math.sin(x * 0.06 + row * 1.2))))
+            x += 8
+        if len(pts) >= 2:
+            pygame.draw.lines(surf, (255, 180, 60, alpha_w), False, pts, 1)
+    # Small flame shapes along bottom edge
+    for fx in range(20, WIDTH, 38):
+        fh = 14 + int(7 * math.sin(fx * 0.07))
+        flame_pts = [
+            (fx, HEIGHT),
+            (fx - 6, HEIGHT - fh // 2),
+            (fx - 3, HEIGHT - fh),
+            (fx,     HEIGHT - fh - 5),
+            (fx + 3, HEIGHT - fh),
+            (fx + 6, HEIGHT - fh // 2),
+            (fx, HEIGHT),
+        ]
+        pygame.draw.polygon(surf, (255, 90, 10, 180), flame_pts)
+        inner_pts = [
+            (fx, HEIGHT),
+            (fx - 3, HEIGHT - fh // 2 - 2),
+            (fx,     HEIGHT - fh + 2),
+            (fx + 3, HEIGHT - fh // 2 - 2),
+            (fx, HEIGHT),
+        ]
+        pygame.draw.polygon(surf, (255, 210, 60, 160), inner_pts)
 
 
 def _deco_july4(surf):
