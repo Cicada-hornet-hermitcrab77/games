@@ -6081,7 +6081,7 @@ def main():
                 pygame.display.flip()
 
             _CAU_FILTER = frozenset({
-                "Random", "Elemental", "Disorientated", "Joker", "Swapper",
+                "Randoom", "Elemental", "Disorientated", "Joker", "Swapper",
                 "Rainbow Man", "Soul Master", "Crazy", "Chaos", "Nun-Gimel-Hei-Shin",
             })
             p1_idx, p2_idx = character_select(
@@ -6107,7 +6107,7 @@ def main():
                             ("Disorientated",           140),
                             ("Elemental",               120),
                             ("Soul Master",             100),
-                            ("Random",                   80),
+                            ("Randoom",                   80),
                             ("Rainbow Man",              60),
                             ("Nun-Gimel-Hei-Shin",       12),
                             ("Chaos Nun-Gimel-Hei-Shin",  1),

@@ -1351,7 +1351,7 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100, "block": 6,
      "desc": "Every hit deals 1–8 random bonus chaos damage",
      "double_jump": True, "chaos_strike": True},
-    {"name": "Random",  "color": (180, 80, 220), "speed": 5,  "jump": -12,
+    {"name": "Randoom",  "color": (180, 80, 220), "speed": 5,  "jump": -12,
      "punch_dmg": 15, "kick_dmg": 18, "max_hp": 100, "block": 5,
      "desc": "All attacks deal a random amount of damage",
      "double_jump": False, "random_dmg": True},
