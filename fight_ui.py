@@ -530,7 +530,7 @@ CHEAT_CODES = {
     "eye_of_the_storm":    "Typhoon",
     "iron_curtain":        "Ironveil",
     "shock_wave":          "Pulse",
-    "all_that_glitters":   "Gilded Clover",
+    "all_that_glitters":   "Gilded",
     "twilight_strike":     "Dusk",
     "light_refraction":    "Chaos",
     "cold_ashes":          "Ashen",
@@ -580,6 +580,7 @@ CHEAT_CODES = {
     "summer_eartha":        "Summer Eartha",
     "autumn_eartha":        "Autumn Eartha",
     "winter_eartha":        "Winter Eartha",
+    "golden_snake":         "Gilded Clover",
 }
 
 # ---------------------------------------------------------------------------
