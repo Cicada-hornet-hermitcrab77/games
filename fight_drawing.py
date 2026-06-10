@@ -10724,6 +10724,46 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         _qs = _qfont.render("?", True, (255, 255, 255))
         surface.blit(_qs, (hx - _qs.get_width()//2, hy - hd - max(12, int(14*s))))
 
+    elif char_name == "Chaos":
+        t = pygame.time.get_ticks()
+        # Misplaced body — torso chunks drawn at jittered offsets as if shattered apart
+        _cjit = [
+            (int(math.sin(t * 0.004 + 0) * 4*s), int(math.cos(t * 0.005 + 0) * 3*s)),
+            (int(math.sin(t * 0.004 + 2.1) * 5*s), int(math.cos(t * 0.005 + 2.1) * 3*s)),
+            (int(math.sin(t * 0.004 + 4.2) * 4*s), int(math.cos(t * 0.005 + 4.2) * 4*s)),
+        ]
+        _chunk_h = bl // 3
+        for _ci, (_jx, _jy) in enumerate(_cjit):
+            _cy = sy + _ci * _chunk_h
+            pygame.draw.rect(surface, (200, 80, 200),
+                             (sx - int(10*s) + _jx, _cy + _jy, int(20*s), _chunk_h - 1),
+                             border_radius=max(1, int(2*s)))
+            pygame.draw.rect(surface, (240, 130, 240),
+                             (sx - int(10*s) + _jx, _cy + _jy, int(20*s), _chunk_h - 1),
+                             max(1, int(s)), border_radius=max(1, int(2*s)))
+        # Displaced ghost head on torso — head drawn in wrong spot
+        _ghx = sx + int(math.sin(t * 0.003) * 5*s)
+        _ghy = sy + int(bl * 0.55)
+        _ghsurf = pygame.Surface((int(hd*2+4), int(hd*2+4)), pygame.SRCALPHA)
+        pygame.draw.circle(_ghsurf, (200, 80, 200, 140), (int(hd)+2, int(hd)+2), int(hd))
+        pygame.draw.circle(_ghsurf, (240, 160, 240, 90), (int(hd)+2, int(hd)+2), int(hd), max(1, int(s)))
+        surface.blit(_ghsurf, (_ghx - int(hd) - 2, _ghy - int(hd) - 2))
+        # Crack lines between chunks
+        for _ci in range(1, 3):
+            _cy = sy + _ci * _chunk_h
+            _jx1, _jy1 = _cjit[_ci - 1]
+            _jx2, _jy2 = _cjit[_ci]
+            pygame.draw.line(surface, (255, 180, 255),
+                             (sx - int(8*s) + _jx1, _cy - 1 + _jy1),
+                             (sx + int(8*s) + _jx2, _cy + 1 + _jy2), max(1, int(s)))
+        # X on the ghost head (misplaced marker)
+        pygame.draw.line(surface, (255, 50, 255),
+                         (_ghx - int(hd*0.4), _ghy - int(hd*0.4)),
+                         (_ghx + int(hd*0.4), _ghy + int(hd*0.4)), max(1, int(s)))
+        pygame.draw.line(surface, (255, 50, 255),
+                         (_ghx + int(hd*0.4), _ghy - int(hd*0.4)),
+                         (_ghx - int(hd*0.4), _ghy + int(hd*0.4)), max(1, int(s)))
+
     elif char_name == "Leech King":
         # Dark crimson robe with fang crown and drain tendrils
         pygame.draw.rect(surface, (100, 0, 60),
@@ -12214,11 +12254,12 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                 (hx + _leaf_d,   hy),
             ]
         else:
-            # Three leaves at 120° positions (top, bottom-left, bottom-right)
+            # Four-leaf clover: N / S / W / E
             _leaves = [
-                (hx, hy - _leaf_d),
-                (hx - int(_leaf_d * 0.87), hy + int(_leaf_d * 0.5)),
-                (hx + int(_leaf_d * 0.87), hy + int(_leaf_d * 0.5)),
+                (hx,           hy - _leaf_d),
+                (hx,           hy + _leaf_d),
+                (hx - _leaf_d, hy),
+                (hx + _leaf_d, hy),
             ]
         for _lx, _ly in _leaves:
             pygame.draw.circle(surface, _leaf_col, (_lx, _ly), _leaf_r)
