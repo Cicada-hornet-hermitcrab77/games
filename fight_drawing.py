@@ -13000,294 +13000,55 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         surface.blit(_dsurf, (hx - hd - 2, hy - hd - 2))
 
     elif char_name in ("Jack O' Slash", "Jack O' Slash|tank"):
-        _in_tank = "|tank" in char_name
-        if _in_tank:
-            # PUMPKIN MECH TANK — giant pumpkin hull, robotic arms/blasters, mech legs
-            _pc  = (220, 110,  20)   # pumpkin orange
-            _pcl = (245, 150,  50)   # highlight orange
-            _pl  = (155,  68,   8)   # dark rib/outline
-            _mm  = ( 72,  82,  94)   # metal body
-            _mh  = (115, 126, 138)   # metal highlight
-            _md  = ( 36,  44,  52)   # metal shadow
-            _mb  = ( 52,  58,  96)   # blaster body
-            _mg  = (255, 100,   0)   # blaster muzzle glow
-
-            _foot_y = wy + int(LEG_LEN * s)   # ground level
-
-            # Hull geometry — head to ground so no stickman is visible
-            _p_cx  = sx
-            _p_top = hy - int(hd * 1.25)    # above head
-            _p_bot = _foot_y                  # reaches ground, buries stickman legs
-            _p_cy  = (_p_top + _p_bot) // 2
-            _p_rh  = (_p_bot - _p_top) // 2
-            _p_rw  = int(_p_rh * 1.12)
-
-            # Upper-body zone used for hull lobes, ribs and face proportions
-            _b_top = _p_top
-            _b_bot = wy + int(hd * 0.35)
-            _b_cy  = (_b_top + _b_bot) // 2
-            _b_rh  = (_b_bot - _b_top) // 2
-            _b_rw  = int(_b_rh * 1.12)
-
-            # Leg attachment point (waist level, inside hull)
-            _leg_hip_y = _b_bot
-
-            # ── 1. GIANT PUMPKIN HULL (drawn first — buries whole stickman) ────
-            # Full-height background ellipse (no outline) — covers stickman head-to-foot
-            _cov_rh = (_foot_y - _p_top) // 2
-            _cov_cy = _p_top + _cov_rh
-            pygame.draw.ellipse(surface, _pc,
-                                (_p_cx - int(_b_rw * 1.05), _cov_cy - _cov_rh,
-                                 int(_b_rw * 2.1), _cov_rh * 2))
-            # Side lobes (based on body zone)
-            for _lox in (-int(_b_rw * 0.70), int(_b_rw * 0.70)):
-                _lrw = int(_b_rw * 0.54)
-                _lrh = int(_b_rh * 0.87)
-                pygame.draw.ellipse(surface, _pl,
-                                    (_p_cx + _lox - _lrw, _b_cy - _lrh, _lrw * 2, _lrh * 2))
-                pygame.draw.ellipse(surface, (190, 90, 12),
-                                    (_p_cx + _lox - _lrw, _b_cy - _lrh, _lrw * 2, _lrh * 2),
-                                    max(1, int(s)))
-            # Inner secondary lobes
-            for _lox in (-int(_b_rw * 0.43), int(_b_rw * 0.43)):
-                _lrw = int(_b_rw * 0.46)
-                _lrh = int(_b_rh * 0.95)
-                pygame.draw.ellipse(surface, _pcl,
-                                    (_p_cx + _lox - _lrw, _b_cy - _lrh, _lrw * 2, _lrh * 2))
-            # Main body lobe
-            pygame.draw.ellipse(surface, _pc,
-                                (_p_cx - _b_rw, _b_cy - _b_rh, _b_rw * 2, _b_rh * 2))
-            # Top highlight
-            _hlsurf = pygame.Surface((_b_rw * 2, int(_b_rh * 1.1)), pygame.SRCALPHA)
-            pygame.draw.ellipse(_hlsurf, (255, 170, 70, 70),
-                                (int(_b_rw * 0.18), int(_b_rh * 0.06),
-                                 int(_b_rw * 1.30), int(_b_rh * 0.58)))
-            surface.blit(_hlsurf, (_p_cx - _b_rw, _b_cy - _b_rh))
-            # Rib lines
-            for _off in (-int(_b_rw * 0.55), -int(_b_rw * 0.22),
-                          int(_b_rw * 0.22),  int(_b_rw * 0.55)):
-                pygame.draw.line(surface, _pl,
-                                 (_p_cx + _off, _b_cy - int(_b_rh * 0.90)),
-                                 (_p_cx + _off, _b_cy + int(_b_rh * 0.90)),
-                                 max(1, int(s)))
-            # Hull outline
-            pygame.draw.ellipse(surface, _pl,
-                                (_p_cx - _b_rw, _b_cy - _b_rh, _b_rw * 2, _b_rh * 2),
-                                max(2, int(2 * s)))
-
-            # ── 2. MECH LEGS (drawn after hull, protruding below) ─────────────
-            _tw  = max(7, int(hd * 0.60))   # thigh half-width
-            _shw = max(5, int(hd * 0.40))   # shin half-width
-            _fw  = max(11, int(hd * 1.05))  # foot half-width
-            _fh  = max(5,  int(hd * 0.30))  # foot height
-            _walk_t = (pygame.time.get_ticks() % 600) / 600.0
-            for _li, _sd in enumerate((-1, 1)):
-                _leg_phase = _walk_t * math.pi * 2 + _li * math.pi
-                _swing = int(math.sin(_leg_phase) * hd * 0.75)
-
-                _hpx = _p_cx + _sd * int(_b_rw * 0.32)
-                _hpy = _leg_hip_y
-
-                _knx = _hpx + int(_swing * 0.45)
-                _kny = (_hpy + _foot_y) // 2
-
-                _akx = _hpx + _swing
-                _aky = _foot_y
-
-                pygame.draw.line(surface, _md, (_hpx, _hpy), (_knx, _kny), _tw * 2 + 2)
-                pygame.draw.line(surface, _mm, (_hpx, _hpy), (_knx, _kny), _tw * 2)
-                pygame.draw.line(surface, _mh, (_hpx, _hpy), (_knx, _kny), max(2, _tw - 2))
-                pygame.draw.circle(surface, _md, (_knx, _kny), max(6, int(hd * 0.38)))
-                pygame.draw.circle(surface, _mm, (_knx, _kny), max(5, int(hd * 0.30)))
-                pygame.draw.circle(surface, _mh, (_knx, _kny), max(3, int(hd * 0.16)))
-                pygame.draw.line(surface, _md, (_knx, _kny), (_akx, _aky), _shw * 2 + 2)
-                pygame.draw.line(surface, _mm, (_knx, _kny), (_akx, _aky), _shw * 2)
-                pygame.draw.line(surface, _mh, (_knx, _kny), (_akx, _aky), max(2, _shw - 1))
-                pygame.draw.circle(surface, _mm, (_akx, _aky), max(4, int(hd * 0.24)))
-                pygame.draw.circle(surface, _mh, (_akx, _aky), max(4, int(hd * 0.24)), max(1, int(s)))
-                pygame.draw.rect(surface, _md,
-                                 (_akx - _fw - 1, _aky, _fw * 2 + 2, _fh + 2), border_radius=max(2, int(s)))
-                pygame.draw.rect(surface, _mm,
-                                 (_akx - _fw, _aky, _fw * 2, _fh), border_radius=max(2, int(s)))
-                pygame.draw.rect(surface, _mh,
-                                 (_akx - _fw, _aky, _fw * 2, _fh), max(1, int(s)), border_radius=max(2, int(s)))
-                for _ri in range(4):
-                    _rx = _akx - _fw + int(_fw * 2 * (_ri + 0.5) / 4)
-                    pygame.draw.line(surface, _md, (_rx, _aky), (_rx, _aky + _fh), max(1, int(s)))
-
-            # ── 3. ROBOTIC ARMS / BLASTERS ────────────────────────────────────
-            _aw  = max(6, int(hd * 0.54))   # arm segment width
-            _blw = max(4, int(hd * 0.36))   # blaster half-height
-            _bll = max(16, int(hd * 1.7))   # barrel length
-
-            for _sd in (-1, 1):
-                _shx = _p_cx + _sd * _b_rw
-                _shy = _b_cy - int(_b_rh * 0.14)
-
-                if _sd == facing:
-                    # WEAPON ARM — double-barrelled blaster pointing forward
-                    _elbx = _shx + _sd * int(hd * 1.45)
-                    _elby = _shy + int(hd * 0.28)
-                    # Upper arm
-                    pygame.draw.line(surface, _md, (_shx, _shy), (_elbx, _elby), _aw * 2 + 2)
-                    pygame.draw.line(surface, _mm, (_shx, _shy), (_elbx, _elby), _aw * 2)
-                    pygame.draw.line(surface, _mh, (_shx, _shy), (_elbx, _elby), max(2, _aw - 2))
-                    # Elbow socket
-                    pygame.draw.circle(surface, _md, (_elbx, _elby), max(6, int(hd * 0.36)))
-                    pygame.draw.circle(surface, _mm, (_elbx, _elby), max(5, int(hd * 0.30)))
-                    # Blaster housing (thick rect)
-                    _bx0 = _elbx
-                    _bx1 = _elbx + _sd * _bll
-                    _brect_x = min(_bx0, _bx1)
-                    pygame.draw.rect(surface, _md,
-                                     (_brect_x - 1, _elby - _blw - 2, abs(_bx1 - _bx0) + 2, (_blw + 2) * 2),
-                                     border_radius=max(2, int(s)))
-                    pygame.draw.rect(surface, _mb,
-                                     (_brect_x, _elby - _blw, abs(_bx1 - _bx0), _blw * 2),
-                                     border_radius=max(2, int(s)))
-                    # Upper barrel
-                    _bar_y1 = _elby - int(_blw * 0.55)
-                    pygame.draw.line(surface, _mh, (_bx0, _bar_y1), (_bx1, _bar_y1), max(1, int(s * 1.5)))
-                    # Lower barrel
-                    _bar_y2 = _elby + int(_blw * 0.55)
-                    pygame.draw.line(surface, _mh, (_bx0, _bar_y2), (_bx1, _bar_y2), max(1, int(s * 1.5)))
-                    # Muzzle flare glow
-                    pygame.draw.circle(surface, _mg,   (_bx1, _elby), max(5, int(hd * 0.32)))
-                    pygame.draw.circle(surface, (255, 200, 100), (_bx1, _elby), max(3, int(hd * 0.18)))
-                    # Barrel tip ring
-                    pygame.draw.circle(surface, _md,   (_bx1, _elby), max(5, int(hd * 0.32)), max(1, int(s)))
-                else:
-                    # CLAW ARM — angled down, three-pronged claw at end
-                    _elbx = _shx + _sd * int(hd * 1.2)
-                    _elby = _shy + int(hd * 0.55)
-                    _clwx = _elbx + _sd * int(hd * 0.65)
-                    _clwy = _elby + int(hd * 0.95)
-                    # Upper arm
-                    pygame.draw.line(surface, _md, (_shx, _shy), (_elbx, _elby), _aw * 2 + 2)
-                    pygame.draw.line(surface, _mm, (_shx, _shy), (_elbx, _elby), _aw * 2)
-                    pygame.draw.line(surface, _mh, (_shx, _shy), (_elbx, _elby), max(2, _aw - 2))
-                    # Elbow socket
-                    pygame.draw.circle(surface, _md, (_elbx, _elby), max(6, int(hd * 0.36)))
-                    pygame.draw.circle(surface, _mm, (_elbx, _elby), max(5, int(hd * 0.28)))
-                    # Forearm
-                    pygame.draw.line(surface, _md, (_elbx, _elby), (_clwx, _clwy), int(_aw * 1.6) + 2)
-                    pygame.draw.line(surface, _mm, (_elbx, _elby), (_clwx, _clwy), int(_aw * 1.6))
-                    pygame.draw.line(surface, _mh, (_elbx, _elby), (_clwx, _clwy), max(2, _aw - 2))
-                    # Claw prongs (3)
-                    for _ca in (-0.55, 0.0, 0.55):
-                        _ctx = _clwx + int(_ca * hd * 0.55)
-                        _cty = _clwy + int(hd * 0.50)
-                        pygame.draw.line(surface, _md, (_clwx, _clwy), (_ctx, _cty), max(3, int(s * 3)))
-                        pygame.draw.line(surface, _mh, (_clwx, _clwy), (_ctx, _cty), max(1, int(s * 1.5)))
-                    pygame.draw.circle(surface, _mm, (_clwx, _clwy), max(4, int(hd * 0.26)))
-
-            # Shoulder mount circles (bolted to pumpkin hull)
-            for _sd in (-1, 1):
-                _shx = _p_cx + _sd * _b_rw
-                _shy = _b_cy - int(_b_rh * 0.14)
-                pygame.draw.circle(surface, _md, (_shx, _shy), max(7, int(hd * 0.46)))
-                pygame.draw.circle(surface, _mm, (_shx, _shy), max(6, int(hd * 0.38)))
-                pygame.draw.circle(surface, _mh, (_shx, _shy), max(6, int(hd * 0.38)), max(1, int(s * 1.5)))
-
-            # ── 4. JACK-O'-LANTERN FACE ──────────────────────────────────────
-            _fe_y = _b_cy - int(_b_rh * 0.18)
-            for _fe_x in (_p_cx - int(_b_rw * 0.38), _p_cx + int(_b_rw * 0.38)):
-                # Eye glow halo
-                _gsurf = pygame.Surface((int(hd * 1.4), int(hd * 1.4)), pygame.SRCALPHA)
-                pygame.draw.circle(_gsurf, (255, 200, 0, 75),
-                                   (int(hd * 0.7), int(hd * 0.7)), int(hd * 0.6))
-                surface.blit(_gsurf, (_fe_x - int(hd * 0.7), _fe_y - int(hd * 0.7)))
-                # Triangle eye
-                pygame.draw.polygon(surface, (255, 200, 0), [
-                    (_fe_x,                     _fe_y - int(hd * 0.36)),
-                    (_fe_x - int(hd * 0.28),    _fe_y + int(hd * 0.15)),
-                    (_fe_x + int(hd * 0.28),    _fe_y + int(hd * 0.15)),
-                ])
-            # Jagged toothy mouth
-            _m_y  = _b_cy + int(_b_rh * 0.24)
-            _m_hw = int(_b_rw * 0.50)
-            _seg6 = _m_hw * 2 // 6
-            _mpts = [
-                (_p_cx - _m_hw,              _m_y),
-                (_p_cx - _m_hw + _seg6,      _m_y + int(hd * 0.28)),
-                (_p_cx - _m_hw + _seg6 * 2,  _m_y),
-                (_p_cx - _m_hw + _seg6 * 3,  _m_y + int(hd * 0.28)),
-                (_p_cx - _m_hw + _seg6 * 4,  _m_y),
-                (_p_cx - _m_hw + _seg6 * 5,  _m_y + int(hd * 0.28)),
-                (_p_cx + _m_hw,              _m_y),
-            ]
-            pygame.draw.lines(surface, (255, 165, 0), False, _mpts, max(2, int(2 * s)))
-            # Upper teeth
-            for _ti in range(3):
-                _tx = _p_cx - _m_hw + _seg6 * (_ti * 2) + int(_seg6 * 0.2)
-                pygame.draw.rect(surface, (255, 200, 0),
-                                 (_tx, _m_y - int(hd * 0.22), int(_seg6 * 0.55), int(hd * 0.22)))
-
-            # ── 5. STEM + CURL ───────────────────────────────────────────────
-            _st_base = (_p_cx + int(hd * 0.1), _b_cy - _b_rh)
-            _st_tip  = (_p_cx + int(hd * 0.35), _b_cy - _b_rh - int(hd * 1.0))
-            pygame.draw.line(surface, (50, 110, 25), _st_base, _st_tip, max(3, int(3 * s)))
-            pygame.draw.line(surface, (80, 160, 40), _st_base, _st_tip, max(1, int(s)))
-            # Leaf
-            _lf_cx = _st_tip[0] + int(hd * 0.55)
-            _lf_cy = _st_tip[1] + int(hd * 0.22)
-            pygame.draw.ellipse(surface, (45, 145, 25),
-                                (_lf_cx - int(hd * 0.6), _lf_cy - int(hd * 0.26),
-                                 int(hd * 1.2), int(hd * 0.50)))
-            pygame.draw.line(surface, (30, 100, 15),
-                             (_lf_cx - int(hd * 0.55), _lf_cy),
-                             (_lf_cx + int(hd * 0.55), _lf_cy), max(1, int(s)))
-        else:
-            # Normal reaper costume
-            pygame.draw.rect(surface, (15, 15, 20),
-                             (sx - int(11*s), sy, int(22*s), bl + int(4*s)), border_radius=max(2, int(3*s)))
-            for _ti in range(5):
-                _tx = sx - int(10*s) + _ti * int(5*s)
-                pygame.draw.polygon(surface, (15, 15, 20), [
-                    (_tx, wy), (_tx + int(3*s), wy + int(8*s)), (_tx + int(5*s), wy)
-                ])
-            pygame.draw.polygon(surface, (15, 15, 20),
-                                [(hx - hd - int(6*s), hy + int(4*s)),
-                                 (hx + hd + int(6*s), hy + int(4*s)),
-                                 (hx + int(hd*0.8), hy - hd - int(10*s)),
-                                 (hx - int(hd*0.8), hy - hd - int(10*s))])
-            pygame.draw.polygon(surface, (50, 50, 60),
-                                [(hx - hd - int(6*s), hy + int(4*s)),
-                                 (hx + hd + int(6*s), hy + int(4*s)),
-                                 (hx + int(hd*0.8), hy - hd - int(10*s)),
-                                 (hx - int(hd*0.8), hy - hd - int(10*s))], max(1, int(2*s)))
-            _spx = rhx + int(facing * int(6*s))
-            _spy = rhy
-            _shaft_tip = (_spx - int(facing * int(6*s)), _spy - int(hd*3.2))
-            pygame.draw.line(surface, (70, 45, 20), (_spx, _spy), _shaft_tip, max(2, int(4*s)))
-            _br = int(hd * 1.3)
-            _bs = math.radians(60 if facing > 0 else 300)
-            _be = math.radians(200 if facing > 0 else 480)
-            pygame.draw.arc(surface, (190, 200, 220),
-                            (_shaft_tip[0] - _br, _shaft_tip[1] - _br, _br*2, _br*2),
-                            _bs, _be, max(2, int(3*s)))
-            _pumpkin = (220, 110, 20)
-            _pline   = (160,  75, 10)
-            pygame.draw.circle(surface, _pumpkin, (hx, hy), hd + 1)
-            for _off in (-int(hd*0.42), -int(hd*0.18), int(hd*0.18), int(hd*0.42)):
-                pygame.draw.line(surface, _pline,
-                                 (hx + _off, hy - int(hd*0.82)),
-                                 (hx + _off, hy + int(hd*0.82)), max(1, int(s)))
-            pygame.draw.line(surface, (50, 120, 30),
-                             (hx, hy - hd), (hx, hy - int(hd*1.5)), max(2, int(2*s)))
-            _ey = hy - int(hd*0.15)
-            for _ex in (hx - int(hd*0.38), hx + int(hd*0.38)):
-                pygame.draw.polygon(surface, (255, 180, 0), [
-                    (_ex, _ey - int(hd*0.28)),
-                    (_ex - int(hd*0.21), _ey + int(hd*0.1)),
-                    (_ex + int(hd*0.21), _ey + int(hd*0.1))
-                ])
-            _my = hy + int(hd*0.28)
-            _mpts = [(hx + dx, _my + dy) for dx, dy in
-                     [(-int(hd*0.42), 0), (-int(hd*0.22), int(hd*0.18)),
-                      (-int(hd*0.08), 0), (int(hd*0.08), int(hd*0.18)),
-                      (int(hd*0.28), 0), (int(hd*0.42), int(hd*0.18))]]
-            pygame.draw.lines(surface, (255, 160, 0), False, _mpts, max(1, int(2*s)))
+        # Reaper costume
+        pygame.draw.rect(surface, (15, 15, 20),
+                         (sx - int(11*s), sy, int(22*s), bl + int(4*s)), border_radius=max(2, int(3*s)))
+        for _ti in range(5):
+            _tx = sx - int(10*s) + _ti * int(5*s)
+            pygame.draw.polygon(surface, (15, 15, 20), [
+                (_tx, wy), (_tx + int(3*s), wy + int(8*s)), (_tx + int(5*s), wy)
+            ])
+        pygame.draw.polygon(surface, (15, 15, 20),
+                            [(hx - hd - int(6*s), hy + int(4*s)),
+                             (hx + hd + int(6*s), hy + int(4*s)),
+                             (hx + int(hd*0.8), hy - hd - int(10*s)),
+                             (hx - int(hd*0.8), hy - hd - int(10*s))])
+        pygame.draw.polygon(surface, (50, 50, 60),
+                            [(hx - hd - int(6*s), hy + int(4*s)),
+                             (hx + hd + int(6*s), hy + int(4*s)),
+                             (hx + int(hd*0.8), hy - hd - int(10*s)),
+                             (hx - int(hd*0.8), hy - hd - int(10*s))], max(1, int(2*s)))
+        _spx = rhx + int(facing * int(6*s))
+        _shaft_tip = (_spx - int(facing * int(6*s)), rhy - int(hd*3.2))
+        pygame.draw.line(surface, (70, 45, 20), (_spx, rhy), _shaft_tip, max(2, int(4*s)))
+        _br = int(hd * 1.3)
+        pygame.draw.arc(surface, (190, 200, 220),
+                        (_shaft_tip[0] - _br, _shaft_tip[1] - _br, _br*2, _br*2),
+                        math.radians(60 if facing > 0 else 300),
+                        math.radians(200 if facing > 0 else 480), max(2, int(3*s)))
+        _pumpkin = (220, 110, 20)
+        _pline   = (160,  75, 10)
+        pygame.draw.circle(surface, _pumpkin, (hx, hy), hd + 1)
+        for _off in (-int(hd*0.42), -int(hd*0.18), int(hd*0.18), int(hd*0.42)):
+            pygame.draw.line(surface, _pline,
+                             (hx + _off, hy - int(hd*0.82)),
+                             (hx + _off, hy + int(hd*0.82)), max(1, int(s)))
+        pygame.draw.line(surface, (50, 120, 30),
+                         (hx, hy - hd), (hx, hy - int(hd*1.5)), max(2, int(2*s)))
+        _ey = hy - int(hd*0.15)
+        for _ex in (hx - int(hd*0.38), hx + int(hd*0.38)):
+            pygame.draw.polygon(surface, (255, 180, 0), [
+                (_ex, _ey - int(hd*0.28)),
+                (_ex - int(hd*0.21), _ey + int(hd*0.1)),
+                (_ex + int(hd*0.21), _ey + int(hd*0.1))
+            ])
+        _my = hy + int(hd*0.28)
+        pygame.draw.lines(surface, (255, 160, 0), False,
+                          [(hx + dx, _my + dy) for dx, dy in
+                           [(-int(hd*0.42), 0), (-int(hd*0.22), int(hd*0.18)),
+                            (-int(hd*0.08), 0), (int(hd*0.08), int(hd*0.18)),
+                            (int(hd*0.28), 0), (int(hd*0.42), int(hd*0.18))]],
+                          max(1, int(2*s)))
 
     elif char_name == "Cornucopia":
         _FEATHER_COLS = [
