@@ -2679,25 +2679,26 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 if snake_spawn_timer <= 0 and len(jungle_snakes) < 4:
                     jungle_snakes.append(JungleSnake())
                     snake_spawn_timer = random.randint(300, 480)
-                for sn in jungle_snakes:
-                    _psr = next((_pf for _pf in (p1, p2) if _pf.possess_timer > 0 and _pf.possess_entity and _pf.possess_entity[0] == 'snake' and _pf.possess_entity[1] is sn), None)
-                    if _psr:
-                        _pc = P1_CTRL if _psr is p1 else P2_CTRL
-                        _opc = p2 if _psr is p1 else p1
-                        sn.t += 1
-                        if sn.bite_cd > 0: sn.bite_cd -= 1
-                        if keys[_pc['left']]:  sn.x -= JungleSnake.SPEED * 2.5; sn.facing = -1
-                        if keys[_pc['right']]: sn.x += JungleSnake.SPEED * 2.5; sn.facing =  1
-                        sn.x = max(30.0, min(float(WIDTH - 30), sn.x))
-                        if (keys[_pc['punch']] or keys[_pc['kick']]) and sn.bite_cd == 0:
-                            if abs(sn.x - _opc.x) < JungleSnake.BITE_RANGE + 20 and abs(sn.y - _opc.y) < 80:
-                                _opc.hp = max(0, _opc.hp - JungleSnake.BITE_DMG * 3)
-                                _opc.flash_timer = 6
-                                sn.bite_cd = JungleSnake.BITE_COOLDOWN // 2
-                    else:
-                        sn.update(p1, p2)
-                _prev_sn = len(jungle_snakes)
-                jungle_snakes = [sn for sn in jungle_snakes if sn.alive]
+            for sn in jungle_snakes:
+                _psr = next((_pf for _pf in (p1, p2) if _pf.possess_timer > 0 and _pf.possess_entity and _pf.possess_entity[0] == 'snake' and _pf.possess_entity[1] is sn), None)
+                if _psr:
+                    _pc = P1_CTRL if _psr is p1 else P2_CTRL
+                    _opc = p2 if _psr is p1 else p1
+                    sn.t += 1
+                    if sn.bite_cd > 0: sn.bite_cd -= 1
+                    if keys[_pc['left']]:  sn.x -= JungleSnake.SPEED * 2.5; sn.facing = -1
+                    if keys[_pc['right']]: sn.x += JungleSnake.SPEED * 2.5; sn.facing =  1
+                    sn.x = max(30.0, min(float(WIDTH - 30), sn.x))
+                    if (keys[_pc['punch']] or keys[_pc['kick']]) and sn.bite_cd == 0:
+                        if abs(sn.x - _opc.x) < JungleSnake.BITE_RANGE + 20 and abs(sn.y - _opc.y) < 80:
+                            _opc.hp = max(0, _opc.hp - JungleSnake.BITE_DMG * 3)
+                            _opc.flash_timer = 6
+                            sn.bite_cd = JungleSnake.BITE_COOLDOWN // 2
+                else:
+                    sn.update(p1, p2)
+            _prev_sn = len(jungle_snakes)
+            jungle_snakes = [sn for sn in jungle_snakes if sn.alive]
+            if is_jungle:
                 _jungle_kills_flag[0] += _prev_sn - len(jungle_snakes)
 
             # Computer bugs
@@ -4171,13 +4172,13 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 if snake_spawn_timer <= 0 and len(jungle_snakes) < 4:
                     jungle_snakes.append(JungleSnake())
                     snake_spawn_timer = random.randint(300, 480)
-                for sn in jungle_snakes:
-                    all_targets = players + enemies
-                    living_targets = [t for t in all_targets if t.hp > 0]
-                    if living_targets:
-                        closest = min(living_targets, key=lambda t: abs(t.x - sn.x))
-                        sn.update(closest, closest)
-                jungle_snakes = [sn for sn in jungle_snakes if sn.alive]
+            for sn in jungle_snakes:
+                all_targets = players + enemies
+                living_targets = [t for t in all_targets if t.hp > 0]
+                if living_targets:
+                    closest = min(living_targets, key=lambda t: abs(t.x - sn.x))
+                    sn.update(closest, closest)
+            jungle_snakes = [sn for sn in jungle_snakes if sn.alive]
 
             if is_underworld:
                 skull_spawn_timer -= 1
