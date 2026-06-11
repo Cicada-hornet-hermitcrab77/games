@@ -13061,7 +13061,43 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.rect(surface, _pc,
                              (_p_cx - _b_rw, _b_bot, _b_rw * 2, _foot_y - _b_bot + int(4*s)))
 
-            # ── 2. ROBOTIC ARMS / BLASTERS ────────────────────────────────────
+            # ── 2. MECH LEGS ──────────────────────────────────────────────────
+            _tw  = max(7, int(hd * 0.60))
+            _shw = max(5, int(hd * 0.40))
+            _fw  = max(11, int(hd * 1.05))
+            _fh  = max(5,  int(hd * 0.30))
+            _walk_t = (pygame.time.get_ticks() % 600) / 600.0
+            for _li, _sd in enumerate((-1, 1)):
+                _leg_phase = _walk_t * math.pi * 2 + _li * math.pi
+                _swing = int(math.sin(_leg_phase) * hd * 0.75)
+                _hpx = _p_cx + _sd * int(_b_rw * 0.32)
+                _hpy = _b_bot
+                _knx = _hpx + int(_swing * 0.45)
+                _kny = (_hpy + _foot_y) // 2
+                _akx = _hpx + _swing
+                _aky = _foot_y
+                pygame.draw.line(surface, _md, (_hpx, _hpy), (_knx, _kny), _tw * 2 + 2)
+                pygame.draw.line(surface, _mm, (_hpx, _hpy), (_knx, _kny), _tw * 2)
+                pygame.draw.line(surface, _mh, (_hpx, _hpy), (_knx, _kny), max(2, _tw - 2))
+                pygame.draw.circle(surface, _md, (_knx, _kny), max(6, int(hd * 0.38)))
+                pygame.draw.circle(surface, _mm, (_knx, _kny), max(5, int(hd * 0.30)))
+                pygame.draw.circle(surface, _mh, (_knx, _kny), max(3, int(hd * 0.16)))
+                pygame.draw.line(surface, _md, (_knx, _kny), (_akx, _aky), _shw * 2 + 2)
+                pygame.draw.line(surface, _mm, (_knx, _kny), (_akx, _aky), _shw * 2)
+                pygame.draw.line(surface, _mh, (_knx, _kny), (_akx, _aky), max(2, _shw - 1))
+                pygame.draw.circle(surface, _mm, (_akx, _aky), max(4, int(hd * 0.24)))
+                pygame.draw.circle(surface, _mh, (_akx, _aky), max(4, int(hd * 0.24)), max(1, int(s)))
+                pygame.draw.rect(surface, _md,
+                                 (_akx - _fw - 1, _aky, _fw * 2 + 2, _fh + 2), border_radius=max(2, int(s)))
+                pygame.draw.rect(surface, _mm,
+                                 (_akx - _fw, _aky, _fw * 2, _fh), border_radius=max(2, int(s)))
+                pygame.draw.rect(surface, _mh,
+                                 (_akx - _fw, _aky, _fw * 2, _fh), max(1, int(s)), border_radius=max(2, int(s)))
+                for _ri in range(4):
+                    _rx = _akx - _fw + int(_fw * 2 * (_ri + 0.5) / 4)
+                    pygame.draw.line(surface, _md, (_rx, _aky), (_rx, _aky + _fh), max(1, int(s)))
+
+            # ── 3. ROBOTIC ARMS / BLASTERS ────────────────────────────────────
             _aw  = max(6, int(hd * 0.54))
             _blw = max(4, int(hd * 0.36))
             _bll = max(16, int(hd * 1.7))
