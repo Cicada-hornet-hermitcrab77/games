@@ -428,7 +428,6 @@ UNLOCK_CONDITIONS = {
     "Chronomancer":        ("win_with",       "Time Warden",     3,  "Win 3 matches as Time Warden"),
     "Behemoth":            ("wins_total",     None,            200,  "Win 200 matches"),
     "Boom-Boom-Boomerang": ("secret_chars",   None,             12,  "Unlock 12 secret characters"),
-    "Red Herring":         ("secret_chars",   None,             15,  "The evidence is misleading...",      True),
     # ── batch 9 ─────────────────────────────────────────────────────────────
     "Marauder":            ("win_with",       "Desperado",       3,  "Win 3 matches as Desperado"),
     "Seraph":              ("perfect_wins",   None,              9,  "Win 9 matches at full HP"),

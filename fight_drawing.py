@@ -12572,37 +12572,90 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                            (int(bl), int(bl // 2)), int(bl * 0.7))
         surface.blit(_gsurf, (sx - int(bl), sy - int(bl * 0.1)))
         if char_name == "Performer Solara":
-            # Cap on the head: flat dark rectangle + brim
-            _cap_w = int(hd * 2.2)
-            _cap_h = int(hd * 0.55)
-            _cap_x = hx - _cap_w // 2
-            _cap_y = hy - hd - _cap_h
-            pygame.draw.rect(surface, (30, 20, 10), (_cap_x, _cap_y, _cap_w, _cap_h),
-                             border_radius=max(1, int(2 * s)))
-            _brim_w = int(hd * 0.9)
-            _brim_x = hx + facing * int(hd * 0.2) - _brim_w // 2
-            pygame.draw.rect(surface, (20, 12, 5),
-                             (_brim_x, _cap_y + _cap_h - int(3 * s),
-                              _brim_w, max(2, int(4 * s))),
-                             border_radius=max(1, int(2 * s)))
-            # "S" on hat
-            _sf_hat = _get_font(max(8, int(_cap_h * 1.1)))
-            _s_hat = _sf_hat.render("S", True, (255, 210, 40))
-            surface.blit(_s_hat, (hx - _s_hat.get_width() // 2,
-                                  _cap_y + _cap_h // 2 - _s_hat.get_height() // 2))
-            # T-shirt: covers full body
-            _shirt_w = int(al * 1.4)
-            _shirt_h = bl + int(4 * s)
+            # Baseball cap: rounded dome + front brim
+            _cap_col  = (25, 18, 8)
+            _cap_col2 = (15, 10, 4)
+            _dome_w   = int(hd * 2.0)
+            _dome_h   = int(hd * 0.6)
+            _dome_y   = hy - hd - _dome_h
+            pygame.draw.ellipse(surface, _cap_col,
+                                (hx - _dome_w // 2, _dome_y, _dome_w, _dome_h + int(4*s)))
+            # Under-brim fill (covers head top so cap looks solid)
+            pygame.draw.rect(surface, _cap_col,
+                             (hx - _dome_w // 2, _dome_y + _dome_h // 2,
+                              _dome_w, _dome_h // 2 + int(4*s)))
+            # Front brim extending in facing direction
+            _brim_len = int(hd * 0.85)
+            _brim_h   = max(3, int(5 * s))
+            _brim_base_x = hx + facing * int(hd * 0.35)
+            pygame.draw.rect(surface, _cap_col2,
+                             (_brim_base_x if facing > 0 else _brim_base_x - _brim_len,
+                              hy - hd + int(2*s), _brim_len, _brim_h),
+                             border_radius=max(1, int(2*s)))
+            # Hat band stripe
+            pygame.draw.line(surface, (60, 40, 15),
+                             (hx - _dome_w // 2 + int(2*s), _dome_y + _dome_h - int(2*s)),
+                             (hx + _dome_w // 2 - int(2*s), _dome_y + _dome_h - int(2*s)),
+                             max(1, int(2*s)))
+            # "S" on front panel of cap
+            _sf_hat = _get_font(max(8, int(_dome_h * 0.9)))
+            _s_hat  = _sf_hat.render("S", True, (255, 215, 40))
+            _s_hat_x = hx + facing * int(hd * 0.15) - _s_hat.get_width() // 2
+            surface.blit(_s_hat, (_s_hat_x, _dome_y + int(2*s)))
+            # Rainbow shirt — horizontal stripes on a clipped surface
+            _shirt_w = int(al * 0.95)
+            _shirt_h = bl + int(3 * s)
             _shirt_x = sx - _shirt_w // 2
             _shirt_y = sy
-            pygame.draw.rect(surface, (50, 200, 240),
-                             (_shirt_x, _shirt_y, _shirt_w, _shirt_h),
+            _rainbow = [
+                (255, 40,  40),   # red
+                (255, 140,  0),   # orange
+                (255, 230,  0),   # yellow
+                (40,  200, 60),   # green
+                (30,  120, 255),  # blue
+                (160,  40, 255),  # purple
+            ]
+            _rsurf = pygame.Surface((_shirt_w, _shirt_h), pygame.SRCALPHA)
+            _stripe_h = max(1, _shirt_h // len(_rainbow))
+            for _ri2, _rc in enumerate(_rainbow):
+                _ry2 = _ri2 * _stripe_h
+                pygame.draw.rect(_rsurf, _rc, (0, _ry2, _shirt_w, _stripe_h + 1))
+            # Mask to rounded rect
+            _mask = pygame.Surface((_shirt_w, _shirt_h), pygame.SRCALPHA)
+            pygame.draw.rect(_mask, (255, 255, 255, 255),
+                             (0, 0, _shirt_w, _shirt_h),
                              border_radius=max(1, int(3 * s)))
+            _rsurf.blit(_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+            surface.blit(_rsurf, (_shirt_x, _shirt_y))
+            # Outline
+            pygame.draw.rect(surface, (255, 255, 255),
+                             (_shirt_x, _shirt_y, _shirt_w, _shirt_h),
+                             max(1, int(s)), border_radius=max(1, int(3 * s)))
             # "S" on shirt
-            _sf_shirt = _get_font(max(10, int(bl * 0.55)))
-            _s_shirt = _sf_shirt.render("S", True, (255, 255, 255))
+            _sf_shirt = _get_font(max(10, int(bl * 0.5)))
+            _s_shirt  = _sf_shirt.render("S", True, (255, 255, 255))
             surface.blit(_s_shirt, (sx - _s_shirt.get_width() // 2,
                                     sy + bl // 2 - _s_shirt.get_height() // 2))
+            # Microphone in front hand
+            _mhx = rhx if facing > 0 else lhx
+            _mhy = rhy if facing > 0 else lhy
+            # Handle
+            pygame.draw.line(surface, (180, 180, 180),
+                             (_mhx, _mhy),
+                             (_mhx + int(facing * 4*s), _mhy - int(14*s)),
+                             max(2, int(3*s)))
+            # Head (round grille)
+            _mic_cx = _mhx + int(facing * 4*s)
+            _mic_cy = _mhy - int(20*s)
+            _mic_r  = max(4, int(6*s))
+            pygame.draw.circle(surface, (220, 220, 220), (_mic_cx, _mic_cy), _mic_r)
+            pygame.draw.circle(surface, (100, 100, 100), (_mic_cx, _mic_cy), _mic_r, max(1, int(s)))
+            # Grille lines
+            for _gi3 in range(-1, 2):
+                pygame.draw.line(surface, (130, 130, 130),
+                                 (_mic_cx - _mic_r + max(1, int(s)), _mic_cy + _gi3 * max(2, int(2*s))),
+                                 (_mic_cx + _mic_r - max(1, int(s)), _mic_cy + _gi3 * max(2, int(2*s))),
+                                 max(1, int(s)))
 
     elif char_name == "Red Herring":
         # Fish tail below waist (replaces legs visually — drawn as fin)

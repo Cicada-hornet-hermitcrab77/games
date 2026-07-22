@@ -1543,7 +1543,7 @@ CHARACTERS = [
     {"name": "Red Herring", "color": (220, 55, 55), "speed": 5, "jump": -13,
      "punch_dmg": 8, "kick_dmg": 10, "max_hp": 100, "block": 4,
      "desc": "???",
-     "double_jump": False, "shoot_kick": True, "red_herring": True},
+     "double_jump": False, "red_herring": True},
 ]
 
 POWERUPS = [
