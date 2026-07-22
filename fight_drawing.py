@@ -12659,28 +12659,6 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
 
     elif char_name == "Kirin Adler":
         t = pygame.time.get_ticks() / 1000.0
-        # Binary cape (behind character)
-        _cb = -facing
-        _cw = int(al * 1.5)
-        _ch = int(bl * 1.15)
-        _cx0 = sx + _cb * int(6*s)
-        _cpts = [
-            (_cx0,                          sy),
-            (_cx0 + _cb * _cw,              sy + int(8*s)),
-            (_cx0 + _cb * int(_cw * 0.8),  sy + _ch),
-            (_cx0 + _cb * int(3*s),         sy + _ch - int(6*s)),
-        ]
-        pygame.draw.polygon(surface, (10, 25, 10), _cpts)
-        pygame.draw.polygon(surface, (30, 110, 30), _cpts, max(1, int(s)))
-        # Animated binary dots on cape
-        for _cbi in range(7):
-            for _cri in range(4):
-                _cbx = _cx0 + _cb * int((_cbi + 0.5) * _cw / 8)
-                _cby = sy + int((_cri + 0.5) * _ch / 5)
-                _bit = int(t * 4 + _cbi * 1.7 + _cri * 0.9) % 2
-                pygame.draw.circle(surface,
-                                   (0, 210, 70) if _bit else (0, 70, 20),
-                                   (int(_cbx), int(_cby)), max(1, int(2*s)))
         # School uniform jacket
         _uw = int(al * 1.05)
         _uh = int(bl * 0.85)
