@@ -1313,8 +1313,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         _kc = event.unicode.lower()
                         if _kc.isalpha():
                             _kirin_buf += _kc
-                            if len(_kirin_buf) > 8:
-                                _kirin_buf = _kirin_buf[-8:]
+                            if len(_kirin_buf) > 10:
+                                _kirin_buf = _kirin_buf[-10:]
                             _ka_enemy = p2 if _ka_self is p1 else p1
                             if _kirin_buf.endswith("heal"):
                                 _ka_self.hp = min(_ka_self.max_hp, _ka_self.hp + 30)
@@ -1329,6 +1329,17 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                                     _ka_enemy.hp = 0
                                     _ka_enemy.flash_timer = 30
                                 _kirin_cmd_timer = 90; _kirin_cmd_type = "delete"
+                                _kirin_buf = ""
+                            elif _kirin_buf.endswith("damage"):
+                                _ka_enemy.hp = max(0, _ka_enemy.hp - 30)
+                                _ka_enemy.flash_timer = 20
+                                _kirin_cmd_timer = 110; _kirin_cmd_type = "damage"
+                                _kirin_buf = ""
+                            elif _kirin_buf.endswith("poison"):
+                                if _ka_enemy.poison_frames == 0:
+                                    _ka_enemy.poison_tick = 30
+                                _ka_enemy.poison_frames = 99999
+                                _kirin_cmd_timer = 150; _kirin_cmd_type = "poison"
                                 _kirin_buf = ""
                     # <|-\||>+() tracking (Computer stage)
                     if is_computer and hasattr(event, 'unicode') and event.unicode:
@@ -3223,6 +3234,54 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     _dt3.set_alpha(_ka_alpha)
                     _dsurf2.blit(_dt3, (40 - _dt3.get_width() // 2, 28 - _dt3.get_height() // 2))
                     screen.blit(_dsurf2, (_ka_cx + _ka_f.facing * 30 - 40, _ka_cy - 28))
+                elif _kirin_cmd_type == "damage":
+                    # Gun pointing toward enemy
+                    _gsurf = pygame.Surface((90, 50), pygame.SRCALPHA)
+                    # barrel
+                    pygame.draw.rect(_gsurf, (80, 80, 90, _ka_alpha),
+                                     (10, 18, 65, 10), border_radius=2)
+                    # body
+                    pygame.draw.rect(_gsurf, (65, 65, 75, _ka_alpha),
+                                     (10, 18, 28, 22), border_radius=3)
+                    # grip
+                    pygame.draw.polygon(_gsurf, (55, 55, 65, _ka_alpha),
+                                        [(18, 40), (14, 52), (30, 52), (34, 40)])
+                    # outline
+                    pygame.draw.rect(_gsurf, (150, 150, 160, min(255, _ka_alpha + 40)),
+                                     (10, 18, 65, 10), 1, border_radius=2)
+                    # muzzle flash
+                    pygame.draw.circle(_gsurf, (255, 230, 60, _ka_alpha), (76, 23), 10)
+                    pygame.draw.circle(_gsurf, (255, 255, 180, _ka_alpha), (76, 23), 5)
+                    # orient by facing: flip horizontally if facing left
+                    if _ka_f.facing < 0:
+                        _gsurf = pygame.transform.flip(_gsurf, True, False)
+                    _arm_y = int(_ka_f.y) - int(70 * _ka_f.draw_scale)
+                    screen.blit(_gsurf, (_ka_cx + _ka_f.facing * 10 - 45, _arm_y - 25))
+                    # "-30" damage number
+                    _dmg_f = _get_font(max(14, int(20 * _ka_f.draw_scale)))
+                    _dmg_s = _dmg_f.render("-30", True, (255, 80, 80))
+                    _dmg_s.set_alpha(_ka_alpha)
+                    screen.blit(_dmg_s, (_ka_cx + _ka_f.facing * 70 - _dmg_s.get_width() // 2,
+                                         _arm_y - 40 - (110 - _kirin_cmd_timer) // 4))
+                elif _kirin_cmd_type == "poison":
+                    # Computer screen shows "BUG FOUND IN ENEMY"
+                    _scale_ka = _ka_f.draw_scale
+                    _km_w2 = int(18 * 1.75 * _scale_ka)  # HEAD_R * 1.75
+                    _km_h2 = int(18 * 1.25 * _scale_ka)
+                    _comp_x2 = _ka_cx + _ka_f.facing * int(38 * 0.9 * _scale_ka)
+                    _comp_y2 = (int(_ka_f.y)
+                                - int(45 * _scale_ka)   # LEG_LEN - a bit
+                                - int(50 * _scale_ka)   # BODY_LEN
+                                + int(50 * 0.08 * _scale_ka))
+                    _pscr = pygame.Surface((_km_w2, _km_h2), pygame.SRCALPHA)
+                    pygame.draw.rect(_pscr, (0, 15, 5, 220), (0, 0, _km_w2, _km_h2))
+                    _pf1 = _get_font(max(6, int(7 * _scale_ka)))
+                    for _pi2, _ptxt in enumerate(["BUG FOUND", "IN ENEMY"]):
+                        _ps2 = _pf1.render(_ptxt, True, (0, 255, 80))
+                        _ps2.set_alpha(_ka_alpha)
+                        _pscr.blit(_ps2, (_km_w2 // 2 - _ps2.get_width() // 2,
+                                          int(_km_h2 * 0.2) + _pi2 * int(_km_h2 * 0.42)))
+                    screen.blit(_pscr, (_comp_x2 - _km_w2 // 2, _comp_y2))
         # Orb Shooter: draw charging orb on fighter
         for _f in (p1, p2):
             if _f.char.get("orb_shooter") and _f._kick_held and _f.orb_charge > 0:
