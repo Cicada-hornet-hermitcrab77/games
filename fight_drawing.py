@@ -12725,6 +12725,23 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                          (_mgx + int(math.cos(math.radians(45)) * (_mg_r + int(6*s))),
                           _mgy + int(math.sin(math.radians(45)) * (_mg_r + int(6*s)))),
                          max(2, int(3*s)))
+        # Bubble-blowing animation from the magnifying glass lens
+        _bt = pygame.time.get_ticks() / 1000.0
+        _mouth_x = _mgx
+        _mouth_y = _mgy - _mg_r
+        for _bi4 in range(4):
+            _bphase = (_bt * 0.9 + _bi4 * 0.55) % 1.0
+            _brise  = int(_bphase * 55 * s)
+            _bdrift = int(math.sin(_bt * 1.8 + _bi4 * 1.4) * 6 * s)
+            _br     = max(2, int((3 + _bi4 * 1.5) * s))
+            _balpha = max(0, int(220 * (1.0 - _bphase)))
+            _bsurf  = pygame.Surface((_br * 2 + 2, _br * 2 + 2), pygame.SRCALPHA)
+            pygame.draw.circle(_bsurf, (180, 230, 255, _balpha),
+                               (_br + 1, _br + 1), _br)
+            pygame.draw.circle(_bsurf, (255, 255, 255, min(255, _balpha + 40)),
+                               (_br + 1, _br + 1), _br, max(1, int(s)))
+            surface.blit(_bsurf, (_mouth_x + _bdrift - _br - 1,
+                                  _mouth_y - _brise - _br - 1))
 
     elif char_name == "Stickman of Liberty":
         _liberty   = (88, 152, 132)
