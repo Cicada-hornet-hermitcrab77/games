@@ -1544,6 +1544,10 @@ CHARACTERS = [
      "punch_dmg": 8, "kick_dmg": 10, "max_hp": 100, "block": 4,
      "desc": "???",
      "double_jump": False, "red_herring": True},
+    {"name": "Kirin Adler", "color": (160, 220, 80), "speed": 5, "jump": -14,
+     "punch_dmg": 9, "kick_dmg": 11, "max_hp": 105, "block": 5,
+     "desc": "???",
+     "double_jump": False, "kirin_adler": True},
 ]
 
 POWERUPS = [

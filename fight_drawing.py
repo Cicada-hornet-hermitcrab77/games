@@ -12657,6 +12657,138 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                                  (_mic_cx + _mic_r - max(1, int(s)), _mic_cy + _gi3 * max(2, int(2*s))),
                                  max(1, int(s)))
 
+    elif char_name == "Kirin Adler":
+        t = pygame.time.get_ticks() / 1000.0
+        # Binary cape (behind character)
+        _cb = -facing
+        _cw = int(al * 1.5)
+        _ch = int(bl * 1.15)
+        _cx0 = sx + _cb * int(6*s)
+        _cpts = [
+            (_cx0,                          sy),
+            (_cx0 + _cb * _cw,              sy + int(8*s)),
+            (_cx0 + _cb * int(_cw * 0.8),  sy + _ch),
+            (_cx0 + _cb * int(3*s),         sy + _ch - int(6*s)),
+        ]
+        pygame.draw.polygon(surface, (10, 25, 10), _cpts)
+        pygame.draw.polygon(surface, (30, 110, 30), _cpts, max(1, int(s)))
+        # Animated binary dots on cape
+        for _cbi in range(7):
+            for _cri in range(4):
+                _cbx = _cx0 + _cb * int((_cbi + 0.5) * _cw / 8)
+                _cby = sy + int((_cri + 0.5) * _ch / 5)
+                _bit = int(t * 4 + _cbi * 1.7 + _cri * 0.9) % 2
+                pygame.draw.circle(surface,
+                                   (0, 210, 70) if _bit else (0, 70, 20),
+                                   (int(_cbx), int(_cby)), max(1, int(2*s)))
+        # School uniform jacket
+        _uw = int(al * 1.05)
+        _uh = int(bl * 0.85)
+        pygame.draw.rect(surface, (20, 28, 80),
+                         (sx - _uw // 2, sy, _uw, _uh),
+                         border_radius=max(1, int(2*s)))
+        # White collar lapels
+        pygame.draw.polygon(surface, (230, 230, 230), [
+            (sx, sy),
+            (sx + int(facing * _uw * 0.38), sy + int(bl * 0.28)),
+            (sx, sy + int(bl * 0.14)),
+        ])
+        pygame.draw.polygon(surface, (230, 230, 230), [
+            (sx, sy),
+            (sx - int(facing * _uw * 0.38), sy + int(bl * 0.28)),
+            (sx, sy + int(bl * 0.14)),
+        ])
+        # Red tie
+        pygame.draw.polygon(surface, (180, 20, 20), [
+            (sx,             sy + int(bl * 0.13)),
+            (sx - int(4*s), sy + int(bl * 0.22)),
+            (sx,             sy + int(bl * 0.34)),
+            (sx + int(4*s), sy + int(bl * 0.22)),
+        ])
+        # Floating computer (in front of character)
+        _kmp_x = sx + int(facing * int(al * 0.9))
+        _kmp_y = sy + int(bl * 0.08)
+        _km_w  = int(hd * 1.75)
+        _km_h  = int(hd * 1.25)
+        pygame.draw.rect(surface, (12, 12, 22),
+                         (_kmp_x - _km_w // 2, _kmp_y, _km_w, _km_h),
+                         border_radius=max(1, int(2*s)))
+        pygame.draw.rect(surface, (0, 180, 200),
+                         (_kmp_x - _km_w // 2, _kmp_y, _km_w, _km_h),
+                         max(1, int(s)), border_radius=max(1, int(2*s)))
+        # Scrolling code lines on screen
+        _scr_w = _km_w - int(4*s)
+        _scr_h = _km_h - int(4*s)
+        if _scr_w > 0 and _scr_h > 0:
+            _ssurf = pygame.Surface((_scr_w, _scr_h), pygame.SRCALPHA)
+            pygame.draw.rect(_ssurf, (0, 18, 38, 210), (0, 0, _scr_w, _scr_h))
+            _scroll_off = int(t * 28) % max(1, _scr_h)
+            for _sli in range(5):
+                _sly = (_sli * int(_scr_h / 4) - _scroll_off) % max(1, _scr_h)
+                _slen = int(_scr_w * (0.5 + (_sli % 3) * 0.15))
+                pygame.draw.line(_ssurf, (0, 200, 80, 180),
+                                 (int(2*s), _sly), (_slen, _sly), max(1, int(s)))
+            surface.blit(_ssurf, (_kmp_x - _km_w // 2 + int(2*s), _kmp_y + int(2*s)))
+        # Keyboard ledge
+        pygame.draw.rect(surface, (28, 28, 38),
+                         (_kmp_x - _km_w // 2, _kmp_y + _km_h,
+                          _km_w, max(3, int(5*s))),
+                         border_radius=max(1, int(s)))
+        # Kirin head features
+        # Fire mane wisps around head
+        for _kfi in range(6):
+            _kfa = math.radians(50 + _kfi * 48) + math.sin(t * 2.8 + _kfi * 0.9) * 0.35
+            _kfr = hd + int((3 + _kfi % 3 * 3) * s)
+            _kfx = hx + int(math.cos(_kfa) * _kfr)
+            _kfy = hy + int(math.sin(_kfa) * _kfr)
+            _kfc = (255, int(100 + _kfi * 22), 0)
+            pygame.draw.circle(surface, _kfc, (int(_kfx), int(_kfy)),
+                               max(2, int((2 + _kfi % 2) * s)))
+        # Curved horns
+        for _khs in (-1, 1):
+            _kh_bx = hx + _khs * int(hd * 0.42)
+            _kh_by = hy - hd + int(2*s)
+            pygame.draw.line(surface, (215, 175, 55),
+                             (_kh_bx, _kh_by),
+                             (_kh_bx + _khs * int(5*s), _kh_by - int(12*s)),
+                             max(2, int(3*s)))
+            pygame.draw.line(surface, (215, 175, 55),
+                             (_kh_bx + _khs * int(5*s), _kh_by - int(12*s)),
+                             (_kh_bx + _khs * int(2*s), _kh_by - int(22*s)),
+                             max(2, int(2*s)))
+        # Snout / muzzle
+        pygame.draw.ellipse(surface, (200, 150, 90),
+                            (hx + int(facing * hd * 0.28) - int(hd * 0.3),
+                             hy + int(hd * 0.08),
+                             int(hd * 0.62), int(hd * 0.42)))
+        pygame.draw.circle(surface, (160, 95, 55),
+                           (hx + int(facing * hd * 0.44), hy + int(hd * 0.22)),
+                           max(1, int(2*s)))
+        # Visors — glow bar across eyes, lifted slightly when adjusting
+        _adj_visor = (t % 7.0) < 0.55
+        _vsy = hy - int(hd * 0.08) - (int(5*s) if _adj_visor else 0)
+        _vsw = int(hd * 1.55)
+        _vsh = max(4, int(7*s))
+        pygame.draw.rect(surface, (0, 195, 235),
+                         (hx - _vsw // 2, _vsy - _vsh // 2, _vsw, _vsh),
+                         border_radius=max(2, int(3*s)))
+        pygame.draw.rect(surface, (0, 255, 255),
+                         (hx - _vsw // 2, _vsy - _vsh // 2, _vsw, _vsh),
+                         max(1, int(s)), border_radius=max(2, int(3*s)))
+        # Glare line on visor
+        pygame.draw.line(surface, (180, 255, 255),
+                         (hx - _vsw // 2 + int(3*s), _vsy - max(1, int(s))),
+                         (hx + _vsw // 2 - int(3*s), _vsy - max(1, int(s))),
+                         max(1, int(s)))
+        # Visor adjustment: back hand reaches up to visor
+        if _adj_visor:
+            _adj_hx = lhx if facing > 0 else rhx
+            _adj_hy = lhy if facing > 0 else rhy
+            pygame.draw.line(surface, col,
+                             (int(_adj_hx), int(_adj_hy)),
+                             (hx - int(facing * int(hd * 0.2)), _vsy),
+                             max(2, int(3*s)))
+
     elif char_name == "Red Herring":
         # Fish tail below waist (replaces legs visually — drawn as fin)
         _ft_col  = (220, 55, 55)

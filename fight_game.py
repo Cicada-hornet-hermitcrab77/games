@@ -429,6 +429,7 @@ UNLOCK_CONDITIONS = {
     "Behemoth":            ("wins_total",     None,            200,  "Win 200 matches"),
     "Boom-Boom-Boomerang": ("secret_chars",   None,             12,  "Unlock 12 secret characters"),
     "Red Herring":         ("secret_chars",   None,             15,  "Unlock 15 secret characters"),
+    "Kirin Adler":         ("secret_chars",   None,             20,  "Unlock 20 secret characters"),
     # ── batch 9 ─────────────────────────────────────────────────────────────
     "Marauder":            ("win_with",       "Desperado",       3,  "Win 3 matches as Desperado"),
     "Seraph":              ("perfect_wins",   None,              9,  "Win 9 matches at full HP"),
@@ -1207,6 +1208,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     _clue_idx   = 0
     _clue_popup = 0   # frames left to show "Huzzah!" popup
 
+    # Kirin Adler: type HEAL/HALT/DELETE for secret command abilities
+    _kirin_buf       = ""   # rolling keystroke buffer
+    _kirin_cmd_timer = 0    # frames left to show command visual
+    _kirin_cmd_type  = ""   # "heal", "halt", or "delete"
+
     # Rage Quitter unlock: type @#!#*%$ on the lose screen
     _RAGEQUIT_SEQ = "@#!#*%$"
     _ragequit_buf = ""
@@ -1300,6 +1306,30 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                                 _clue_idx     = 0
                         else:
                             _clue_idx = 1 if event.key == _CLUE_SEQ[0] else 0
+                    # Kirin Adler: HEAL / HALT / DELETE command words
+                    _ka_self = (p1 if p1.char.get("kirin_adler") else
+                                p2 if p2.char.get("kirin_adler") else None)
+                    if _ka_self is not None and hasattr(event, 'unicode') and event.unicode:
+                        _kc = event.unicode.lower()
+                        if _kc.isalpha():
+                            _kirin_buf += _kc
+                            if len(_kirin_buf) > 8:
+                                _kirin_buf = _kirin_buf[-8:]
+                            _ka_enemy = p2 if _ka_self is p1 else p1
+                            if _kirin_buf.endswith("heal"):
+                                _ka_self.hp = min(_ka_self.max_hp, _ka_self.hp + 30)
+                                _kirin_cmd_timer = 120; _kirin_cmd_type = "heal"
+                                _kirin_buf = ""
+                            elif _kirin_buf.endswith("halt"):
+                                _ka_enemy.freeze_frames = max(_ka_enemy.freeze_frames, 240)
+                                _kirin_cmd_timer = 120; _kirin_cmd_type = "halt"
+                                _kirin_buf = ""
+                            elif _kirin_buf.endswith("delete"):
+                                if not game_over:
+                                    _ka_enemy.hp = 0
+                                    _ka_enemy.flash_timer = 30
+                                _kirin_cmd_timer = 90; _kirin_cmd_type = "delete"
+                                _kirin_buf = ""
                     # <|-\||>+() tracking (Computer stage)
                     if is_computer and hasattr(event, 'unicode') and event.unicode:
                         _symbol_buf += event.unicode
@@ -3156,6 +3186,43 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 _huz_s.set_alpha(_huz_alpha)
                 screen.blit(_huz_s, (int(_rh_f.x) - _huz_s.get_width() // 2,
                                      int(_rh_f.y) - 160 - (120 - _clue_popup) // 3))
+        # Kirin Adler command visuals
+        if _kirin_cmd_timer > 0:
+            _kirin_cmd_timer -= 1
+            _ka_f = p1 if p1.char.get("kirin_adler") else p2 if p2.char.get("kirin_adler") else None
+            if _ka_f is not None:
+                _ka_alpha = min(255, _kirin_cmd_timer * 5)
+                _ka_cx = int(_ka_f.x)
+                _ka_cy = int(_ka_f.y) - 150
+                if _kirin_cmd_type == "heal":
+                    _kaf = _get_font(max(16, int(22 * _ka_f.draw_scale)))
+                    _kas = _kaf.render("HEAL +30", True, (80, 255, 120))
+                    _kas.set_alpha(_ka_alpha)
+                    screen.blit(_kas, (_ka_cx - _kas.get_width() // 2,
+                                       _ka_cy - (120 - _kirin_cmd_timer) // 3))
+                elif _kirin_cmd_type == "halt":
+                    _hsurf2 = pygame.Surface((64, 64), pygame.SRCALPHA)
+                    _hpts2 = [(32 + int(24 * math.cos(math.radians(i * 45 + 22.5))),
+                               32 + int(24 * math.sin(math.radians(i * 45 + 22.5))))
+                              for i in range(8)]
+                    pygame.draw.polygon(_hsurf2, (220, 30, 30, _ka_alpha), _hpts2)
+                    pygame.draw.polygon(_hsurf2, (255, 255, 255, min(255, _ka_alpha + 30)), _hpts2, 2)
+                    _hf3 = _get_font(max(9, int(13 * _ka_f.draw_scale)))
+                    _ht3 = _hf3.render("HALT", True, (255, 255, 255))
+                    _ht3.set_alpha(_ka_alpha)
+                    _hsurf2.blit(_ht3, (32 - _ht3.get_width() // 2, 32 - _ht3.get_height() // 2))
+                    screen.blit(_hsurf2, (_ka_cx + _ka_f.facing * 35 - 32, _ka_cy - 32))
+                elif _kirin_cmd_type == "delete":
+                    _dsurf2 = pygame.Surface((80, 55), pygame.SRCALPHA)
+                    pygame.draw.rect(_dsurf2, (180, 10, 10, _ka_alpha),
+                                     (0, 0, 80, 55), border_radius=8)
+                    pygame.draw.circle(_dsurf2, (255, 50, 50, _ka_alpha), (40, 28), 20)
+                    pygame.draw.circle(_dsurf2, (255, 200, 200, _ka_alpha), (40, 28), 20, 2)
+                    _df3 = _get_font(max(9, int(12 * _ka_f.draw_scale)))
+                    _dt3 = _df3.render("DELETE", True, (255, 255, 255))
+                    _dt3.set_alpha(_ka_alpha)
+                    _dsurf2.blit(_dt3, (40 - _dt3.get_width() // 2, 28 - _dt3.get_height() // 2))
+                    screen.blit(_dsurf2, (_ka_cx + _ka_f.facing * 30 - 40, _ka_cy - 28))
         # Orb Shooter: draw charging orb on fighter
         for _f in (p1, p2):
             if _f.char.get("orb_shooter") and _f._kick_held and _f.orb_charge > 0:
