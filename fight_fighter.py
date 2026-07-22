@@ -773,7 +773,7 @@ class Fighter:
             self.angle     = 0.0
             self.angle_vel = 0.0
 
-        spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
+        spd = self.char["speed"] * self.speed_boost
         if self.char.get("berserk_low") and self.hp < self.max_hp * 0.25:
             spd *= 2.0
         if self._berserker_active:
