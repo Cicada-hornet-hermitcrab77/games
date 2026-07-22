@@ -12661,19 +12661,32 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         # Fish tail below waist (replaces legs visually — drawn as fin)
         _ft_col  = (220, 55, 55)
         _ft_dark = (160, 30, 30)
+        # Fish tail extends behind the character (-facing direction)
+        _tb = -facing  # tail direction (opposite of facing)
+        _tail_root_x = wx + _tb * int(8*s)
+        _tail_root_y = wy - int(4*s)
+        _tail_tip_x  = wx + _tb * int(32*s)
+        _tail_tip_y  = wy + int(6*s)
+        # Two flukes fanning out from the tail tip
         pygame.draw.polygon(surface, _ft_col, [
-            (wx - int(14*s), wy),
-            (wx + int(14*s), wy),
-            (wx + int(22*s), wy + int(18*s)),
-            (wx,             wy + int(10*s)),
-            (wx - int(22*s), wy + int(18*s)),
+            (_tail_root_x,                      _tail_root_y),
+            (_tail_root_x + _tb * int(6*s),     _tail_root_y + int(8*s)),
+            (_tail_tip_x,                        _tail_tip_y - int(12*s)),
+            (_tail_tip_x + _tb * int(14*s),     _tail_tip_y - int(20*s)),
+            (_tail_tip_x + _tb * int(10*s),     _tail_tip_y),
+            (_tail_tip_x,                        _tail_tip_y + int(10*s)),
+            (_tail_tip_x + _tb * int(14*s),     _tail_tip_y + int(18*s)),
+            (_tail_root_x + _tb * int(6*s),     _tail_root_y + int(14*s)),
         ])
         pygame.draw.polygon(surface, _ft_dark, [
-            (wx - int(14*s), wy),
-            (wx + int(14*s), wy),
-            (wx + int(22*s), wy + int(18*s)),
-            (wx,             wy + int(10*s)),
-            (wx - int(22*s), wy + int(18*s)),
+            (_tail_root_x,                      _tail_root_y),
+            (_tail_root_x + _tb * int(6*s),     _tail_root_y + int(8*s)),
+            (_tail_tip_x,                        _tail_tip_y - int(12*s)),
+            (_tail_tip_x + _tb * int(14*s),     _tail_tip_y - int(20*s)),
+            (_tail_tip_x + _tb * int(10*s),     _tail_tip_y),
+            (_tail_tip_x,                        _tail_tip_y + int(10*s)),
+            (_tail_tip_x + _tb * int(14*s),     _tail_tip_y + int(18*s)),
+            (_tail_root_x + _tb * int(6*s),     _tail_root_y + int(14*s)),
         ], max(1, int(s)))
         # Deerstalker hat (Sherlock Holmes) — two peaks, front brim, ear flaps
         _dh_col  = (100, 70, 40)
