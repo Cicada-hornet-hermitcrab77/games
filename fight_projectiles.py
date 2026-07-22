@@ -1480,13 +1480,14 @@ class RemoteController:
     DMG    = 100
     RADIUS = 70   # explosion radius
 
-    def __init__(self, x, y, facing):
-        self.x      = float(x)
-        self.y      = float(y)
-        self.vx     = self.SPEED * facing
-        self.facing = facing
-        self.alive  = True
-        self.hit    = False
+    def __init__(self, x, y, facing, shooter=None):
+        self.x       = float(x)
+        self.y       = float(y)
+        self.vx      = self.SPEED * facing
+        self.facing  = facing
+        self.alive   = True
+        self.hit     = False
+        self.shooter = shooter
 
     def update(self):
         self.x += self.vx

@@ -9477,36 +9477,6 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                            (int(22*s), int(22*s)), int(20*s), max(1, int(2*s)))
         surface.blit(_tfsurf, (sx - int(22*s), (sy + wy)//2 - int(22*s)))
 
-    elif char_name == "Void Walker":
-        t = pygame.time.get_ticks()
-        # Deep void-purple body — semi-translucent
-        _vwsurf = pygame.Surface((int(26*s), bl), pygame.SRCALPHA)
-        pygame.draw.rect(_vwsurf, (20, 0, 40, 200),
-                         (0, 0, int(26*s), bl), border_radius=max(2, int(3*s)))
-        surface.blit(_vwsurf, (sx - int(13*s), sy))
-        pygame.draw.rect(surface, (80, 20, 120),
-                         (sx - int(13*s), sy, int(26*s), bl), max(1, int(s)),
-                         border_radius=max(2, int(3*s)))
-        # Void particles swirling inward
-        _vphase = t * 0.07
-        for _vwi in range(6):
-            _vwa = math.radians(_vwi * 60) + _vphase
-            _vwr = max(10, int((16 - (_vphase * 3 % 8))*s))
-            _vwx = sx + int(math.cos(_vwa) * _vwr)
-            _vwy = (sy + wy)//2 + int(math.sin(_vwa) * _vwr * 0.5)
-            _vwps = pygame.Surface((6, 6), pygame.SRCALPHA)
-            pygame.draw.circle(_vwps, (140, 0, 200, 160), (3, 3), 2)
-            surface.blit(_vwps, (_vwx - 3, _vwy - 3))
-        # Drain tendrils
-        _dtphase = t * 0.05
-        for _dti in range(3):
-            _dta = math.radians(_dti * 120) + _dtphase
-            pygame.draw.line(surface, (60, 0, 90),
-                             (sx, (sy + wy)//2),
-                             (sx + int(math.cos(_dta) * int(18*s)),
-                              (sy + wy)//2 + int(math.sin(_dta) * int(10*s))),
-                             max(1, int(s)))
-
     elif char_name == "Lich":
         t = pygame.time.get_ticks()
         # Dark plum robe
@@ -12615,14 +12585,80 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                              (_brim_x, _cap_y + _cap_h - int(3 * s),
                               _brim_w, max(2, int(4 * s))),
                              border_radius=max(1, int(2 * s)))
-            # T-shirt: bright colored rectangle around torso
-            _shirt_w = int(al * 1.3)
-            _shirt_h = int(bl * 0.7)
+            # "S" on hat
+            _sf_hat = _get_font(max(8, int(_cap_h * 1.1)))
+            _s_hat = _sf_hat.render("S", True, (255, 210, 40))
+            surface.blit(_s_hat, (hx - _s_hat.get_width() // 2,
+                                  _cap_y + _cap_h // 2 - _s_hat.get_height() // 2))
+            # T-shirt: covers full body
+            _shirt_w = int(al * 1.4)
+            _shirt_h = bl + int(4 * s)
             _shirt_x = sx - _shirt_w // 2
-            _shirt_y = sy - int(bl * 0.05)
+            _shirt_y = sy
             pygame.draw.rect(surface, (50, 200, 240),
                              (_shirt_x, _shirt_y, _shirt_w, _shirt_h),
                              border_radius=max(1, int(3 * s)))
+            # "S" on shirt
+            _sf_shirt = _get_font(max(10, int(bl * 0.55)))
+            _s_shirt = _sf_shirt.render("S", True, (255, 255, 255))
+            surface.blit(_s_shirt, (sx - _s_shirt.get_width() // 2,
+                                    sy + bl // 2 - _s_shirt.get_height() // 2))
+
+    elif char_name == "Red Herring":
+        # Fish tail below waist (replaces legs visually — drawn as fin)
+        _ft_col  = (220, 55, 55)
+        _ft_dark = (160, 30, 30)
+        pygame.draw.polygon(surface, _ft_col, [
+            (wx - int(14*s), wy),
+            (wx + int(14*s), wy),
+            (wx + int(22*s), wy + int(18*s)),
+            (wx,             wy + int(10*s)),
+            (wx - int(22*s), wy + int(18*s)),
+        ])
+        pygame.draw.polygon(surface, _ft_dark, [
+            (wx - int(14*s), wy),
+            (wx + int(14*s), wy),
+            (wx + int(22*s), wy + int(18*s)),
+            (wx,             wy + int(10*s)),
+            (wx - int(22*s), wy + int(18*s)),
+        ], max(1, int(s)))
+        # Deerstalker hat (Sherlock Holmes) — two peaks, front brim, ear flaps
+        _dh_col  = (100, 70, 40)
+        _dh_dark = (70,  45, 20)
+        _peak_h  = int(hd * 0.9)
+        _brim_w  = int(hd * 2.0)
+        # Hat body (low dome)
+        pygame.draw.ellipse(surface, _dh_col,
+                            (hx - int(hd*0.9), hy - hd - int(hd*0.5), int(hd*1.8), int(hd*0.65)))
+        # Front peak
+        pygame.draw.polygon(surface, _dh_col, [
+            (hx - int(hd*0.5), hy - hd),
+            (hx + int(hd*0.8), hy - hd + int(4*s)),
+            (hx + int(hd*0.6), hy - hd + int(_peak_h * 0.5)),
+            (hx - int(hd*0.3), hy - hd + int(_peak_h * 0.4)),
+        ])
+        # Back peak (opposite side)
+        pygame.draw.polygon(surface, _dh_col, [
+            (hx + int(hd*0.5), hy - hd),
+            (hx - int(hd*0.8), hy - hd + int(4*s)),
+            (hx - int(hd*0.6), hy - hd + int(_peak_h * 0.5)),
+            (hx + int(hd*0.3), hy - hd + int(_peak_h * 0.4)),
+        ])
+        # Hat band
+        pygame.draw.line(surface, _dh_dark,
+                         (hx - int(hd*0.85), hy - hd - int(2*s)),
+                         (hx + int(hd*0.85), hy - hd - int(2*s)), max(2, int(3*s)))
+        # Magnifying glass in right hand
+        _mgx = rhx + int(facing * 8*s)
+        _mgy = rhy - int(4*s)
+        _mg_r = max(5, int(8*s))
+        pygame.draw.circle(surface, (180, 220, 255), (_mgx, _mgy), _mg_r, max(1, int(2*s)))
+        pygame.draw.line(surface, (120, 80, 40),
+                         (_mgx + int(math.cos(math.radians(45)) * _mg_r),
+                          _mgy + int(math.sin(math.radians(45)) * _mg_r)),
+                         (_mgx + int(math.cos(math.radians(45)) * (_mg_r + int(6*s))),
+                          _mgy + int(math.sin(math.radians(45)) * (_mg_r + int(6*s)))),
+                         max(2, int(3*s)))
 
     elif char_name == "Stickman of Liberty":
         _liberty   = (88, 152, 132)

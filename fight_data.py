@@ -997,10 +997,6 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 10, "max_hp": 110, "block": 6,
      "desc": "Freezes time with every other attack, immune to all status effects",
      "double_jump": False, "time_freeze": True, "immune": True, "cycle_attack": True},
-    {"name": "Void Walker", "color": (30, 0, 50), "speed": 6, "jump": -14,
-     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 100, "block": 4,
-     "desc": "Immune to projectiles, phases through walls, drains HP by proximity",
-     "double_jump": True, "void_immune": True, "phase": True, "drain_aura": True},
     {"name": "Lich", "color": (60, 30, 80), "speed": 4, "jump": -13,
      "punch_dmg": 9, "kick_dmg": 11, "max_hp": 105, "block": 5,
      "desc": "Revives once, drains life on every kick, and punch puts the enemy to sleep",
@@ -1544,6 +1540,10 @@ CHARACTERS = [
      "punch_dmg": 25, "kick_dmg": 25, "max_hp": 90, "block": 5,
      "desc": "Attacks deal 200, 25, 0, or -2 damage — good luck",
      "double_jump": False, "nghs_variant": True, "chaos_nghs": True, "ngs_dreidel": True},
+    {"name": "Red Herring", "color": (220, 55, 55), "speed": 5, "jump": -13,
+     "punch_dmg": 8, "kick_dmg": 10, "max_hp": 100, "block": 4,
+     "desc": "???",
+     "double_jump": False, "shoot_kick": True, "red_herring": True},
 ]
 
 POWERUPS = [

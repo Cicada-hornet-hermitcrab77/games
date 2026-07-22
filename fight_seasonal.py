@@ -38,6 +38,7 @@ SEASONAL_SHOP_CHARS = [
     # ── Hearts and Harmonies ─────────────────────────────────────────────────
     {"name": "Smoochie",       "event": "Hearts and Harmonies", "cost": 330},
     {"name": "Harpy",          "event": "Hearts and Harmonies", "cost":  50},
+    {"name": "Angel",          "event": "Hearts and Harmonies", "cost":  75},
     # ── Emerald Echoes ───────────────────────────────────────────────────────
     {"name": "Clover",         "event": "Emerald Echoes",        "cost": 270},
     {"name": "Lucky",          "event": "Emerald Echoes",        "cost": 150},

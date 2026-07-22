@@ -976,7 +976,7 @@ class Fighter:
                     if self.dash_tap_left > 0:
                         self.dash_frames    = 8
                         self.dash_dir       = -1
-                        self.dash_cd        = 40
+                        self.dash_cd        = 120
                         self.dash_tap_left  = 0
                         self.action = 'jump'
                     else:
@@ -997,7 +997,7 @@ class Fighter:
                     if self.dash_tap_right > 0:
                         self.dash_frames    = 8
                         self.dash_dir       = 1
-                        self.dash_cd        = 40
+                        self.dash_cd        = 120
                         self.dash_tap_right = 0
                         self.action = 'jump'
                     else:
@@ -1155,6 +1155,8 @@ class Fighter:
         if self.char.get("lance_punch") and self.action == 'punch':
             hit_pos = (hit_pos[0] + self.facing * 70, hit_pos[1])
         dist = math.hypot(hit_pos[0] - other.x, hit_pos[1] - hit_cy)
+        if other.dash_frames > 0:
+            return  # invincible during dash
         if dist < hit_r:
             # Godslayer one-shot fires before normal damage calc
             if self.char.get("godslayer") and self.one_shot_armed and not self.one_shot_used:
@@ -1598,6 +1600,8 @@ class Fighter:
 
     def take_proj_dmg(self, dmg, flash=True):
         """Apply damage from projectiles/chomps/contact — respects mega_unhittable and immune."""
+        if self.dash_frames > 0:
+            return  # invincible during dash
         if self.char.get("immune"):
             return
         if self.char.get("tombstone_reflect") or (self.char.get("mega_unhittable") and random.random() < 0.999):

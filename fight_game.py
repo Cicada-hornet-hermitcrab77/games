@@ -9,7 +9,7 @@ import constants
 from constants import *
 from fight_data import CHARACTERS, POWERUPS, STAGES, STAGE_MATCHUPS
 from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
-                           draw_win_screen, draw_active_powerups)
+                           draw_win_screen, draw_active_powerups, _get_font)
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt, SlantedConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull, HazardZone,
@@ -201,7 +201,7 @@ UNLOCK_CONDITIONS = {
     "Scratch":             ("konami_unlock",        None,            1,  "???",                                True),
     "Void Master":         ("win_on_stage",         "The Void",      5,  "Some masters fear no darkness",      True),
     "Screentime":          ("played_at_noon",       None,            1,  "Timing is everything",               True),
-    "God":                 ("perfect_mega_hard_win",None,            1,  "A feat only gods achieve",           True),
+    "God":                 ("iddqd_win",            None,            1,  "A feat only gods achieve",           True),
     "Nightfall":           ("midnight_wins",        None,            3,  "The night is young",                 True),
     "Lucky":               ("lucky_win",            None,            1,  "Hanging by a thread",                True),
     "Great Totem Spirit":  ("died_from_totem",       None,            1,  "Respect the ancient power",          True),
@@ -339,7 +339,6 @@ UNLOCK_CONDITIONS = {
     "Minotaur":            ("win_with",       "Titan Smash",     3,  "Win 3 matches as Titan Smash"),
     "Puppet Master":       ("win_with",       "Infiltrator",     3,  "Win 3 matches as Infiltrator"),
     "Clockwork":           ("win_with",       "Ancient",         3,  "Win 3 matches as Ancient"),
-    "Void Walker":         ("win_with",       "Void Master",     3,  "Win 3 matches as Void Master"),
     "Lich":                ("win_with",       "Soul Eater",      3,  "Win 3 matches as Soul Eater"),
     "Crimson":             ("clutch_wins",    None,             25,  "Win 25 matches with ≤10 HP"),
     "Jester":              ("win_with",       "Glitch",          3,  "Win 3 matches as Glitch"),
@@ -429,6 +428,7 @@ UNLOCK_CONDITIONS = {
     "Chronomancer":        ("win_with",       "Time Warden",     3,  "Win 3 matches as Time Warden"),
     "Behemoth":            ("wins_total",     None,            200,  "Win 200 matches"),
     "Boom-Boom-Boomerang": ("secret_chars",   None,             12,  "Unlock 12 secret characters"),
+    "Red Herring":         ("secret_chars",   None,             15,  "The evidence is misleading...",      True),
     # ── batch 9 ─────────────────────────────────────────────────────────────
     "Marauder":            ("win_with",       "Desperado",       3,  "Win 3 matches as Desperado"),
     "Seraph":              ("perfect_wins",   None,              9,  "Win 9 matches at full HP"),
@@ -1202,6 +1202,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     _iddqd_idx  = 0
     _iddqd_done = False
 
+    # Red Herring: type CLUE during a match to say "Huzzah!" and heal to full
+    _CLUE_SEQ   = [pygame.K_c, pygame.K_l, pygame.K_u, pygame.K_e]
+    _clue_idx   = 0
+    _clue_popup = 0   # frames left to show "Huzzah!" popup
+
     # Rage Quitter unlock: type @#!#*%$ on the lose screen
     _RAGEQUIT_SEQ = "@#!#*%$"
     _ragequit_buf = ""
@@ -1283,6 +1288,18 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                                 _iddqd_done = True
                         else:
                             _iddqd_idx = 1 if event.key == _IDDQD[0] else 0
+                    # Red Herring: type CLUE to heal to full (if Red Herring is a player)
+                    _rh_player = (p1 if p1.char.get("red_herring") else
+                                  p2 if p2.char.get("red_herring") else None)
+                    if _rh_player is not None:
+                        if event.key == _CLUE_SEQ[_clue_idx]:
+                            _clue_idx += 1
+                            if _clue_idx == len(_CLUE_SEQ):
+                                _rh_player.hp = _rh_player.max_hp
+                                _clue_popup   = 120
+                                _clue_idx     = 0
+                        else:
+                            _clue_idx = 1 if event.key == _CLUE_SEQ[0] else 0
                     # <|-\||>+() tracking (Computer stage)
                     if is_computer and hasattr(event, 'unicode') and event.unicode:
                         _symbol_buf += event.unicode
@@ -1915,11 +1932,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 if shooter.pending_remote:
                     shooter.pending_remote = False
                     remotes.append(RemoteController(shooter.x + shooter.facing * 30,
-                                                    shooter.y - 60, shooter.facing))
+                                                    shooter.y - 60, shooter.facing,
+                                                    shooter=shooter))
             for r in remotes:
                 r.update()
                 if not r.hit:
                     for victim in (p1, p2):
+                        if victim is r.shooter:
+                            continue
                         if r.collides(victim):
                             victim.take_proj_dmg(RemoteController.DMG)
                             victim.flash_timer = 20
@@ -2432,6 +2452,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         nb._hit.add(id(victim))
                         victim.take_proj_dmg(NianBreath.DMG)
                         if not victim.char.get("immune"):
+                            if victim.fire_frames == 0: victim.fire_tick = 60
                             victim.fire_frames = max(victim.fire_frames, NianBreath.FIRE_FRAMES)
                         victim.flash_timer = max(victim.flash_timer, 12)
             nian_breaths = [nb for nb in nian_breaths if nb.alive]
@@ -3124,6 +3145,17 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                                          (int(f.x), int(f.y - 60)), 1)
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen)
+        # Red Herring "Huzzah!" heal popup
+        if _clue_popup > 0:
+            _clue_popup -= 1
+            _rh_f = p1 if p1.char.get("red_herring") else p2 if p2.char.get("red_herring") else None
+            if _rh_f is not None:
+                _huz_f = _get_font(max(18, int(28 * _rh_f.draw_scale)))
+                _huz_s = _huz_f.render("Huzzah!", True, (255, 230, 80))
+                _huz_alpha = min(255, _clue_popup * 5)
+                _huz_s.set_alpha(_huz_alpha)
+                screen.blit(_huz_s, (int(_rh_f.x) - _huz_s.get_width() // 2,
+                                     int(_rh_f.y) - 160 - (120 - _clue_popup) // 3))
         # Orb Shooter: draw charging orb on fighter
         for _f in (p1, p2):
             if _f.char.get("orb_shooter") and _f._kick_held and _f.orb_charge > 0:
@@ -3768,9 +3800,19 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         nb._hit.add(id(victim))
                         victim.take_proj_dmg(NianBreath.DMG)
                         if not victim.char.get("immune"):
+                            if victim.fire_frames == 0: victim.fire_tick = 60
                             victim.fire_frames = max(victim.fire_frames, NianBreath.FIRE_FRAMES)
                         victim.flash_timer = max(victim.flash_timer, 12)
             nian_breaths = [nb for nb in nian_breaths if nb.alive]
+
+            # Clover / Gilded Clover — snake kick spawns a snake (survival)
+            for p in players:
+                if p.pending_clover_snake:
+                    p.pending_clover_snake = False
+                    jungle_snakes.append(JungleSnake())
+                if p.pending_golden_snake:
+                    p.pending_golden_snake = False
+                    jungle_snakes.append(GoldenJungleSnake())
 
             # Player orbs → enemies
             for o in orbs:
@@ -5133,14 +5175,15 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                             victim.fire_frames = max(victim.fire_frames, 480)
                             fb.alive = False
             fire_balls = [fb for fb in fire_balls if fb.alive]
-            # Nian breath — wide cone, hits players and enemies
+            # Nian breath — wide cone, hits players
             for nb in nian_breaths:
                 nb.update()
-                for victim in living + enemies:
+                for victim in (p1, p2):
                     if nb.owner is not victim and id(victim) not in nb._hit and nb.in_cone(victim):
                         nb._hit.add(id(victim))
                         victim.take_proj_dmg(NianBreath.DMG)
                         if not victim.char.get("immune"):
+                            if victim.fire_frames == 0: victim.fire_tick = 60
                             victim.fire_frames = max(victim.fire_frames, NianBreath.FIRE_FRAMES)
                         victim.flash_timer = max(victim.flash_timer, 12)
             nian_breaths = [nb for nb in nian_breaths if nb.alive]
@@ -5906,7 +5949,7 @@ def main():
                 "High Roller", "Lucky", "Clover",
             })
             p1_idx, p2_idx = character_select(
-                vs_ai=False, unlocked=_CASINO_FILTER,
+                vs_ai=True, unlocked=_CASINO_FILTER,
                 char_filter=_CASINO_FILTER,
                 select_title="THE CASINO",
             )
@@ -5914,7 +5957,7 @@ def main():
                 continue
             _cas_stage_idx = next((i for i, st in enumerate(STAGES) if st["name"] == "The Casino"), 0)
             while True:
-                result = run_fight(p1_idx, p2_idx, vs_ai=False, stage_idx=_cas_stage_idx)
+                result = run_fight(p1_idx, p2_idx, vs_ai=True, ai_difficulty='mega_hard', stage_idx=_cas_stage_idx)
                 action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
                 p1_won = info[0] if isinstance(info, tuple) else False
                 if p1_won:
@@ -5996,7 +6039,7 @@ def main():
                 "Inferno",  "Magma",    "Trailblazer", "Solara",
             })
             p1_idx, p2_idx = character_select(
-                vs_ai=False, unlocked=_FIL_FILTER,
+                vs_ai=True, unlocked=_FIL_FILTER,
                 char_filter=_FIL_FILTER,
                 select_title="FLOOR IS LAVA",
             )
@@ -6004,7 +6047,7 @@ def main():
                 continue
             _fil_stage_idx = next((i for i, st in enumerate(STAGES) if st["name"] == "Floor is Lava"), 0)
             while True:
-                result = run_fight(p1_idx, p2_idx, vs_ai=False, stage_idx=_fil_stage_idx)
+                result = run_fight(p1_idx, p2_idx, vs_ai=True, ai_difficulty='mega_hard', stage_idx=_fil_stage_idx)
                 action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
                 p1_won = info[0] if isinstance(info, tuple) else False
                 if p1_won:
@@ -6086,7 +6129,7 @@ def main():
                 "Rainbow Man", "Soul Master", "Crazy", "Chaos", "Nun-Gimel-Hei-Shin",
             })
             p1_idx, p2_idx = character_select(
-                vs_ai=False, unlocked=_CAU_FILTER,
+                vs_ai=True, unlocked=_CAU_FILTER,
                 char_filter=_CAU_FILTER,
                 select_title="CHAOS AURA",
             )
@@ -6094,7 +6137,7 @@ def main():
                 continue
             _cau_stage_idx = next((i for i, st in enumerate(STAGES) if st["name"] == "Chaos Arena"), 0)
             while True:
-                result = run_fight(p1_idx, p2_idx, vs_ai=False, stage_idx=_cau_stage_idx)
+                result = run_fight(p1_idx, p2_idx, vs_ai=True, ai_difficulty='mega_hard', stage_idx=_cau_stage_idx)
                 action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
                 p1_won = info[0] if isinstance(info, tuple) else False
                 if p1_won:
@@ -6178,7 +6221,7 @@ def main():
                 "Morph", "Titan Smash", "Abomination", "Emperor",
             })
             p1_idx, p2_idx = character_select(
-                vs_ai=False, unlocked=_GIANTS_FILTER,
+                vs_ai=True, unlocked=_GIANTS_FILTER,
                 char_filter=_GIANTS_FILTER,
                 select_title="GIANTS AMONG US",
             )
@@ -6186,7 +6229,7 @@ def main():
                 continue
             _gau_stage_idx = next((i for i, st in enumerate(STAGES) if st["name"] == "Giants Among Us"), 0)
             while True:
-                result = run_fight(p1_idx, p2_idx, vs_ai=False, stage_idx=_gau_stage_idx, giant_mode=True)
+                result = run_fight(p1_idx, p2_idx, vs_ai=True, ai_difficulty='mega_hard', stage_idx=_gau_stage_idx, giant_mode=True)
                 action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
                 p1_won = info[0] if isinstance(info, tuple) else False
                 if p1_won:
