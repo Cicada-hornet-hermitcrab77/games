@@ -3223,6 +3223,30 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     _jf.angle = 0.0
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen)
+        # WakeUp — hat pops up on kick, revealing a teddy bear underneath
+        for _wf in (p1, p2):
+            if _wf.char.get("teddy_rain") and _wf.hat_pop_timer > 0:
+                _wsc   = _wf.draw_scale
+                _whx   = int(_wf.x)
+                _why   = int(_wf.y - 118 * _wsc)
+                _whd   = max(6, int(18 * _wsc))
+                _wfrac = _wf.hat_pop_timer / 45.0
+                _wpop  = math.sin(math.pi * _wfrac) * 40 * _wsc
+                # Teddy bear face peeking out from under the head
+                _tex, _tey = _whx, _why
+                pygame.draw.circle(screen, (150, 100, 60), (_tex - int(_whd*0.75), _tey - int(_whd*0.8)), max(2, _whd//2))
+                pygame.draw.circle(screen, (150, 100, 60), (_tex + int(_whd*0.75), _tey - int(_whd*0.8)), max(2, _whd//2))
+                pygame.draw.circle(screen, (150, 100, 60), (_tex, _tey), _whd)
+                pygame.draw.circle(screen, (210, 170, 120), (_tex, _tey + _whd//4), _whd//2)
+                for _tx2 in (_tex - _whd//3, _tex + _whd//3):
+                    pygame.draw.circle(screen, (20, 15, 15), (_tx2, _tey - _whd//5), max(1, _whd//6))
+                # Nightcap, popped up above the head on an arc
+                _cap_y  = _why - _whd - int(_wpop)
+                _cap_tip_x = _whx - _wf.facing * int(_whd * 1.3)
+                _cap_tip_y = _cap_y - int(_whd * 0.9)
+                pygame.draw.polygon(screen, (70, 75, 165),
+                                    [(_whx - _whd, _cap_y), (_whx + _whd, _cap_y), (_cap_tip_x, _cap_tip_y)])
+                pygame.draw.circle(screen, (255, 255, 255), (_cap_tip_x, _cap_tip_y), max(2, int(_whd*0.3)))
         # Red Herring "Huzzah!" heal popup
         if _clue_popup > 0:
             _clue_popup -= 1
@@ -4650,6 +4674,28 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen) if two_player else None
         en_hits = [(en, en.draw(screen)) for en in enemies]
+        # WakeUp — hat pops up on kick, revealing a teddy bear underneath
+        for _wf in players + enemies:
+            if _wf.char.get("teddy_rain") and _wf.hat_pop_timer > 0:
+                _wsc   = _wf.draw_scale
+                _whx   = int(_wf.x)
+                _why   = int(_wf.y - 118 * _wsc)
+                _whd   = max(6, int(18 * _wsc))
+                _wfrac = _wf.hat_pop_timer / 45.0
+                _wpop  = math.sin(math.pi * _wfrac) * 40 * _wsc
+                _tex, _tey = _whx, _why
+                pygame.draw.circle(screen, (150, 100, 60), (_tex - int(_whd*0.75), _tey - int(_whd*0.8)), max(2, _whd//2))
+                pygame.draw.circle(screen, (150, 100, 60), (_tex + int(_whd*0.75), _tey - int(_whd*0.8)), max(2, _whd//2))
+                pygame.draw.circle(screen, (150, 100, 60), (_tex, _tey), _whd)
+                pygame.draw.circle(screen, (210, 170, 120), (_tex, _tey + _whd//4), _whd//2)
+                for _tx2 in (_tex - _whd//3, _tex + _whd//3):
+                    pygame.draw.circle(screen, (20, 15, 15), (_tx2, _tey - _whd//5), max(1, _whd//6))
+                _cap_y  = _why - _whd - int(_wpop)
+                _cap_tip_x = _whx - _wf.facing * int(_whd * 1.3)
+                _cap_tip_y = _cap_y - int(_whd * 0.9)
+                pygame.draw.polygon(screen, (70, 75, 165),
+                                    [(_whx - _whd, _cap_y), (_whx + _whd, _cap_y), (_cap_tip_x, _cap_tip_y)])
+                pygame.draw.circle(screen, (255, 255, 255), (_cap_tip_x, _cap_tip_y), max(2, int(_whd*0.3)))
         # Bubble shield visuals (survival)
         for f in players:
             if f.bubble_shield:

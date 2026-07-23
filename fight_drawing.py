@@ -14099,6 +14099,96 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                         pygame.Rect(_sack_x - int(3*s), _sack_y - int(1*s), int(6*s), int(5*s)),
                         math.pi * 1.1, math.pi * 2.0, max(1, int(s)))
 
+    elif char_name == "WakeUp":
+        _wt      = pygame.time.get_ticks() / 1000.0
+        _wcycle  = _wt % 8.0            # alarm rings every 8 seconds
+        _ringing = _wcycle < 0.6
+        _shake   = int(math.sin(_wt * 40) * 3 * s) if _ringing else 0
+
+        # ── Striped pajama shirt ────────────────────────────────────────────
+        _shirt_w = int(al * 0.9)
+        _shirt_h = bl + int(4 * s)
+        _shirt_x = sx - _shirt_w // 2
+        _shirt_y = sy
+        pygame.draw.rect(surface, (130, 150, 225), (_shirt_x, _shirt_y, _shirt_w, _shirt_h),
+                         border_radius=max(1, int(3*s)))
+        for _pi in range(0, _shirt_h, max(4, int(6*s))):
+            pygame.draw.line(surface, (225, 232, 255), (_shirt_x, _shirt_y + _pi),
+                             (_shirt_x + _shirt_w, _shirt_y + _pi), max(1, int(s)))
+        pygame.draw.rect(surface, (85, 100, 180), (_shirt_x, _shirt_y, _shirt_w, _shirt_h),
+                         max(1, int(s)), border_radius=max(1, int(3*s)))
+        # Pajama shorts flaring out below the waist
+        _shorts_w = int(_shirt_w * 1.15)
+        pygame.draw.polygon(surface, (130, 150, 225), [
+            (wx - _shirt_w//2, wy - int(4*s)), (wx + _shirt_w//2, wy - int(4*s)),
+            (wx + _shorts_w//2, wy + int(14*s)), (wx - _shorts_w//2, wy + int(14*s))])
+        for _pi in range(0, int(14*s), max(4, int(6*s))):
+            pygame.draw.line(surface, (225, 232, 255), (wx - _shorts_w//2, wy - int(4*s) + _pi),
+                             (wx + _shorts_w//2, wy - int(4*s) + _pi), max(1, int(s)))
+
+        # ── Sleep mask over the eyes ─────────────────────────────────────────
+        _mask_y = hy - int(hd * 0.08)
+        pygame.draw.ellipse(surface, (35, 35, 65), (hx - hd, _mask_y - int(hd*0.24), hd*2, int(hd*0.5)))
+        pygame.draw.line(surface, (35, 35, 65), (hx - hd, _mask_y),
+                         (hx - hd - int(7*s), _mask_y - int(3*s)), max(1, int(2*s)))
+        pygame.draw.line(surface, (35, 35, 65), (hx + hd, _mask_y),
+                         (hx + hd + int(7*s), _mask_y - int(3*s)), max(1, int(2*s)))
+
+        # ── Droopy nightcap with pompom (drawn behind eye mask so it reads on top of head) ──
+        _cap_base_y = hy - int(hd * 0.55)
+        _cap_tip_x  = hx - facing * int(hd * 1.3)
+        _cap_tip_y  = _cap_base_y - int(hd * 0.9)
+        pygame.draw.polygon(surface, (70, 75, 165),
+                            [(hx - hd, _cap_base_y), (hx + hd, _cap_base_y), (_cap_tip_x, _cap_tip_y)])
+        pygame.draw.polygon(surface, (45, 50, 120),
+                            [(hx - hd, _cap_base_y), (hx + hd, _cap_base_y), (_cap_tip_x, _cap_tip_y)],
+                            max(1, int(2*s)))
+        pygame.draw.rect(surface, (225, 228, 250),
+                         (hx - hd, _cap_base_y - int(3*s), hd*2, int(6*s)), border_radius=max(1, int(2*s)))
+        pygame.draw.circle(surface, (255, 255, 255), (_cap_tip_x, _cap_tip_y), max(3, int(hd*0.28)))
+
+        # ── Gigantic alarm clock carried in the front hand, mushrooms on the case ──
+        _chx, _chy = (rhx, rhy) if facing > 0 else (lhx, lhy)
+        _cr  = max(16, int(hd * 1.7))
+        _ccx, _ccy = _chx + _shake, _chy
+        for _bsign in (-1, 1):
+            _bx3 = _ccx + _bsign * int(_cr * 0.65)
+            _by3 = _ccy - int(_cr * 0.85)
+            pygame.draw.line(surface, (150, 120, 20), (_ccx, _ccy - int(_cr*0.9)), (_bx3, _by3), max(1, int(2*s)))
+            pygame.draw.circle(surface, (205, 175, 45), (_bx3, _by3), max(4, int(_cr*0.3)))
+            pygame.draw.circle(surface, (150, 120, 20), (_bx3, _by3), max(4, int(_cr*0.3)), max(1, int(s)))
+        for _fsign in (-1, 1):
+            pygame.draw.circle(surface, (140, 30, 30),
+                               (_ccx + _fsign*int(_cr*0.5), _ccy + int(_cr*0.95)), max(2, int(3*s)))
+        pygame.draw.circle(surface, (230, 60, 60), (_ccx, _ccy), _cr)
+        pygame.draw.circle(surface, (255, 245, 222), (_ccx, _ccy), int(_cr * 0.78))
+        pygame.draw.circle(surface, (140, 30, 30), (_ccx, _ccy), _cr, max(2, int(3*s)))
+        _hr_ang = math.radians((_wcycle / 8.0) * 360 - 90)
+        _mn_ang = math.radians((_wcycle / 8.0) * 360 * 4 - 90)
+        pygame.draw.line(surface, (25, 25, 25), (_ccx, _ccy),
+                         (_ccx + int(math.cos(_hr_ang)*_cr*0.42), _ccy + int(math.sin(_hr_ang)*_cr*0.42)),
+                         max(2, int(3*s)))
+        pygame.draw.line(surface, (25, 25, 25), (_ccx, _ccy),
+                         (_ccx + int(math.cos(_mn_ang)*_cr*0.62), _ccy + int(math.sin(_mn_ang)*_cr*0.62)),
+                         max(1, int(2*s)))
+        pygame.draw.circle(surface, (25, 25, 25), (_ccx, _ccy), max(1, int(2*s)))
+        # Fly-agaric mushrooms sprouting from the clock case
+        for _mdx, _mdy, _mr in [(-0.55, 0.35, 0.34), (0.5, 0.5, 0.28), (0.05, 0.68, 0.22)]:
+            _mx3, _my3 = _ccx + int(_mdx*_cr), _ccy + int(_mdy*_cr)
+            _mcr = max(3, int(_cr * _mr * 0.55))
+            pygame.draw.line(surface, (232, 226, 210), (_mx3, _my3), (_mx3, _my3 + int(_mcr*0.9)), max(1, int(2*s)))
+            pygame.draw.circle(surface, (212, 40, 40), (_mx3, _my3), _mcr)
+            pygame.draw.circle(surface, (150, 20, 20), (_mx3, _my3), _mcr, max(1, int(s)))
+            for _spdx, _spdy in [(-0.4, -0.2), (0.35, -0.1), (0, 0.3)]:
+                pygame.draw.circle(surface, (255, 255, 255),
+                                   (_mx3 + int(_spdx*_mcr), _my3 + int(_spdy*_mcr)), max(1, int(_mcr*0.22)))
+
+        # ── "WAKE UP!" shout, once per 8-second cycle ────────────────────────
+        if _ringing:
+            _wfont = _get_font(max(12, int(hd * 0.9)))
+            _wtxt  = _wfont.render("WAKE UP!", True, (255, 225, 40))
+            surface.blit(_wtxt, (_ccx - _wtxt.get_width()//2, _ccy - _cr - int(hd*1.3) - abs(_shake)))
+
 
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color
