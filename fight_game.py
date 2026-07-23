@@ -12,7 +12,7 @@ from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
                            draw_win_screen, draw_active_powerups, _get_font)
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt, SlantedConveyorBelt,
-                            Spring, SnakeHook, Pumpkin, FallingSkull, HazardZone,
+                            Spring, SnakeHook, Pumpkin, FallingSkull, FallingTeddy, HazardZone,
                             JungleSnake, GoldenJungleSnake, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall, Whip, HotPotato,
                             FallingPot, RollingCoin, FallingMerlin,
@@ -431,6 +431,7 @@ UNLOCK_CONDITIONS = {
     "Red Herring":         ("secret_chars",   None,             15,  "Unlock 15 secret characters"),
     "Kirin Adler":         ("secret_chars",   None,             27,  "Unlock 27 secret characters"),
     "Jawke":               ("secret_chars",   None,             20,  "Unlock 20 secret characters"),
+    "WakeUp":              ("secret_chars",   None,             23,  "Unlock 23 secret characters"),
     # ── batch 9 ─────────────────────────────────────────────────────────────
     "Marauder":            ("win_with",       "Desperado",       3,  "Win 3 matches as Desperado"),
     "Seraph":              ("perfect_wins",   None,              9,  "Win 9 matches at full HP"),
@@ -1133,6 +1134,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     bug_spawn_timer    = 150
     falling_skulls     = []
     skull_spawn_timer  = 200
+    falling_teddies    = []   # WakeUp: teddy bear rain
     casino_coins     = []   # falling coins on The Casino stage
     casino_coin_cd   = 90
     is_casino        = stage_data["name"] == "The Casino"
@@ -2507,6 +2509,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 if fighter.pending_golden_snake:
                     fighter.pending_golden_snake = False
                     jungle_snakes.append(GoldenJungleSnake())
+            # WakeUp — kick pops the hat and summons teddy bear rain
+            for fighter in (p1, p2):
+                if fighter.pending_teddy_rain:
+                    fighter.pending_teddy_rain = False
+                    for _ in range(6):
+                        if len(falling_teddies) < 24:
+                            falling_teddies.append(FallingTeddy())
             # Solara — sun beams (shock + burn)
             for shooter, victim in [(p1, p2), (p2, p1)]:
                 if shooter.pending_sun_beam:
@@ -2827,6 +2836,17 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                                 victim.flash_timer = 10
                                 sk.hit_cd = sk.HIT_CD
 
+            # Falling teddy bears (WakeUp)
+            for tb in falling_teddies:
+                tb.update()
+                if tb.hit_cd == 0:
+                    for victim in (p1, p2):
+                        if tb.collides(victim):
+                            victim.take_proj_dmg(tb.DMG)
+                            victim.flash_timer = 10
+                            tb.hit_cd = tb.HIT_CD
+            falling_teddies = [tb for tb in falling_teddies if tb.alive]
+
             timer -= 1
             if timer <= 0 or p1.hp <= 0 or p2.hp <= 0:
                 # Jetpack unlock: p1 fell into void with 2–7 seconds remaining
@@ -3140,6 +3160,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             sn.draw(screen)
         for sk in falling_skulls:
             sk.draw(screen)
+        for tb in falling_teddies:
+            tb.draw(screen)
         for b in computer_bugs:
             b.draw(screen)
         # Draw casino coins
@@ -3504,6 +3526,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     bug_spawn_timer   = 150
     falling_skulls    = []
     skull_spawn_timer = 200
+    falling_teddies   = []   # WakeUp: teddy bear rain
     survival_timer    = 0
     enemies_killed    = 0
     enemy_spawn_timer = 180
@@ -3955,6 +3978,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     p.pending_golden_snake = False
                     jungle_snakes.append(GoldenJungleSnake())
 
+            # WakeUp — kick pops the hat and summons teddy bear rain (survival)
+            for p in players:
+                if p.pending_teddy_rain:
+                    p.pending_teddy_rain = False
+                    for _ in range(6):
+                        if len(falling_teddies) < 24:
+                            falling_teddies.append(FallingTeddy())
+
             # Player orbs → enemies
             for o in orbs:
                 o.update()
@@ -4377,6 +4408,16 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                                 victim.flash_timer = 10
                                 sk.hit_cd = sk.HIT_CD
 
+            for tb in falling_teddies:
+                tb.update()
+                if tb.hit_cd == 0:
+                    for victim in [p for p in players if p.hp > 0] + enemies:
+                        if tb.collides(victim):
+                            victim.take_proj_dmg(tb.DMG)
+                            victim.flash_timer = 10
+                            tb.hit_cd = tb.HIT_CD
+            falling_teddies = [tb for tb in falling_teddies if tb.alive]
+
             if is_computer:
                 bug_spawn_timer -= 1
                 if bug_spawn_timer <= 0 and len(computer_bugs) < 5:
@@ -4541,6 +4582,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for w    in en_whips:      w.draw(screen)
         for sn   in jungle_snakes: sn.draw(screen)
         for sk   in falling_skulls: sk.draw(screen)
+        for tb   in falling_teddies: tb.draw(screen)
         for b    in computer_bugs: b.draw(screen)
         if is_computer and stage_pencil:
             stage_pencil.draw(screen)

@@ -526,6 +526,74 @@ class FallingSkull:
 
 
 # ---------------------------------------------------------------------------
+# FallingTeddy  (WakeUp — teddy bear rain, behaves just like FallingSkull)
+# ---------------------------------------------------------------------------
+
+class FallingTeddy:
+    RADIUS   = 15
+    GRAVITY  = 0.35
+    DMG      = 12
+    HIT_CD   = 50
+
+    LIFE     = FPS * 5   # frames a landed teddy lingers before despawning
+
+    def __init__(self):
+        self.x      = float(random.randint(60, WIDTH - 60))
+        self.y      = 22.0
+        self.vy     = random.uniform(1.5, 3.0)
+        self.alive  = True
+        self.hit_cd = 0
+        self.landed = False
+        self.roll   = 0.0   # roll velocity after landing
+        self.life   = self.LIFE
+
+    def update(self):
+        if self.hit_cd > 0:
+            self.hit_cd -= 1
+        if not self.landed:
+            self.vy += self.GRAVITY
+            self.y  += self.vy
+            if self.y >= GROUND_Y - self.RADIUS:
+                self.y      = GROUND_Y - self.RADIUS
+                self.landed = True
+                self.roll   = random.choice([-1.5, 1.5])
+        else:
+            self.x    += self.roll
+            self.roll *= 0.94
+            if self.x < 30 or self.x > WIDTH - 30:
+                self.roll *= -1
+            if abs(self.roll) < 0.05:
+                self.roll = 0
+            self.life -= 1
+            if self.life <= 0:
+                self.alive = False
+
+    def collides(self, fighter):
+        return math.hypot(fighter.x - self.x, (fighter.y - 40) - self.y) < self.RADIUS + 28
+
+    def draw(self, surface):
+        sx, sy = int(self.x), int(self.y)
+        r = self.RADIUS
+        fur      = (150, 100, 60)
+        fur_dark = (110, 70, 40)
+        muzzle   = (210, 170, 120)
+        # Ears
+        pygame.draw.circle(surface, fur, (sx - int(r * 0.75), sy - int(r * 0.85)), r // 2)
+        pygame.draw.circle(surface, fur, (sx + int(r * 0.75), sy - int(r * 0.85)), r // 2)
+        pygame.draw.circle(surface, fur_dark, (sx - int(r * 0.75), sy - int(r * 0.85)), r // 4)
+        pygame.draw.circle(surface, fur_dark, (sx + int(r * 0.75), sy - int(r * 0.85)), r // 4)
+        # Head
+        pygame.draw.circle(surface, fur, (sx, sy), r)
+        pygame.draw.circle(surface, fur_dark, (sx, sy), r, 2)
+        # Muzzle
+        pygame.draw.circle(surface, muzzle, (sx, sy + r // 4), r // 2)
+        pygame.draw.circle(surface, (30, 20, 15), (sx, sy + r // 3), r // 6)  # nose
+        # Eyes
+        for ex in [sx - r // 3, sx + r // 3]:
+            pygame.draw.circle(surface, (20, 15, 15), (ex, sy - r // 5), r // 6)
+
+
+# ---------------------------------------------------------------------------
 # Whip  (Whipper's long-range attack)
 # ---------------------------------------------------------------------------
 

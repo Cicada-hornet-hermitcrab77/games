@@ -1411,8 +1411,30 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         else:
             # Large animated stickman
             sm_y = PY + 155
-            draw_stickman(screen, PX + PW//2, sm_y, _detail_display["color"], 1, 'walk', preview_t, scale=1.15,
-                          char_name=_detail_display["name"])
+            if _detail_display["name"] == "Jawke":
+                # Mirror the in-match frontflip: same wall-clock cycle drives the angle
+                _jap = (pygame.time.get_ticks() / 1000.0) % 10.0
+                if 8.0 <= _jap < 8.3:
+                    _j_angle = -((_jap - 8.0) / 0.3) * 90
+                elif 8.3 <= _jap < 9.0:
+                    _j_angle = -90 - ((_jap - 8.3) / 0.7) * 270
+                else:
+                    _j_angle = 0.0
+                if _j_angle != 0.0:
+                    _jt_w, _jt_h = int(320 * 1.15), int(340 * 1.15)
+                    _jtmp = pygame.Surface((_jt_w, _jt_h), pygame.SRCALPHA)
+                    draw_stickman(_jtmp, _jt_w // 2, int(_jt_h * 0.72), _detail_display["color"], 1, 'walk',
+                                 preview_t, scale=1.15, char_name="Jawke")
+                    _jrot = pygame.transform.rotate(_jtmp, _j_angle)
+                    _jbx  = PX + PW//2 - _jrot.get_width() // 2
+                    _jby  = sm_y - int(_jt_h * 0.72) - (_jrot.get_height() - _jt_h) // 2
+                    screen.blit(_jrot, (_jbx, _jby))
+                else:
+                    draw_stickman(screen, PX + PW//2, sm_y, _detail_display["color"], 1, 'walk', preview_t, scale=1.15,
+                                 char_name="Jawke")
+            else:
+                draw_stickman(screen, PX + PW//2, sm_y, _detail_display["color"], 1, 'walk', preview_t, scale=1.15,
+                              char_name=_detail_display["name"])
 
             # Character name
             nm_big = font_medium.render(_detail_display["name"], True, _detail_display["color"])

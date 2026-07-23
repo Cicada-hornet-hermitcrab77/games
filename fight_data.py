@@ -1552,6 +1552,10 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100, "block": 4,
      "desc": "Stretches arms on punch — deals 75% of enemy max HP",
      "double_jump": False, "jawke_punch": True},
+    {"name": "WakeUp", "color": (120, 140, 220), "speed": 5, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 9, "max_hp": 100, "block": 4,
+     "desc": "Kick pops his hat off — teddy bears rain from the sky",
+     "double_jump": False, "teddy_rain": True},
 ]
 
 POWERUPS = [

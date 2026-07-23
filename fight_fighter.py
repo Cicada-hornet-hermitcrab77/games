@@ -85,6 +85,7 @@ class Fighter:
         self._size_state        = 0    # for size_kick: 0=normal, 1=big, 2=small
         self.angle              = 0.0  # visual rotation angle (degrees)
         self.angle_vel          = 0.0  # degrees per frame
+        self.pending_teddy_rain = False # WakeUp: summon teddy bear rain this frame
         self.float_timer        = random.randint(20, 50)  # frames until next drift impulse
         self.wall_cling_active  = False  # Spooderman: currently clinging to a wall
         self.wall_dir           = 0      # -1 = left wall, 1 = right wall
@@ -217,6 +218,7 @@ class Fighter:
         self.phoenix_used            = False  # Phoenix: has the one-time revive been used
         self.chain_count             = 0      # Chain Fighter: consecutive hit count
         self.chain_timer             = 0      # Chain Fighter: frames until streak resets
+        self.hat_pop_timer           = 0      # WakeUp: frames left of hat-jump/teddy-reveal pose
         self.glitch_timer            = FPS * 5 if char_data.get("glitch_char") else 0
         self.one_punch_count         = 0      # One Punch: punch counter toward 7th
         # Batch 9
@@ -598,6 +600,8 @@ class Fighter:
             self.chain_timer -= 1
             if self.chain_timer == 0:
                 self.chain_count = 0
+        if self.hat_pop_timer > 0:
+            self.hat_pop_timer -= 1
         # Glitch: randomise stats every 5 seconds
         if self.char.get("glitch_char"):
             if self.glitch_timer > 0:
@@ -1578,6 +1582,9 @@ class Fighter:
             if self.char.get("titan_grip") and self.action == 'punch' and dmg > 0:
                 other.knockback  = 0
                 other.hurt_timer = max(other.hurt_timer, 120)
+            if self.char.get("teddy_rain") and self.action == 'kick':
+                self.pending_teddy_rain = True
+                self.hat_pop_timer = 45
             if self.char.get("clover_kick") and self.action == 'kick':
                 self.pending_clover_snake = True
             if self.char.get("golden_snake_kick") and self.action == 'kick':
