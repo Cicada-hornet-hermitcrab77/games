@@ -1688,6 +1688,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if _detail_display.get("golden_snake_kick"):badges.append(("GOLD SNAKE KICK",(220, 180,  20)))
             if _detail_display.get("red_herring"):       badges.append(("???",            (220,  55,  55)))
             if _detail_display.get("kirin_adler"):       badges.append(("???",            (160, 220,  80)))
+            if _detail_display.get("jawke_punch"):       badges.append(("STRETCH ARM",    (255, 100, 255)))
             if _detail_display.get("clover_luck"):     badges.append(("IMMUNE BAD",    (150, 220, 100)))
             if _detail_display.get("eartha_grow"):     badges.append(("GROWS/SEC",     (120,  80,  40)))
             if _detail_display.get("tombstone_reflect"):badges.append(("99.9% REFLECT", (155, 150, 140)))

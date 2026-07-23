@@ -1152,6 +1152,8 @@ class Fighter:
         hit_r  = 58 * other.draw_scale
         if self.char.get("wide_punch") and self.action == 'punch':
             hit_r *= 2.2
+        if self.char.get("jawke_punch") and self.action == 'punch':
+            hit_r *= 5.0
         if self.char.get("lance_punch") and self.action == 'punch':
             hit_pos = (hit_pos[0] + self.facing * 70, hit_pos[1])
         dist = math.hypot(hit_pos[0] - other.x, hit_pos[1] - hit_cy)
@@ -1173,6 +1175,8 @@ class Fighter:
             if self.action == 'punch':
                 if self.char.get("halves_punch"):
                     dmg = max(1, other.hp // 2)
+                elif self.char.get("jawke_punch"):
+                    dmg = int(other.max_hp * 0.75)
                 elif self.char.get("copy_punch"):
                     dmg = other.char["punch_dmg"] + self.punch_boost
                 else:

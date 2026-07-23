@@ -429,7 +429,8 @@ UNLOCK_CONDITIONS = {
     "Behemoth":            ("wins_total",     None,            200,  "Win 200 matches"),
     "Boom-Boom-Boomerang": ("secret_chars",   None,             12,  "Unlock 12 secret characters"),
     "Red Herring":         ("secret_chars",   None,             15,  "Unlock 15 secret characters"),
-    "Kirin Adler":         ("secret_chars",   None,             20,  "Unlock 20 secret characters"),
+    "Kirin Adler":         ("secret_chars",   None,             27,  "Unlock 27 secret characters"),
+    "Jawke":               ("secret_chars",   None,             20,  "Unlock 20 secret characters"),
     # ── batch 9 ─────────────────────────────────────────────────────────────
     "Marauder":            ("win_with",       "Desperado",       3,  "Win 3 matches as Desperado"),
     "Seraph":              ("perfect_wins",   None,              9,  "Win 9 matches at full HP"),

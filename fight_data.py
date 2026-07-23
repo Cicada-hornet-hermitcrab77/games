@@ -1548,6 +1548,10 @@ CHARACTERS = [
      "punch_dmg": 9, "kick_dmg": 11, "max_hp": 105, "block": 5,
      "desc": "???",
      "double_jump": False, "kirin_adler": True},
+    {"name": "Jawke", "color": (255, 200, 255), "speed": 4, "jump": -13,
+     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100, "block": 4,
+     "desc": "Stretches arms on punch — deals 75% of enemy max HP",
+     "double_jump": False, "jawke_punch": True},
 ]
 
 POWERUPS = [
