@@ -3185,6 +3185,20 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         pygame.draw.line(screen, (140, 60, 220),
                                          (int(pu.x), int(pu.y)),
                                          (int(f.x), int(f.y - 60)), 1)
+        # Jawke flip animation — drive fighter.angle so the whole body rotates
+        for _jf in (p1, p2):
+            if _jf.char.get("jawke_punch") and _jf.hurt_timer == 0 and abs(_jf.knockback) < 1.0:
+                _jap = (pygame.time.get_ticks() / 1000.0) % 10.0
+                if 8.0 <= _jap < 8.3:
+                    # o-< : tip to side (0 → -90°)
+                    _jf.angle = -((_jap - 8.0) / 0.3) * 90
+                elif 8.3 <= _jap < 9.0:
+                    # frontflip from lying flat back to upright (-90 → -360 = 0)
+                    _jf.angle = -90 - ((_jap - 8.3) / 0.7) * 270
+                elif 9.0 <= _jap < 9.5:
+                    _jf.angle = 0.0   # /\ landing pose (drawn in costume)
+                else:
+                    _jf.angle = 0.0
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen)
         # Red Herring "Huzzah!" heal popup

@@ -12692,37 +12692,69 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                          int(_cfr * 0.9), int(_cfr * 0.55)),
                         math.pi, 2 * math.pi, max(1, int(2*s)))
 
-        # ── Third chest arm (animates 8-10 s of cycle) ──────────────────────
-        _chest_ext = 0
-        if 8.0 <= _ap < 9.0:
-            _chest_ext = int((_ap - 8.0) / 1.0 * bl * 0.9)
-        elif _ap >= 9.0:
-            _chest_ext = int(bl * 0.9)
-        if _chest_ext > 0:
-            _cay = _bcy + _br + _chest_ext
-            pygame.draw.line(surface, (255, 180, 255),
-                             (_bcx, _bcy + _br), (_bcx, _cay), max(3, int(4*s)))
-            pygame.draw.circle(surface, (255, 255, 255), (_bcx, int(_cay)), max(5, int(7*s)))
-            pygame.draw.circle(surface, (180, 180, 180), (_bcx, int(_cay)),
-                               max(5, int(7*s)), max(1, int(s)))
-        else:
-            # Resting: small hand peeking from bottom of body
+        # ── Third chest arm ─────────────────────────────────────────────────
+        # During 8.3-9.0s the body is rotating (angle driven from game loop);
+        # chest arm is always visible as a resting small hand outside that window.
+        _in_flip = 8.0 <= _ap < 9.0
+        if not _in_flip:
             pygame.draw.circle(surface, (255, 255, 255),
-                               (_bcx, _bcy + _br + max(3, int(4*s))), max(3, int(5*s)))
+                               (_bcx, _bcy + _br + max(3, int(4*s))), max(4, int(6*s)))
+            pygame.draw.circle(surface, (180, 180, 200),
+                               (_bcx, _bcy + _br + max(3, int(4*s))),
+                               max(4, int(6*s)), max(1, int(s)))
 
-        # ── Very long arms + gloves ──────────────────────────────────────────
-        for _hpt, _shpt in [((lhx, lhy), (sx - int(10*s), sy + int(10*s))),
+        # ── /\ landing pose: arms raised (9.0 – 9.5 s) ──────────────────────
+        if 9.0 <= _ap < 9.5:
+            _raise = min(1.0, (_ap - 9.0) / 0.15)  # quick raise
+            _drop  = max(0.0, 1.0 - (_ap - 9.25) / 0.25) if _ap > 9.25 else 1.0
+            _raisefrac = _raise * _drop
+            _ra_y = int(sy - int(al * 0.7 * _raisefrac))
+            for _rx2, _ry2 in [(sx - int(al * 0.8), _ra_y),
+                                (sx + int(al * 0.8), _ra_y)]:
+                pygame.draw.line(surface, col, (sx, sy), (_rx2, _ry2), max(3, int(4*s)))
+                pygame.draw.circle(surface, (255, 255, 255), (_rx2, _ry2), max(5, int(7*s)))
+
+        # ── Long arms: normal or detached (punch) ────────────────────────────
+        _front_hx = rhx if facing > 0 else lhx
+        _is_punching = (_front_hx - sx) * facing > int(al * 0.4)
+
+        for _hpt, _spt in [((lhx, lhy), (sx - int(10*s), sy + int(10*s))),
                              ((rhx, rhy), (sx + int(10*s), sy + int(10*s)))]:
-            _adx = int(_hpt[0]) - _shpt[0]
-            _ady = int(_hpt[1]) - _shpt[1]
+            _adx = int(_hpt[0]) - _spt[0]
+            _ady = int(_hpt[1]) - _spt[1]
             _ext = 2.4
-            _gx  = _shpt[0] + int(_adx * _ext)
-            _gy  = _shpt[1] + int(_ady * _ext)
-            pygame.draw.line(surface, col,
-                             (_shpt[0], _shpt[1]), (_gx, _gy), max(3, int(4*s)))
-            pygame.draw.circle(surface, (255, 255, 255), (_gx, _gy), max(5, int(7*s)))
-            pygame.draw.circle(surface, (180, 180, 200), (_gx, _gy),
-                               max(5, int(7*s)), max(1, int(s)))
+            _gx2  = _spt[0] + int(_adx * _ext)
+            _gy2  = _spt[1] + int(_ady * _ext)
+
+            if _is_punching:
+                # Detached: draw short shoulder stub, gap, then flying arm+glove
+                _stub_end_x = _spt[0] + int(_adx * 0.35)
+                _stub_end_y = _spt[1] + int(_ady * 0.35)
+                pygame.draw.line(surface, col,
+                                 (_spt[0], _spt[1]),
+                                 (_stub_end_x, _stub_end_y), max(3, int(4*s)))
+                # Detached arm segment (floating forward)
+                _det_start_x = _spt[0] + int(_adx * 0.6)
+                _det_start_y = _spt[1] + int(_ady * 0.6)
+                pygame.draw.line(surface, col,
+                                 (_det_start_x, _det_start_y),
+                                 (_gx2, _gy2), max(3, int(4*s)))
+                # Glove at the very far end (extra extended)
+                _fg_x = _spt[0] + int(_adx * 3.0)
+                _fg_y = _spt[1] + int(_ady * 3.0)
+                pygame.draw.circle(surface, (255, 255, 255), (_fg_x, _fg_y), max(6, int(8*s)))
+                pygame.draw.circle(surface, (180, 180, 200), (_fg_x, _fg_y),
+                                   max(6, int(8*s)), max(1, int(s)))
+                # Bell jingle effect on detach
+                pygame.draw.line(surface, (255, 215, 0),
+                                 (_stub_end_x, _stub_end_y),
+                                 (_det_start_x, _det_start_y), max(2, int(3*s)))
+            else:
+                pygame.draw.line(surface, col,
+                                 (_spt[0], _spt[1]), (_gx2, _gy2), max(3, int(4*s)))
+                pygame.draw.circle(surface, (255, 255, 255), (_gx2, _gy2), max(5, int(7*s)))
+                pygame.draw.circle(surface, (180, 180, 200), (_gx2, _gy2),
+                                   max(5, int(7*s)), max(1, int(s)))
 
         # ── Jester hat ───────────────────────────────────────────────────────
         _hbase = hy - hd
@@ -12782,19 +12814,15 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                            (hx + int(facing * int(hd * 0.08)),
                             hy + int(hd * 0.06)), max(3, int(4*s)))
 
-        # ── Backflip trail (9.0 – 10.0 of cycle) ────────────────────────────
-        if _ap >= 9.0:
-            _fp = (_ap - 9.0) / 1.0
-            _fangle = _fp * 2 * math.pi
-            _cr2 = int(bl * 0.5)
-            for _tri in range(7):
-                _tra = _fangle - _tri * 0.38
-                _trx = sx + int(math.cos(_tra) * _cr2 * 0.6)
-                _try = (sy + wy) // 2 + int(math.sin(_tra) * _cr2 * 0.35)
-                _ta  = max(0, int(200 * (1 - _tri / 7)))
-                _trs = pygame.Surface((14, 14), pygame.SRCALPHA)
-                pygame.draw.circle(_trs, (255, 120, 255, _ta), (7, 7), 6)
-                surface.blit(_trs, (_trx - 7, _try - 7))
+        # ── Motion ghost trail during flip (8.0 – 9.0 s) ───────────────────
+        if 8.0 <= _ap < 9.0:
+            _trail_alpha = int(160 * (1.0 - (_ap - 8.0)))
+            for _tri in range(3):
+                _trs = pygame.Surface((int(hd * 2 + 4), int(hd * 2 + 4)), pygame.SRCALPHA)
+                pygame.draw.circle(_trs, (255, 180, 255, max(0, _trail_alpha - _tri * 40)),
+                                   (int(hd) + 2, int(hd) + 2), int(hd))
+                surface.blit(_trs, (hx - int(hd) - 2 + _tri * int(4*s),
+                                    hy - int(hd) - 2 + _tri * int(4*s)))
 
     elif char_name == "Kirin Adler":
         t = pygame.time.get_ticks() / 1000.0
