@@ -14206,6 +14206,121 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
     def circ(cx, cy, r):
         pygame.draw.circle(surface, col, (int(cx), int(cy)), r)
 
+    # ── Deco & Emoj: not a stickman — a rock with shoes and a bowl hat, ─────
+    #    with Emoj (an eyeball orb) perched on top.
+    if char_name == "Deco & Emoj":
+        _dt     = pygame.time.get_ticks() / 1000.0
+        _dcycle = _dt % 10.0
+        _jumping = _dcycle < 0.6
+        _jphase  = (_dcycle / 0.6) if _jumping else 0.0
+        _jump_h  = math.sin(_jphase * math.pi) * 34 * s if _jumping else 0.0
+        _flip_ang = _jphase * 360.0
+
+        if action == 'dead':
+            _rock_r = int(hd * 1.9)
+            _rcx = int(x) - facing * int(hd * 0.6)
+            _rcy = int(y) - int(_rock_r * 0.55)
+            _bumps = [(0.0, -1.0), (0.6, -0.7), (0.95, -0.05), (0.7, 0.5), (0.1, 0.7),
+                      (-0.5, 0.55), (-0.9, 0.1), (-0.6, -0.75)]
+            _pts = [(_rcx + int(bx * _rock_r), _rcy + int(by * _rock_r * 0.55)) for bx, by in _bumps]
+            pygame.draw.polygon(surface, (110, 108, 100), _pts)
+            pygame.draw.polygon(surface, (70, 68, 62), _pts, max(1, int(2*s)))
+            _eo_x = _rcx + facing * int(_rock_r * 1.25)
+            _eo_y = int(y) - int(hd * 0.65)
+            _eo_r = int(hd * 0.7)
+            pygame.draw.circle(surface, (90, 200, 230), (_eo_x, _eo_y), _eo_r)
+            pygame.draw.circle(surface, (50, 150, 190), (_eo_x, _eo_y), _eo_r, max(1, int(2*s)))
+            pygame.draw.line(surface, (20, 20, 30), (_eo_x - int(_eo_r*0.4), _eo_y - int(_eo_r*0.3)),
+                             (_eo_x + int(_eo_r*0.4), _eo_y + int(_eo_r*0.3)), max(1, int(2*s)))
+            pygame.draw.line(surface, (20, 20, 30), (_eo_x - int(_eo_r*0.4), _eo_y + int(_eo_r*0.3)),
+                             (_eo_x + int(_eo_r*0.4), _eo_y - int(_eo_r*0.3)), max(1, int(2*s)))
+            return None
+
+        _walk_bob = int(math.sin(action_t * math.pi * 2) * 3 * s) if action == 'walk' else 0
+        _base_y   = int(y) - int(_jump_h) - _walk_bob
+        _rock_r   = int(hd * 1.9)
+        _duck_sq  = 0.68 if action == 'duck' else 1.0
+        _rcx      = int(x)
+        _rcy      = _base_y - int(_rock_r * _duck_sq) + int(4 * s)
+
+        # Shoes at ground level (stay planted even while Deco is airborne)
+        for _sfx in (-1, 1):
+            _shoe_x = _rcx + _sfx * int(_rock_r * 0.55)
+            _shoe_y = int(y)
+            pygame.draw.ellipse(surface, (60, 50, 40),
+                                (_shoe_x - int(9*s), _shoe_y - int(6*s), int(18*s), int(10*s)))
+            pygame.draw.ellipse(surface, (30, 25, 20),
+                                (_shoe_x - int(9*s), _shoe_y - int(6*s), int(18*s), int(10*s)), max(1, int(s)))
+            pygame.draw.line(surface, (200, 200, 200), (_shoe_x - int(6*s), _shoe_y - int(4*s)),
+                             (_shoe_x + int(2*s), _shoe_y - int(2*s)), max(1, int(s)))
+        if _jumping:
+            # Laces linking shoes up to the airborne rock (simple legs implied)
+            for _sfx in (-1, 1):
+                pygame.draw.line(surface, (90, 88, 80),
+                                 (_rcx + _sfx * int(_rock_r * 0.4), _rcy + int(_rock_r * _duck_sq * 0.8)),
+                                 (_rcx + _sfx * int(_rock_r * 0.55), int(y) - int(6*s)), max(2, int(3*s)))
+
+        # Rock body — irregular polygon blob (squashed on duck)
+        _bumps = [(0.0, -1.0), (0.55, -0.75), (0.95, -0.15), (0.75, 0.55), (0.2, 0.95),
+                  (-0.35, 0.85), (-0.85, 0.35), (-0.95, -0.3), (-0.5, -0.85)]
+        _rock_pts = [(_rcx + int(bx * _rock_r), _rcy + int(by * _rock_r * _duck_sq)) for bx, by in _bumps]
+        pygame.draw.polygon(surface, (110, 108, 100), _rock_pts)
+        pygame.draw.polygon(surface, (70, 68, 62), _rock_pts, max(1, int(2*s)))
+        pygame.draw.line(surface, (85, 83, 76),
+                         (_rcx - int(_rock_r*0.4), _rcy - int(_rock_r*0.2*_duck_sq)),
+                         (_rcx + int(_rock_r*0.1), _rcy + int(_rock_r*0.5*_duck_sq)), max(1, int(s)))
+        pygame.draw.line(surface, (85, 83, 76),
+                         (_rcx + int(_rock_r*0.3), _rcy - int(_rock_r*0.5*_duck_sq)),
+                         (_rcx + int(_rock_r*0.5), _rcy - int(_rock_r*0.1*_duck_sq)), max(1, int(s)))
+
+        # Bowl balanced on top of the rock — Emoj perches on it
+        _bowl_y = _rcy - int(_rock_r * _duck_sq) + int(2 * s)
+        _bowl_w = int(_rock_r * 1.1)
+        _bowl_h = int(_rock_r * 0.5)
+        pygame.draw.ellipse(surface, (170, 170, 180), (_rcx - _bowl_w//2, _bowl_y - _bowl_h//2, _bowl_w, _bowl_h))
+        pygame.draw.ellipse(surface, (120, 120, 130), (_rcx - _bowl_w//2, _bowl_y - _bowl_h//2, _bowl_w, _bowl_h), max(1, int(2*s)))
+        pygame.draw.arc(surface, (200, 200, 210), (_rcx - _bowl_w//2, _bowl_y - _bowl_h//2, _bowl_w, _bowl_h),
+                        math.pi, 2*math.pi, max(1, int(2*s)))
+
+        # Emoj — an orb with one big eye, ringed by a zappy aura; backflips as Deco jumps
+        _eo_x = _rcx
+        _eo_y = _bowl_y - int(hd * 1.1) - int(_jump_h * 0.4)
+        _eo_r = int(hd * 0.85)
+        for _zi in range(6):
+            _za  = math.radians(_zi * 60 + _dt * 90)
+            _zx1 = _eo_x + int(math.cos(_za) * _eo_r * 1.15)
+            _zy1 = _eo_y + int(math.sin(_za) * _eo_r * 1.15)
+            _zx2 = _eo_x + int(math.cos(_za) * _eo_r * 1.55)
+            _zy2 = _eo_y + int(math.sin(_za) * _eo_r * 1.55)
+            _zmx = (_zx1 + _zx2) // 2 + int(math.sin(_za * 3) * 3 * s)
+            _zmy = (_zy1 + _zy2) // 2
+            pygame.draw.lines(surface, (255, 240, 80), False, [(_zx1, _zy1), (_zmx, _zmy), (_zx2, _zy2)], max(1, int(2*s)))
+        pygame.draw.circle(surface, (90, 200, 230), (_eo_x, _eo_y), _eo_r)
+        pygame.draw.circle(surface, (50, 150, 190), (_eo_x, _eo_y), _eo_r, max(1, int(2*s)))
+        _eye_ang   = math.radians(_flip_ang) if _jumping else 0.0
+        _pupil_off = int(_eo_r * 0.15)
+        _ex2 = _eo_x + int(math.sin(_eye_ang) * _pupil_off)
+        _ey2 = _eo_y - int(math.cos(_eye_ang) * _pupil_off * 0.3)
+        pygame.draw.circle(surface, (255, 255, 255), (_eo_x, _eo_y), int(_eo_r * 0.6))
+        pygame.draw.circle(surface, (20, 20, 30), (_ex2, _ey2), int(_eo_r * 0.32))
+        pygame.draw.circle(surface, (255, 255, 255), (_ex2 - int(2*s), _ey2 - int(2*s)), max(1, int(_eo_r * 0.1)))
+
+        # Laser-eyes ultra beam (punch)
+        if action == 'punch':
+            _lx2 = _eo_x + facing * int(400 * s)
+            pygame.draw.line(surface, (255, 60, 40), (_eo_x, _eo_y), (_lx2, _eo_y), max(2, int(5*s)))
+            pygame.draw.line(surface, (255, 200, 150), (_eo_x, _eo_y), (_lx2, _eo_y), max(1, int(2*s)))
+
+        # Bomb wind-up (kick) — a dark orb rocks in Deco's grip before the throw
+        if action == 'kick':
+            _lean = int(math.sin(min(1.0, action_t) * math.pi) * facing * 8 * s)
+            _bomb_x = _rcx + facing * int(_rock_r * 0.9) + _lean
+            _bomb_y = _rcy
+            pygame.draw.circle(surface, (25, 25, 30), (_bomb_x, _bomb_y), max(3, int(6*s)))
+            pygame.draw.circle(surface, (70, 70, 80), (_bomb_x, _bomb_y), max(3, int(6*s)), max(1, int(s)))
+
+        return (int(x + facing * 40 * s), int(y - 100 * s))
+
     # ── Dead pose: stickman lying flat on the ground ────────────────────────
     if action == 'dead':
         # Head lies to the side (opposite of facing), body horizontal

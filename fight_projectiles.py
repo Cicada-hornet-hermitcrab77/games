@@ -469,6 +469,84 @@ class Pumpkin:
 
 
 # ---------------------------------------------------------------------------
+# BigBomb  (Deco & Emoj — kick throws a big bomb)
+# ---------------------------------------------------------------------------
+
+class BigBomb:
+    RADIUS         = 20
+    SPEED_X        = 9
+    LAUNCH_VY      = -12.0
+    EXPLODE_RADIUS = 110
+    EXPLODE_DMG    = 45
+    EXPLODE_DUR    = 26
+
+    def __init__(self, x, y, facing, owner):
+        self.x             = float(x)
+        self.y             = float(y)
+        self.vx            = self.SPEED_X * facing
+        self.vy            = self.LAUNCH_VY
+        self.owner         = owner
+        self.exploding     = False
+        self.explode_timer = 0
+        self.damaged       = False
+        self.alive         = True
+
+    def update(self):
+        if not self.exploding:
+            self.vy += constants.GRAVITY
+            self.x  += self.vx
+            self.y  += self.vy
+            if self.x - self.RADIUS < 0:
+                self.x  = float(self.RADIUS)
+                self.vx =  abs(self.vx) * 0.65
+            elif self.x + self.RADIUS > WIDTH:
+                self.x  = float(WIDTH - self.RADIUS)
+                self.vx = -abs(self.vx) * 0.65
+            if self.y + self.RADIUS >= GROUND_Y:
+                self.y = float(GROUND_Y - self.RADIUS)
+                self._explode()
+        else:
+            self.explode_timer -= 1
+            if self.explode_timer <= 0:
+                self.alive = False
+
+    def _explode(self):
+        self.exploding     = True
+        self.explode_timer = self.EXPLODE_DUR
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 26
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        if not self.exploding:
+            r = self.RADIUS
+            pygame.draw.circle(surface, (25, 25, 30), (cx, cy), r)
+            pygame.draw.circle(surface, (70, 70, 80), (cx, cy), r, 2)
+            pygame.draw.circle(surface, (90, 90, 100), (cx - int(r*0.35), cy - int(r*0.35)), max(2, int(r*0.22)))
+            # Fuse
+            _fuse_wag = math.sin(pygame.time.get_ticks() * 0.02) * 4
+            pygame.draw.line(surface, (120, 80, 40), (cx, cy - r), (cx + int(_fuse_wag), cy - r - 10), 3)
+            # Spark
+            _spark_lit = (pygame.time.get_ticks() // 100) % 2 == 0
+            if _spark_lit:
+                pygame.draw.circle(surface, (255, 220, 60), (cx + int(_fuse_wag), cy - r - 10), 4)
+                pygame.draw.circle(surface, (255, 120, 0),  (cx + int(_fuse_wag), cy - r - 10), 2)
+        else:
+            prog = 1.0 - self.explode_timer / self.EXPLODE_DUR
+            r_ex = int(self.EXPLODE_RADIUS * prog)
+            w    = max(1, int(10 * (1 - prog)))
+            pygame.draw.circle(surface, (255, 160, 0), (cx, cy), r_ex, w)
+            if r_ex > 14:
+                pygame.draw.circle(surface, (255, 60, 0), (cx, cy), max(1, r_ex - 14), max(1, w - 2))
+            for angle in range(0, 360, 45):
+                a  = math.radians(angle)
+                px = cx + int(math.cos(a) * r_ex * .8)
+                py = cy + int(math.sin(a) * r_ex * .8)
+                pygame.draw.circle(surface, (60, 60, 60), (px, py), max(2, int(5 * (1 - prog))))
+
+
+# ---------------------------------------------------------------------------
 # FallingSkull
 # ---------------------------------------------------------------------------
 

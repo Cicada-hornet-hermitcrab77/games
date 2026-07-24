@@ -14,7 +14,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt, SlantedConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull, FallingTeddy, HazardZone,
                             JungleSnake, GoldenJungleSnake, ComputerBug, MousePlatform,
-                            Projectile, Orb, BouncingBall, Whip, HotPotato,
+                            Projectile, Orb, BouncingBall, Whip, HotPotato, BigBomb,
                             FallingPot, RollingCoin, FallingMerlin,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
                             FireBall, NianBreath, ThunderBolt, Scroll, TotemPole,
@@ -432,6 +432,7 @@ UNLOCK_CONDITIONS = {
     "Kirin Adler":         ("secret_chars",   None,             27,  "Unlock 27 secret characters"),
     "Jawke":               ("secret_chars",   None,             20,  "Unlock 20 secret characters"),
     "WakeUp":              ("secret_chars",   None,             23,  "Unlock 23 secret characters"),
+    "Deco & Emoj":         ("secret_chars",   None,             25,  "Unlock 25 secret characters"),
     # ── batch 9 ─────────────────────────────────────────────────────────────
     "Marauder":            ("win_with",       "Desperado",       3,  "Win 3 matches as Desperado"),
     "Seraph":              ("perfect_wins",   None,              9,  "Win 9 matches at full HP"),
@@ -1135,6 +1136,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     falling_skulls     = []
     skull_spawn_timer  = 200
     falling_teddies    = []   # WakeUp: teddy bear rain
+    big_bombs          = []   # Deco & Emoj: thrown bombs
     casino_coins     = []   # falling coins on The Casino stage
     casino_coin_cd   = 90
     is_casino        = stage_data["name"] == "The Casino"
@@ -1554,6 +1556,18 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                             victim.take_proj_dmg(2)
                         victim.flash_timer = 4
                         shooter.laser_hit_cd = 15  # damage tick every 15 frames
+
+            # Deco & Emoj — laser-eyes ultra (punch): one big instant zap
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_deco_laser:
+                    shooter.pending_deco_laser = False
+                    _dl_y = shooter.y - 100
+                    _dl_side = ((shooter.facing == 1  and victim.x > shooter.x) or
+                                (shooter.facing == -1 and victim.x < shooter.x))
+                    if _dl_side and abs((victim.y - 60) - _dl_y) < 45:
+                        if not victim.bubble_shield:
+                            victim.take_proj_dmg(80)
+                        victim.flash_timer = 20
 
             keys = _touch.inject(pygame.key.get_pressed()) if _touch else pygame.key.get_pressed()
             if _touch2: keys = _touch2.inject(keys)
@@ -2098,6 +2112,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     pumpkins.append(Pumpkin(
                         shooter.x + shooter.facing * 24, shooter.y - 80,
                         shooter.facing, shooter))
+                if shooter.pending_deco_bomb:
+                    shooter.pending_deco_bomb = False
+                    big_bombs.append(BigBomb(
+                        shooter.x + shooter.facing * 24, shooter.y - 80,
+                        shooter.facing, shooter))
                 if shooter.pending_jack_seed:
                     shooter.pending_jack_seed = False
                     jack_seeds.append(PumpkinSeed(shooter.x + shooter.facing * 24,
@@ -2159,6 +2178,21 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     if pk.collides(victim):
                         pk._explode()
             pumpkins = [pk for pk in pumpkins if pk.alive]
+
+            for bb in big_bombs:
+                bb.update()
+                if bb.exploding and not bb.damaged:
+                    bb.damaged = True
+                    victim = p2 if bb.owner is p1 else p1
+                    if math.hypot(bb.x - victim.x, bb.y - (victim.y - 60)) < bb.EXPLODE_RADIUS:
+                        if not victim.bubble_shield:
+                            victim.take_proj_dmg(bb.EXPLODE_DMG)
+                        victim.flash_timer = 14
+                elif not bb.exploding and not bb.damaged:
+                    victim = p2 if bb.owner is p1 else p1
+                    if bb.collides(victim):
+                        bb._explode()
+            big_bombs = [bb for bb in big_bombs if bb.alive]
 
             # Whips (Whipper)
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -3077,6 +3111,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             h.draw(screen)
         for pk in pumpkins:
             pk.draw(screen)
+        for bb in big_bombs:
+            bb.draw(screen)
         for js in jack_seeds:
             js.draw(screen)
         for fp in fruit_projs:
@@ -3518,6 +3554,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     bounce_balls      = []   # BouncingBall (bounce_kick)
     hooks             = []   # SnakeHook (grapple_kick)
     pumpkins          = []   # Pumpkin (pumpkin_kick)
+    big_bombs         = []   # BigBomb (Deco & Emoj kick)
     whips             = []   # Whip (whip_punch)
     arcane_orbs       = []   # ArcaneOrb (Arcanist)
     sun_beams         = []   # SunBeam (Solara)
@@ -3542,6 +3579,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     en_orbs           = []
     en_bounce_balls   = []
     en_pumpkins       = []
+    en_big_bombs      = []   # BigBomb thrown by enemy Deco & Emoj
     en_hooks          = []
     en_whips          = []
     powerups          = []
@@ -4276,6 +4314,65 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             pk._explode(); break
             en_pumpkins = [pk for pk in en_pumpkins if pk.alive]
 
+            # Player bombs (Deco & Emoj) → enemies
+            for shooter in players:
+                if shooter.pending_deco_bomb:
+                    shooter.pending_deco_bomb = False
+                    big_bombs.append(BigBomb(
+                        shooter.x + shooter.facing * 24, shooter.y - 80,
+                        shooter.facing, shooter))
+            for bb in big_bombs:
+                bb.update()
+                if bb.exploding and not bb.damaged:
+                    bb.damaged = True
+                    for en in enemies:
+                        if math.hypot(bb.x - en.x, bb.y - (en.y - 60)) < bb.EXPLODE_RADIUS:
+                            en.hp = max(0, en.hp - bb.EXPLODE_DMG); en.flash_timer = 14
+                elif not bb.exploding and not bb.damaged:
+                    for en in enemies:
+                        if bb.collides(en):
+                            bb._explode(); break
+            big_bombs = [bb for bb in big_bombs if bb.alive]
+
+            # Enemy bombs (Deco & Emoj) → players
+            for en in enemies:
+                if en.pending_deco_bomb:
+                    en.pending_deco_bomb = False
+                    en_big_bombs.append(BigBomb(
+                        en.x + en.facing * 24, en.y - 80, en.facing, en))
+            for bb in en_big_bombs:
+                bb.update()
+                if bb.exploding and not bb.damaged:
+                    bb.damaged = True
+                    for p in living:
+                        if math.hypot(bb.x - p.x, bb.y - (p.y - 60)) < bb.EXPLODE_RADIUS:
+                            p.take_proj_dmg(bb.EXPLODE_DMG, flash=False); p.flash_timer = 14
+                elif not bb.exploding and not bb.damaged:
+                    for p in living:
+                        if bb.collides(p):
+                            bb._explode(); break
+            en_big_bombs = [bb for bb in en_big_bombs if bb.alive]
+
+            # Deco & Emoj — laser-eyes ultra (punch)
+            for shooter in players:
+                if shooter.pending_deco_laser:
+                    shooter.pending_deco_laser = False
+                    _dl_y = shooter.y - 100
+                    for en in enemies:
+                        _dl_side = ((shooter.facing == 1  and en.x > shooter.x) or
+                                    (shooter.facing == -1 and en.x < shooter.x))
+                        if _dl_side and abs((en.y - 60) - _dl_y) < 45:
+                            en.hp = max(0, en.hp - 80); en.flash_timer = 20
+            for en in enemies:
+                if en.pending_deco_laser:
+                    en.pending_deco_laser = False
+                    _dl_y = en.y - 100
+                    for p in living:
+                        _dl_side = ((en.facing == 1  and p.x > en.x) or
+                                    (en.facing == -1 and p.x < en.x))
+                        if _dl_side and abs((p.y - 60) - _dl_y) < 45:
+                            p.take_proj_dmg(80, flash=False); p.flash_timer = 20
+
             # Player whips → enemies
             for shooter in players:
                 if shooter.pending_whip:
@@ -4597,11 +4694,13 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for h    in hooks:         h.draw(screen)
         for h    in en_hooks:      h.draw(screen)
         for pk   in pumpkins:      pk.draw(screen)
+        for bb   in big_bombs:     bb.draw(screen)
         for js   in jack_seeds:    js.draw(screen)
         for fp   in fruit_projs:   fp.draw(screen)
         for cp   in coal_projs:    cp.draw(screen)
         for tb   in thunder_bolts: tb.draw(screen)
         for pk   in en_pumpkins:   pk.draw(screen)
+        for bb   in en_big_bombs:  bb.draw(screen)
         for w    in whips:         w.draw(screen)
         for w    in en_whips:      w.draw(screen)
         for sn   in jungle_snakes: sn.draw(screen)

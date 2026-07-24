@@ -1556,6 +1556,10 @@ CHARACTERS = [
      "punch_dmg": 9, "kick_dmg": 9, "max_hp": 100, "block": 4,
      "desc": "Kick pops his hat off — teddy bears rain from the sky",
      "double_jump": False, "teddy_rain": True},
+    {"name": "Deco & Emoj", "color": (140, 200, 90), "speed": 4, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 9, "max_hp": 105, "block": 5,
+     "desc": "Punch fires a laser-eyes ultra for 80 dmg — kick throws a big bomb",
+     "double_jump": False, "deco_laser": True, "deco_bomb_kick": True},
 ]
 
 POWERUPS = [

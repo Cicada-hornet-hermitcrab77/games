@@ -92,6 +92,11 @@ class Fighter:
         self.pending_hook       = False  # Hooker: spawn a snake hook this frame
         self.pending_pumpkin    = False  # Headless Horseman: throw pumpkin this frame
         self.pumpkin_cooldown   = 0      # cooldown between throws
+        self.pending_deco_laser = False  # Deco & Emoj: fire laser-eyes ultra this frame
+        self.deco_laser_cooldown = 0     # cooldown between laser ultras
+        self.deco_laser_flash    = 0     # frames left to draw the beam
+        self.pending_deco_bomb  = False  # Deco & Emoj: throw a big bomb this frame
+        self.deco_bomb_cooldown  = 0     # cooldown between bomb throws
         self.pending_ink_clone       = False  # Ink Brush: spawn a clone this frame
         self.ink_clone_cooldown      = 0      # cooldown between clones
         self.squish_frames           = 0      # frames of squish remaining (Hammerhead punch)
@@ -392,6 +397,12 @@ class Fighter:
             self.bazooka_cooldown -= 1
         if self.pumpkin_cooldown > 0:
             self.pumpkin_cooldown -= 1
+        if self.deco_laser_cooldown > 0:
+            self.deco_laser_cooldown -= 1
+        if self.deco_laser_flash > 0:
+            self.deco_laser_flash -= 1
+        if self.deco_bomb_cooldown > 0:
+            self.deco_bomb_cooldown -= 1
         if self.ink_clone_cooldown > 0:
             self.ink_clone_cooldown -= 1
         if self.whip_cooldown > 0:
@@ -853,6 +864,10 @@ class Fighter:
                 if self.char.get("whip_punch") and self.whip_cooldown == 0:
                     self.pending_whip  = True
                     self.whip_cooldown = FPS * 2   # 2-second cooldown
+                if self.char.get("deco_laser") and self.deco_laser_cooldown == 0:
+                    self.pending_deco_laser  = True
+                    self.deco_laser_cooldown = FPS * 4   # 4-second cooldown
+                    self.deco_laser_flash    = 14        # frames to draw the beam
                 if self.char.get("bee_punch"):
                     self.pending_bee = True
                 if self.char.get("cycle_attack"):
@@ -913,6 +928,9 @@ class Fighter:
                 if self.char.get("pumpkin_kick") and self.pumpkin_cooldown == 0:
                     self.pending_pumpkin  = True
                     self.pumpkin_cooldown = FPS * 3   # 3-second cooldown
+                if self.char.get("deco_bomb_kick") and self.deco_bomb_cooldown == 0:
+                    self.pending_deco_bomb  = True
+                    self.deco_bomb_cooldown = FPS * 3   # 3-second cooldown
                 if self.char.get("jack_tank"):
                     self.jack_tank_frames = FPS * 10  # activate / refresh tank mode
                     self.pending_jack_seed = True      # kick also fires a seed
