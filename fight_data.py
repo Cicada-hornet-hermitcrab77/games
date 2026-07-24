@@ -1564,6 +1564,14 @@ CHARACTERS = [
      "punch_dmg": 11, "kick_dmg": 13, "max_hp": 115, "block": 6,
      "desc": "Kick slams both hammers down — lava pools erupt on the ground",
      "double_jump": False, "hammer_slam_kick": True},
+    {"name": "Umbra", "color": (18, 14, 30), "speed": 5, "jump": -14,
+     "punch_dmg": 9, "kick_dmg": 8, "max_hp": 95, "block": 4,
+     "desc": "Kick marks the ground — block to teleport to the mark",
+     "double_jump": False, "shadow_mark_kick": True, "shadow_teleport_block": True},
+    {"name": "Amberk", "color": (225, 218, 200), "speed": 4, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 9, "max_hp": 100, "block": 4,
+     "desc": "Kick summons a dinosaur that chases the enemy",
+     "double_jump": False, "dino_summon_kick": True},
 ]
 
 POWERUPS = [

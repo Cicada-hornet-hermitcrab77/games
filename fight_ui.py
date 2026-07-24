@@ -4,18 +4,24 @@ import math
 import random
 import socket
 import threading
+import datetime
 import fight_network as _net
 from constants import *
 from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS
 from fight_drawing import draw_bg, draw_stickman
-from fight_seasonal import SEASONAL_EVENTS, SEASONAL_SHOP_CHARS, get_active_event, draw_seasonal_decos
+from fight_seasonal import (SEASONAL_EVENTS, SEASONAL_SHOP_CHARS, get_active_event, draw_seasonal_decos,
+                            is_solar_eclipse_today, is_lunar_eclipse_today)
 
 # Shared flag: set True when player types "42" on the main menu
 _type42_typed = [False]
 # Shared flag: set True when player idles on stage select for 30 seconds
 _map_man_flag = [False]
-# Shared flag: set True when player types "solar" during a main-menu solar eclipse
+# Shared flag: set True when player types "solar" during a real solar eclipse
 _solar_eclipse_flag = [False]
+# Shared flag: set True when player types "umbra" during a real lunar eclipse
+_lunar_eclipse_flag = [False]
+# Shared counter: bones collected during the Dinosaur Day (7/11) mini-event
+_dino_bones_collected = [0]
 # Touch-control device flags: which players use on-screen buttons (default: both)
 touch_p1_enabled = [True]
 touch_p2_enabled = [True]
@@ -690,10 +696,16 @@ def mode_select():
     _secret_buf = ""
     _confirm_rect = pygame.Rect(WIDTH // 2 - 80, HEIGHT - 52, 160, 44)
 
-    # Solar Eclipse: rare random event — type "solar" while it's active to
-    # unlock Volcanis. Checked ~once/sec, ~1-in-90 chance (roughly every 90s).
-    _eclipse_timer = 0     # frames remaining in the current eclipse
-    _eclipse_buf   = ""
+    # Solar/Lunar Eclipse: real-world dated events. Type "solar" during an
+    # actual solar eclipse to unlock Volcanis, or "umbra" during an actual
+    # lunar eclipse to unlock Umbra.
+    _eclipse_buf = ""
+
+    # Dinosaur Day (7/11): bones pop up at random spots and last 5s each;
+    # collect 10 (cumulative across the day) to unlock Amberk.
+    _dino_bones      = []   # [{'x','y','life'}]
+    _dino_bone_timer = FPS * 3
+    _dino_bone_popup = []   # [[text, x, y, frames_remaining], ...]
 
     # Background lobby for update notifications (non-blocking, best-effort)
     _home_lobby   = _make_lobby(_net.load_userdata(), timeout=2)
@@ -714,12 +726,27 @@ def mode_select():
         _ev_label   = _ev_mode_ev.get("special_mode_label", "Event Mode") if _ev_mode_ev and _ev_mode else None
         _ev_btn_rect = pygame.Rect(WIDTH // 2 - 175, HEIGHT - 92, 350, 38) if _ev_mode else None
 
-        # Solar Eclipse: rare, short-lived random event
-        if _eclipse_timer > 0:
-            _eclipse_timer -= 1
-        elif random.random() < 1.0 / (FPS * 90):
-            _eclipse_timer = FPS * 10
-            _eclipse_buf   = ""
+        _is_solar_eclipse = is_solar_eclipse_today()
+        _is_lunar_eclipse = is_lunar_eclipse_today()
+
+        # Dinosaur Day: spawn bones that must be tapped within 5s
+        _today_date  = datetime.date.today()
+        _is_dino_day = (_today_date.month == 7 and _today_date.day == 11)
+        if _is_dino_day:
+            for _bn in _dino_bones:
+                _bn['life'] -= 1
+            _dino_bones[:] = [_bn for _bn in _dino_bones if _bn['life'] > 0]
+            _dino_bone_timer -= 1
+            if _dino_bone_timer <= 0 and not _dino_bones:
+                _dino_bones.append({
+                    'x': random.randint(70, WIDTH - 70),
+                    'y': random.randint(50, 118),
+                    'life': FPS * 5,
+                })
+                _dino_bone_timer = random.randint(FPS * 8, FPS * 20)
+        for _bp in _dino_bone_popup:
+            _bp[3] -= 1
+        _dino_bone_popup[:] = [_bp for _bp in _dino_bone_popup if _bp[3] > 0]
 
         # Poll server for update notifications
         if _home_lobby and _home_lobby.connected:
@@ -735,6 +762,14 @@ def mode_select():
             # Touch / click: tap a card to select it; tap confirm to enter
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
                 _mp = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
+                # Dinosaur Day: tap a bone before it despawns
+                for _bn in list(_dino_bones):
+                    if math.hypot(_mp[0] - _bn['x'], _mp[1] - _bn['y']) < 22:
+                        _dino_bones.remove(_bn)
+                        _dino_bones_collected[0] += 1
+                        _dino_bone_popup.append([f"+1 BONE ({_dino_bones_collected[0]}/10)",
+                                                 _bn['x'], _bn['y'], FPS * 2])
+                        break
                 if _confirm_rect.collidepoint(_mp):
                     if _home_lobby: _home_lobby.close()
                     return _mode_confirm()
@@ -775,11 +810,15 @@ def mode_select():
                         return 'secret_menu'
                     if len(_secret_buf) > len(_secret_seq) + 5:
                         _secret_buf = _secret_buf[-len(_secret_seq):]
-                # Type "solar" during a Solar Eclipse to unlock Volcanis
-                if _eclipse_timer > 0 and hasattr(event, 'unicode') and event.unicode:
+                # Type "solar" during a real Solar Eclipse to unlock Volcanis,
+                # or "umbra" during a real Lunar Eclipse to unlock Umbra
+                if (_is_solar_eclipse or _is_lunar_eclipse) and hasattr(event, 'unicode') and event.unicode:
                     _eclipse_buf += event.unicode.lower()
-                    if _eclipse_buf.endswith('solar'):
+                    if _is_solar_eclipse and _eclipse_buf.endswith('solar'):
                         _solar_eclipse_flag[0] = True
+                        _eclipse_buf = ""
+                    if _is_lunar_eclipse and _eclipse_buf.endswith('umbra'):
+                        _lunar_eclipse_flag[0] = True
                         _eclipse_buf = ""
                     if len(_eclipse_buf) > 10:
                         _eclipse_buf = _eclipse_buf[-10:]
@@ -937,27 +976,38 @@ def mode_select():
             screen.blit(_bsurf, (20, 120 + _bi * 42))
             _home_banners[_bi][1] -= 1
 
-        # Solar Eclipse overlay
-        if _eclipse_timer > 0:
-            _ecl_total   = FPS * 10
-            _ecl_frac    = _eclipse_timer / _ecl_total          # 1.0 → 0.0 over the event
-            _ecl_elapsed = _ecl_total - _eclipse_timer
-            _ecl_fade    = min(1.0, _ecl_elapsed / FPS, _eclipse_timer / FPS)  # fade in/out over 1s each
-            _dim = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-            _dim.fill((5, 5, 20, int(150 * _ecl_fade)))
-            screen.blit(_dim, (0, 0))
-            _sun_cx, _sun_cy, _sun_r = WIDTH // 2, 70, 30
-            pygame.draw.circle(screen, (255, 200, 60), (_sun_cx, _sun_cy), _sun_r)
-            for _ri3 in range(12):
-                _ra3 = math.radians(_ri3 * 30 + pygame.time.get_ticks() * 0.05)
-                pygame.draw.line(screen, (255, 220, 120),
-                                 (_sun_cx + int(math.cos(_ra3)*(_sun_r+4)), _sun_cy + int(math.sin(_ra3)*(_sun_r+4))),
-                                 (_sun_cx + int(math.cos(_ra3)*(_sun_r+12)), _sun_cy + int(math.sin(_ra3)*(_sun_r+12))), 2)
-            # Moon slides across the sun over the eclipse's lifetime, fully covering it at the midpoint
-            _moon_dx = int((_ecl_frac - 0.5) * 2 * (_sun_r * 2.4))
-            pygame.draw.circle(screen, (10, 10, 18), (_sun_cx - _moon_dx, _sun_cy), _sun_r + 2)
-            _ecl_txt = font_small.render("SOLAR ECLIPSE", True, (200, 190, 255))
-            screen.blit(_ecl_txt, (_sun_cx - _ecl_txt.get_width()//2, _sun_cy + _sun_r + 14))
+        # Real Solar / Lunar Eclipse banner — ambient, since these last all day
+        if _is_solar_eclipse or _is_lunar_eclipse:
+            _icx, _icy, _icr = 26, 26, 14
+            _pulse = int(abs(math.sin(pygame.time.get_ticks() / 700.0)) * 255)
+            if _is_solar_eclipse:
+                pygame.draw.circle(screen, (255, 200, 60), (_icx, _icy), _icr)
+                _moon_dx = int(math.sin(pygame.time.get_ticks() / 2000.0) * _icr * 1.4)
+                pygame.draw.circle(screen, (10, 10, 18), (_icx - _moon_dx, _icy), _icr + 1)
+                _ecl_txt = font_tiny.render("SOLAR ECLIPSE — type SOLAR", True, (255, 220, 150))
+            else:
+                pygame.draw.circle(screen, (90, 90, 120), (_icx, _icy), _icr)
+                pygame.draw.circle(screen, (min(255, 150 + _pulse//3), min(255, 150+_pulse//3), 200),
+                                   (_icx, _icy), _icr, 2)
+                _ecl_txt = font_tiny.render("LUNAR ECLIPSE — type UMBRA", True, (190, 190, 255))
+            screen.blit(_ecl_txt, (_icx + _icr + 8, _icy - _ecl_txt.get_height()//2))
+
+        # Dinosaur Day: bones to tap, and pickup popups
+        if _is_dino_day:
+            for _bn in _dino_bones:
+                _bfrac = _bn['life'] / (FPS * 5)
+                _bpulse = 1.0 + math.sin(pygame.time.get_ticks() / 150.0) * 0.15
+                _br = max(3, int(11 * _bpulse))
+                pygame.draw.circle(screen, (230, 220, 195), (_bn['x'], _bn['y']), _br)
+                pygame.draw.circle(screen, (180, 165, 130), (_bn['x'], _bn['y']), _br, 2)
+                pygame.draw.circle(screen, (230, 220, 195), (_bn['x'] - _br + 2, _bn['y']), max(2, _br//3))
+                pygame.draw.circle(screen, (230, 220, 195), (_bn['x'] + _br - 2, _bn['y']), max(2, _br//3))
+                _ring_r = int(14 + (1.0 - _bfrac) * 4)
+                pygame.draw.circle(screen, (255, 240, 200), (_bn['x'], _bn['y']), _ring_r, 1)
+            for _bn_t, _bn_x, _bn_y, _bn_f in _dino_bone_popup:
+                _pop_s = font_tiny.render(_bn_t, True, (255, 230, 150))
+                _pop_s.set_alpha(min(255, _bn_f * 4))
+                screen.blit(_pop_s, (_bn_x - _pop_s.get_width()//2, _bn_y - 30 - (FPS*2 - _bn_f)//6))
 
         pygame.display.flip()
 

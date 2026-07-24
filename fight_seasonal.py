@@ -92,6 +92,43 @@ def get_active_event():
 
 
 # ---------------------------------------------------------------------------
+# Real-world eclipse dates (Volcanis / Umbra unlock windows)
+# ---------------------------------------------------------------------------
+
+SOLAR_ECLIPSE_DATES = {
+    (2024, 4,  8),  # Total
+    (2024, 10, 2),  # Annular
+    (2025, 3, 29),  # Partial
+    (2025, 9, 21),  # Partial
+    (2026, 2, 17),  # Annular
+    (2026, 8, 12),  # Total
+    (2027, 2,  6),  # Annular
+    (2027, 8,  2),  # Total
+}
+
+LUNAR_ECLIPSE_DATES = {
+    (2024, 3,  25),  # Penumbral
+    (2024, 9,  18),  # Partial
+    (2025, 3,  14),  # Total
+    (2025, 9,  7),   # Total
+    (2026, 3,  3),   # Total
+    (2026, 8,  28),  # Partial
+    (2027, 2,  20),  # Penumbral
+    (2027, 7,  18),  # Penumbral
+}
+
+
+def is_solar_eclipse_today():
+    today = datetime.date.today()
+    return (today.year, today.month, today.day) in SOLAR_ECLIPSE_DATES
+
+
+def is_lunar_eclipse_today():
+    today = datetime.date.today()
+    return (today.year, today.month, today.day) in LUNAR_ECLIPSE_DATES
+
+
+# ---------------------------------------------------------------------------
 # Decoration drawing — called each frame on all UI screens during an event
 # ---------------------------------------------------------------------------
 

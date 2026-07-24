@@ -838,6 +838,72 @@ class JungleSnake:
         pygame.draw.rect(surface, (60, 220, 60),  (bx_l, by_t, int(bw * self.hp / self.MAX_HP), 4))
 
 
+class Dino(object):
+    """A small skeletal raptor summoned by Amberk's kick — chases a specific
+    target (not proximity-based) and bites on contact. Despawns after LIFE
+    frames or once its target is dead."""
+    SPEED         = 3.2
+    BITE_DMG      = 8
+    BITE_COOLDOWN = 90
+    BITE_RANGE    = 42
+    LIFE          = FPS * 6
+
+    def __init__(self, x, owner, target):
+        self.x        = float(x)
+        self.y        = float(GROUND_Y)
+        self.facing   = 1
+        self.owner    = owner
+        self.target   = target
+        self.bite_cd  = 0
+        self.alive    = True
+        self.t        = 0
+        self.life     = self.LIFE
+
+    def update(self):
+        if not self.alive:
+            return
+        self.t += 1
+        if self.bite_cd > 0:
+            self.bite_cd -= 1
+        self.life -= 1
+        if self.life <= 0 or self.target.hp <= 0:
+            self.alive = False
+            return
+        dx = self.target.x - self.x
+        self.facing = 1 if dx > 0 else -1
+        if abs(dx) > self.BITE_RANGE - 5:
+            self.x += self.facing * self.SPEED
+        self.x = max(30.0, min(float(WIDTH - 30), self.x))
+        if abs(self.x - self.target.x) < self.BITE_RANGE and self.bite_cd == 0:
+            self.target.take_proj_dmg(self.BITE_DMG, flash=False)
+            self.target.flash_timer = 8
+            self.bite_cd = self.BITE_COOLDOWN
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y) - 6
+        bone_col, bone_dk = (225, 218, 200), (160, 150, 130)
+        # Tail
+        for i in range(4):
+            tx = cx - self.facing * int(10 + i * 9)
+            ty = cy + int(math.sin(self.t * 0.2 + i) * 3)
+            pygame.draw.circle(surface, bone_col, (tx, ty), max(1, 4 - i))
+        # Body
+        pygame.draw.ellipse(surface, bone_col, (cx - 12, cy - 8, 22, 14))
+        pygame.draw.ellipse(surface, bone_dk, (cx - 12, cy - 8, 22, 14), 1)
+        # Legs
+        _leg_swing = math.sin(self.t * 0.4) * 4
+        for sgn in (-1, 1):
+            pygame.draw.line(surface, bone_col, (cx + sgn * 3, cy + 4),
+                             (cx + sgn * 3 + int(_leg_swing * sgn), cy + 12), 2)
+        # Head + jaw
+        hx = cx + self.facing * 14
+        pygame.draw.circle(surface, bone_col, (hx, cy - 4), 7)
+        pygame.draw.circle(surface, bone_dk, (hx, cy - 4), 7, 1)
+        pygame.draw.line(surface, bone_dk, (hx + self.facing * 4, cy - 1),
+                         (hx + self.facing * 9, cy + 2), 2)
+        pygame.draw.circle(surface, (200, 40, 30), (hx - self.facing * 2, cy - 6), 2)
+
+
 class GoldenJungleSnake(JungleSnake):
     SPEED         = 4.0    # faster than normal
     MAX_HP        = 35

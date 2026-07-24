@@ -99,6 +99,9 @@ class Fighter:
         self.deco_bomb_cooldown  = 0     # cooldown between bomb throws
         self.hammer_slam_timer  = 0      # Volcanis: frames until the hammer slam lands
         self.pending_lava_pools = False  # Volcanis: spawn lava pools this frame
+        self.umbra_mark_x         = None  # Umbra: x position of her ground mark, if any
+        self.umbra_teleport_flash = 0     # Umbra: frames left in the teleport poof visual
+        self.pending_dino_summon  = False # Amberk: summon a chasing dino this frame
         self.pending_ink_clone       = False  # Ink Brush: spawn a clone this frame
         self.ink_clone_cooldown      = 0      # cooldown between clones
         self.squish_frames           = 0      # frames of squish remaining (Hammerhead punch)
@@ -409,6 +412,8 @@ class Fighter:
             self.hammer_slam_timer -= 1
             if self.hammer_slam_timer == 0:
                 self.pending_lava_pools = True
+        if self.umbra_teleport_flash > 0:
+            self.umbra_teleport_flash -= 1
         if self.ink_clone_cooldown > 0:
             self.ink_clone_cooldown -= 1
         if self.whip_cooldown > 0:
@@ -817,6 +822,7 @@ class Fighter:
 
         duck_key  = _ec.get('duck')  if _ec else None
         block_key = _ec.get('block') if _ec else None
+        _was_blocking = self.blocking
         self.ducking  = (bool(duck_key  and keys[duck_key])  and
                          self.on_ground and self.hurt_timer == 0 and not self.attacking
                          and not self.char.get("snake"))
@@ -824,6 +830,13 @@ class Fighter:
                          self.on_ground and self.hurt_timer == 0 and not self.attacking and not self.ducking)
         if self.ducking:
             self.action = 'duck'
+        # Umbra: block teleports her to her last shadow mark
+        if (self.blocking and not _was_blocking and self.char.get("shadow_teleport_block")
+                and self.umbra_mark_x is not None):
+            self.x = max(30.0, min(float(WIDTH - 30), self.umbra_mark_x))
+            self.umbra_mark_x = None
+            self.umbra_teleport_flash = 14
+            self.flash_timer = max(self.flash_timer, 8)
 
         # Dash timers
         if self.dash_cd        > 0: self.dash_cd        -= 1
@@ -939,6 +952,10 @@ class Fighter:
                     self.deco_bomb_cooldown = FPS * 3   # 3-second cooldown
                 if self.char.get("hammer_slam_kick") and self.hammer_slam_timer == 0:
                     self.hammer_slam_timer = 14   # slam impact delay before lava erupts
+                if self.char.get("shadow_mark_kick"):
+                    self.umbra_mark_x = self.x
+                if self.char.get("dino_summon_kick"):
+                    self.pending_dino_summon = True
                 if self.char.get("jack_tank"):
                     self.jack_tank_frames = FPS * 10  # activate / refresh tank mode
                     self.pending_jack_seed = True      # kick also fires a seed
@@ -1888,6 +1905,26 @@ class Fighter:
             lbl = font_tiny.render(_cycle_labels[self.attack_cycle], True, _cycle_colors[self.attack_cycle])
             surface.blit(lbl, (int(self.x) - lbl.get_width() // 2,
                                int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 30))
+        # Umbra: shadow mark rune on the ground
+        if self.char.get("shadow_mark_kick") and self.umbra_mark_x is not None:
+            _mkx, _mky = int(self.umbra_mark_x), int(self.y)
+            _mkpulse = abs(math.sin(pygame.time.get_ticks() * 0.006))
+            _mkr = int(16 + _mkpulse * 4)
+            _mksurf = pygame.Surface((_mkr*2+4, _mkr*2+4), pygame.SRCALPHA)
+            pygame.draw.circle(_mksurf, (140, 60, 220, 130), (_mkr+2, _mkr+2), _mkr, 2)
+            for _mka in range(0, 360, 45):
+                _mra = math.radians(_mka + pygame.time.get_ticks() * 0.05)
+                _mp1 = (_mkr+2 + int(math.cos(_mra) * (_mkr - 4)), _mkr+2 + int(math.sin(_mra) * (_mkr - 4)))
+                _mp2 = (_mkr+2 + int(math.cos(_mra) * _mkr),       _mkr+2 + int(math.sin(_mra) * _mkr))
+                pygame.draw.line(_mksurf, (180, 100, 255, 160), _mp1, _mp2, 1)
+            surface.blit(_mksurf, (_mkx - _mkr - 2, _mky - _mkr - 2))
+        # Umbra: teleport poof (fades out after arriving at the mark)
+        if self.umbra_teleport_flash > 0:
+            _tpfrac = self.umbra_teleport_flash / 14.0
+            _tpr = int(10 + (1.0 - _tpfrac) * 30)
+            _tpsurf = pygame.Surface((_tpr*2+4, _tpr*2+4), pygame.SRCALPHA)
+            pygame.draw.circle(_tpsurf, (150, 80, 230, int(180 * _tpfrac)), (_tpr+2, _tpr+2), _tpr, 3)
+            surface.blit(_tpsurf, (int(self.x) - _tpr - 2, int(self.y) - 60 - _tpr - 2))
         return result
 
 

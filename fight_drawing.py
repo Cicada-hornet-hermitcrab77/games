@@ -14189,6 +14189,50 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             _wtxt  = _wfont.render("WAKE UP!", True, (255, 225, 40))
             surface.blit(_wtxt, (_ccx - _wtxt.get_width()//2, _ccy - _cr - int(hd*1.3) - abs(_shake)))
 
+    elif char_name == "Umbra":
+        _ut = pygame.time.get_ticks() / 1000.0
+
+        # Starry cape — flows behind her from the shoulders to near the ground
+        _cape_top = (shoulder[0] - facing * int(4*s), shoulder[1] - int(2*s))
+        _cape_bot_y = wy + int(LEG_LEN * s) * 0 + int(bl * 0.75)  # falls to roughly hip-shin level
+        _sway = math.sin(_ut * 1.4) * 10 * s
+        _cape_pts = [
+            _cape_top,
+            (shoulder[0] - facing * int(14*s), shoulder[1] + int(6*s)),
+            (shoulder[0] - facing * int(22*s) + _sway, wy + int(28*s)),
+            (shoulder[0] - facing * int(10*s) + _sway * 1.3, wy + int(52*s)),
+            (shoulder[0] + facing * int(6*s), wy + int(30*s)),
+            (shoulder[0] + facing * int(2*s), shoulder[1] + int(8*s)),
+        ]
+        pygame.draw.polygon(surface, (25, 15, 45), _cape_pts)
+        pygame.draw.polygon(surface, (55, 30, 90), _cape_pts, max(1, int(2*s)))
+        # Stars on the cape — some twinkle on, some off, changing every ~1.2s
+        _star_spots = [(0.35, 0.25), (0.6, 0.45), (0.25, 0.6), (0.5, 0.75), (0.15, 0.4)]
+        _twinkle_window = int(_ut / 1.2)
+        for _si, (_sfx, _sfy) in enumerate(_star_spots):
+            _shash = (_twinkle_window * 2654435761 + _si * 40503) % 100
+            if _shash < 55:
+                continue
+            _minx = min(p[0] for p in _cape_pts); _maxx = max(p[0] for p in _cape_pts)
+            _miny = min(p[1] for p in _cape_pts); _maxy = max(p[1] for p in _cape_pts)
+            _sx4 = int(_minx + (_maxx - _minx) * _sfx)
+            _sy4 = int(_miny + (_maxy - _miny) * _sfy)
+            _sr4 = max(1, int(2 * s))
+            pygame.draw.circle(surface, (255, 255, 220), (_sx4, _sy4), _sr4)
+            pygame.draw.line(surface, (255, 255, 220), (_sx4 - _sr4*2, _sy4), (_sx4 + _sr4*2, _sy4), 1)
+            pygame.draw.line(surface, (255, 255, 220), (_sx4, _sy4 - _sr4*2), (_sx4, _sy4 + _sr4*2), 1)
+
+        # Her cast shadow is itself a tiny stickman, striking a random pose
+        # every 5 seconds — indifferent to whatever pose Umbra herself is in.
+        _ground_y = wy + int(LEG_LEN * s)
+        _poses = ['idle', 'walk', 'punch', 'kick', 'jump', 'duck']
+        _pose_window = int(_ut / 5.0)
+        _pose = _poses[(_pose_window * 2654435761) % len(_poses)]
+        _pose_t = (_ut % 5.0) / 5.0
+        _shadow_surf = pygame.Surface((80, 90), pygame.SRCALPHA)
+        draw_stickman(_shadow_surf, 40, 80, (8, 6, 14), facing, _pose, _pose_t, scale=0.4, char_name="")
+        surface.blit(_shadow_surf, (int(waist[0]) - 40, _ground_y - 78))
+
 
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color
@@ -14423,6 +14467,118 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
         if _slam and _slam_p > 0.48 and _slam_p < 0.62:
             _flash_r = int(hd * 2.5)
             pygame.draw.circle(surface, (255, 160, 40), (int(x), int(y)), _flash_r, max(1, int(3*s)))
+
+        return (int(x + facing * 40 * s), int(y - 100 * s))
+
+    # ── Amberk: a dinosaur skeleton in a tattered cape, who periodically ────
+    #    collapses into a pile of bones and reassembles.
+    if char_name == "Amberk":
+        _at      = pygame.time.get_ticks() / 1000.0
+        _acycle  = _at % 10.0
+        _falling = 9.0 <= _acycle < 9.5
+        _rising  = 9.5 <= _acycle < 10.0
+        _collapsed = _falling or _rising or action == 'dead'
+        _bone_col = (235, 228, 210)
+        _bone_dk  = (170, 160, 140)
+
+        def _bone(cx, cy, w, h, ang=0):
+            _bsurf = pygame.Surface((w+6, h+6), pygame.SRCALPHA)
+            pygame.draw.ellipse(_bsurf, _bone_col, (3, 3, w, h))
+            pygame.draw.ellipse(_bsurf, _bone_dk, (3, 3, w, h), max(1, int(s)))
+            if ang:
+                _bsurf = pygame.transform.rotate(_bsurf, ang)
+            surface.blit(_bsurf, (cx - _bsurf.get_width()//2, cy - _bsurf.get_height()//2))
+
+        if _collapsed:
+            _frac = ((_acycle - 9.0) / 0.5) if _falling else (1.0 - (_acycle - 9.5) / 0.5) if _rising else 1.0
+            _frac = max(0.0, min(1.0, _frac))
+            _pile_bones = [
+                (-0.6, 0.0, 22, 12, 20), (0.5, 0.05, 20, 11, -15), (-0.1, -0.15, hd*1.6, hd*1.2, 5),
+                (0.25, 0.2, 26, 10, 40), (-0.4, 0.2, 24, 9, -30), (0.05, 0.25, 18, 9, 80),
+            ]
+            for _pbx, _pby, _pw, _ph, _pang in _pile_bones:
+                _bx5 = int(x) + int(_pbx * hd * 2)
+                _rest_y = int(y) + int(_pby * hd)
+                # Falling: drop from body height into place. Resting/rising: settled in the pile.
+                _by5 = int(_rest_y - (1.0 - _frac) * hd * 3) if (_falling and action != 'dead') else _rest_y
+                _bone(_bx5, _by5, int(_pw*s), int(_ph*s), _pang)
+            if action != 'dead':
+                return (int(x + facing * 40 * s), int(y - 100 * s))
+            return None
+
+        _bob = int(math.sin(_at * 1.1) * 3 * s)
+        waist_y  = int(y) - int(LEG_LEN * s) - _bob
+        should_y = waist_y - int(BODY_LEN * s)
+        head_y   = should_y - int(hd * 1.4)
+        _cx = int(x)
+
+        # Tail — chain of tapering bone segments trailing behind
+        _tail_base = (_cx - facing * int(hd*0.8), waist_y + int(6*s))
+        _prev = _tail_base
+        for _ti in range(4):
+            _tt = _ti / 3
+            _tx6 = _tail_base[0] - facing * int((14 + _ti*13) * s)
+            _ty6 = _tail_base[1] + int(math.sin(_at*1.1 + _ti) * 3 * s) - int(_ti * 1 * s)
+            pygame.draw.line(surface, _bone_dk, _prev, (_tx6, _ty6), max(2, int((6 - _ti)*s)))
+            pygame.draw.circle(surface, _bone_col, (_tx6, _ty6), max(2, int((5 - _ti)*s)))
+            _prev = (_tx6, _ty6)
+
+        # Legs — simple digitigrade bone struts
+        for _lsign in (-1, 1):
+            _hipx = _cx + _lsign * int(hd*0.5)
+            _kneex = _hipx + _lsign * int(4*s)
+            _kneey = waist_y + int(18*s)
+            _footx = _hipx
+            _footy = int(y)
+            pygame.draw.line(surface, _bone_col, (_hipx, waist_y), (_kneex, _kneey), max(3, int(5*s)))
+            pygame.draw.line(surface, _bone_col, (_kneex, _kneey), (_footx, _footy), max(3, int(5*s)))
+            pygame.draw.circle(surface, _bone_dk, (_kneex, _kneey), max(2, int(3*s)))
+            for _toe in (-1, 0, 1):
+                pygame.draw.line(surface, _bone_col, (_footx, _footy),
+                                 (_footx + _toe*int(6*s), _footy + int(6*s)), max(1, int(2*s)))
+
+        # Ribcage / spine torso
+        pygame.draw.line(surface, _bone_col, (_cx, should_y), (_cx, waist_y), max(2, int(4*s)))
+        for _ri4 in range(4):
+            _ry5 = should_y + int((_ri4+1) * (waist_y - should_y) / 5)
+            _rw  = int((10 + _ri4*2) * s)
+            pygame.draw.arc(surface, _bone_col, (_cx - _rw, _ry5 - int(6*s), _rw*2, int(12*s)),
+                            math.pi, 2*math.pi, max(1, int(2*s)))
+
+        # Stubby forelimbs
+        for _asign in (-1, 1):
+            _ashx = _cx + _asign * int(hd*0.5)
+            pygame.draw.line(surface, _bone_col, (_ashx, should_y + int(6*s)),
+                             (_ashx + facing*int(8*s), should_y + int(16*s)), max(2, int(3*s)))
+
+        # Tattered cape draped from the shoulders
+        _tatter_sway = math.sin(_at * 1.3) * 4 * s
+        _cape_pts = [
+            (_cx - facing*int(6*s), should_y - int(2*s)),
+            (_cx - facing*int(20*s) + _tatter_sway, should_y + int(18*s)),
+            (_cx - facing*int(14*s) + _tatter_sway*1.4, waist_y + int(4*s)),
+            (_cx - facing*int(6*s) + _tatter_sway*0.6, should_y + int(24*s)),
+            (_cx + facing*int(4*s), should_y),
+        ]
+        pygame.draw.polygon(surface, (90, 40, 30), _cape_pts)
+        pygame.draw.polygon(surface, (55, 22, 16), _cape_pts, max(1, int(2*s)))
+
+        # Skull with jaw that opens slightly on kick
+        _jaw_open = int(4*s) if action == 'kick' else int(1*s)
+        pygame.draw.circle(surface, _bone_col, (_cx, head_y), hd)
+        pygame.draw.circle(surface, _bone_dk, (_cx, head_y), hd, max(1, int(2*s)))
+        _snoutx = _cx + facing * int(hd*0.9)
+        pygame.draw.polygon(surface, _bone_col, [
+            (_cx + facing*int(hd*0.3), head_y - int(hd*0.2)),
+            (_snoutx, head_y - int(hd*0.1)),
+            (_snoutx, head_y + _jaw_open),
+            (_cx + facing*int(hd*0.3), head_y + int(hd*0.35)),
+        ])
+        pygame.draw.circle(surface, (20, 15, 15), (_cx - facing*int(hd*0.15), head_y - int(hd*0.15)), max(1, int(hd*0.18)))
+        for _tooth in range(3):
+            _ttx = _cx + facing * int((hd*0.5 + _tooth*hd*0.18))
+            pygame.draw.line(surface, _bone_dk, (_ttx, head_y + int(hd*0.1)),
+                             (_ttx, head_y + int(hd*0.1) + _jaw_open + int(3*s)), max(1, int(2*s)))
 
         return (int(x + facing * 40 * s), int(y - 100 * s))
 

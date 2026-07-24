@@ -13,7 +13,7 @@ from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt, SlantedConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull, FallingTeddy, HazardZone,
-                            JungleSnake, GoldenJungleSnake, ComputerBug, MousePlatform,
+                            JungleSnake, GoldenJungleSnake, Dino, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall, Whip, HotPotato, BigBomb,
                             FallingPot, RollingCoin, FallingMerlin,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
@@ -23,7 +23,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             SunBeam, LibertyDove, PumpkinSeed,
                             FruitProj, CoalProj, WildfireBall)
 import fight_network as _net
-from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop
+from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop
 from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
 
 # ---------------------------------------------------------------------------
@@ -434,6 +434,8 @@ UNLOCK_CONDITIONS = {
     "WakeUp":              ("secret_chars",   None,             23,  "Unlock 23 secret characters"),
     "Deco & Emoj":         ("secret_chars",   None,             25,  "Unlock 25 secret characters"),
     "Volcanis":            ("volcanis_unlock", None,             1,  "The stars align, or the lava nearly wins",  True),
+    "Umbra":               ("umbra_unlock",   None,              1,  "Something stirs when the moon goes dark",   True),
+    "Amberk":              ("amberk_unlock",  None,              1,  "Old bones, once a year",                    True),
     # ── batch 9 ─────────────────────────────────────────────────────────────
     "Marauder":            ("win_with",       "Desperado",       3,  "Win 3 matches as Desperado"),
     "Seraph":              ("perfect_wins",   None,              9,  "Win 9 matches at full HP"),
@@ -557,8 +559,15 @@ def _default_stats():
         "died_by_powerup":          False,
         # Life the Universe Everything: typed "42" on main screen
         "type42_done":              False,
-        # Volcanis: typed "solar" during a Solar Eclipse, or won Floor is Lava at ≤5% HP
+        # Volcanis: typed "solar" during a Solar Eclipse, won Floor is Lava at
+        # ≤5% HP, or a 5% roll on every 10th win
         "volcanis_unlocked":        False,
+        # Umbra: typed "umbra" during a real Lunar Eclipse
+        "umbra_unlocked":           False,
+        # Amberk: collected 10 bones on Dinosaur Day (7/11)
+        "amberk_unlocked":          False,
+        "dino_bones_date":          "",
+        "dino_bones_count":         0,
         # Orb Shooter: cumulative projectiles blocked
         "projectiles_blocked":      0,
         # <|-\||>+(): typed on Computer stage
@@ -717,6 +726,10 @@ def _meets_condition(cond, stats):
         return stats.get("type42_done", False)
     if kind == "volcanis_unlock":
         return stats.get("volcanis_unlocked", False)
+    if kind == "umbra_unlock":
+        return stats.get("umbra_unlocked", False)
+    if kind == "amberk_unlock":
+        return stats.get("amberk_unlocked", False)
     if kind == "projectiles_blocked":
         return stats.get("projectiles_blocked", 0) >= n
     if kind == "symbol_char_typed":
@@ -843,6 +856,8 @@ def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=N
     stats["void_deaths"] = stats.get("void_deaths", 0) + p1_void_falls
     if p1_won:
         stats["wins_total"]   += 1
+        if stats["wins_total"] % 10 == 0 and random.random() < 0.05:
+            stats["volcanis_unlocked"] = True
         stats["wins_with"][p1_char]   = stats["wins_with"].get(p1_char, 0) + 1
         stats["wins_on_stage"][stage] = stats["wins_on_stage"].get(stage, 0) + 1
         if p1_full_hp:
@@ -1142,6 +1157,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     skull_spawn_timer  = 200
     falling_teddies    = []   # WakeUp: teddy bear rain
     big_bombs          = []   # Deco & Emoj: thrown bombs
+    dinos              = []   # Amberk: chasing skeletal raptors
     casino_coins     = []   # falling coins on The Casino stage
     casino_coin_cd   = 90
     is_casino        = stage_data["name"] == "The Casino"
@@ -1443,6 +1459,15 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         _lpx = _vf.x + _vf.facing * (40 + _lpi * 55) - 25
                         _lpx = max(20.0, min(float(WIDTH - 20 - 50), _lpx))
                         hazards.append(HazardZone(_lpx, 50, "lava", life=FPS * 4))
+
+            # Amberk — kick summons a dinosaur that chases the enemy
+            for _df, _dv in [(p1, p2), (p2, p1)]:
+                if _df.pending_dino_summon:
+                    _df.pending_dino_summon = False
+                    dinos.append(Dino(_df.x + _df.facing * 30, _df, _dv))
+            for _dn in dinos:
+                _dn.update()
+            dinos = [_dn for _dn in dinos if _dn.alive]
 
             # Floor is Lava: ground contact burns
             if stage_data["name"] == "Floor is Lava":
@@ -3066,6 +3091,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             sp.draw(screen)
         for hz in hazards:
             hz.draw(screen)
+        for _dn in dinos:
+            _dn.draw(screen)
         for pu in powerups:
             pu.draw(screen)
         for b in balls:
@@ -6165,6 +6192,26 @@ def main():
         if _solar_eclipse_flag[0]:
             stats["volcanis_unlocked"] = True
             _solar_eclipse_flag[0] = False
+            new_unlocks = check_and_unlock(unlocked, stats)
+            if new_unlocks:
+                _save_data(unlocked, stats)
+                _show_unlocks(new_unlocks)
+        if _lunar_eclipse_flag[0]:
+            stats["umbra_unlocked"] = True
+            _lunar_eclipse_flag[0] = False
+            new_unlocks = check_and_unlock(unlocked, stats)
+            if new_unlocks:
+                _save_data(unlocked, stats)
+                _show_unlocks(new_unlocks)
+        if _dino_bones_collected[0] > 0:
+            _today_iso = datetime.date.today().isoformat()
+            if stats.get("dino_bones_date") != _today_iso:
+                stats["dino_bones_date"]  = _today_iso
+                stats["dino_bones_count"] = 0
+            stats["dino_bones_count"] = stats.get("dino_bones_count", 0) + _dino_bones_collected[0]
+            _dino_bones_collected[0] = 0
+            if stats["dino_bones_count"] >= 10:
+                stats["amberk_unlocked"] = True
             new_unlocks = check_and_unlock(unlocked, stats)
             if new_unlocks:
                 _save_data(unlocked, stats)
