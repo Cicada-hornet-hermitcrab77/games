@@ -1560,6 +1560,10 @@ CHARACTERS = [
      "punch_dmg": 9, "kick_dmg": 9, "max_hp": 105, "block": 5,
      "desc": "Punch fires a laser-eyes ultra for 80 dmg — kick throws a big bomb",
      "double_jump": False, "deco_laser": True, "deco_bomb_kick": True},
+    {"name": "Volcanis", "color": (60, 55, 58), "speed": 3, "jump": -12,
+     "punch_dmg": 11, "kick_dmg": 13, "max_hp": 115, "block": 6,
+     "desc": "Kick slams both hammers down — lava pools erupt on the ground",
+     "double_jump": False, "hammer_slam_kick": True},
 ]
 
 POWERUPS = [

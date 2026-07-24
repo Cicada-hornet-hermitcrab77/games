@@ -23,7 +23,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             SunBeam, LibertyDove, PumpkinSeed,
                             FruitProj, CoalProj, WildfireBall)
 import fight_network as _net
-from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop
+from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop
 from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
 
 # ---------------------------------------------------------------------------
@@ -433,6 +433,7 @@ UNLOCK_CONDITIONS = {
     "Jawke":               ("secret_chars",   None,             20,  "Unlock 20 secret characters"),
     "WakeUp":              ("secret_chars",   None,             23,  "Unlock 23 secret characters"),
     "Deco & Emoj":         ("secret_chars",   None,             25,  "Unlock 25 secret characters"),
+    "Volcanis":            ("volcanis_unlock", None,             1,  "The stars align, or the lava nearly wins",  True),
     # ── batch 9 ─────────────────────────────────────────────────────────────
     "Marauder":            ("win_with",       "Desperado",       3,  "Win 3 matches as Desperado"),
     "Seraph":              ("perfect_wins",   None,              9,  "Win 9 matches at full HP"),
@@ -556,6 +557,8 @@ def _default_stats():
         "died_by_powerup":          False,
         # Life the Universe Everything: typed "42" on main screen
         "type42_done":              False,
+        # Volcanis: typed "solar" during a Solar Eclipse, or won Floor is Lava at ≤5% HP
+        "volcanis_unlocked":        False,
         # Orb Shooter: cumulative projectiles blocked
         "projectiles_blocked":      0,
         # <|-\||>+(): typed on Computer stage
@@ -712,6 +715,8 @@ def _meets_condition(cond, stats):
         return stats.get("died_by_powerup", False)
     if kind == "type42":
         return stats.get("type42_done", False)
+    if kind == "volcanis_unlock":
+        return stats.get("volcanis_unlocked", False)
     if kind == "projectiles_blocked":
         return stats.get("projectiles_blocked", 0) >= n
     if kind == "symbol_char_typed":
@@ -1428,6 +1433,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                                 fighter.fire_frames = max(fighter.fire_frames, 120)
                             if hz.htype == "ice":
                                 fighter.shock_frames = max(fighter.shock_frames, 45)
+            hazards = [hz for hz in hazards if hz.alive]
+
+            # Volcanis — kick slams both hammers, then lava pools erupt on the ground
+            for _vf in (p1, p2):
+                if _vf.pending_lava_pools:
+                    _vf.pending_lava_pools = False
+                    for _lpi in range(3):
+                        _lpx = _vf.x + _vf.facing * (40 + _lpi * 55) - 25
+                        _lpx = max(20.0, min(float(WIDTH - 20 - 50), _lpx))
+                        hazards.append(HazardZone(_lpx, 50, "lava", life=FPS * 4))
 
             # Floor is Lava: ground contact burns
             if stage_data["name"] == "Floor is Lava":
@@ -6147,6 +6162,13 @@ def main():
             if new_unlocks:
                 _save_data(unlocked, stats)
                 _show_unlocks(new_unlocks)
+        if _solar_eclipse_flag[0]:
+            stats["volcanis_unlocked"] = True
+            _solar_eclipse_flag[0] = False
+            new_unlocks = check_and_unlock(unlocked, stats)
+            if new_unlocks:
+                _save_data(unlocked, stats)
+                _show_unlocks(new_unlocks)
 
         # --- Seasonal shop path ---
         if mode == 'seasonal_shop':
@@ -6378,6 +6400,13 @@ def main():
                 result = run_fight(p1_idx, p2_idx, vs_ai=True, ai_difficulty='mega_hard', stage_idx=_fil_stage_idx)
                 action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
                 p1_won = info[0] if isinstance(info, tuple) else False
+                # Volcanis: win Floor is Lava with the ground having burned you down to ≤5% HP
+                if p1_won and isinstance(info, tuple) and len(info) > 8:
+                    _fil_char = info[1]
+                    _fil_hp   = info[8]
+                    _fil_maxhp = next((c["max_hp"] for c in CHARACTERS if c["name"] == _fil_char), 100)
+                    if _fil_hp is not None and 0 < _fil_hp <= max(1, round(_fil_maxhp * 0.05)):
+                        stats["volcanis_unlocked"] = True
                 if p1_won:
                     stats["floor_lava_wins"] = stats.get("floor_lava_wins", 0) + 1
                     if stats["floor_lava_wins"] % 10 == 0:

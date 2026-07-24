@@ -1,6 +1,7 @@
 import pygame
 import sys
 import math
+import random
 import socket
 import threading
 import fight_network as _net
@@ -13,6 +14,8 @@ from fight_seasonal import SEASONAL_EVENTS, SEASONAL_SHOP_CHARS, get_active_even
 _type42_typed = [False]
 # Shared flag: set True when player idles on stage select for 30 seconds
 _map_man_flag = [False]
+# Shared flag: set True when player types "solar" during a main-menu solar eclipse
+_solar_eclipse_flag = [False]
 # Touch-control device flags: which players use on-screen buttons (default: both)
 touch_p1_enabled = [True]
 touch_p2_enabled = [True]
@@ -687,6 +690,11 @@ def mode_select():
     _secret_buf = ""
     _confirm_rect = pygame.Rect(WIDTH // 2 - 80, HEIGHT - 52, 160, 44)
 
+    # Solar Eclipse: rare random event — type "solar" while it's active to
+    # unlock Volcanis. Checked ~once/sec, ~1-in-90 chance (roughly every 90s).
+    _eclipse_timer = 0     # frames remaining in the current eclipse
+    _eclipse_buf   = ""
+
     # Background lobby for update notifications (non-blocking, best-effort)
     _home_lobby   = _make_lobby(_net.load_userdata(), timeout=2)
     _home_banners = []   # [[text, frames_remaining], ...]
@@ -705,6 +713,13 @@ def mode_select():
         _ev_mode    = _ev_mode_ev.get("special_mode") if _ev_mode_ev else None
         _ev_label   = _ev_mode_ev.get("special_mode_label", "Event Mode") if _ev_mode_ev and _ev_mode else None
         _ev_btn_rect = pygame.Rect(WIDTH // 2 - 175, HEIGHT - 92, 350, 38) if _ev_mode else None
+
+        # Solar Eclipse: rare, short-lived random event
+        if _eclipse_timer > 0:
+            _eclipse_timer -= 1
+        elif random.random() < 1.0 / (FPS * 90):
+            _eclipse_timer = FPS * 10
+            _eclipse_buf   = ""
 
         # Poll server for update notifications
         if _home_lobby and _home_lobby.connected:
@@ -760,6 +775,14 @@ def mode_select():
                         return 'secret_menu'
                     if len(_secret_buf) > len(_secret_seq) + 5:
                         _secret_buf = _secret_buf[-len(_secret_seq):]
+                # Type "solar" during a Solar Eclipse to unlock Volcanis
+                if _eclipse_timer > 0 and hasattr(event, 'unicode') and event.unicode:
+                    _eclipse_buf += event.unicode.lower()
+                    if _eclipse_buf.endswith('solar'):
+                        _solar_eclipse_flag[0] = True
+                        _eclipse_buf = ""
+                    if len(_eclipse_buf) > 10:
+                        _eclipse_buf = _eclipse_buf[-10:]
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit(); sys.exit()
                 if event.key in (pygame.K_LEFT, pygame.K_a):
@@ -913,6 +936,28 @@ def mode_select():
             _bsurf.blit(_btxt, (10, 6))
             screen.blit(_bsurf, (20, 120 + _bi * 42))
             _home_banners[_bi][1] -= 1
+
+        # Solar Eclipse overlay
+        if _eclipse_timer > 0:
+            _ecl_total   = FPS * 10
+            _ecl_frac    = _eclipse_timer / _ecl_total          # 1.0 → 0.0 over the event
+            _ecl_elapsed = _ecl_total - _eclipse_timer
+            _ecl_fade    = min(1.0, _ecl_elapsed / FPS, _eclipse_timer / FPS)  # fade in/out over 1s each
+            _dim = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            _dim.fill((5, 5, 20, int(150 * _ecl_fade)))
+            screen.blit(_dim, (0, 0))
+            _sun_cx, _sun_cy, _sun_r = WIDTH // 2, 70, 30
+            pygame.draw.circle(screen, (255, 200, 60), (_sun_cx, _sun_cy), _sun_r)
+            for _ri3 in range(12):
+                _ra3 = math.radians(_ri3 * 30 + pygame.time.get_ticks() * 0.05)
+                pygame.draw.line(screen, (255, 220, 120),
+                                 (_sun_cx + int(math.cos(_ra3)*(_sun_r+4)), _sun_cy + int(math.sin(_ra3)*(_sun_r+4))),
+                                 (_sun_cx + int(math.cos(_ra3)*(_sun_r+12)), _sun_cy + int(math.sin(_ra3)*(_sun_r+12))), 2)
+            # Moon slides across the sun over the eclipse's lifetime, fully covering it at the midpoint
+            _moon_dx = int((_ecl_frac - 0.5) * 2 * (_sun_r * 2.4))
+            pygame.draw.circle(screen, (10, 10, 18), (_sun_cx - _moon_dx, _sun_cy), _sun_r + 2)
+            _ecl_txt = font_small.render("SOLAR ECLIPSE", True, (200, 190, 255))
+            screen.blit(_ecl_txt, (_sun_cx - _ecl_txt.get_width()//2, _sun_cy + _sun_r + 14))
 
         pygame.display.flip()
 

@@ -97,6 +97,8 @@ class Fighter:
         self.deco_laser_flash    = 0     # frames left to draw the beam
         self.pending_deco_bomb  = False  # Deco & Emoj: throw a big bomb this frame
         self.deco_bomb_cooldown  = 0     # cooldown between bomb throws
+        self.hammer_slam_timer  = 0      # Volcanis: frames until the hammer slam lands
+        self.pending_lava_pools = False  # Volcanis: spawn lava pools this frame
         self.pending_ink_clone       = False  # Ink Brush: spawn a clone this frame
         self.ink_clone_cooldown      = 0      # cooldown between clones
         self.squish_frames           = 0      # frames of squish remaining (Hammerhead punch)
@@ -403,6 +405,10 @@ class Fighter:
             self.deco_laser_flash -= 1
         if self.deco_bomb_cooldown > 0:
             self.deco_bomb_cooldown -= 1
+        if self.hammer_slam_timer > 0:
+            self.hammer_slam_timer -= 1
+            if self.hammer_slam_timer == 0:
+                self.pending_lava_pools = True
         if self.ink_clone_cooldown > 0:
             self.ink_clone_cooldown -= 1
         if self.whip_cooldown > 0:
@@ -931,6 +937,8 @@ class Fighter:
                 if self.char.get("deco_bomb_kick") and self.deco_bomb_cooldown == 0:
                     self.pending_deco_bomb  = True
                     self.deco_bomb_cooldown = FPS * 3   # 3-second cooldown
+                if self.char.get("hammer_slam_kick") and self.hammer_slam_timer == 0:
+                    self.hammer_slam_timer = 14   # slam impact delay before lava erupts
                 if self.char.get("jack_tank"):
                     self.jack_tank_frames = FPS * 10  # activate / refresh tank mode
                     self.pending_jack_seed = True      # kick also fires a seed

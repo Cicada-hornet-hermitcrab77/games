@@ -14321,6 +14321,111 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
 
         return (int(x + facing * 40 * s), int(y - 100 * s))
 
+    # ── Volcanis: legless golem sitting in a pool of lava, twin hammers, ────
+    #    lava periodically spews from his head.
+    if char_name == "Volcanis":
+        _vt      = pygame.time.get_ticks() / 1000.0
+        _vspew_c = _vt % 6.0
+        _spewing = _vspew_c < 0.8
+        _slam    = action == 'kick'
+        _slam_p  = min(1.0, action_t) if _slam else 0.0
+
+        if action == 'dead':
+            _gy = int(y) - int(hd * 0.3)
+            _gr = int(hd * 1.6)
+            pygame.draw.ellipse(surface, (200, 70, 20), (int(x) - _gr*2, int(y) - 10, _gr*4, 20))
+            pygame.draw.circle(surface, (60, 55, 58), (int(x) - facing*int(_gr*0.8), _gy), _gr)
+            pygame.draw.circle(surface, (30, 15, 10), (int(x) - facing*int(_gr*0.8) - int(_gr*0.3), _gy),
+                               max(2, int(_gr*0.18)))
+            return None
+
+        _bob    = int(math.sin(_vt * 1.3) * 4 * s) if not _slam else int(_slam_p * 10 * s)
+        _base_y = int(y) - _bob
+        _torso_w = int(hd * 2.6)
+        _torso_h = int(bl * 1.3)
+        _tcx, _tcy = int(x), _base_y - int(_torso_h * 0.5)
+
+        # Lava pool at the base (no legs — he sits directly in the magma)
+        _pool_r = int(hd * 2.1)
+        for _pi in range(3):
+            _pw = _pool_r * 2 - _pi * int(6*s)
+            _ph = int(hd * 0.6) - _pi * int(2*s)
+            _pcol = [(120, 30, 0), (200, 80, 10), (255, 170, 40)][_pi]
+            pygame.draw.ellipse(surface, _pcol, (int(x) - _pw//2, int(y) - _ph//2, _pw, _ph))
+        for _bi in range(4):
+            _bph = math.radians(_bi * 90 + _vt * 90)
+            _bpx = int(x) + int(math.cos(_bph) * _pool_r * 0.55)
+            _bpy = int(y) + int(math.sin(_bph) * int(hd*0.6) * 0.3)
+            _bpr = max(1, int((2 + math.sin(_vt*3 + _bi) * 1.5) * s))
+            pygame.draw.circle(surface, (255, 200, 80), (_bpx, _bpy), _bpr)
+
+        # Golem torso — blocky obsidian with glowing cracks
+        _rock_pts = [
+            (_tcx - _torso_w//2, _tcy - _torso_h//2), (_tcx + _torso_w//2, _tcy - _torso_h//2),
+            (_tcx + int(_torso_w*0.58), _tcy + _torso_h//2), (_tcx - int(_torso_w*0.58), _tcy + _torso_h//2),
+        ]
+        pygame.draw.polygon(surface, (55, 50, 52), _rock_pts)
+        pygame.draw.polygon(surface, (30, 26, 28), _rock_pts, max(1, int(2*s)))
+        for _crx, _cry1, _cry2 in [(-0.25, -0.4, 0.3), (0.2, -0.3, 0.45), (0.02, -0.1, 0.5)]:
+            _glow = int(120 + math.sin(_vt*2 + _crx*5) * 80)
+            pygame.draw.line(surface, (min(255,180+_glow//3), max(0,_glow), 20),
+                             (_tcx + int(_crx*_torso_w), _tcy + int(_cry1*_torso_h)),
+                             (_tcx + int(_crx*_torso_w) + int(4*s), _tcy + int(_cry2*_torso_h)), max(1, int(2*s)))
+
+        # Head — smaller obsidian block with glowing eyes
+        _hcx, _hcy = _tcx, _tcy - _torso_h//2 - int(hd * 0.8)
+        pygame.draw.rect(surface, (50, 46, 48), (_hcx - int(hd*0.75), _hcy - int(hd*0.7), int(hd*1.5), int(hd*1.4)),
+                         border_radius=max(1, int(3*s)))
+        pygame.draw.rect(surface, (28, 24, 26), (_hcx - int(hd*0.75), _hcy - int(hd*0.7), int(hd*1.5), int(hd*1.4)),
+                         max(1, int(2*s)), border_radius=max(1, int(3*s)))
+        for _eox in (-1, 1):
+            _eex = _hcx + _eox * int(hd * 0.35)
+            pygame.draw.circle(surface, (255, 140, 20), (_eex, _hcy - int(hd*0.05)), max(2, int(hd*0.2)))
+            pygame.draw.circle(surface, (255, 230, 150), (_eex, _hcy - int(hd*0.05)), max(1, int(hd*0.08)))
+
+        # Lava spewing from the top of his head, on a periodic cycle
+        if _spewing:
+            _sp_frac = _vspew_c / 0.8
+            for _si in range(5):
+                _sang = math.radians(-90 + (_si - 2) * 12)
+                _sdist = _sp_frac * hd * (2.2 + _si * 0.3)
+                _spx = _hcx + int(math.cos(_sang) * _sdist * 0.3)
+                _spy = (_hcy - int(hd*0.7)) - int(abs(math.sin(_sp_frac * math.pi)) * hd * 2.4) + _si * 2
+                _spr = max(1, int((4 - _sp_frac*2) * s))
+                pygame.draw.circle(surface, (255, 150, 30), (_spx, _spy), _spr)
+                pygame.draw.circle(surface, (255, 220, 120), (_spx, _spy), max(1, _spr-1))
+
+        # Two hammers — held low normally, raised and slammed down on kick
+        for _hs in (-1, 1):
+            if _slam:
+                if _slam_p < 0.5:
+                    _raise = _slam_p / 0.5
+                    _hy_off = -int(hd * 2.2 * _raise)
+                else:
+                    _drop = (_slam_p - 0.5) / 0.5
+                    _hy_off = -int(hd * 2.2 * (1 - _drop))
+                _hx_off = _hs * int(_torso_w * 0.75)
+            else:
+                _hy_off = int(_torso_h * 0.15) + int(math.sin(_vt*1.3 + _hs) * 2 * s)
+                _hx_off = _hs * int(_torso_w * 0.62)
+            _handx = _tcx + _hx_off
+            _handy = _tcy + _hy_off
+            _headx = _handx
+            _heady = _handy - int(hd * 1.5) if not _slam else _handy - int(hd * 1.5)
+            pygame.draw.line(surface, (90, 65, 40), (_handx, _handy), (_headx, _heady), max(2, int(4*s)))
+            _hh_w, _hh_h = int(hd * 1.1), int(hd * 0.65)
+            pygame.draw.rect(surface, (90, 88, 92), (_headx - _hh_w//2, _heady - _hh_h//2, _hh_w, _hh_h),
+                             border_radius=max(1, int(2*s)))
+            pygame.draw.rect(surface, (50, 48, 52), (_headx - _hh_w//2, _heady - _hh_h//2, _hh_w, _hh_h),
+                             max(1, int(2*s)), border_radius=max(1, int(2*s)))
+
+        # Slam impact flash at the moment the hammers land
+        if _slam and _slam_p > 0.48 and _slam_p < 0.62:
+            _flash_r = int(hd * 2.5)
+            pygame.draw.circle(surface, (255, 160, 40), (int(x), int(y)), _flash_r, max(1, int(3*s)))
+
+        return (int(x + facing * 40 * s), int(y - 100 * s))
+
     # ── Dead pose: stickman lying flat on the ground ────────────────────────
     if action == 'dead':
         # Head lies to the side (opposite of facing), body horizontal

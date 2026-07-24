@@ -1059,18 +1059,24 @@ class HazardZone:
         "ice":      (( 60,140,200),  (180, 230,255)),
     }
 
-    def __init__(self, x, w, htype="spike"):
+    def __init__(self, x, w, htype="spike", life=None):
         self.x      = float(x)
         self.w      = w
         self.htype  = htype
         self._t     = 0
         self.p1_cd  = 0
         self.p2_cd  = 0
+        self.life   = life    # frames remaining before despawn; None = permanent stage hazard
+        self.alive  = True
 
     def update(self):
         self._t = (self._t + 1) % 60
         if self.p1_cd > 0: self.p1_cd -= 1
         if self.p2_cd > 0: self.p2_cd -= 1
+        if self.life is not None:
+            self.life -= 1
+            if self.life <= 0:
+                self.alive = False
 
     def contains(self, fighter):
         return (fighter.on_ground and
