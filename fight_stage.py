@@ -916,6 +916,50 @@ class Dino(object):
         pygame.draw.circle(surface, (200, 40, 30), (hx - self.facing * 2, cy - 6), 2)
 
 
+class Stampede(object):
+    """Crystallion's kick — a stampede of horses charging from the left edge
+    of the screen to the right edge, hitting only its locked target once."""
+    SPEED       = 11
+    DMG         = 14
+    HORSE_COUNT = 5
+
+    def __init__(self, target):
+        self.target = target
+        self.x      = -80.0
+        self.alive  = True
+        self.hit    = False
+        self.t      = 0
+
+    def update(self):
+        self.t += 1
+        self.x += self.SPEED
+        if not self.hit and self.target.hp > 0 and abs(self.x - self.target.x) < 50:
+            self.target.take_proj_dmg(self.DMG, flash=False)
+            self.target.flash_timer = 14
+            self.hit = True
+        if self.x - self.HORSE_COUNT * 34 > WIDTH + 80:
+            self.alive = False
+
+    def draw(self, surface):
+        for i in range(self.HORSE_COUNT):
+            hx = int(self.x - i * 34)
+            if hx < -40 or hx > WIDTH + 40:
+                continue
+            hy = GROUND_Y - 14 + (i % 2) * 5
+            gallop = math.sin(self.t * 0.5 + i) * 5
+            col, col_dk = (150, 220, 240), (80, 150, 180)
+            pygame.draw.ellipse(surface, col, (hx - 14, hy - 8, 26, 14))
+            pygame.draw.ellipse(surface, col_dk, (hx - 14, hy - 8, 26, 14), 1)
+            # Legs, galloping
+            for sgn in (-1, 1):
+                pygame.draw.line(surface, col, (hx + sgn * 8, hy + 4),
+                                 (hx + sgn * 8 + int(gallop * sgn), hy + 16), 2)
+            # Neck + head, facing right (direction of travel)
+            pygame.draw.polygon(surface, col, [(hx + 12, hy - 4), (hx + 22, hy - 12), (hx + 22, hy - 2)])
+            # Mane
+            pygame.draw.line(surface, (220, 250, 255), (hx + 8, hy - 8), (hx + 2, hy - 14), 2)
+
+
 class GoldenJungleSnake(JungleSnake):
     SPEED         = 4.0    # faster than normal
     MAX_HP        = 35

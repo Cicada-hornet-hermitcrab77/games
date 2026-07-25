@@ -14657,6 +14657,105 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
 
         return (int(x + facing * 40 * s), int(y - 100 * s))
 
+    # ── Crystallion: a crystal horse — not humanoid at all. Snorts and ──────
+    #    stamps a hoof on a periodic cycle.
+    if char_name == "Crystallion":
+        _ct     = pygame.time.get_ticks() / 1000.0
+        _ccycle = _ct % 4.0
+        _stamping = _ccycle < 0.4
+        _crystal   = (150, 220, 240)
+        _crystal_dk = (80, 150, 180)
+        _crystal_lt = (220, 250, 255)
+
+        if action == 'dead':
+            _bcx, _bcy = int(x) - facing * int(hd*1.5), int(y) - int(hd*0.6)
+            pygame.draw.ellipse(surface, _crystal_dk, (_bcx - int(hd*2), _bcy - int(hd*0.8), int(hd*4), int(hd*1.6)))
+            pygame.draw.ellipse(surface, _crystal_dk, (_bcx - int(hd*2), _bcy - int(hd*0.8), int(hd*4), int(hd*1.6)), max(1, int(2*s)))
+            return None
+
+        _bob = int(math.sin(_ct * 1.6) * 3 * s)
+        _body_y = int(y) - int(hd * 1.5) - _bob
+        _body_x = int(x)
+        _body_w, _body_h = int(hd * 3.4), int(hd * 1.6)
+
+        def _facet(cx, cy, w, h, col, col_dk):
+            _pts = [(cx - w//2, cy), (cx - w//4, cy - h//2), (cx + w//4, cy - h//2),
+                    (cx + w//2, cy), (cx + w//4, cy + h//2), (cx - w//4, cy + h//2)]
+            pygame.draw.polygon(surface, col, _pts)
+            pygame.draw.polygon(surface, col_dk, _pts, max(1, int(2*s)))
+            pygame.draw.line(surface, col_dk, (cx, cy - h//2), (cx, cy + h//2), 1)
+
+        # Legs — angular crystal struts
+        _leg_kick = 0.0
+        if _stamping:
+            _leg_kick = math.sin((_ccycle / 0.4) * math.pi) * int(14*s)
+        for _li, _lx7 in enumerate([-int(hd*1.3), -int(hd*0.5), int(hd*0.5), int(hd*1.3)]):
+            _front_leg = _li >= 2
+            _lift = _leg_kick if (_front_leg and _li == 2) else 0
+            _topx = _body_x + _lx7
+            _topy = _body_y + _body_h//2
+            _botx = _topx + int(3*s)
+            _boty = int(y) - int(_lift)
+            pygame.draw.polygon(surface, _crystal, [
+                (_topx - int(4*s), _topy), (_topx + int(4*s), _topy),
+                (_botx + int(3*s), _boty), (_botx - int(3*s), _boty)])
+            pygame.draw.polygon(surface, _crystal_dk, [
+                (_topx - int(4*s), _topy), (_topx + int(4*s), _topy),
+                (_botx + int(3*s), _boty), (_botx - int(3*s), _boty)], 1)
+
+        # Tail — jagged crystal shards trailing behind
+        _tailx = _body_x - facing * int(_body_w * 0.55)
+        for _ti in range(3):
+            _tsway = math.sin(_ct * 1.5 + _ti) * 4 * s
+            _tx7 = _tailx - facing * int(_ti * 8 * s) + int(_tsway)
+            _ty7 = _body_y + int(_ti * 10 * s)
+            pygame.draw.polygon(surface, _crystal_lt, [
+                (_tx7, _ty7 - int(5*s)), (_tx7 - facing*int(6*s), _ty7), (_tx7, _ty7 + int(5*s))])
+
+        # Body — barrel of stacked facets
+        for _fi in range(3):
+            _facet(_body_x + (_fi - 1) * int(_body_w * 0.32), _body_y, int(_body_w * 0.4), _body_h,
+                  _crystal, _crystal_dk)
+
+        # Neck + head
+        _neckx = _body_x + facing * int(_body_w * 0.45)
+        _necky = _body_y - int(hd * 0.3)
+        _headx = _neckx + facing * int(hd * 1.1)
+        _heady = _necky - int(hd * 0.9)
+        pygame.draw.polygon(surface, _crystal, [
+            (_neckx - facing*int(6*s), _body_y - _body_h//3), (_neckx + facing*int(6*s), _body_y - _body_h//3),
+            (_headx + facing*int(4*s), _heady), (_headx - facing*int(10*s), _heady - int(4*s))])
+        pygame.draw.polygon(surface, _crystal_dk, [
+            (_neckx - facing*int(6*s), _body_y - _body_h//3), (_neckx + facing*int(6*s), _body_y - _body_h//3),
+            (_headx + facing*int(4*s), _heady), (_headx - facing*int(10*s), _heady - int(4*s))], 1)
+        # Snout
+        _snoutx = _headx + facing * int(hd * 0.9)
+        pygame.draw.polygon(surface, _crystal, [
+            (_headx, _heady), (_snoutx, _heady + int(3*s)), (_headx, _heady + int(hd*0.5))])
+        # Eye
+        pygame.draw.circle(surface, (30, 60, 90), (_headx - facing*int(2*s), _heady + int(4*s)), max(1, int(hd*0.14)))
+        # Mane — crystal shards along the neck
+        for _mi in range(4):
+            _mt = _mi / 3
+            _mx7 = int(_neckx + (_headx - _neckx) * _mt)
+            _my7 = int(_body_y - _body_h//3 + (_heady - (_body_y - _body_h//3)) * _mt)
+            pygame.draw.polygon(surface, _crystal_lt, [
+                (_mx7, _my7), (_mx7 - facing*int(3*s), _my7 - int(9*s)), (_mx7 + facing*int(2*s), _my7 - int(3*s))])
+
+        # Snort — a small vapor puff from the snout during the stamp window
+        if _stamping:
+            _puff_frac = _ccycle / 0.4
+            _pr = max(2, int((3 + _puff_frac * 6) * s))
+            _psurf = pygame.Surface((_pr*2+2, _pr*2+2), pygame.SRCALPHA)
+            pygame.draw.circle(_psurf, (220, 240, 255, int(180 * (1-_puff_frac))), (_pr+1, _pr+1), _pr)
+            surface.blit(_psurf, (_snoutx + facing*int(6*s) - _pr, _heady + int(3*s) - _pr))
+            # Dust/shard puff where the hoof stamps
+            _stamp_x = _body_x + int(hd*1.3) + int(3*s)
+            _dsurf_r = max(2, int(10 * _puff_frac * s))
+            pygame.draw.circle(surface, (200, 230, 250), (_stamp_x, int(y)), _dsurf_r, max(1, int(s)))
+
+        return (int(x + facing * 40 * s), int(y - 100 * s))
+
     # ── Dead pose: stickman lying flat on the ground ────────────────────────
     if action == 'dead':
         # Head lies to the side (opposite of facing), body horizontal

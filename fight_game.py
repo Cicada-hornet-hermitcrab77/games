@@ -13,7 +13,7 @@ from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt, SlantedConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull, FallingTeddy, HazardZone,
-                            JungleSnake, GoldenJungleSnake, Dino, ComputerBug, MousePlatform,
+                            JungleSnake, GoldenJungleSnake, Dino, Stampede, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall, Whip, HotPotato, BigBomb,
                             FallingPot, RollingCoin, FallingMerlin,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
@@ -436,6 +436,7 @@ UNLOCK_CONDITIONS = {
     "Volcanis":            ("volcanis_unlock", None,             1,  "The stars align, or the lava nearly wins",  True),
     "Umbra":               ("umbra_unlock",   None,              1,  "Something stirs when the moon goes dark",   True),
     "Amberk":              ("amberk_unlock",  None,              1,  "Old bones, once a year",                    True),
+    "Crystallion":         ("crystallion_unlock", None,          1,  "A flawless run, once every four years",     True),
     # ── batch 9 ─────────────────────────────────────────────────────────────
     "Marauder":            ("win_with",       "Desperado",       3,  "Win 3 matches as Desperado"),
     "Seraph":              ("perfect_wins",   None,              9,  "Win 9 matches at full HP"),
@@ -568,6 +569,8 @@ def _default_stats():
         "amberk_unlocked":          False,
         "dino_bones_date":          "",
         "dino_bones_count":         0,
+        # Crystallion: won without taking damage, on Leap Day (2/29)
+        "crystallion_unlocked":     False,
         # Orb Shooter: cumulative projectiles blocked
         "projectiles_blocked":      0,
         # <|-\||>+(): typed on Computer stage
@@ -730,6 +733,8 @@ def _meets_condition(cond, stats):
         return stats.get("umbra_unlocked", False)
     if kind == "amberk_unlock":
         return stats.get("amberk_unlocked", False)
+    if kind == "crystallion_unlock":
+        return stats.get("crystallion_unlocked", False)
     if kind == "projectiles_blocked":
         return stats.get("projectiles_blocked", 0) >= n
     if kind == "symbol_char_typed":
@@ -862,6 +867,9 @@ def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=N
         stats["wins_on_stage"][stage] = stats["wins_on_stage"].get(stage, 0) + 1
         if p1_full_hp:
             stats["perfect_wins"] += 1
+            _today = datetime.date.today()
+            if _today.month == 2 and _today.day == 29:
+                stats["crystallion_unlocked"] = True
         if p1_low_hp:
             stats["clutch_wins"]  += 1
         if p1_half_hp:
@@ -1162,6 +1170,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     falling_teddies    = []   # WakeUp: teddy bear rain
     big_bombs          = []   # Deco & Emoj: thrown bombs
     dinos              = []   # Amberk: chasing skeletal raptors
+    stampedes          = []   # Crystallion: charging horse stampedes
     casino_coins     = []   # falling coins on The Casino stage
     casino_coin_cd   = 90
     is_casino        = stage_data["name"] == "The Casino"
@@ -1472,6 +1481,15 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             for _dn in dinos:
                 _dn.update()
             dinos = [_dn for _dn in dinos if _dn.alive]
+
+            # Crystallion — kick summons a horse stampede that charges the opponent
+            for _sf, _sv in [(p1, p2), (p2, p1)]:
+                if _sf.pending_stampede:
+                    _sf.pending_stampede = False
+                    stampedes.append(Stampede(_sv))
+            for _sd in stampedes:
+                _sd.update()
+            stampedes = [_sd for _sd in stampedes if _sd.alive]
 
             # Floor is Lava: ground contact burns
             if stage_data["name"] == "Floor is Lava":
@@ -3106,6 +3124,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             hz.draw(screen)
         for _dn in dinos:
             _dn.draw(screen)
+        for _sd in stampedes:
+            _sd.draw(screen)
         for pu in powerups:
             pu.draw(screen)
         for b in balls:

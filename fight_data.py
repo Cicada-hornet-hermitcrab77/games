@@ -1577,6 +1577,10 @@ CHARACTERS = [
      "desc": "A moth now — his books fly around the entire map",
      "double_jump": True, "slow_fall": True, "grad_bookzworm_books": True,
      "shop_only": True},
+    {"name": "Crystallion", "color": (150, 220, 240), "speed": 6, "jump": -14,
+     "punch_dmg": 10, "kick_dmg": 11, "max_hp": 105, "block": 5,
+     "desc": "Kick summons a stampede of horses charging across the arena",
+     "double_jump": False, "stampede_kick": True},
 ]
 
 POWERUPS = [

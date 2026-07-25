@@ -102,6 +102,7 @@ class Fighter:
         self.umbra_mark_x         = None  # Umbra: x position of her ground mark, if any
         self.umbra_teleport_flash = 0     # Umbra: frames left in the teleport poof visual
         self.pending_dino_summon  = False # Amberk: summon a chasing dino this frame
+        self.pending_stampede     = False # Crystallion: summon a horse stampede this frame
         self.pending_ink_clone       = False  # Ink Brush: spawn a clone this frame
         self.ink_clone_cooldown      = 0      # cooldown between clones
         self.squish_frames           = 0      # frames of squish remaining (Hammerhead punch)
@@ -956,6 +957,8 @@ class Fighter:
                     self.umbra_mark_x = self.x
                 if self.char.get("dino_summon_kick"):
                     self.pending_dino_summon = True
+                if self.char.get("stampede_kick"):
+                    self.pending_stampede = True
                 if self.char.get("jack_tank"):
                     self.jack_tank_frames = FPS * 10  # activate / refresh tank mode
                     self.pending_jack_seed = True      # kick also fires a seed
