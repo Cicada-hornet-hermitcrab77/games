@@ -13174,6 +13174,81 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.rect(surface, (180, 80, 40),
                              (_bx - _bsz // 2, _by - _bsz // 2, _bsz, int(_bsz * 1.3)))
 
+    elif char_name == "Graduated Bookzworm":
+        _gt = pygame.time.get_ticks() / 1000.0
+
+        # Jigsaw-puzzle moth wings on the back
+        for _wsign in (-1, 1):
+            _wcx = sx - facing * int(2*s)
+            _wcy = sy + int(bl * 0.25)
+            _wflap = math.sin(_gt * 5) * 0.15 + 0.85
+            _ww, _wh = int(hd * 2.6 * _wflap), int(hd * 2.0)
+            _wsurf = pygame.Surface((_ww, _wh), pygame.SRCALPHA)
+            pygame.draw.ellipse(_wsurf, (150, 200, 220, 220), (0, 0, _ww, _wh))
+            pygame.draw.ellipse(_wsurf, (90, 140, 170), (0, 0, _ww, _wh), max(1, int(2*s)))
+            # Jigsaw grid lines across the wing
+            for _gx in range(1, 3):
+                pygame.draw.line(_wsurf, (90, 140, 170), (_ww*_gx//3, 0), (_ww*_gx//3, _wh), 1)
+            for _gy in range(1, 2):
+                pygame.draw.line(_wsurf, (90, 140, 170), (0, _wh*_gy//2), (_ww, _wh*_gy//2), 1)
+            for _px5, _py5 in [(_ww//3, _wh//2), (2*_ww//3, _wh//2)]:
+                pygame.draw.circle(_wsurf, (90, 140, 170), (_px5, _py5), max(2, int(3*s)), 1)
+            _wsurf = pygame.transform.rotate(_wsurf, _wsign * (20 + math.sin(_gt*5)*8))
+            surface.blit(_wsurf, (_wcx - _wsign*int(_ww*0.3) - _wsurf.get_width()//2,
+                                  _wcy - _wsurf.get_height()//2))
+
+        # Round glasses (same style as Bookzworm)
+        _gl_r = max(3, int(hd * 0.27))
+        _gl_y = hy - int(hd * 0.12)
+        for _gx6 in (hx - int(hd * 0.36), hx + int(hd * 0.36)):
+            pygame.draw.circle(surface, (40, 30, 10), (_gx6, _gl_y), _gl_r, max(1, int(s * 1.5)))
+        pygame.draw.line(surface, (40, 30, 10),
+                         (hx - int(hd * 0.36) + _gl_r, _gl_y), (hx + int(hd * 0.36) - _gl_r, _gl_y), max(1, int(s)))
+
+        # Graduation cap — flat mortarboard with a tassel; an ant peeks out every 3s
+        _cap_y = hy - int(hd * 1.05)
+        pygame.draw.polygon(surface, (25, 20, 35), [
+            (hx - int(hd*1.3), _cap_y), (hx + int(hd*1.3), _cap_y),
+            (hx + int(hd*0.4), _cap_y - int(hd*0.5)), (hx - int(hd*0.4), _cap_y - int(hd*0.5))])
+        pygame.draw.circle(surface, (25, 20, 35), (hx, _cap_y), int(hd*0.5))
+        pygame.draw.circle(surface, (210, 180, 40), (hx, _cap_y), max(2, int(3*s)))
+        pygame.draw.line(surface, (210, 180, 40), (hx, _cap_y), (hx + int(hd*0.6), _cap_y + int(hd*0.7)), max(1, int(2*s)))
+        _peek_cycle = _gt % 3.0
+        if _peek_cycle < 0.6:
+            _peek_frac = math.sin((_peek_cycle / 0.6) * math.pi)
+            _antx = hx - int(hd*0.7)
+            _anty = _cap_y - int(hd*0.15) - int(_peek_frac * hd*0.5)
+            pygame.draw.circle(surface, (20, 15, 15), (_antx, _anty), max(2, int(3*s)))
+            pygame.draw.circle(surface, (20, 15, 15), (_antx, _anty - int(4*s)), max(1, int(2*s)))
+            for _asign in (-1, 1):
+                pygame.draw.line(surface, (20, 15, 15), (_antx, _anty - int(5*s)),
+                                 (_antx + _asign*int(3*s), _anty - int(9*s)), 1)
+
+        # Book held open, reading "How to Master Stickman Fight"
+        _bk_x = sx + facing * int(hd * 1.1)
+        _bk_y = sy + int(bl * 0.2)
+        _bk_w, _bk_h = int(hd * 1.6), int(hd * 1.2)
+        pygame.draw.rect(surface, (230, 220, 195), (_bk_x - _bk_w//2, _bk_y, _bk_w, _bk_h), border_radius=max(1, int(2*s)))
+        pygame.draw.rect(surface, (160, 140, 100), (_bk_x - _bk_w//2, _bk_y, _bk_w, _bk_h), max(1, int(s)), border_radius=max(1, int(2*s)))
+        pygame.draw.line(surface, (160, 140, 100), (_bk_x, _bk_y), (_bk_x, _bk_y + _bk_h), 1)
+        if hd * s >= 10:
+            _btf = _get_font(max(6, int(hd * 0.28)))
+            for _bli, _bltxt in enumerate(["How to", "Master", "Stickman", "Fight"]):
+                _bls = _btf.render(_bltxt, True, (60, 50, 30))
+                surface.blit(_bls, (_bk_x - _bls.get_width()//2, _bk_y + int(3*s) + _bli * int(hd*0.3)))
+
+        # Books flying around the entire map — large looping orbit spanning the arena
+        for _fi in range(4):
+            _fang = _gt * 0.9 + _fi * (math.pi / 2)
+            _fx6 = int(WIDTH / 2 + math.cos(_fang) * (WIDTH * 0.42))
+            _fy6 = int(150 + math.sin(_fang * 1.3) * 110 + math.sin(_fang) * 40)
+            _fsz = max(6, int(hd * 0.6))
+            _frot = math.degrees(_fang) * 2
+            _fbsurf = pygame.Surface((_fsz*2, int(_fsz*2.6)), pygame.SRCALPHA)
+            pygame.draw.rect(_fbsurf, (180, 80, 40), (0, 0, _fsz*2, int(_fsz*2.6)))
+            _fbsurf = pygame.transform.rotate(_fbsurf, _frot)
+            surface.blit(_fbsurf, (_fx6 - _fbsurf.get_width()//2, _fy6 - _fbsurf.get_height()//2))
+
     elif char_name == "Yellowstone":
         # Mountain covering the entire stickman
         _rock  = (118, 98,  72)

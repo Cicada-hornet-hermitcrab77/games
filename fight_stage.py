@@ -404,6 +404,7 @@ class Platform:
         self.vx = float(vx)
         self.move_range = move_range
         self.start_x = float(x)
+        self.book_style = False   # Booked stage: draw as a floating book
 
     def update(self):
         if self.vx:
@@ -412,6 +413,18 @@ class Platform:
                 self.vx = -self.vx
 
     def draw(self, surface, stage_idx):
+        rx, ry = int(self.x), int(self.y)
+        if self.book_style:
+            _covers = [(180, 60, 60), (60, 110, 180), (60, 150, 90), (200, 150, 40)]
+            _seg_w  = max(1, self.w // len(_covers))
+            for _si, _col in enumerate(_covers):
+                _sx = rx + _si * _seg_w
+                _sw = _seg_w if _si < len(_covers) - 1 else self.w - _seg_w * (len(_covers) - 1)
+                pygame.draw.rect(surface, _col, (_sx, ry, _sw, self.H), border_radius=2)
+                pygame.draw.rect(surface, tuple(max(0, c - 50) for c in _col), (_sx, ry, _sw, self.H), 1)
+            pygame.draw.rect(surface, (235, 225, 200), (rx + 2, ry + self.H - 4, self.w - 4, 3))
+            pygame.draw.rect(surface, (60, 40, 20), (rx, ry, self.w, self.H), 2, border_radius=3)
+            return
         styles = [
             ((139, 90, 43),  (80,  50, 15)),   # Grasslands: wood
             ((70,  45, 35),  (200, 80,  0)),   # Volcano: rock + lava edge
@@ -420,7 +433,6 @@ class Platform:
             ((60,  60, 100), (120, 120, 220)), # Arena: stone + blue glow
         ]
         fill, border = styles[stage_idx % len(styles)]
-        rx, ry = int(self.x), int(self.y)
         pygame.draw.rect(surface, fill,   (rx, ry, self.w, self.H), border_radius=4)
         pygame.draw.rect(surface, border, (rx, ry, self.w, self.H), 2, border_radius=4)
         if self.vx:  # moving platform: dashed top stripe

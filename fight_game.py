@@ -1009,7 +1009,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     _orig_gravity = constants.GRAVITY
     if _stage_name == "Space":
         constants.GRAVITY = 0.13   # floaty anti-gravity
-    constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World"))
+    constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World", "Booked"))
     constants.STAGE_CEILING = (_stage_name == "The Nether")
 
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
@@ -1064,6 +1064,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
 
     stage_data = STAGES[stage_idx % len(STAGES)]
     platforms  = [Platform(*p) for p in stage_data["platforms"]] + [ConveyorBelt(*c) for c in stage_data.get("conveyors", [])] + [SlantedConveyorBelt(*c) for c in stage_data.get("slanted_conveyors", [])]
+    if stage_data.get("book_stage"):
+        for _pl in platforms:
+            if isinstance(_pl, Platform):
+                _pl.book_style = True
     springs    = [Spring(*s)   for s in stage_data["springs"]]
     hazards    = [HazardZone(*h) for h in stage_data.get("hazards", [])]
 
@@ -1654,12 +1658,15 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         stage_idx    = random.choice(_new_stages)
                         stage_data   = STAGES[stage_idx]
                         platforms    = [Platform(*_p) for _p in stage_data["platforms"]]
+                        if stage_data.get("book_stage"):
+                            for _pl in platforms:
+                                _pl.book_style = True
                         springs      = [Spring(*_s)   for _s in stage_data["springs"]]
                         is_jungle     = stage_data["name"] == "Jungle"
                         is_computer   = stage_data["name"] == "Computer"
                         is_underworld = stage_data["name"] == "Underworld"
                         _is_graveyard = stage_data["name"] == "Graveyard"
-                        constants.STAGE_VOID    = (stage_data["name"] in ("The Void", "Conveyor World"))
+                        constants.STAGE_VOID    = (stage_data["name"] in ("The Void", "Conveyor World", "Booked"))
                         constants.STAGE_CEILING = (stage_data["name"] == "The Nether")
                         jungle_snakes.clear()
                         computer_bugs.clear()
@@ -2652,6 +2659,12 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         victim.take_proj_dmg(6)
                         victim.flash_timer = max(victim.flash_timer, 10)
                         bz.bookzworm_book_cd = 50
+            # Graduated Bookzworm — books fly the whole map, so range is unlimited
+            for bz, victim in [(p1, p2), (p2, p1)]:
+                if bz.char.get("grad_bookzworm_books") and bz.hp > 0 and bz.bookzworm_book_cd <= 0:
+                    victim.take_proj_dmg(6)
+                    victim.flash_timer = max(victim.flash_timer, 10)
+                    bz.bookzworm_book_cd = 50
             for fb in fire_balls:
                 fb.update()
                 if fb.alive:
@@ -3542,7 +3555,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     _orig_gravity = constants.GRAVITY
     if _stage_name == "Space":
         constants.GRAVITY = 0.13
-    constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World"))
+    constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World", "Booked"))
     constants.STAGE_CEILING = (_stage_name == "The Nether")
 
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
@@ -3560,6 +3573,10 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
 
     stage_data  = STAGES[stage_idx % len(STAGES)]
     platforms   = [Platform(*p) for p in stage_data["platforms"]] + [ConveyorBelt(*c) for c in stage_data.get("conveyors", [])] + [SlantedConveyorBelt(*c) for c in stage_data.get("slanted_conveyors", [])]
+    if stage_data.get("book_stage"):
+        for _pl in platforms:
+            if isinstance(_pl, Platform):
+                _pl.book_style = True
     springs     = [Spring(*s)   for s in stage_data["springs"]]
     is_jungle     = stage_data["name"] == "Jungle"
     is_computer   = stage_data["name"] == "Computer"
@@ -4038,6 +4055,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             en.flash_timer = max(en.flash_timer, 10)
                             p.bookzworm_book_cd = 50
                             break
+            # Graduated Bookzworm aura (survival) — unlimited range
+            for p in players:
+                if p.char.get("grad_bookzworm_books") and p.hp > 0 and p.bookzworm_book_cd <= 0:
+                    for en in enemies:
+                        en.take_proj_dmg(6)
+                        en.flash_timer = max(en.flash_timer, 10)
+                        p.bookzworm_book_cd = 50
+                        break
             # Solara sun beams (survival — player → enemies)
             for p in players:
                 if p.pending_sun_beam:
@@ -4968,7 +4993,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     _orig_gravity = constants.GRAVITY
     if _stage_name == "Space":
         constants.GRAVITY = 0.13
-    constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World"))
+    constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World", "Booked"))
     constants.STAGE_CEILING = (_stage_name == "The Nether")
 
     P1_CTRL = dict(left=pygame.K_a,     right=pygame.K_d,     jump=pygame.K_w,
@@ -4987,6 +5012,9 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
 
     stage_data   = STAGES[stage_idx % len(STAGES)]
     platforms    = [Platform(*p) for p in stage_data["platforms"]]
+    if stage_data.get("book_stage"):
+        for _pl in platforms:
+            _pl.book_style = True
     springs      = [Spring(*s)   for s in stage_data["springs"]]
     balls        = []; orbs = []; bounce_balls = []; hooks = []; pumpkins = []; whips = []
     charged_orbs = []; bubble_shots = []; poison_orbs = []; scrolls = []; venoms = []
@@ -6478,6 +6506,93 @@ def main():
                             _show_unlocks([_lava_reward])
                         else:
                             _save_data(unlocked, stats)
+                if _konami_flag[0]:
+                    stats["konami_unlocked"] = True
+                    _konami_flag[0] = False
+                if action == 'rematch':
+                    continue
+                break
+            continue
+
+        # --- Booked (Novel Beginnings event) ---
+        if mode == 'booked':
+            _bk_lines = [
+                ("BOOKED",                  font_large,  (90, 140, 200),   -130),
+                ("The library has come alive.",
+                                            font_small,  (180, 200, 230),   -60),
+                ("Choose from 8 literary fighters and",
+                                            font_small,  (180, 200, 230),   -40),
+                ("battle across drifting book platforms.",
+                                            font_small,  (180, 200, 230),   -20),
+                ("There is no floor beneath the books —",
+                                            font_small,  (220, 220, 160),   20),
+                ("fall past them and it's over.",
+                                            font_small,  (220, 220, 160),   40),
+                ("Win a match for a chance at a",
+                                            font_small,  (220, 220, 160),   80),
+                ("rare fighter joining your roster.",
+                                            font_small,  (220, 220, 160),  100),
+                ("Available during Novel Beginnings only.",
+                                            font_small,  (160, 190, 220),  140),
+                ("press any key to continue",
+                                            font_tiny,  (110, 110, 110),  190),
+            ]
+            _bk_start = pygame.time.get_ticks()
+            _bk_done  = False
+            while not _bk_done:
+                clock.tick(FPS)
+                for _bev in pygame.event.get():
+                    if _bev.type == pygame.QUIT:
+                        pygame.quit(); sys.exit()
+                    if _bev.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                        _bk_done = True
+                if pygame.time.get_ticks() - _bk_start > 10000:
+                    _bk_done = True
+                _ba = min(255, int((pygame.time.get_ticks() - _bk_start) / 600 * 255))
+                screen.fill((8, 10, 22))
+                _bcy = HEIGHT // 2
+                for _bt, _bf, _bc, _bdy in _bk_lines:
+                    _bs = _bf.render(_bt, True, _bc)
+                    _bs.set_alpha(_ba)
+                    screen.blit(_bs, (WIDTH // 2 - _bs.get_width() // 2, _bcy + _bdy))
+                pygame.display.flip()
+
+            _BOOKED_FILTER = frozenset({
+                "Oni", "Rainbow Snake", "Hydra", "Chimera",
+                "Sphinx", "Anansi", "Bookzworm", "Graduated Bookzworm",
+            })
+            p1_idx, p2_idx = character_select(
+                vs_ai=True, unlocked=_BOOKED_FILTER,
+                char_filter=_BOOKED_FILTER,
+                select_title="BOOKED",
+            )
+            if p1_idx is None:
+                continue
+            _bk_stage_idx = next((i for i, st in enumerate(STAGES) if st["name"] == "Booked"), 0)
+            while True:
+                result = run_fight(p1_idx, p2_idx, vs_ai=True, ai_difficulty='mega_hard', stage_idx=_bk_stage_idx)
+                action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
+                p1_won = info[0] if isinstance(info, tuple) else False
+                if p1_won:
+                    stats["booked_wins"] = stats.get("booked_wins", 0) + 1
+                    _booked_weights = [
+                        ("Oni",              2200),
+                        ("Rainbow Snake",    1980),
+                        ("Hydra",            1760),
+                        ("Chimera",          1540),
+                        ("Sphinx",           1320),
+                        ("Anansi",           1090),
+                        ("Bookzworm",         100),
+                        ("Graduated Bookzworm", 10),
+                    ]
+                    _booked_pool = [n for n, w in _booked_weights for _ in range(w)]
+                    _booked_reward = random.choice(_booked_pool)
+                    if _booked_reward not in unlocked:
+                        unlocked.add(_booked_reward)
+                        _save_data(unlocked, stats)
+                        _show_unlocks([_booked_reward])
+                    else:
+                        _save_data(unlocked, stats)
                 if _konami_flag[0]:
                     stats["konami_unlocked"] = True
                     _konami_flag[0] = False

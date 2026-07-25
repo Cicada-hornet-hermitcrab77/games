@@ -1572,6 +1572,11 @@ CHARACTERS = [
      "punch_dmg": 9, "kick_dmg": 9, "max_hp": 100, "block": 4,
      "desc": "Kick summons a dinosaur that chases the enemy",
      "double_jump": False, "dino_summon_kick": True},
+    {"name": "Graduated Bookzworm", "color": (140, 190, 210), "speed": 5, "jump": -13,
+     "punch_dmg": 11, "kick_dmg": 13, "max_hp": 115, "block": 6,
+     "desc": "A moth now — his books fly around the entire map",
+     "double_jump": True, "slow_fall": True, "grad_bookzworm_books": True,
+     "shop_only": True},
 ]
 
 POWERUPS = [
@@ -1999,6 +2004,16 @@ STAGES = [
         (300, GROUND_Y-130), (560, GROUND_Y-130),
         (440, GROUND_Y-260), (450, GROUND_Y-70),
     ], "hazards": []},
+    # Booked (dedicated mode stage — index 30). Drifting book platforms over a void.
+    {"name": "Booked", "special_mode_only": True, "book_stage": True, "platforms": [
+        (140, GROUND_Y-90,  130, 1.6, 90),
+        (630, GROUND_Y-90,  130, -1.6, 90),
+        (380, GROUND_Y-170, 150, 1.2, 110),
+        (90,  GROUND_Y-260, 120, -1.4, 80),
+        (690, GROUND_Y-260, 120, 1.4, 80),
+        (250, GROUND_Y-350, 130, 1.8, 100),
+        (520, GROUND_Y-350, 130, -1.8, 100),
+    ], "springs": [], "conveyors": [], "portals": [], "hazards": []},
 ]
 
 # Stage-specific character advantages and disadvantages.
