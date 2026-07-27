@@ -1844,6 +1844,24 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if _detail_display.get("leaf_rain"):           badges.append(("LEAF RAIN",      (120, 180,  40)))
             if _detail_display.get("snow_aura"):           badges.append(("SNOW AURA",      (175, 215, 250)))
             if _detail_display.get("performer_beam"):      badges.append(("MULTI BEAM",     (255, 140,  20)))
+            # --- previously missing mechanics ---
+            if _detail_display.get("ascii_fighter"):        badges.append(("ASCII ART",      (  0, 255,   0)))
+            if _detail_display.get("glass_cannon"):         badges.append(("GLASS CANNON",   (200, 160, 220)))
+            if _detail_display.get("nuke_bomb"):            badges.append(("NUKE BOMB",      (255,  60,   0)))
+            if _detail_display.get("overload"):             badges.append(("OVERLOAD",       (255, 200,   0)))
+            if _detail_display.get("bubble_shield"):        badges.append(("BUBBLE SHIELD",  (100, 200, 255)))
+            if _detail_display.get("solara_beam"):          badges.append(("SUN BEAM",       (255, 200,  30)))
+            if _detail_display.get("liberty_dove"):         badges.append(("DOVE BOMBER",    (200, 200, 200)))
+            # --- newest characters ---
+            if _detail_display.get("teddy_rain"):           badges.append(("TEDDY RAIN",     (150, 100,  60)))
+            if _detail_display.get("deco_laser"):           badges.append(("LASER ULTRA",    (255,  60,  40)))
+            if _detail_display.get("deco_bomb_kick"):       badges.append(("BIG BOMB",       ( 80,  80,  90)))
+            if _detail_display.get("hammer_slam_kick"):     badges.append(("HAMMER SLAM",    (230, 100,  20)))
+            if _detail_display.get("shadow_mark_kick"):     badges.append(("SHADOW MARK",    (140,  60, 220)))
+            if _detail_display.get("shadow_teleport_block"):badges.append(("MARK TELEPORT",  (100,  60, 200)))
+            if _detail_display.get("dino_summon_kick"):     badges.append(("DINO CHASE",     (200, 190, 160)))
+            if _detail_display.get("grad_bookzworm_books"): badges.append(("MAP-WIDE BOOKS",  (140, 190, 210)))
+            if _detail_display.get("stampede_kick"):        badges.append(("STAMPEDE",       (150, 220, 240)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)
