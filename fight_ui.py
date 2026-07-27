@@ -592,6 +592,18 @@ CHEAT_CODES = {
     "winter_eartha":        "Winter Eartha",
     "golden_snake":         "Gilded Clover",
     "chaos_spin":           "Chaos Nun-Gimel-Hei-Shin",
+    # batch 11 — newest unlockable characters
+    "spark_surge":          "Volt",
+    "false_lead":           "Red Herring",
+    "kirin_hack":           "Kirin Adler",
+    "stretch_punch":        "Jawke",
+    "wake_up_call":         "WakeUp",
+    "laser_rock":           "Deco & Emoj",
+    "molten_hammer":        "Volcanis",
+    "shadow_mark":          "Umbra",
+    "dino_bones":           "Amberk",
+    "graduation_day":       "Graduated Bookzworm",
+    "crystal_gallop":       "Crystallion",
 }
 
 # ---------------------------------------------------------------------------
