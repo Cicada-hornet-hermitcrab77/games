@@ -1845,11 +1845,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if _detail_display.get("snow_aura"):           badges.append(("SNOW AURA",      (175, 215, 250)))
             if _detail_display.get("performer_beam"):      badges.append(("MULTI BEAM",     (255, 140,  20)))
             # --- previously missing mechanics ---
-            if _detail_display.get("ascii_fighter"):        badges.append(("ASCII ART",      (  0, 255,   0)))
-            if _detail_display.get("glass_cannon"):         badges.append(("GLASS CANNON",   (200, 160, 220)))
             if _detail_display.get("nuke_bomb"):            badges.append(("NUKE BOMB",      (255,  60,   0)))
-            if _detail_display.get("overload"):             badges.append(("OVERLOAD",       (255, 200,   0)))
-            if _detail_display.get("bubble_shield"):        badges.append(("BUBBLE SHIELD",  (100, 200, 255)))
             if _detail_display.get("solara_beam"):          badges.append(("SUN BEAM",       (255, 200,  30)))
             if _detail_display.get("liberty_dove"):         badges.append(("DOVE BOMBER",    (200, 200, 200)))
             # --- newest characters ---
