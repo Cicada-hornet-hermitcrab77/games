@@ -15010,43 +15010,119 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
             return None
         _cx9 = int(x)
         _base_y = int(y)
-        # Stem / pot
-        _pot_w, _pot_h = int(hd*1.6), int(hd*0.9)
-        pygame.draw.polygon(surface, (110, 80, 60), [
-            (_cx9-_pot_w//2, _base_y), (_cx9+_pot_w//2, _base_y),
-            (_cx9+int(_pot_w*0.35), _base_y-_pot_h), (_cx9-int(_pot_w*0.35), _base_y-_pot_h)])
-        _stem_top = _base_y - _pot_h - int(hd*1.4)
-        pygame.draw.line(surface, (60, 140, 90), (_cx9, _base_y-_pot_h), (_cx9, _stem_top), max(3, int(7*s)))
+        _pw = 1.55   # overall size multiplier — she's outgrown her pot
+
+        # Broken pot — shattered into separate shards splayed outward, roots
+        # and dirt spilling through the gaps between them
+        _pot_w, _pot_h = int(hd*1.9*_pw), int(hd*0.85*_pw)
+        _pot_col, _pot_dk = (120, 88, 64), (75, 52, 38)
+        _shard_defs = [(-0.95, -0.05, -14), (-0.4, 0.15, -4), (0.15, 0.18, 6), (0.7, -0.02, 16)]
+        for _sxf, _syf, _sang in _shard_defs:
+            _shx = _cx9 + int(_sxf * _pot_w * 0.55)
+            _shy = _base_y - int(_syf * _pot_h * 0.4)
+            _sw, _sh = int(_pot_w * 0.34), _pot_h
+            _shsurf = pygame.Surface((_sw+6, _sh+6), pygame.SRCALPHA)
+            pygame.draw.polygon(_shsurf, _pot_col, [
+                (3, 3), (_sw+3, 0), (_sw-2, _sh+3), (0, _sh)])
+            pygame.draw.polygon(_shsurf, _pot_dk, [
+                (3, 3), (_sw+3, 0), (_sw-2, _sh+3), (0, _sh)], max(1, int(2*s)))
+            _shsurf = pygame.transform.rotate(_shsurf, _sang)
+            surface.blit(_shsurf, (_shx - _shsurf.get_width()//2, _shy - int(_sh*0.3)))
+        # Dirt mound bulging up through the shattered gaps
+        pygame.draw.ellipse(surface, (70, 50, 35), (_cx9-int(_pot_w*0.5), _base_y-int(_pot_h*0.55),
+                            int(_pot_w), int(_pot_h*0.7)))
+        # A couple of loose shards knocked away, resting on the ground
+        for _dxo, _dr in [(-int(_pot_w*0.75), 18), (int(_pot_w*0.65), 14)]:
+            pygame.draw.polygon(surface, _pot_col, [
+                (_cx9+_dxo, _base_y), (_cx9+_dxo+int(_dr*s), _base_y-int(_dr*0.7*s)),
+                (_cx9+_dxo+int(_dr*1.6*s), _base_y)])
+
+        # Thick stem with leafy fronds, bursting up out of the broken pot
+        _stem_top = _base_y - int(_pot_h*0.5) - int(hd*1.9*_pw)
+        _stem_base_y = _base_y - int(_pot_h*0.45)
+        pygame.draw.line(surface, (55, 130, 85), (_cx9, _stem_base_y), (_cx9, _stem_top), max(4, int(11*s*_pw)))
+        pygame.draw.line(surface, (75, 160, 105), (_cx9-int(2*s), _stem_base_y), (_cx9-int(2*s), _stem_top), max(1, int(3*s)))
+        for _lvsign, _lvt in [(-1, 0.35), (1, 0.55), (-1, 0.75)]:
+            _lvy = int(_stem_base_y + (_stem_top - _stem_base_y) * _lvt)
+            _lvtip = (_cx9 + _lvsign*int(hd*1.3*_pw), _lvy - int(hd*0.5*_pw))
+            pygame.draw.polygon(surface, (60, 145, 95), [
+                (_cx9, _lvy), _lvtip, (_cx9, _lvy - int(hd*0.7*_pw))])
+            pygame.draw.polygon(surface, (40, 110, 70), [
+                (_cx9, _lvy), _lvtip, (_cx9, _lvy - int(hd*0.7*_pw))], max(1, int(s)))
+
         # Chomp cycle: closed most of the time, snaps open briefly every 2s
         _cycle  = _ct5 % 2.0
         _chomp  = _cycle < 0.35
         _open_a = (math.sin((_cycle/0.35)*math.pi) if _chomp else 0.0)
-        _hx9, _hy9 = _cx9, _stem_top - int(hd*0.6)
-        _jaw_r = int(hd * 1.5)
-        for _jsign in (-1, 1):
-            _jaw_ang = math.radians(90 - _jsign * (20 + _open_a * 55))
-            _tipx = _hx9 + int(_jaw_r * math.cos(_jaw_ang)) * _jsign
-            _tipy = _hy9 - int(_jaw_r * 0.7) - int(_jaw_r * 0.3 * math.sin(_jaw_ang))
-            _jaw_pts = [(_hx9, _hy9), (_hx9 + _jsign*int(_jaw_r*0.9), _hy9-int(_jaw_r*0.2)), (_tipx, _tipy)]
-            pygame.draw.polygon(surface, (150, 210, 200), _jaw_pts)
-            pygame.draw.polygon(surface, (90, 160, 150), _jaw_pts, max(1, int(2*s)))
-            # Teeth along the jaw edge
-            for _ti in range(4):
-                _tt = _ti / 3
-                _tx9 = int(_hx9 + (_jaw_pts[1][0]-_hx9)*_tt + (_tipx-_jaw_pts[1][0])*_tt*0.3)
-                _ty9 = int(_hy9 + (_jaw_pts[1][1]-_hy9)*_tt + (_tipy-_jaw_pts[1][1])*_tt*0.3)
-                pygame.draw.circle(surface, (255, 255, 255), (_tx9, _ty9), max(1, int(2*s)))
-        # Ice crystal shards over the jaws
-        for _ci in range(5):
-            _cang = _ci * 1.3
-            _cix = _hx9 + int(math.cos(_cang)*_jaw_r*0.6)
-            _ciy = _hy9 - int(_jaw_r*0.4) + int(math.sin(_cang)*_jaw_r*0.3)
-            pygame.draw.polygon(surface, (210, 245, 250), [
-                (_cix, _ciy-int(5*s)), (_cix-int(3*s), _ciy+int(3*s)), (_cix+int(3*s), _ciy+int(3*s))])
-        # Eyes peeking from inside the jaws
-        for _ex in (_hx9-int(hd*0.3), _hx9+int(hd*0.3)):
-            pygame.draw.circle(surface, (255, 255, 255), (_ex, _hy9-int(hd*0.1)), max(2, int(hd*0.2)))
-            pygame.draw.circle(surface, (20, 60, 90), (_ex, _hy9-int(hd*0.1)), max(1, int(hd*0.1)))
+        _hx9, _hy9 = _cx9, _stem_top - int(hd*0.5*_pw)
+        _jaw_r = int(hd * 2.3 * _pw)
+        _lean_deg, _open_deg, _dome_half_deg = 14, 52, 40
+
+        def _jaw_lobe(jsign):
+            """Rounded Venus-flytrap lobe, hinged at (_hx9,_hy9), as a fan of
+            arc points so it reads as a chomping mouth rather than a shard."""
+            centerline = math.radians(-90 + jsign * (_lean_deg + _open_a * _open_deg))
+            half = math.radians(_dome_half_deg)
+            pts = [(_hx9, _hy9)]
+            steps = 10
+            for i in range(steps + 1):
+                t = i / steps                       # 0 = inner (mouth) edge, 1 = outer edge
+                ang = centerline - jsign * half + jsign * half * 2 * t
+                bulge = 0.55 + 0.45 * math.sin(t * math.pi)   # rounds the tip, pinches at hinge
+                r = _jaw_r * bulge
+                pts.append((_hx9 + math.cos(ang) * r, _hy9 + math.sin(ang) * r))
+            return pts, centerline, half
+
+        _lobe_l, _cl_l, _half_l = _jaw_lobe(-1)
+        _lobe_r, _cl_r, _half_r = _jaw_lobe(1)
+
+        # Dark maw visible between the jaws when open
+        if _open_a > 0.08:
+            _maw_r = _jaw_r * 0.7
+            pygame.draw.polygon(surface, (25, 15, 15), [
+                (_hx9, _hy9),
+                (_hx9 + math.cos(_cl_l + _half_l) * _maw_r, _hy9 + math.sin(_cl_l + _half_l) * _maw_r),
+                (_hx9, _hy9 - _jaw_r * 0.5),
+                (_hx9 + math.cos(_cl_r - _half_r) * _maw_r, _hy9 + math.sin(_cl_r - _half_r) * _maw_r)])
+
+        for jsign, (lobe_pts, centerline, half) in ((-1, (_lobe_l, _cl_l, _half_l)), (1, (_lobe_r, _cl_r, _half_r))):
+            _ipts = [(int(px), int(py)) for px, py in lobe_pts]
+            pygame.draw.polygon(surface, (150, 210, 200), _ipts)
+            pygame.draw.polygon(surface, (80, 150, 140), _ipts, max(1, int(2*s)))
+            # Scalloped teeth along the inner (mouth-facing) rim
+            for _ti in range(5):
+                _tt = 0.05 + _ti * 0.16
+                _tang = centerline - jsign * half + jsign * half * 2 * _tt
+                _tr = _jaw_r * (0.55 + 0.45 * math.sin(_tt * math.pi))
+                _tx9 = _hx9 + math.cos(_tang) * _tr
+                _ty9 = _hy9 + math.sin(_tang) * _tr
+                pygame.draw.polygon(surface, (255, 255, 255), [
+                    (_tx9, _ty9),
+                    (_tx9 + math.cos(_tang - jsign*0.35) * hd * 0.28 * s * _pw,
+                     _ty9 + math.sin(_tang - jsign*0.35) * hd * 0.28 * s * _pw),
+                    (_tx9 + math.cos(_tang + jsign*0.35) * hd * 0.28 * s * _pw,
+                     _ty9 + math.sin(_tang + jsign*0.35) * hd * 0.28 * s * _pw)])
+            # Icicle crown along the outer rim
+            for _ci in range(3):
+                _ct6 = 0.25 + _ci * 0.28
+                _cang = centerline - jsign * half + jsign * half * 2 * _ct6
+                _cr = _jaw_r * (0.75 + 0.4 * math.sin(_ct6 * math.pi))
+                _cix = _hx9 + math.cos(_cang) * _cr
+                _ciy = _hy9 + math.sin(_cang) * _cr
+                _oux, _ouy = math.cos(_cang), math.sin(_cang)
+                _pux, _puy = -_ouy, _oux
+                _itip = (_cix + _oux*int(9*s*_pw), _ciy + _ouy*int(9*s*_pw))
+                pygame.draw.polygon(surface, (215, 248, 252), [
+                    (_cix - _pux*int(4*s*_pw), _ciy - _puy*int(4*s*_pw)), _itip,
+                    (_cix + _pux*int(4*s*_pw), _ciy + _puy*int(4*s*_pw))])
+                pygame.draw.polygon(surface, (150, 210, 220), [
+                    (_cix - _pux*int(4*s*_pw), _ciy - _puy*int(4*s*_pw)), _itip,
+                    (_cix + _pux*int(4*s*_pw), _ciy + _puy*int(4*s*_pw))], 1)
+
+        # Frosty breath puff as the jaws snap shut
+        if _chomp and 0.15 < _open_a:
+            _puff_r = max(1, int(7*s*_pw * min(1.0, (1.0-_open_a)*2)))
+            pygame.draw.circle(surface, (220, 245, 255), (int(_hx9 + facing*_jaw_r*0.4), int(_hy9-_jaw_r*0.3)), _puff_r, max(1, int(s)))
         if action == 'punch':
             return (int(_hx9 + facing * (_jaw_r + 20*s)), _hy9)
         if action == 'kick':
