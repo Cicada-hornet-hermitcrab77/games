@@ -1581,6 +1581,10 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 11, "max_hp": 105, "block": 5,
      "desc": "Kick summons a stampede of horses charging across the arena",
      "double_jump": False, "stampede_kick": True},
+    {"name": "Ice Age Yellowstone", "color": (130, 190, 220), "speed": 3, "jump": -10,
+     "punch_dmg": 16, "kick_dmg": 20, "max_hp": 160, "block": 7,
+     "desc": "Kick fires 20 icicles — 10 from below, 10 from the left",
+     "double_jump": False, "shop_only": True, "ice_yellowstone_kick": True},
 ]
 
 POWERUPS = [
@@ -2018,6 +2022,14 @@ STAGES = [
         (250, GROUND_Y-350, 130, 1.8, 100),
         (520, GROUND_Y-350, 130, -1.8, 100),
     ], "springs": [], "conveyors": [], "portals": [], "hazards": []},
+    # Rolling Stones (dedicated mode stage — index 31). Stones fall from above every 5s.
+    {"name": "Rolling Stones", "special_mode_only": True, "platforms": [
+        (60,  GROUND_Y-110, 160, 0,   0),
+        (680, GROUND_Y-110, 160, 0,   0),
+        (320, GROUND_Y-210, 150, 1.2, 110),
+        (150, GROUND_Y-300, 110, 0,   0),
+        (600, GROUND_Y-300, 110, 0,   0),
+    ], "springs": [(400, -24)], "conveyors": [], "portals": [], "hazards": []},
 ]
 
 # Stage-specific character advantages and disadvantages.

@@ -13281,6 +13281,60 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.circle(surface, (200, 240, 255), (_ex, _eye_y), _er)
             pygame.draw.circle(surface, (100, 200, 240), (_ex, _eye_y), max(1, _er // 2))
 
+    elif char_name == "Ice Age Yellowstone":
+        # A mini mountain sealed inside a snow globe
+        _igt    = pygame.time.get_ticks() / 1000.0
+        _rock   = (110, 130, 140)
+        _dark   = ( 70,  90, 100)
+        _snow   = (245, 250, 255)
+        _base_y = wy + int(LEG_LEN * s)
+        _glo_r  = al + int(hd * 0.85)
+        _glo_cx, _glo_cy = hx, hy + int(hd * 0.3)
+        # Wooden base stand
+        _base_w = int(_glo_r * 1.6)
+        _base_h = int(hd * 0.5)
+        pygame.draw.rect(surface, (90, 60, 35), (_glo_cx - _base_w//2, _base_y - _base_h, _base_w, _base_h),
+                         border_radius=max(1, int(3*s)))
+        pygame.draw.rect(surface, (60, 40, 20), (_glo_cx - _base_w//2, _base_y - _base_h, _base_w, _base_h),
+                         max(1, int(2*s)), border_radius=max(1, int(3*s)))
+        # Glass globe (clipped so the mountain + snow stay inside)
+        _globe_surf = pygame.Surface((_glo_r*2, _glo_r*2), pygame.SRCALPHA)
+        pygame.draw.circle(_globe_surf, (200, 230, 245, 60), (_glo_r, _glo_r), _glo_r)
+        # Mini mountain, scaled down to fit inside the globe
+        _mpeak = (_glo_r, _glo_r - int(_glo_r * 0.55))
+        _mbl   = (_glo_r - int(_glo_r * 0.75), _glo_r + int(_glo_r * 0.7))
+        _mbr   = (_glo_r + int(_glo_r * 0.75), _glo_r + int(_glo_r * 0.7))
+        pygame.draw.polygon(_globe_surf, _rock, [_mpeak, _mbl, _mbr])
+        pygame.draw.polygon(_globe_surf, _dark, [_mpeak, _mbl, _mbr], max(1, int(s)))
+        _msnow_h = int((_mbl[1] - _mpeak[1]) * 0.3)
+        pygame.draw.polygon(_globe_surf, _snow, [
+            _mpeak, (_mpeak[0] - int(_glo_r*0.18), _mpeak[1] + _msnow_h),
+            (_mpeak[0] + int(_glo_r*0.18), _mpeak[1] + _msnow_h)])
+        # Drifting snow inside the globe
+        for _fi5 in range(14):
+            _fseed = _fi5 * 37
+            _ffall_t = (_igt * 20 + _fseed) % (_glo_r * 2)
+            _ffx = _glo_r + int(math.sin(_fseed) * _glo_r * 0.75)
+            _ffy = int(_ffall_t) - int(_glo_r * 0.2)
+            if 0 <= _ffy <= _glo_r * 2:
+                pygame.draw.circle(_globe_surf, (255, 255, 255, 220), (_ffx, _ffy), max(1, int(1.5*s)))
+        # Circular mask so nothing spills outside the glass
+        _mask = pygame.Surface((_glo_r*2, _glo_r*2), pygame.SRCALPHA)
+        pygame.draw.circle(_mask, (255, 255, 255, 255), (_glo_r, _glo_r), _glo_r)
+        _globe_surf.blit(_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+        surface.blit(_globe_surf, (_glo_cx - _glo_r, _glo_cy - _glo_r))
+        # Glass rim + shine highlight
+        pygame.draw.circle(surface, (210, 235, 250), (_glo_cx, _glo_cy), _glo_r, max(1, int(2*s)))
+        pygame.draw.arc(surface, (255, 255, 255),
+                        (_glo_cx - _glo_r, _glo_cy - _glo_r, _glo_r*2, _glo_r*2),
+                        math.radians(200), math.radians(260), max(1, int(3*s)))
+        # Glowing eyes visible through the glass
+        _eye_y = _glo_cy - int(_glo_r * 0.05)
+        _er = max(2, int(hd * 0.22))
+        for _ex in (_glo_cx - int(_glo_r * 0.32), _glo_cx + int(_glo_r * 0.32)):
+            pygame.draw.circle(surface, (200, 240, 255), (_ex, _eye_y), _er)
+            pygame.draw.circle(surface, (100, 200, 240), (_ex, _eye_y), max(1, _er // 2))
+
     elif char_name == "Blink":
         # Cyan afterimage streaks behind head (motion blur effect)
         for _bi in range(3):

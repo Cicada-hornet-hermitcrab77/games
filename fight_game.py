@@ -49,6 +49,8 @@ _symbol_char_flag     = [False]   # True when <|-\||>+() typed on Computer stage
 _death_defyer_flag    = [False]   # True when death_does_not_exist typed on Graveyard as Reaper
 _friday13_flag        = [False]   # True when "13" typed on an actual Friday the 13th
 _nick_of_time_flag    = [False]   # True when p1 KO'd p2 with ≤1 second on the clock
+_session_match_streak = [0]       # consecutive matches played without returning to mode_select
+_freeze_streak_flag   = [False]   # True when an opponent was kept frozen 20s continuously
 
 _PRIMES_60 = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59}
 def _is_prime(n): return n in _PRIMES_60
@@ -1666,6 +1668,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             p2_keys = _polt_ai_keys(p2, p1, P2_CTRL) if p2.possess_timer > 0 else keys
             p1.update(p1_keys, p2, platforms)
             p2.update(p2_keys, p1, platforms)
+
+            # Crytrap unlock: an opponent kept frozen 20 seconds continuously
+            if p1._frozen_streak >= FPS * 20 or p2._frozen_streak >= FPS * 20:
+                _freeze_streak_flag[0] = True
 
             # Map Man: swap to a random stage on kick
             for _swapper in (p1, p2):
@@ -3654,6 +3660,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     survival_remotes   = []  # RemoteController projectiles (Rage Quitter)
     survival_apples    = []  # Apple projectiles (Gravity)
     survival_plants    = []  # PlantSpike projectiles (Druid)
+    wildfire_balls      = []  # WildfireBall (Summer Eartha, player-owned)
+    en_wildfire_balls   = []  # WildfireBall (Summer Eartha, enemy-owned)
     en_balls          = []
     en_orbs           = []
     en_bounce_balls   = []
@@ -3731,6 +3739,16 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
 
     _survival_screentime = any(p.char.get("screentime") for p in players)
 
+    # Red Herring: type CLUE during a match to heal to full
+    _CLUE_SEQ   = [pygame.K_c, pygame.K_l, pygame.K_u, pygame.K_e]
+    _clue_idx   = 0
+    _clue_popup = 0   # frames left to show "Huzzah!" popup
+
+    # Kirin Adler: type HEAL/HALT/DELETE/DAMAGE/POISON for secret command abilities
+    _kirin_buf       = ""
+    _kirin_cmd_timer = 0
+    _kirin_cmd_type  = ""
+
     while True:
         clock.tick(FPS)
 
@@ -3748,6 +3766,53 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 else:
                     if event.key == pygame.K_ESCAPE:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('select', enemies_killed)
+                    # Red Herring: type CLUE to heal to full (if a Red Herring player is alive)
+                    _rh_player = next((p for p in players if p.char.get("red_herring") and p.hp > 0), None)
+                    if _rh_player is not None:
+                        if event.key == _CLUE_SEQ[_clue_idx]:
+                            _clue_idx += 1
+                            if _clue_idx == len(_CLUE_SEQ):
+                                _rh_player.hp = _rh_player.max_hp
+                                _clue_popup   = 120
+                                _clue_idx     = 0
+                        else:
+                            _clue_idx = 1 if event.key == _CLUE_SEQ[0] else 0
+                    # Kirin Adler: HEAL / HALT / DELETE / DAMAGE / POISON command words
+                    # (halt/delete/damage/poison target the nearest living enemy)
+                    _ka_self = next((p for p in players if p.char.get("kirin_adler") and p.hp > 0), None)
+                    if _ka_self is not None and hasattr(event, 'unicode') and event.unicode:
+                        _kc = event.unicode.lower()
+                        if _kc.isalpha():
+                            _kirin_buf += _kc
+                            if len(_kirin_buf) > 10:
+                                _kirin_buf = _kirin_buf[-10:]
+                            _ka_targets = [e for e in enemies if e.hp > 0]
+                            _ka_enemy = (min(_ka_targets, key=lambda e: abs(e.x - _ka_self.x))
+                                         if _ka_targets else None)
+                            if _kirin_buf.endswith("heal"):
+                                _ka_self.hp = min(_ka_self.max_hp, _ka_self.hp + 30)
+                                _kirin_cmd_timer = 120; _kirin_cmd_type = "heal"
+                                _kirin_buf = ""
+                            elif _ka_enemy is not None and _kirin_buf.endswith("halt"):
+                                _ka_enemy.freeze_frames = max(_ka_enemy.freeze_frames, 240)
+                                _kirin_cmd_timer = 120; _kirin_cmd_type = "halt"
+                                _kirin_buf = ""
+                            elif _ka_enemy is not None and _kirin_buf.endswith("delete"):
+                                _ka_enemy.hp = 0
+                                _ka_enemy.flash_timer = 30
+                                _kirin_cmd_timer = 90; _kirin_cmd_type = "delete"
+                                _kirin_buf = ""
+                            elif _ka_enemy is not None and _kirin_buf.endswith("damage"):
+                                _ka_enemy.hp = max(0, _ka_enemy.hp - 30)
+                                _ka_enemy.flash_timer = 20
+                                _kirin_cmd_timer = 110; _kirin_cmd_type = "damage"
+                                _kirin_buf = ""
+                            elif _ka_enemy is not None and _kirin_buf.endswith("poison"):
+                                if _ka_enemy.poison_frames == 0:
+                                    _ka_enemy.poison_tick = 30
+                                _ka_enemy.poison_frames = 99999
+                                _kirin_cmd_timer = 150; _kirin_cmd_type = "poison"
+                                _kirin_buf = ""
 
         if not game_over:
             # Screentime 2x speed: advance an extra tick
@@ -3817,6 +3882,9 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         tgt = min(living, key=lambda p: abs(p.x - en.x))
                         en_hooks.append(SnakeHook(en.x + en.facing*20, en.y-60,
                                                    tgt.x, tgt.y-60, en))
+                    if en.pending_wildfire:
+                        en.pending_wildfire = False
+                        en_wildfire_balls.append(WildfireBall(en.x + en.facing*40, en.y-55, en.facing, en))
 
             # Mark newly dead players and freeze them
             for p in players:
@@ -3875,6 +3943,10 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                                            tgt.x, tgt.y-60, shooter))
                 else:
                     shooter.pending_hook = False
+                if shooter.pending_wildfire:
+                    shooter.pending_wildfire = False
+                    wildfire_balls.append(WildfireBall(shooter.x + shooter.facing*40, shooter.y-55,
+                                                       shooter.facing, shooter))
 
             # Laser Eyes beam damage (survival)
             for shooter in players:
@@ -3922,6 +3994,38 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 _flame_trail_hit_surv(blazer, enemies)
             for blazer in enemies:
                 _flame_trail_hit_surv(blazer, living)
+
+            # Autumn Eartha: leaf rain — survival (area damage within 140px)
+            def _leaf_rain_hit_surv(owner, victims):
+                if owner.char.get("leaf_rain") and owner.flower_dmg_cd == 0:
+                    for victim in victims:
+                        if victim.hp <= 0:
+                            continue
+                        if abs(owner.x - victim.x) < 140:
+                            if not victim.bubble_shield:
+                                victim.hp = max(0, victim.hp - 2)
+                                victim.flash_timer = max(victim.flash_timer, 4)
+                            owner.flower_dmg_cd = 30
+                            break
+            for _lrs in players:
+                _leaf_rain_hit_surv(_lrs, enemies)
+            for _lrs in enemies:
+                _leaf_rain_hit_surv(_lrs, living)
+
+            # Winter Eartha: snow aura — survival (slows opponents within 130px)
+            def _snow_aura_hit_surv(owner, victims):
+                if owner.char.get("snow_aura") and owner.flower_dmg_cd == 0:
+                    for victim in victims:
+                        if victim.hp <= 0:
+                            continue
+                        if abs(owner.x - victim.x) < 130:
+                            victim.speed_boost = max(0.45, victim.speed_boost - 0.08)
+                            owner.flower_dmg_cd = 45
+                            break
+            for _sas in players:
+                _snow_aura_hit_surv(_sas, enemies)
+            for _sas in enemies:
+                _snow_aura_hit_surv(_sas, living)
 
             # Flower trail poison — survival
             def _flower_trail_hit_surv(owner, victims):
@@ -4154,6 +4258,34 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             en.hp = max(0, en.hp - 10); en.flash_timer = 8
                             bb.hit_cd = BouncingBall.HIT_CD; break
             bounce_balls = [bb for bb in bounce_balls if bb.alive]
+
+            # Player wildfire balls → enemies (Summer Eartha survival)
+            for wb in wildfire_balls:
+                wb.update()
+                if wb.alive:
+                    for en in enemies:
+                        if wb.collides(en) and not en.bubble_shield:
+                            en.take_proj_dmg(WildfireBall.DMG)
+                            en.flash_timer = 14
+                            if en.fire_frames == 0: en.fire_tick = 480
+                            en.fire_frames = max(en.fire_frames, 300)
+                            wb.alive = False
+                            break
+            wildfire_balls = [wb for wb in wildfire_balls if wb.alive]
+
+            # Enemy wildfire balls → players (Summer Eartha survival)
+            for wb in en_wildfire_balls:
+                wb.update()
+                if wb.alive:
+                    for p in players:
+                        if p.hp > 0 and wb.collides(p) and not p.bubble_shield:
+                            p.take_proj_dmg(WildfireBall.DMG)
+                            p.flash_timer = 14
+                            if p.fire_frames == 0: p.fire_tick = 480
+                            p.fire_frames = max(p.fire_frames, 300)
+                            wb.alive = False
+                            break
+            en_wildfire_balls = [wb for wb in en_wildfire_balls if wb.alive]
 
             # Player scrolls → enemies (Scrollmaster survival)
             for p in players:
@@ -4749,6 +4881,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for sp   in springs:       sp.draw(screen)
         for pu   in powerups:      pu.draw(screen)
         for b    in balls:         b.draw(screen)
+        for wb   in wildfire_balls:    wb.draw(screen)
+        for wb   in en_wildfire_balls: wb.draw(screen)
         for ao   in arcane_orbs:   ao.draw(screen)
         for sb   in sun_beams:     sb.draw(screen)
         for nb   in nian_breaths:  nb.draw(screen)
@@ -4882,6 +5016,29 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 pygame.draw.polygon(screen, (70, 75, 165),
                                     [(_whx - _whd, _cap_y), (_whx + _whd, _cap_y), (_cap_tip_x, _cap_tip_y)])
                 pygame.draw.circle(screen, (255, 255, 255), (_cap_tip_x, _cap_tip_y), max(2, int(_whd*0.3)))
+        # Red Herring "Huzzah!" heal popup
+        if _clue_popup > 0:
+            _clue_popup -= 1
+            _rh_f = next((p for p in players if p.char.get("red_herring")), None)
+            if _rh_f is not None:
+                _huz_f = font_small
+                _huz_s = _huz_f.render("Huzzah!", True, (255, 230, 80))
+                _huz_s.set_alpha(min(255, _clue_popup * 5))
+                screen.blit(_huz_s, (int(_rh_f.x) - _huz_s.get_width() // 2,
+                                     int(_rh_f.y) - 160 - (120 - _clue_popup) // 3))
+        # Kirin Adler command text popup
+        if _kirin_cmd_timer > 0:
+            _kirin_cmd_timer -= 1
+            _ka_f = next((p for p in players if p.char.get("kirin_adler")), None)
+            if _ka_f is not None:
+                _ka_labels = {"heal": ("HEAL +30", (80, 255, 120)), "halt": ("HALT", (220, 30, 30)),
+                              "delete": ("DELETE", (255, 50, 50)), "damage": ("-30", (255, 80, 80)),
+                              "poison": ("POISON", (0, 255, 80))}
+                _ka_txt, _ka_col = _ka_labels.get(_kirin_cmd_type, ("", WHITE))
+                _ka_s = font_small.render(_ka_txt, True, _ka_col)
+                _ka_s.set_alpha(min(255, _kirin_cmd_timer * 5))
+                screen.blit(_ka_s, (int(_ka_f.x) - _ka_s.get_width() // 2,
+                                    int(_ka_f.y) - 150 - (120 - _kirin_cmd_timer) // 3))
         # Bubble shield visuals (survival)
         for f in players:
             if f.bubble_shield:
@@ -6230,6 +6387,9 @@ def main():
 
     while True:
         mode = mode_select()
+        # Reaching the main menu means the marathon streak (I: play 30 matches
+        # in a row without stopping) has been broken — reset it here.
+        _session_match_streak[0] = 0
         if _type42_typed[0]:
             stats["type42_done"] = True
             _type42_typed[0] = False
@@ -6341,6 +6501,8 @@ def main():
                 if new_unlocks:
                     _save_data(unlocked, stats)
                     _show_unlocks(new_unlocks)
+                _session_match_streak[0] += 1
+                stats["marathon_best"] = max(stats.get("marathon_best", 0), _session_match_streak[0])
                 if action == 'rematch':
                     continue
                 break
@@ -6431,6 +6593,8 @@ def main():
                 if _konami_flag[0]:
                     stats["konami_unlocked"] = True
                     _konami_flag[0] = False
+                _session_match_streak[0] += 1
+                stats["marathon_best"] = max(stats.get("marathon_best", 0), _session_match_streak[0])
                 if action == 'rematch':
                     continue
                 break
@@ -6529,6 +6693,8 @@ def main():
                 if _konami_flag[0]:
                     stats["konami_unlocked"] = True
                     _konami_flag[0] = False
+                _session_match_streak[0] += 1
+                stats["marathon_best"] = max(stats.get("marathon_best", 0), _session_match_streak[0])
                 if action == 'rematch':
                     continue
                 break
@@ -6616,6 +6782,8 @@ def main():
                 if _konami_flag[0]:
                     stats["konami_unlocked"] = True
                     _konami_flag[0] = False
+                _session_match_streak[0] += 1
+                stats["marathon_best"] = max(stats.get("marathon_best", 0), _session_match_streak[0])
                 if action == 'rematch':
                     continue
                 break
@@ -6708,6 +6876,8 @@ def main():
                 if _konami_flag[0]:
                     stats["konami_unlocked"] = True
                     _konami_flag[0] = False
+                _session_match_streak[0] += 1
+                stats["marathon_best"] = max(stats.get("marathon_best", 0), _session_match_streak[0])
                 if action == 'rematch':
                     continue
                 break
@@ -6800,6 +6970,8 @@ def main():
                 if _konami_flag[0]:
                     stats["konami_unlocked"] = True
                     _konami_flag[0] = False
+                _session_match_streak[0] += 1
+                stats["marathon_best"] = max(stats.get("marathon_best", 0), _session_match_streak[0])
                 if action == 'rematch':
                     continue
                 break
@@ -6898,6 +7070,8 @@ def main():
             if new_unlocks:
                 _save_data(unlocked, stats)
                 _show_unlocks(new_unlocks)
+            _session_match_streak[0] += 1
+            stats["marathon_best"] = max(stats.get("marathon_best", 0), _session_match_streak[0])
             if action == 'rematch':
                 continue
             break

@@ -62,6 +62,7 @@ class Fighter:
         self.fire_frames      = 0   # frames of fire remaining
         self.fire_tick        = 0   # frames until next fire damage
         self.freeze_frames    = 0   # frames of freeze remaining
+        self._frozen_streak   = 0   # consecutive frames freeze_frames has been > 0
         self.is_crit          = False  # current punch is a critical hit
         self.crit_display_timer = 0   # frames to show CRIT! popup
         self.ducking          = False  # currently ducking (immune to punches)
@@ -397,6 +398,9 @@ class Fighter:
                 self.fire_tick = 480   # 3 dmg every 8 seconds
         if self.freeze_frames > 0:
             self.freeze_frames -= 1
+            self._frozen_streak += 1
+        else:
+            self._frozen_streak = 0
         if self.shock_frames > 0:
             self.shock_frames -= 1
         if self.bazooka_cooldown > 0:
@@ -879,6 +883,8 @@ class Fighter:
                 self._start('punch', 0.07)
                 self.punch_cooldown = 8 if self.char.get("rapid_fire") else FPS
                 self.is_crit = moving_toward or bool(self.char.get("always_crit"))
+                if self.char.get("summer_wildfire"):
+                    self.pending_wildfire = True
                 if self.char.get("bounce_punch"):
                     self.pending_bounce = True
                 if self.char.get("whip_punch") and self.whip_cooldown == 0:
@@ -1076,8 +1082,6 @@ class Fighter:
         if self.sticky_frames > 0:
             self.x = _sticky_save_x
 
-        self._prev_x = self.x   # for flame_trail movement detection
-
         # Ghost free float: hold jump = rise, hold duck = sink (independent of attack)
         if self.char.get("ghost_float") and _ec and self.hurt_timer == 0:
             jk = _ec.get('jump')
@@ -1185,6 +1189,10 @@ class Fighter:
                 self.action_t = 0.0
                 self.attacking = False
                 self.is_crit = False
+
+        # Captured at the END of the frame so movement-trail checks above can
+        # compare this frame's (already-moved) x against last frame's x.
+        self._prev_x = self.x
 
     def _start(self, act, spd):
         self.action = act
@@ -1478,8 +1486,6 @@ class Fighter:
                 self.stealth_frames = 120   # 2 seconds invisible
             # Janitor: status effects cannot be applied to him
             if not other.char.get("immune"):
-                if self.char.get("summer_wildfire") and self.action == 'punch':
-                    self.pending_wildfire = True
                 if self.char.get("fire_punch") and self.action == 'punch':
                     if other.fire_frames == 0:
                         other.fire_tick = 480
@@ -2101,24 +2107,6 @@ class AIFighter(Fighter):
                 self.vy = -5
                 self.flash_timer = 20
                 self.soul_switch_timer = FPS * 5
-        # Trailblazer flame trail (AI version)
-        if self.char.get("flame_trail"):
-            if abs(self.x - self._prev_x) > 0.5 or self.action in ('punch', 'kick'):
-                self.flame_trail.append([int(self.x), int(self.y), 40])
-            self.flame_trail = [[x, y, t-1] for x, y, t in self.flame_trail if t > 1]
-            if self.trail_dmg_cd > 0:
-                self.trail_dmg_cd -= 1
-            if self.trail_dmg_cd == 0 and self.flame_trail:
-                for tx, ty, _ in self.flame_trail:
-                    if abs(other.x - tx) < 28 and abs(other.y - ty) < 40:
-                        if not other.char.get("immune"):
-                            other.hp = max(0, other.hp - 3)
-                            other.flash_timer = max(other.flash_timer, 6)
-                        if other.fire_frames == 0: other.fire_tick = 480
-                        other.fire_frames = max(other.fire_frames, 120)
-                        self.trail_dmg_cd = 30
-                        break
-
         # Passive ability timers (AI version — mirrors Fighter.update logic)
         if self.jack_tank_frames > 0:
             self.jack_tank_frames -= 1
@@ -2166,6 +2154,8 @@ class AIFighter(Fighter):
                 if self.ai_attack == 'punch':
                     self.punch_cooldown = 8 if self.char.get("rapid_fire") else FPS
                     self.is_crit = (self.ai_move == self.facing and random.random() > 0.5) or bool(self.char.get("always_crit"))
+                    if self.char.get("summer_wildfire"):
+                        self.pending_wildfire = True
                     if self.char.get("bounce_punch"):
                         self.pending_bounce = True
                     if self.char.get("whip_punch") and self.whip_cooldown == 0:
@@ -2247,7 +2237,36 @@ class AIFighter(Fighter):
         if self.sticky_frames > 0:
             self.x = _ai_sticky_x
 
-        self._prev_x = self.x   # for flame_trail movement detection
+        # Trailblazer flame trail (AI version) — runs after movement so the
+        # x-delta below reflects this frame's actual travel
+        if self.char.get("flame_trail"):
+            if abs(self.x - self._prev_x) > 0.5 or self.action in ('punch', 'kick'):
+                self.flame_trail.append([int(self.x), int(self.y), 40])
+            self.flame_trail = [[x, y, t-1] for x, y, t in self.flame_trail if t > 1]
+            if self.trail_dmg_cd > 0:
+                self.trail_dmg_cd -= 1
+            if self.trail_dmg_cd == 0 and self.flame_trail:
+                for tx, ty, _ in self.flame_trail:
+                    if abs(other.x - tx) < 28 and abs(other.y - ty) < 40:
+                        if not other.char.get("immune"):
+                            other.hp = max(0, other.hp - 3)
+                            other.flash_timer = max(other.flash_timer, 6)
+                        if other.fire_frames == 0: other.fire_tick = 480
+                        other.fire_frames = max(other.fire_frames, 120)
+                        self.trail_dmg_cd = 30
+                        break
+
+        # Spring Eartha: lay flower tiles while moving (AI version)
+        if self.char.get("flower_trail_poison"):
+            if abs(self.x - self._prev_x) > 1.5:
+                self.flower_trail.append([int(self.x), int(self.y), 300])
+            self.flower_trail = [[x, y, t-1] for x, y, t in self.flower_trail if t > 1]
+
+        # flower_dmg_cd is shared by all Eartha variants (leaf_rain, snow_aura,
+        # flower_trail_poison) — must tick down here too, or an AI-controlled
+        # Eartha fires its area effect once and then never again.
+        if self.flower_dmg_cd > 0:
+            self.flower_dmg_cd -= 1
 
         # Ghost AI: steer vertically toward the target
         if self.char.get("ghost_float") and other is not None:
@@ -2261,6 +2280,9 @@ class AIFighter(Fighter):
             self.on_ground = False
             if self.action not in ('punch', 'kick', 'hurt'):
                 self.action = 'jump'
+
+        # Captured at the END of the frame — see Fighter.update for why.
+        self._prev_x = self.x
 
     def _decide(self, other):
         dist = abs(other.x - self.x)

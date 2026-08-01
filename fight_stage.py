@@ -850,6 +850,73 @@ class JungleSnake:
         pygame.draw.rect(surface, (60, 220, 60),  (bx_l, by_t, int(bw * self.hp / self.MAX_HP), 4))
 
 
+class RollingStone(object):
+    """Project Yellowstone's Rollin' Stones mode — falls from the sky, lands
+    and rolls like a boulder, hurts fighters on contact. Splits into two
+    smaller stones when struck by a punch/kick, down to a minimum size."""
+    BASE_RADIUS = 22
+    MIN_RADIUS  = 8
+    GRAVITY     = 0.35
+    HIT_CD      = 45
+
+    def __init__(self, x=None, radius=None):
+        self.x      = float(x) if x is not None else float(random.randint(60, WIDTH - 60))
+        self.y      = 22.0
+        self.vy     = random.uniform(1.5, 3.0)
+        self.radius = radius if radius is not None else self.BASE_RADIUS
+        self.alive  = True
+        self.hit_cd = 0
+        self.landed = False
+        self.roll   = 0.0
+
+    @property
+    def dmg(self):
+        return max(4, int(self.radius * 0.6))
+
+    def update(self):
+        if self.hit_cd > 0:
+            self.hit_cd -= 1
+        if not self.landed:
+            self.vy += self.GRAVITY
+            self.y  += self.vy
+            if self.y >= GROUND_Y - self.radius:
+                self.y      = GROUND_Y - self.radius
+                self.landed = True
+                self.roll   = random.choice([-1.5, 1.5])
+        else:
+            self.x    += self.roll
+            self.roll *= 0.96
+            if self.x < 30 or self.x > WIDTH - 30:
+                self.roll *= -1
+            if abs(self.roll) < 0.05:
+                self.roll = 0
+
+    def collides(self, fighter):
+        return math.hypot(fighter.x - self.x, (fighter.y - 40) - self.y) < self.radius + 26
+
+    def split(self):
+        """Return 0-2 smaller RollingStones to replace this one after being struck."""
+        self.alive = False
+        _new_r = self.radius * 0.62
+        if _new_r < self.MIN_RADIUS:
+            return []
+        return [
+            RollingStone(self.x - self.radius * 0.5, _new_r),
+            RollingStone(self.x + self.radius * 0.5, _new_r),
+        ]
+
+    def draw(self, surface):
+        sx, sy = int(self.x), int(self.y)
+        r = int(self.radius)
+        pygame.draw.circle(surface, (110, 100, 90), (sx, sy), r)
+        pygame.draw.circle(surface, (70, 62, 55), (sx, sy), r, max(1, r // 8))
+        for _ci in range(3):
+            _ca = math.radians(_ci * 130 + (self.x * 3) % 360)
+            _cx = sx + int(math.cos(_ca) * r * 0.4)
+            _cy = sy + int(math.sin(_ca) * r * 0.4)
+            pygame.draw.circle(surface, (85, 78, 70), (_cx, _cy), max(1, r // 5))
+
+
 class Dino(object):
     """A small skeletal raptor summoned by Amberk's kick — chases a specific
     target (not proximity-based) and bites on contact. Despawns after LIFE
