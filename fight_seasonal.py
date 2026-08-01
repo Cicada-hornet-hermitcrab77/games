@@ -65,6 +65,7 @@ SEASONAL_SHOP_CHARS = [
     {"name": "Demon",          "event": "Echoes of the Undying", "cost":  90},
     {"name": "Reaper",         "event": "Echoes of the Undying", "cost":  85},
     {"name": "Vampire",        "event": "Echoes of the Undying", "cost":  60},
+    {"name": "Snider",         "event": "Echoes of the Undying", "cost": 190},
     {"name": "Cornucopia",     "event": "Feasterween",          "cost": 350},
     {"name": "Chef",           "event": "Feasterween",          "cost": 100},
     {"name": "Scarecrow",      "event": "Feasterween",          "cost":  60},
@@ -72,6 +73,7 @@ SEASONAL_SHOP_CHARS = [
     {"name": "Saint Nix",          "event": "Yuletide Gatherings", "cost": 305},
     {"name": "Wendigo",            "event": "Yuletide Gatherings", "cost": 100},
     {"name": "Cryogenisist",       "event": "Yuletide Gatherings", "cost":  50},
+    {"name": "Crytrap",            "event": "Yuletide Gatherings", "cost": 170},
 ]
 
 

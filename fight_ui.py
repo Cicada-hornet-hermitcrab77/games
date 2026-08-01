@@ -604,6 +604,11 @@ CHEAT_CODES = {
     "dino_bones":           "Amberk",
     "graduation_day":       "Graduated Bookzworm",
     "crystal_gallop":       "Crystallion",
+    # batch 12 — newest unlockable characters
+    "snow_globe_shake":     "Ice Age Yellowstone",
+    "half_the_world":       "I",
+    "frozen_chomp":         "Crytrap",
+    "web_scope":            "Snider",
 }
 
 # ---------------------------------------------------------------------------
@@ -1073,15 +1078,35 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _nghs_variant_indices.append(_nvi2)
                 break
 
+    # Build Bookzworm variant lookup (Original + Graduated, excluded from main grid)
+    _bookzworm_variant_names   = ["Bookzworm", "Graduated Bookzworm"]
+    _bookzworm_variant_labels  = ["Original", "Graduated"]
+    _bookzworm_variant_indices = []
+    for _bvn in _bookzworm_variant_names:
+        for _bvi2, _bvc2 in enumerate(CHARACTERS):
+            if _bvc2["name"] == _bvn:
+                _bookzworm_variant_indices.append(_bvi2)
+                break
+
+    # Build Yellowstone variant lookup (Original + Ice Age, excluded from main grid)
+    _yellowstone_variant_names   = ["Yellowstone", "Ice Age Yellowstone"]
+    _yellowstone_variant_labels  = ["Original", "Ice Age"]
+    _yellowstone_variant_indices = []
+    for _yvn in _yellowstone_variant_names:
+        for _yvi2, _yvc2 in enumerate(CHARACTERS):
+            if _yvc2["name"] == _yvn:
+                _yellowstone_variant_indices.append(_yvi2)
+                break
+
     if char_filter is not None:
         _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS)
-                     if c["name"] in char_filter and not c.get("eartha_variant") and not c.get("clover_variant") and not c.get("solara_variant") and not c.get("nghs_variant")]
+                     if c["name"] in char_filter and not c.get("eartha_variant") and not c.get("clover_variant") and not c.get("solara_variant") and not c.get("nghs_variant") and not c.get("bookzworm_variant") and not c.get("yellowstone_variant")]
         _CHARS    = [c for _, c in _cf_pairs]
         _orig_idx = [i for i, _ in _cf_pairs]
         COLS      = min(4, max(1, len(_CHARS)))
     else:
         _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS)
-                     if not c.get("eartha_variant") and not c.get("clover_variant") and not c.get("solara_variant") and not c.get("nghs_variant")]
+                     if not c.get("eartha_variant") and not c.get("clover_variant") and not c.get("solara_variant") and not c.get("nghs_variant") and not c.get("bookzworm_variant") and not c.get("yellowstone_variant")]
         _CHARS    = [c for _, c in _cf_pairs]
         _orig_idx = [i for i, _ in _cf_pairs]
         COLS      = 7
@@ -1131,6 +1156,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
     p2_sv = 0
     p1_nv = 0   # nghs variant index (0 = Original NGHS)
     p2_nv = 0
+    p1_bv = 0   # bookzworm variant index (0 = Original Bookzworm)
+    p2_bv = 0
+    p1_yv = 0   # yellowstone variant index (0 = Original Yellowstone)
+    p2_yv = 0
 
     def clip_scroll(idx):
         nonlocal scroll_top
@@ -1210,6 +1239,26 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 p1_nv = _vti
                             elif not vs_ai and not p2_ready:
                                 p2_nv = _vti
+                elif _td_ch["name"] == "Bookzworm" and _bookzworm_variant_indices:
+                    _vp_ty = PY + PH - 132
+                    _vp_tbw = (PW - 20) // len(_bookzworm_variant_indices)
+                    for _vti in range(len(_bookzworm_variant_indices)):
+                        _vtx = PX + 10 + _vti * _vp_tbw
+                        if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if not p1_ready:
+                                p1_bv = _vti
+                            elif not vs_ai and not p2_ready:
+                                p2_bv = _vti
+                elif _td_ch["name"] == "Yellowstone" and _yellowstone_variant_indices:
+                    _vp_ty = PY + PH - 132
+                    _vp_tbw = (PW - 20) // len(_yellowstone_variant_indices)
+                    for _vti in range(len(_yellowstone_variant_indices)):
+                        _vtx = PX + 10 + _vti * _vp_tbw
+                        if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if not p1_ready:
+                                p1_yv = _vti
+                            elif not vs_ai and not p2_ready:
+                                p2_yv = _vti
                 # Tap READY button (drawn at bottom-right of detail panel)
                 _ready_rect = pygame.Rect(PX, PY + PH - 52, PW, 44)
                 if _ready_rect.collidepoint(_tp):
@@ -1271,6 +1320,16 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             p1_nv = (p1_nv + 1) % len(_nghs_variant_indices)
                         elif event.key == pygame.K_q:
                             p1_nv = (p1_nv - 1) % len(_nghs_variant_indices)
+                    if _CHARS[p1_idx]["name"] == "Bookzworm" and _bookzworm_variant_indices:
+                        if event.key == pygame.K_e:
+                            p1_bv = (p1_bv + 1) % len(_bookzworm_variant_indices)
+                        elif event.key == pygame.K_q:
+                            p1_bv = (p1_bv - 1) % len(_bookzworm_variant_indices)
+                    if _CHARS[p1_idx]["name"] == "Yellowstone" and _yellowstone_variant_indices:
+                        if event.key == pygame.K_e:
+                            p1_yv = (p1_yv + 1) % len(_yellowstone_variant_indices)
+                        elif event.key == pygame.K_q:
+                            p1_yv = (p1_yv - 1) % len(_yellowstone_variant_indices)
                     if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_f):
                         if _CHARS[p1_idx]["name"] not in unlocked:
                             pass  # locked — do nothing
@@ -1291,6 +1350,14 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             if _CHARS[p1_idx]["name"] == "Nun-Gimel-Hei-Shin" and _nghs_variant_indices:
                                 _vnn = CHARACTERS[_nghs_variant_indices[p1_nv]]["name"]
                                 if _vnn not in unlocked:
+                                    _ev_ok = False
+                            if _CHARS[p1_idx]["name"] == "Bookzworm" and _bookzworm_variant_indices:
+                                _vbn = CHARACTERS[_bookzworm_variant_indices[p1_bv]]["name"]
+                                if _vbn not in unlocked:
+                                    _ev_ok = False
+                            if _CHARS[p1_idx]["name"] == "Yellowstone" and _yellowstone_variant_indices:
+                                _vyn = CHARACTERS[_yellowstone_variant_indices[p1_yv]]["name"]
+                                if _vyn not in unlocked:
                                     _ev_ok = False
                             if _ev_ok:
                                 p1_ready = True
@@ -1323,6 +1390,16 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             p2_nv = (p2_nv + 1) % len(_nghs_variant_indices)
                         elif event.key == pygame.K_j:
                             p2_nv = (p2_nv - 1) % len(_nghs_variant_indices)
+                    if _CHARS[p2_idx]["name"] == "Bookzworm" and _bookzworm_variant_indices:
+                        if event.key == pygame.K_l:
+                            p2_bv = (p2_bv + 1) % len(_bookzworm_variant_indices)
+                        elif event.key == pygame.K_j:
+                            p2_bv = (p2_bv - 1) % len(_bookzworm_variant_indices)
+                    if _CHARS[p2_idx]["name"] == "Yellowstone" and _yellowstone_variant_indices:
+                        if event.key == pygame.K_l:
+                            p2_yv = (p2_yv + 1) % len(_yellowstone_variant_indices)
+                        elif event.key == pygame.K_j:
+                            p2_yv = (p2_yv - 1) % len(_yellowstone_variant_indices)
                     if event.key in (pygame.K_RETURN, pygame.K_k):
                         if _CHARS[p2_idx]["name"] in unlocked:
                             _ev_ok2 = True
@@ -1341,6 +1418,14 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             if _CHARS[p2_idx]["name"] == "Nun-Gimel-Hei-Shin" and _nghs_variant_indices:
                                 _vnn2 = CHARACTERS[_nghs_variant_indices[p2_nv]]["name"]
                                 if _vnn2 not in unlocked:
+                                    _ev_ok2 = False
+                            if _CHARS[p2_idx]["name"] == "Bookzworm" and _bookzworm_variant_indices:
+                                _vbn2 = CHARACTERS[_bookzworm_variant_indices[p2_bv]]["name"]
+                                if _vbn2 not in unlocked:
+                                    _ev_ok2 = False
+                            if _CHARS[p2_idx]["name"] == "Yellowstone" and _yellowstone_variant_indices:
+                                _vyn2 = CHARACTERS[_yellowstone_variant_indices[p2_yv]]["name"]
+                                if _vyn2 not in unlocked:
                                     _ev_ok2 = False
                             if _ev_ok2:
                                 p2_ready = True
@@ -1364,6 +1449,14 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _r1 = _nghs_variant_indices[p1_nv]
             if not vs_ai and _CHARS[p2_idx]["name"] == "Nun-Gimel-Hei-Shin" and _nghs_variant_indices:
                 _r2 = _nghs_variant_indices[p2_nv]
+            if _CHARS[p1_idx]["name"] == "Bookzworm" and _bookzworm_variant_indices:
+                _r1 = _bookzworm_variant_indices[p1_bv]
+            if not vs_ai and _CHARS[p2_idx]["name"] == "Bookzworm" and _bookzworm_variant_indices:
+                _r2 = _bookzworm_variant_indices[p2_bv]
+            if _CHARS[p1_idx]["name"] == "Yellowstone" and _yellowstone_variant_indices:
+                _r1 = _yellowstone_variant_indices[p1_yv]
+            if not vs_ai and _CHARS[p2_idx]["name"] == "Yellowstone" and _yellowstone_variant_indices:
+                _r2 = _yellowstone_variant_indices[p2_yv]
             return _r1, _r2
 
         # Whose detail to show: the active picker
@@ -1374,6 +1467,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         _active_cv = p2_cv if (p1_ready and not p2_ready) else p1_cv
         _active_sv = p2_sv if (p1_ready and not p2_ready) else p1_sv
         _active_nv = p2_nv if (p1_ready and not p2_ready) else p1_nv
+        _active_bv = p2_bv if (p1_ready and not p2_ready) else p1_bv
+        _active_yv = p2_yv if (p1_ready and not p2_ready) else p1_yv
         _detail_display = detail_ch
         if detail_ch["name"] == "Eartha" and detail_ch["name"] in unlocked and _eartha_variant_indices:
             _detail_display = CHARACTERS[_eartha_variant_indices[_active_ev]]
@@ -1383,6 +1478,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             _detail_display = CHARACTERS[_solara_variant_indices[_active_sv]]
         if detail_ch["name"] == "Nun-Gimel-Hei-Shin" and detail_ch["name"] in unlocked and _nghs_variant_indices:
             _detail_display = CHARACTERS[_nghs_variant_indices[_active_nv]]
+        if detail_ch["name"] == "Bookzworm" and detail_ch["name"] in unlocked and _bookzworm_variant_indices:
+            _detail_display = CHARACTERS[_bookzworm_variant_indices[_active_bv]]
+        if detail_ch["name"] == "Yellowstone" and detail_ch["name"] in unlocked and _yellowstone_variant_indices:
+            _detail_display = CHARACTERS[_yellowstone_variant_indices[_active_yv]]
 
         # ── Background ──────────────────────────────────────────────────────
         screen.fill((18, 18, 28))
@@ -1858,6 +1957,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if _detail_display.get("dino_summon_kick"):     badges.append(("DINO CHASE",     (200, 190, 160)))
             if _detail_display.get("grad_bookzworm_books"): badges.append(("MAP-WIDE BOOKS",  (140, 190, 210)))
             if _detail_display.get("stampede_kick"):        badges.append(("STAMPEDE",       (150, 220, 240)))
+            if _detail_display.get("ice_yellowstone_kick"): badges.append(("ICICLE STORM",   (130, 190, 220)))
+            if _detail_display.get("eye_kick_screen_destroy"): badges.append(("SCREEN DESTROYER", (200,  30,  30)))
+            if _detail_display.get("freeze_on_melee_hit"):  badges.append(("RETALIATE FREEZE", (120, 205, 195)))
+            if _detail_display.get("sniper_multiply_kick"): badges.append(("MULTIPLYING SHOT", ( 50,  48,  58)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)
@@ -1951,6 +2054,48 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _vtc6  = (90, 90, 90) if _vlk6 else (WHITE if _vsel6 else _vc6)
                 _vtxt6 = font_tiny.render(("?" + _vlb6[0]) if _vlk6 else _vlb6, True, _vtc6)
                 screen.blit(_vtxt6, (_vx6 + _vp_bw//2 - _vtxt6.get_width()//2, _vp_y + 8))
+
+        # Bookzworm variant picker
+        if detail_ch["name"] == "Bookzworm" and detail_ch["name"] in unlocked and _bookzworm_variant_indices:
+            _vp_y   = PY + PH - 132
+            _vp_lbl = font_tiny.render("VARIANT  (Q/E  or  J/L)", True, (160, 160, 185))
+            screen.blit(_vp_lbl, (PX + PW//2 - _vp_lbl.get_width()//2, _vp_y - 16))
+            _vp_bw = (PW - 20) // len(_bookzworm_variant_indices)
+            for _vi7, _vlb7 in enumerate(_bookzworm_variant_labels):
+                _vx7   = PX + 10 + _vi7 * _vp_bw
+                _vc7   = CHARACTERS[_bookzworm_variant_indices[_vi7]]["color"]
+                _vn7   = CHARACTERS[_bookzworm_variant_indices[_vi7]]["name"]
+                _vlk7  = _vn7 not in unlocked
+                _vsel7 = (_vi7 == _active_bv)
+                _vbg7  = tuple(max(8, c // 5) for c in _vc7)
+                pygame.draw.rect(screen, _vbg7, (_vx7+1, _vp_y+1, _vp_bw-2, 28), border_radius=4)
+                _vbrd7 = _vc7 if _vsel7 else tuple(c // 2 for c in _vc7)
+                _vbw7  = 2 if _vsel7 else 1
+                pygame.draw.rect(screen, _vbrd7, (_vx7+1, _vp_y+1, _vp_bw-2, 28), _vbw7, border_radius=4)
+                _vtc7  = (90, 90, 90) if _vlk7 else (WHITE if _vsel7 else _vc7)
+                _vtxt7 = font_tiny.render(("?" + _vlb7[0]) if _vlk7 else _vlb7, True, _vtc7)
+                screen.blit(_vtxt7, (_vx7 + _vp_bw//2 - _vtxt7.get_width()//2, _vp_y + 8))
+
+        # Yellowstone variant picker
+        if detail_ch["name"] == "Yellowstone" and detail_ch["name"] in unlocked and _yellowstone_variant_indices:
+            _vp_y   = PY + PH - 132
+            _vp_lbl = font_tiny.render("VARIANT  (Q/E  or  J/L)", True, (160, 160, 185))
+            screen.blit(_vp_lbl, (PX + PW//2 - _vp_lbl.get_width()//2, _vp_y - 16))
+            _vp_bw = (PW - 20) // len(_yellowstone_variant_indices)
+            for _vi8, _vlb8 in enumerate(_yellowstone_variant_labels):
+                _vx8   = PX + 10 + _vi8 * _vp_bw
+                _vc8   = CHARACTERS[_yellowstone_variant_indices[_vi8]]["color"]
+                _vn8   = CHARACTERS[_yellowstone_variant_indices[_vi8]]["name"]
+                _vlk8  = _vn8 not in unlocked
+                _vsel8 = (_vi8 == _active_yv)
+                _vbg8  = tuple(max(8, c // 5) for c in _vc8)
+                pygame.draw.rect(screen, _vbg8, (_vx8+1, _vp_y+1, _vp_bw-2, 28), border_radius=4)
+                _vbrd8 = _vc8 if _vsel8 else tuple(c // 2 for c in _vc8)
+                _vbw8  = 2 if _vsel8 else 1
+                pygame.draw.rect(screen, _vbrd8, (_vx8+1, _vp_y+1, _vp_bw-2, 28), _vbw8, border_radius=4)
+                _vtc8  = (90, 90, 90) if _vlk8 else (WHITE if _vsel8 else _vc8)
+                _vtxt8 = font_tiny.render(("?" + _vlb8[0]) if _vlk8 else _vlb8, True, _vtc8)
+                screen.blit(_vtxt8, (_vx8 + _vp_bw//2 - _vtxt8.get_width()//2, _vp_y + 8))
 
         # READY touch button
         _rdy_col = BLUE if not p1_ready else ORANGE

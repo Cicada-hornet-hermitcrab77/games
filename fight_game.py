@@ -13,7 +13,7 @@ from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt, SlantedConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull, FallingTeddy, HazardZone,
-                            JungleSnake, GoldenJungleSnake, Dino, Stampede, ComputerBug, MousePlatform,
+                            JungleSnake, GoldenJungleSnake, Dino, Stampede, EyeDestroyer, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall, Whip, HotPotato, BigBomb,
                             FallingPot, RollingCoin, FallingMerlin,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
@@ -21,7 +21,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             RemoteController, Apple, VenomBean, PlantSpike,
                             ChargedOrb, BubbleShot, PoisonOrb, BlackHole, MusicNote, ArcaneOrb,
                             SunBeam, LibertyDove, PumpkinSeed,
-                            FruitProj, CoalProj, WildfireBall)
+                            FruitProj, CoalProj, WildfireBall, SniderBolt)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop
 from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
@@ -51,6 +51,7 @@ _friday13_flag        = [False]   # True when "13" typed on an actual Friday the
 _nick_of_time_flag    = [False]   # True when p1 KO'd p2 with ≤1 second on the clock
 _session_match_streak = [0]       # consecutive matches played without returning to mode_select
 _freeze_streak_flag   = [False]   # True when an opponent was kept frozen 20s continuously
+_p1_melee_hit_flag    = [False]   # True if p1 landed any direct melee (punch/kick) hit this fight
 
 _PRIMES_60 = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59}
 def _is_prime(n): return n in _PRIMES_60
@@ -499,6 +500,10 @@ UNLOCK_CONDITIONS = {
     "Cornucopia":          ("seasonal_purchased", "Cornucopia",          1, "Buy in Seasonal Shop (Feasterween)"),
     "Nun-Gimel-Hei-Shin":  ("seasonal_purchased", "Nun-Gimel-Hei-Shin",  1, "Buy in Seasonal Shop (Aura of Menorah)"),
     "Saint Nix":           ("seasonal_purchased", "Saint Nix",           1, "Buy in Seasonal Shop (Yuletide Gatherings)"),
+    # ── new secret characters ────────────────────────────────────────────────
+    "I":             ("marathon_streak",  None,            30,  "Keep playing, don't stop",           True),
+    "Crytrap":       ("crytrap_unlock",   None,             1,  "Some things are better left frozen", True),
+    "Snider":        ("snider_unlock",    None,             1,  "Distance is the best defense",       True),
 }
 
 
@@ -588,6 +593,12 @@ def _default_stats():
         # Seasonal shop
         "seasonal_coins":           0,
         "seasonal_purchased":       [],
+        # I: longest streak of matches played in a row without stopping
+        "marathon_best":            0,
+        # Crytrap: froze an opponent 20 seconds continuously
+        "crytrap_unlocked":         False,
+        # Snider: won a match using only projectile hits, no melee
+        "snider_unlocked":          False,
     }
 
 def load_save():
@@ -751,6 +762,12 @@ def _meets_condition(cond, stats):
         return param in stats.get("seasonal_purchased", [])
     if kind == "nick_of_time_win":
         return stats.get("nick_of_time_win", False)
+    if kind == "marathon_streak":
+        return stats.get("marathon_best", 0) >= n
+    if kind == "crytrap_unlock":
+        return stats.get("crytrap_unlocked", False)
+    if kind == "snider_unlock":
+        return stats.get("snider_unlocked", False)
     return False
 
 def _unlock_progress(stats):
@@ -1112,6 +1129,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     _death_defyer_flag[0]    = False
     _friday13_flag[0]        = False
     _nick_of_time_flag[0]    = False
+    _p1_melee_hit_flag[0]    = False
 
     game_over          = False
     winner             = None
@@ -1151,6 +1169,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     mines         = []   # active ground mines (Trap Master)
     arcane_orbs   = []   # active ArcaneOrb objects (Arcanist)
     wildfire_balls = []  # active WildfireBall objects (Summer Eartha)
+    snider_bolts   = []  # active SniderBolt objects (Snider)
     sun_beams     = []   # active SunBeam objects (Solara)
     nian_breaths  = []   # active NianBreath cones (Nian)
     liberty_doves      = []   # active LibertyDove companions (Stickman of Liberty)
@@ -1173,6 +1192,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     big_bombs          = []   # Deco & Emoj: thrown bombs
     dinos              = []   # Amberk: chasing skeletal raptors
     stampedes          = []   # Crystallion: charging horse stampedes
+    eye_destroyers     = []   # I: half-screen destroying eye kicks
     casino_coins     = []   # falling coins on The Casino stage
     casino_coin_cd   = 90
     is_casino        = stage_data["name"] == "The Casino"
@@ -1493,6 +1513,25 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 _sd.update()
             stampedes = [_sd for _sd in stampedes if _sd.alive]
 
+            # I — kick boots his eye at one half of the arena, then destroys it
+            for _ef in (p1, p2):
+                if _ef.pending_eye_kick:
+                    _ef.pending_eye_kick = False
+                    _eye_side = 'right' if _ef.facing == 1 else 'left'
+                    eye_destroyers.append(EyeDestroyer(_ef, _eye_side))
+            for _ed in eye_destroyers:
+                _ed.update()
+                if _ed.just_detonated:
+                    _elo, _ehi = _ed.x_range
+                    for _ev in (p1, p2):
+                        if _elo <= _ev.x <= _ehi and not _ev.bubble_shield:
+                            _ev.hp          = 0
+                            _ev.flash_timer = 30
+                            _ev.action      = 'hurt'
+                            _ev.hurt_timer  = 30
+                            _ev.attacking   = False
+            eye_destroyers = [_ed for _ed in eye_destroyers if _ed.alive]
+
             # Floor is Lava: ground contact burns
             if stage_data["name"] == "Floor is Lava":
                 if _lava_burn_p1_cd > 0: _lava_burn_p1_cd -= 1
@@ -1761,6 +1800,27 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         wb.alive = False
                 wb.draw(screen)
             wildfire_balls = [wb for wb in wildfire_balls if wb.alive]
+
+            # Snider: multiplying sniper bolt on kick
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_snider_bolt:
+                    shooter.pending_snider_bolt = False
+                    snider_bolts.append(SniderBolt(
+                        shooter.x + shooter.facing * 40, shooter.y - 55, shooter.facing, shooter))
+            _new_snider_bolts = []
+            for sn in snider_bolts:
+                sn.update()
+                if sn.alive:
+                    victim = p2 if sn.owner is p1 else p1
+                    if sn.collides(victim) and not victim.bubble_shield:
+                        victim.take_proj_dmg(SniderBolt.DMG)
+                        victim.flash_timer = 8
+                        sn.alive = False
+                    elif sn.just_split and len(snider_bolts) + len(_new_snider_bolts) < 24:
+                        _new_snider_bolts.append(SniderBolt(sn.x, sn.y, sn.facing, sn.owner,
+                                                             y_offset=random.choice([-14, 14])))
+                sn.draw(screen)
+            snider_bolts = [sn for sn in snider_bolts if sn.alive] + _new_snider_bolts
 
             # Spawn orbs from bazooka_kick
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -3132,6 +3192,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             _dn.draw(screen)
         for _sd in stampedes:
             _sd.draw(screen)
+        for _ed in eye_destroyers:
+            _ed.draw(screen)
         for pu in powerups:
             pu.draw(screen)
         for b in balls:
@@ -3482,6 +3544,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 p1.check_hit(p1_hit, p2)
                 if p1.attack_hit and p1.action == 'punch' and not p1.is_crit:
                     _p1_non_crit_flag[0] = True
+                if p1.attack_hit and p1.action in ('punch', 'kick'):
+                    _p1_melee_hit_flag[0] = True
             if p2.attacking and not p2.attack_hit:
                 p2.check_hit(p2_hit, p1)
                 if p2.attack_hit:
@@ -3662,6 +3726,9 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     survival_plants    = []  # PlantSpike projectiles (Druid)
     wildfire_balls      = []  # WildfireBall (Summer Eartha, player-owned)
     en_wildfire_balls   = []  # WildfireBall (Summer Eartha, enemy-owned)
+    eye_destroyers      = []  # EyeDestroyer (I: half-screen destroying eye kicks)
+    snider_bolts        = []  # SniderBolt (Snider, player-owned)
+    en_snider_bolts     = []  # SniderBolt (Snider, enemy-owned)
     en_balls          = []
     en_orbs           = []
     en_bounce_balls   = []
@@ -3846,7 +3913,11 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             # Spawn enemies
             enemy_spawn_timer -= 1
             if enemy_spawn_timer <= 0 and len(enemies) < max_en:
-                _ai_pool = [i for i, c in enumerate(CHARACTERS) if not c.get("shop_only")]
+                _ai_pool = [i for i, c in enumerate(CHARACTERS)
+                            if not c.get("shop_only") and not c.get("eartha_variant")
+                            and not c.get("clover_variant") and not c.get("solara_variant")
+                            and not c.get("nghs_variant") and not c.get("bookzworm_variant")
+                            and not c.get("yellowstone_variant")]
                 ci = random.choice(_ai_pool)
                 if constants.STAGE_VOID:
                     # Spawn on the central platform so they don't fall into the void
@@ -3885,6 +3956,12 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     if en.pending_wildfire:
                         en.pending_wildfire = False
                         en_wildfire_balls.append(WildfireBall(en.x + en.facing*40, en.y-55, en.facing, en))
+                    if en.pending_eye_kick:
+                        en.pending_eye_kick = False
+                        eye_destroyers.append(EyeDestroyer(en, 'right' if en.facing == 1 else 'left'))
+                    if en.pending_snider_bolt:
+                        en.pending_snider_bolt = False
+                        en_snider_bolts.append(SniderBolt(en.x + en.facing*40, en.y-55, en.facing, en))
 
             # Mark newly dead players and freeze them
             for p in players:
@@ -3947,6 +4024,13 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     shooter.pending_wildfire = False
                     wildfire_balls.append(WildfireBall(shooter.x + shooter.facing*40, shooter.y-55,
                                                        shooter.facing, shooter))
+                if shooter.pending_eye_kick:
+                    shooter.pending_eye_kick = False
+                    eye_destroyers.append(EyeDestroyer(shooter, 'right' if shooter.facing == 1 else 'left'))
+                if shooter.pending_snider_bolt:
+                    shooter.pending_snider_bolt = False
+                    snider_bolts.append(SniderBolt(shooter.x + shooter.facing*40, shooter.y-55,
+                                                    shooter.facing, shooter))
 
             # Laser Eyes beam damage (survival)
             for shooter in players:
@@ -4286,6 +4370,56 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             wb.alive = False
                             break
             en_wildfire_balls = [wb for wb in en_wildfire_balls if wb.alive]
+
+            # Player snider bolts → enemies (Snider survival, multiplies as it travels)
+            _new_sn = []
+            for sn in snider_bolts:
+                sn.update()
+                if sn.alive:
+                    _hit_sn = False
+                    for en in enemies:
+                        if sn.collides(en) and not en.bubble_shield:
+                            en.take_proj_dmg(SniderBolt.DMG)
+                            en.flash_timer = 8
+                            sn.alive = False
+                            _hit_sn = True
+                            break
+                    if not _hit_sn and sn.just_split and len(snider_bolts) + len(_new_sn) < 24:
+                        _new_sn.append(SniderBolt(sn.x, sn.y, sn.facing, sn.owner,
+                                                   y_offset=random.choice([-14, 14])))
+            snider_bolts = [sn for sn in snider_bolts if sn.alive] + _new_sn
+
+            # Enemy snider bolts → players (Snider survival)
+            _new_en_sn = []
+            for sn in en_snider_bolts:
+                sn.update()
+                if sn.alive:
+                    _hit_sn = False
+                    for p in players:
+                        if p.hp > 0 and sn.collides(p) and not p.bubble_shield:
+                            p.take_proj_dmg(SniderBolt.DMG)
+                            p.flash_timer = 8
+                            sn.alive = False
+                            _hit_sn = True
+                            break
+                    if not _hit_sn and sn.just_split and len(en_snider_bolts) + len(_new_en_sn) < 24:
+                        _new_en_sn.append(SniderBolt(sn.x, sn.y, sn.facing, sn.owner,
+                                                      y_offset=random.choice([-14, 14])))
+            en_snider_bolts = [sn for sn in en_snider_bolts if sn.alive] + _new_en_sn
+
+            # I: half-screen destroying eye kicks (survival — hits anyone, no team check)
+            for ed in eye_destroyers:
+                ed.update()
+                if ed.just_detonated:
+                    elo, ehi = ed.x_range
+                    for victim in [p for p in players if p.hp > 0] + enemies:
+                        if elo <= victim.x <= ehi and not victim.bubble_shield:
+                            victim.hp          = 0
+                            victim.flash_timer = 30
+                            victim.action      = 'hurt'
+                            victim.hurt_timer  = 30
+                            victim.attacking   = False
+            eye_destroyers = [ed for ed in eye_destroyers if ed.alive]
 
             # Player scrolls → enemies (Scrollmaster survival)
             for p in players:
@@ -4883,6 +5017,9 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for b    in balls:         b.draw(screen)
         for wb   in wildfire_balls:    wb.draw(screen)
         for wb   in en_wildfire_balls: wb.draw(screen)
+        for ed   in eye_destroyers:    ed.draw(screen)
+        for sn   in snider_bolts:      sn.draw(screen)
+        for sn   in en_snider_bolts:   sn.draw(screen)
         for ao   in arcane_orbs:   ao.draw(screen)
         for sb   in sun_beams:     sb.draw(screen)
         for nb   in nian_breaths:  nb.draw(screen)
@@ -7062,6 +7199,11 @@ def main():
             if _nick_of_time_flag[0]:
                 stats["nick_of_time_win"] = True
                 _nick_of_time_flag[0] = False
+            if _freeze_streak_flag[0]:
+                stats["crytrap_unlocked"] = True
+                _freeze_streak_flag[0] = False
+            if vs_ai and p1_won and not _p1_melee_hit_flag[0]:
+                stats["snider_unlocked"] = True
             # Award seasonal coin for winning during an active event
             if p1_won and get_active_event() is not None:
                 stats["seasonal_coins"] = stats.get("seasonal_coins", 0) + 1

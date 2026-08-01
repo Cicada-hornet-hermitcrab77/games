@@ -13174,81 +13174,6 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.rect(surface, (180, 80, 40),
                              (_bx - _bsz // 2, _by - _bsz // 2, _bsz, int(_bsz * 1.3)))
 
-    elif char_name == "Graduated Bookzworm":
-        _gt = pygame.time.get_ticks() / 1000.0
-
-        # Jigsaw-puzzle moth wings on the back
-        for _wsign in (-1, 1):
-            _wcx = sx - facing * int(2*s)
-            _wcy = sy + int(bl * 0.25)
-            _wflap = math.sin(_gt * 5) * 0.15 + 0.85
-            _ww, _wh = int(hd * 2.6 * _wflap), int(hd * 2.0)
-            _wsurf = pygame.Surface((_ww, _wh), pygame.SRCALPHA)
-            pygame.draw.ellipse(_wsurf, (150, 200, 220, 220), (0, 0, _ww, _wh))
-            pygame.draw.ellipse(_wsurf, (90, 140, 170), (0, 0, _ww, _wh), max(1, int(2*s)))
-            # Jigsaw grid lines across the wing
-            for _gx in range(1, 3):
-                pygame.draw.line(_wsurf, (90, 140, 170), (_ww*_gx//3, 0), (_ww*_gx//3, _wh), 1)
-            for _gy in range(1, 2):
-                pygame.draw.line(_wsurf, (90, 140, 170), (0, _wh*_gy//2), (_ww, _wh*_gy//2), 1)
-            for _px5, _py5 in [(_ww//3, _wh//2), (2*_ww//3, _wh//2)]:
-                pygame.draw.circle(_wsurf, (90, 140, 170), (_px5, _py5), max(2, int(3*s)), 1)
-            _wsurf = pygame.transform.rotate(_wsurf, _wsign * (20 + math.sin(_gt*5)*8))
-            surface.blit(_wsurf, (_wcx - _wsign*int(_ww*0.3) - _wsurf.get_width()//2,
-                                  _wcy - _wsurf.get_height()//2))
-
-        # Round glasses (same style as Bookzworm)
-        _gl_r = max(3, int(hd * 0.27))
-        _gl_y = hy - int(hd * 0.12)
-        for _gx6 in (hx - int(hd * 0.36), hx + int(hd * 0.36)):
-            pygame.draw.circle(surface, (40, 30, 10), (_gx6, _gl_y), _gl_r, max(1, int(s * 1.5)))
-        pygame.draw.line(surface, (40, 30, 10),
-                         (hx - int(hd * 0.36) + _gl_r, _gl_y), (hx + int(hd * 0.36) - _gl_r, _gl_y), max(1, int(s)))
-
-        # Graduation cap — flat mortarboard with a tassel; an ant peeks out every 3s
-        _cap_y = hy - int(hd * 1.05)
-        pygame.draw.polygon(surface, (25, 20, 35), [
-            (hx - int(hd*1.3), _cap_y), (hx + int(hd*1.3), _cap_y),
-            (hx + int(hd*0.4), _cap_y - int(hd*0.5)), (hx - int(hd*0.4), _cap_y - int(hd*0.5))])
-        pygame.draw.circle(surface, (25, 20, 35), (hx, _cap_y), int(hd*0.5))
-        pygame.draw.circle(surface, (210, 180, 40), (hx, _cap_y), max(2, int(3*s)))
-        pygame.draw.line(surface, (210, 180, 40), (hx, _cap_y), (hx + int(hd*0.6), _cap_y + int(hd*0.7)), max(1, int(2*s)))
-        _peek_cycle = _gt % 3.0
-        if _peek_cycle < 0.6:
-            _peek_frac = math.sin((_peek_cycle / 0.6) * math.pi)
-            _antx = hx - int(hd*0.7)
-            _anty = _cap_y - int(hd*0.15) - int(_peek_frac * hd*0.5)
-            pygame.draw.circle(surface, (20, 15, 15), (_antx, _anty), max(2, int(3*s)))
-            pygame.draw.circle(surface, (20, 15, 15), (_antx, _anty - int(4*s)), max(1, int(2*s)))
-            for _asign in (-1, 1):
-                pygame.draw.line(surface, (20, 15, 15), (_antx, _anty - int(5*s)),
-                                 (_antx + _asign*int(3*s), _anty - int(9*s)), 1)
-
-        # Book held open, reading "How to Master Stickman Fight"
-        _bk_x = sx + facing * int(hd * 1.1)
-        _bk_y = sy + int(bl * 0.2)
-        _bk_w, _bk_h = int(hd * 1.6), int(hd * 1.2)
-        pygame.draw.rect(surface, (230, 220, 195), (_bk_x - _bk_w//2, _bk_y, _bk_w, _bk_h), border_radius=max(1, int(2*s)))
-        pygame.draw.rect(surface, (160, 140, 100), (_bk_x - _bk_w//2, _bk_y, _bk_w, _bk_h), max(1, int(s)), border_radius=max(1, int(2*s)))
-        pygame.draw.line(surface, (160, 140, 100), (_bk_x, _bk_y), (_bk_x, _bk_y + _bk_h), 1)
-        if hd * s >= 10:
-            _btf = _get_font(max(6, int(hd * 0.28)))
-            for _bli, _bltxt in enumerate(["How to", "Master", "Stickman", "Fight"]):
-                _bls = _btf.render(_bltxt, True, (60, 50, 30))
-                surface.blit(_bls, (_bk_x - _bls.get_width()//2, _bk_y + int(3*s) + _bli * int(hd*0.3)))
-
-        # Books flying around the entire map — large looping orbit spanning the arena
-        for _fi in range(4):
-            _fang = _gt * 0.9 + _fi * (math.pi / 2)
-            _fx6 = int(WIDTH / 2 + math.cos(_fang) * (WIDTH * 0.42))
-            _fy6 = int(150 + math.sin(_fang * 1.3) * 110 + math.sin(_fang) * 40)
-            _fsz = max(6, int(hd * 0.6))
-            _frot = math.degrees(_fang) * 2
-            _fbsurf = pygame.Surface((_fsz*2, int(_fsz*2.6)), pygame.SRCALPHA)
-            pygame.draw.rect(_fbsurf, (180, 80, 40), (0, 0, _fsz*2, int(_fsz*2.6)))
-            _fbsurf = pygame.transform.rotate(_fbsurf, _frot)
-            surface.blit(_fbsurf, (_fx6 - _fbsurf.get_width()//2, _fy6 - _fbsurf.get_height()//2))
-
     elif char_name == "Yellowstone":
         # Mountain covering the entire stickman
         _rock  = (118, 98,  72)
@@ -13278,60 +13203,6 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         _eye_y = hy - int(hd * 0.05)
         _er = max(3, int(hd * 0.28))
         for _ex in (hx - int(hd * 0.4), hx + int(hd * 0.4)):
-            pygame.draw.circle(surface, (200, 240, 255), (_ex, _eye_y), _er)
-            pygame.draw.circle(surface, (100, 200, 240), (_ex, _eye_y), max(1, _er // 2))
-
-    elif char_name == "Ice Age Yellowstone":
-        # A mini mountain sealed inside a snow globe
-        _igt    = pygame.time.get_ticks() / 1000.0
-        _rock   = (110, 130, 140)
-        _dark   = ( 70,  90, 100)
-        _snow   = (245, 250, 255)
-        _base_y = wy + int(LEG_LEN * s)
-        _glo_r  = al + int(hd * 0.85)
-        _glo_cx, _glo_cy = hx, hy + int(hd * 0.3)
-        # Wooden base stand
-        _base_w = int(_glo_r * 1.6)
-        _base_h = int(hd * 0.5)
-        pygame.draw.rect(surface, (90, 60, 35), (_glo_cx - _base_w//2, _base_y - _base_h, _base_w, _base_h),
-                         border_radius=max(1, int(3*s)))
-        pygame.draw.rect(surface, (60, 40, 20), (_glo_cx - _base_w//2, _base_y - _base_h, _base_w, _base_h),
-                         max(1, int(2*s)), border_radius=max(1, int(3*s)))
-        # Glass globe (clipped so the mountain + snow stay inside)
-        _globe_surf = pygame.Surface((_glo_r*2, _glo_r*2), pygame.SRCALPHA)
-        pygame.draw.circle(_globe_surf, (200, 230, 245, 60), (_glo_r, _glo_r), _glo_r)
-        # Mini mountain, scaled down to fit inside the globe
-        _mpeak = (_glo_r, _glo_r - int(_glo_r * 0.55))
-        _mbl   = (_glo_r - int(_glo_r * 0.75), _glo_r + int(_glo_r * 0.7))
-        _mbr   = (_glo_r + int(_glo_r * 0.75), _glo_r + int(_glo_r * 0.7))
-        pygame.draw.polygon(_globe_surf, _rock, [_mpeak, _mbl, _mbr])
-        pygame.draw.polygon(_globe_surf, _dark, [_mpeak, _mbl, _mbr], max(1, int(s)))
-        _msnow_h = int((_mbl[1] - _mpeak[1]) * 0.3)
-        pygame.draw.polygon(_globe_surf, _snow, [
-            _mpeak, (_mpeak[0] - int(_glo_r*0.18), _mpeak[1] + _msnow_h),
-            (_mpeak[0] + int(_glo_r*0.18), _mpeak[1] + _msnow_h)])
-        # Drifting snow inside the globe
-        for _fi5 in range(14):
-            _fseed = _fi5 * 37
-            _ffall_t = (_igt * 20 + _fseed) % (_glo_r * 2)
-            _ffx = _glo_r + int(math.sin(_fseed) * _glo_r * 0.75)
-            _ffy = int(_ffall_t) - int(_glo_r * 0.2)
-            if 0 <= _ffy <= _glo_r * 2:
-                pygame.draw.circle(_globe_surf, (255, 255, 255, 220), (_ffx, _ffy), max(1, int(1.5*s)))
-        # Circular mask so nothing spills outside the glass
-        _mask = pygame.Surface((_glo_r*2, _glo_r*2), pygame.SRCALPHA)
-        pygame.draw.circle(_mask, (255, 255, 255, 255), (_glo_r, _glo_r), _glo_r)
-        _globe_surf.blit(_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
-        surface.blit(_globe_surf, (_glo_cx - _glo_r, _glo_cy - _glo_r))
-        # Glass rim + shine highlight
-        pygame.draw.circle(surface, (210, 235, 250), (_glo_cx, _glo_cy), _glo_r, max(1, int(2*s)))
-        pygame.draw.arc(surface, (255, 255, 255),
-                        (_glo_cx - _glo_r, _glo_cy - _glo_r, _glo_r*2, _glo_r*2),
-                        math.radians(200), math.radians(260), max(1, int(3*s)))
-        # Glowing eyes visible through the glass
-        _eye_y = _glo_cy - int(_glo_r * 0.05)
-        _er = max(2, int(hd * 0.22))
-        for _ex in (_glo_cx - int(_glo_r * 0.32), _glo_cx + int(_glo_r * 0.32)):
             pygame.draw.circle(surface, (200, 240, 255), (_ex, _eye_y), _er)
             pygame.draw.circle(surface, (100, 200, 240), (_ex, _eye_y), max(1, _er // 2))
 
@@ -14943,6 +14814,295 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
         if action == 'kick':
             return (int(waist[0] + facing * int(action_t * 80 * s)), int(y - 20 * s))
         return None
+
+    # ── Ice Age Yellowstone: a whole snow globe on stubby legs — no stickman ─
+    if char_name == "Ice Age Yellowstone":
+        _igt = pygame.time.get_ticks() / 1000.0
+        _rock, _dark, _snow = (110, 130, 140), (70, 90, 100), (245, 250, 255)
+        _base_y = int(y)
+        _glo_r  = int(hd * 2.1)
+        _bob    = int(math.sin(_igt * 1.4) * 3 * s) if action != 'dead' else 0
+        _glo_cx, _glo_cy = int(x), _base_y - _glo_r - int(hd * 0.4) - _bob
+
+        if action == 'dead':
+            _glo_cy = _base_y - int(_glo_r * 0.6)
+            pygame.draw.circle(surface, (200, 230, 245), (_glo_cx, _glo_cy), _glo_r, max(1, int(2*s)))
+            return None
+
+        # Stubby wooden legs
+        for _lxo in (-int(_glo_r*0.5), int(_glo_r*0.5)):
+            _lx9 = _glo_cx + _lxo
+            pygame.draw.rect(surface, (90, 60, 35), (_lx9-int(5*s), _glo_cy+int(_glo_r*0.7),
+                             int(10*s), _base_y-(_glo_cy+int(_glo_r*0.7))), border_radius=max(1,int(3*s)))
+        # Glass globe
+        _globe_surf = pygame.Surface((_glo_r*2, _glo_r*2), pygame.SRCALPHA)
+        pygame.draw.circle(_globe_surf, (200, 230, 245, 60), (_glo_r, _glo_r), _glo_r)
+        _mpeak = (_glo_r, _glo_r - int(_glo_r * 0.55))
+        _mbl   = (_glo_r - int(_glo_r * 0.75), _glo_r + int(_glo_r * 0.7))
+        _mbr   = (_glo_r + int(_glo_r * 0.75), _glo_r + int(_glo_r * 0.7))
+        pygame.draw.polygon(_globe_surf, _rock, [_mpeak, _mbl, _mbr])
+        pygame.draw.polygon(_globe_surf, _dark, [_mpeak, _mbl, _mbr], max(1, int(s)))
+        _msnow_h = int((_mbl[1] - _mpeak[1]) * 0.3)
+        pygame.draw.polygon(_globe_surf, _snow, [
+            _mpeak, (_mpeak[0]-int(_glo_r*0.18), _mpeak[1]+_msnow_h),
+            (_mpeak[0]+int(_glo_r*0.18), _mpeak[1]+_msnow_h)])
+        for _fi5 in range(16):
+            _fseed = _fi5 * 37
+            _ffall_t = (_igt * 20 + _fseed) % (_glo_r * 2)
+            _ffx = _glo_r + int(math.sin(_fseed) * _glo_r * 0.75)
+            _ffy = int(_ffall_t) - int(_glo_r * 0.2)
+            if 0 <= _ffy <= _glo_r * 2:
+                pygame.draw.circle(_globe_surf, (255, 255, 255, 220), (_ffx, _ffy), max(1, int(1.5*s)))
+        _mask = pygame.Surface((_glo_r*2, _glo_r*2), pygame.SRCALPHA)
+        pygame.draw.circle(_mask, (255, 255, 255, 255), (_glo_r, _glo_r), _glo_r)
+        _globe_surf.blit(_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+        surface.blit(_globe_surf, (_glo_cx - _glo_r, _glo_cy - _glo_r))
+        pygame.draw.circle(surface, (210, 235, 250), (_glo_cx, _glo_cy), _glo_r, max(1, int(2*s)))
+        pygame.draw.arc(surface, (255, 255, 255),
+                        (_glo_cx - _glo_r, _glo_cy - _glo_r, _glo_r*2, _glo_r*2),
+                        math.radians(200), math.radians(260), max(1, int(3*s)))
+        _eye_y = _glo_cy - int(_glo_r * 0.05)
+        _er = max(2, int(hd * 0.3))
+        for _ex in (_glo_cx - int(_glo_r * 0.32), _glo_cx + int(_glo_r * 0.32)):
+            pygame.draw.circle(surface, (200, 240, 255), (_ex, _eye_y), _er)
+            pygame.draw.circle(surface, (100, 200, 240), (_ex, _eye_y), max(1, _er // 2))
+        # Icy stubby arms
+        for _asign in (-1, 1):
+            _aax = _glo_cx + _asign * _glo_r
+            _aay = _glo_cy + int(_glo_r * 0.2)
+            _swing = int(math.sin(_igt*2 + _asign) * 6 * s) if action in ('walk',) else 0
+            pygame.draw.line(surface, (170, 210, 230), (_aax, _aay), (_aax + _asign*int(14*s), _aay+18+_swing), max(2, int(5*s)))
+        if action == 'punch':
+            return (int(_glo_cx + facing * (_glo_r + 20*s)), _glo_cy)
+        if action == 'kick':
+            return (int(_glo_cx + facing * int(action_t * 90 * s)), _base_y - int(20*s))
+        return (int(_glo_cx + facing * 30*s), _glo_cy)
+
+    # ── Graduated Bookzworm: a moth, not a stickman — fuzzy thorax, huge ─────
+    #    jigsaw wings, and 10 books orbiting close around the body.
+    if char_name == "Graduated Bookzworm":
+        _gt = pygame.time.get_ticks() / 1000.0
+        if action == 'dead':
+            return None
+        _bob = int(math.sin(_gt * 3) * 4 * s)
+        _cx9, _cy9 = int(x), int(y) - int(hd * 1.6) - _bob
+
+        # Huge jigsaw-puzzle wings on the back, flap continuously
+        for _wsign in (-1, 1):
+            _wflap = math.sin(_gt * 6 + (0 if _wsign > 0 else 1)) * 0.2 + 0.9
+            _ww, _wh = int(hd * 4.2 * _wflap), int(hd * 3.2)
+            _wsurf = pygame.Surface((_ww, _wh), pygame.SRCALPHA)
+            pygame.draw.ellipse(_wsurf, (150, 200, 220, 225), (0, 0, _ww, _wh))
+            pygame.draw.ellipse(_wsurf, (90, 140, 170), (0, 0, _ww, _wh), max(1, int(2*s)))
+            for _gx in range(1, 4):
+                pygame.draw.line(_wsurf, (90, 140, 170), (_ww*_gx//4, 0), (_ww*_gx//4, _wh), 1)
+            for _gy in range(1, 3):
+                pygame.draw.line(_wsurf, (90, 140, 170), (0, _wh*_gy//3), (_ww, _wh*_gy//3), 1)
+            _wsurf = pygame.transform.rotate(_wsurf, _wsign * (22 + math.sin(_gt*6)*10))
+            surface.blit(_wsurf, (_cx9 - _wsign*int(_ww*0.32) - _wsurf.get_width()//2,
+                                  _cy9 - _wsurf.get_height()//2 + int(hd*0.2)))
+
+        # Fuzzy segmented moth body (replaces stickman torso/limbs entirely)
+        for _i in range(4):
+            _seg_y = _cy9 + int(hd * (1.1 - _i * 0.5))
+            _seg_r = max(4, int(hd * (0.75 - _i*0.05)))
+            pygame.draw.circle(surface, (100, 150, 90), (_cx9, _seg_y), _seg_r)
+            pygame.draw.circle(surface, (70, 115, 65), (_cx9, _seg_y), _seg_r, max(1, int(s)))
+        # Little legs
+        for _lxo in (-int(hd*0.5), int(hd*0.5)):
+            pygame.draw.line(surface, (70, 115, 65), (_cx9+_lxo, _cy9+int(hd*1.3)),
+                             (_cx9+_lxo, int(y)), max(2, int(4*s)))
+        # Head + antennae + glasses
+        _hx9, _hy9 = _cx9, _cy9 - int(hd*0.3)
+        pygame.draw.circle(surface, col, (_hx9, _hy9), hd)
+        for _asign in (-1, 1):
+            pygame.draw.line(surface, (70, 115, 65), (_hx9, _hy9-hd),
+                             (_hx9+_asign*int(hd*0.5), _hy9-int(hd*1.8)), max(1, int(s)))
+            pygame.draw.circle(surface, (255, 80, 80), (_hx9+_asign*int(hd*0.5), _hy9-int(hd*1.8)), max(2, int(hd*0.18)))
+        for _gx6 in (_hx9-int(hd*0.36), _hx9+int(hd*0.36)):
+            pygame.draw.circle(surface, (40, 30, 10), (_gx6, _hy9-int(hd*0.1)), max(3,int(hd*0.27)), max(1,int(s*1.5)))
+        # Graduation cap
+        _cap_y = _hy9 - int(hd*1.05)
+        pygame.draw.polygon(surface, (25, 20, 35), [
+            (_hx9-int(hd*1.3), _cap_y), (_hx9+int(hd*1.3), _cap_y),
+            (_hx9+int(hd*0.4), _cap_y-int(hd*0.5)), (_hx9-int(hd*0.4), _cap_y-int(hd*0.5))])
+        pygame.draw.circle(surface, (210, 180, 40), (_hx9, _cap_y), max(2, int(3*s)))
+        # 10 books orbiting close around the body
+        _orb_r = int(hd * 3.2)
+        _bsz   = max(5, int(hd * 0.5))
+        for _i in range(10):
+            _ang = _gt * 1.3 + _i * (2 * math.pi / 10)
+            _bx  = _cx9 + int(_orb_r * math.cos(_ang))
+            _by  = _cy9 + int(_orb_r * 0.55 * math.sin(_ang))
+            pygame.draw.rect(surface, (180, 80, 40), (_bx-_bsz//2, _by-_bsz//2, _bsz, int(_bsz*1.3)))
+        # Ability visual: books also fly the whole map (unlimited-range hit)
+        for _fi in range(4):
+            _fang = _gt * 0.9 + _fi * (math.pi / 2)
+            _fx6 = int(WIDTH / 2 + math.cos(_fang) * (WIDTH * 0.42))
+            _fy6 = int(150 + math.sin(_fang * 1.3) * 110 + math.sin(_fang) * 40)
+            _fsz = max(6, int(hd * 0.6))
+            _frot = math.degrees(_fang) * 2
+            _fbsurf = pygame.Surface((_fsz*2, int(_fsz*2.6)), pygame.SRCALPHA)
+            pygame.draw.rect(_fbsurf, (180, 80, 40), (0, 0, _fsz*2, int(_fsz*2.6)))
+            _fbsurf = pygame.transform.rotate(_fbsurf, _frot)
+            surface.blit(_fbsurf, (_fx6 - _fbsurf.get_width()//2, _fy6 - _fbsurf.get_height()//2))
+        if action == 'punch':
+            return (int(_cx9 + facing * (hd + 30*s)), _hy9)
+        if action == 'kick':
+            return (int(_cx9 + facing * int(action_t * 90 * s)), int(y) - int(20*s))
+        return (int(_cx9 + facing * 30*s), _hy9)
+
+    # ── I: a monster riddled with holes, one eye orbiting and diving in and ──
+    #    out of them — no stickman.
+    if char_name == "I":
+        _it = pygame.time.get_ticks() / 1000.0
+        if action == 'dead':
+            return None
+        _bob = int(math.sin(_it * 1.8) * 3 * s)
+        _cx9, _cy9 = int(x), int(y) - int(hd * 1.9) - _bob
+        _br = int(hd * 1.9)
+
+        # Lumpy dark body
+        _lumps = [(0.0,-1.0,1.0),(0.55,-0.6,0.9),(0.9,0.0,0.85),(0.65,0.55,0.9),
+                  (0.0,0.85,1.0),(-0.65,0.55,0.9),(-0.9,0.0,0.85),(-0.55,-0.6,0.9)]
+        _pts = [(_cx9+int(bx*_br*sc), _cy9+int(by*_br*sc)) for bx, by, sc in _lumps]
+        pygame.draw.polygon(surface, col, _pts)
+        pygame.draw.polygon(surface, tuple(max(0,c-20) for c in col), _pts, max(1, int(2*s)))
+        # Stubby limbs for a basic humanoid stance
+        for _lxo in (-int(_br*0.45), int(_br*0.45)):
+            pygame.draw.line(surface, col, (_cx9+_lxo, _cy9+int(_br*0.7)), (_cx9+_lxo, int(y)), max(3, int(6*s)))
+
+        # Holes — dark voids cut into the body at fixed spots
+        _hole_specs = [(-0.4,-0.25,0.32), (0.35,0.1,0.4), (0.0,0.5,0.28)]
+        _holes = [(_cx9+int(hx*_br), _cy9+int(hy*_br), max(3,int(_br*hr))) for hx,hy,hr in _hole_specs]
+        for _hx, _hy, _hr in _holes:
+            pygame.draw.circle(surface, (8, 6, 12), (_hx, _hy), _hr)
+
+        # The eye orbits the body and periodically dives into a hole
+        _cycle  = _it % 4.5
+        _dive   = _cycle > 3.3
+        if _dive:
+            _hidx = int(_it / 4.5) % len(_holes)
+            _hx, _hy, _hr = _holes[_hidx]
+            _dfrac = (_cycle - 3.3) / 1.2
+            _depth = math.sin(min(1.0, _dfrac) * math.pi)
+            _ex9, _ey9 = _hx, _hy
+            _er9 = max(1, int(hd * 0.45 * (1 - _depth)))
+        else:
+            _oang = _it * 1.1
+            _ex9 = _cx9 + int(_br * 0.85 * math.cos(_oang))
+            _ey9 = _cy9 + int(_br * 0.55 * math.sin(_oang))
+            _er9 = max(2, int(hd * 0.45))
+        if _er9 > 1:
+            pygame.draw.circle(surface, (250, 250, 245), (_ex9, _ey9), _er9)
+            pygame.draw.circle(surface, (200, 20, 20), (_ex9, _ey9), max(1, int(_er9*0.55)))
+            pygame.draw.circle(surface, (10, 10, 10), (_ex9, _ey9), max(1, int(_er9*0.22)))
+        if action == 'punch':
+            return (int(_cx9 + facing * (_br + 30*s)), _cy9)
+        if action == 'kick':
+            return (int(_cx9 + facing * int(action_t * 90 * s)), int(y) - int(20*s))
+        return (int(_cx9 + facing * 30*s), _cy9)
+
+    # ── Crytrap: an ice-crusted flytrap, not a stickman — chomps every 2s ────
+    if char_name == "Crytrap":
+        _ct5 = pygame.time.get_ticks() / 1000.0
+        if action == 'dead':
+            return None
+        _cx9 = int(x)
+        _base_y = int(y)
+        # Stem / pot
+        _pot_w, _pot_h = int(hd*1.6), int(hd*0.9)
+        pygame.draw.polygon(surface, (110, 80, 60), [
+            (_cx9-_pot_w//2, _base_y), (_cx9+_pot_w//2, _base_y),
+            (_cx9+int(_pot_w*0.35), _base_y-_pot_h), (_cx9-int(_pot_w*0.35), _base_y-_pot_h)])
+        _stem_top = _base_y - _pot_h - int(hd*1.4)
+        pygame.draw.line(surface, (60, 140, 90), (_cx9, _base_y-_pot_h), (_cx9, _stem_top), max(3, int(7*s)))
+        # Chomp cycle: closed most of the time, snaps open briefly every 2s
+        _cycle  = _ct5 % 2.0
+        _chomp  = _cycle < 0.35
+        _open_a = (math.sin((_cycle/0.35)*math.pi) if _chomp else 0.0)
+        _hx9, _hy9 = _cx9, _stem_top - int(hd*0.6)
+        _jaw_r = int(hd * 1.5)
+        for _jsign in (-1, 1):
+            _jaw_ang = math.radians(90 - _jsign * (20 + _open_a * 55))
+            _tipx = _hx9 + int(_jaw_r * math.cos(_jaw_ang)) * _jsign
+            _tipy = _hy9 - int(_jaw_r * 0.7) - int(_jaw_r * 0.3 * math.sin(_jaw_ang))
+            _jaw_pts = [(_hx9, _hy9), (_hx9 + _jsign*int(_jaw_r*0.9), _hy9-int(_jaw_r*0.2)), (_tipx, _tipy)]
+            pygame.draw.polygon(surface, (150, 210, 200), _jaw_pts)
+            pygame.draw.polygon(surface, (90, 160, 150), _jaw_pts, max(1, int(2*s)))
+            # Teeth along the jaw edge
+            for _ti in range(4):
+                _tt = _ti / 3
+                _tx9 = int(_hx9 + (_jaw_pts[1][0]-_hx9)*_tt + (_tipx-_jaw_pts[1][0])*_tt*0.3)
+                _ty9 = int(_hy9 + (_jaw_pts[1][1]-_hy9)*_tt + (_tipy-_jaw_pts[1][1])*_tt*0.3)
+                pygame.draw.circle(surface, (255, 255, 255), (_tx9, _ty9), max(1, int(2*s)))
+        # Ice crystal shards over the jaws
+        for _ci in range(5):
+            _cang = _ci * 1.3
+            _cix = _hx9 + int(math.cos(_cang)*_jaw_r*0.6)
+            _ciy = _hy9 - int(_jaw_r*0.4) + int(math.sin(_cang)*_jaw_r*0.3)
+            pygame.draw.polygon(surface, (210, 245, 250), [
+                (_cix, _ciy-int(5*s)), (_cix-int(3*s), _ciy+int(3*s)), (_cix+int(3*s), _ciy+int(3*s))])
+        # Eyes peeking from inside the jaws
+        for _ex in (_hx9-int(hd*0.3), _hx9+int(hd*0.3)):
+            pygame.draw.circle(surface, (255, 255, 255), (_ex, _hy9-int(hd*0.1)), max(2, int(hd*0.2)))
+            pygame.draw.circle(surface, (20, 60, 90), (_ex, _hy9-int(hd*0.1)), max(1, int(hd*0.1)))
+        if action == 'punch':
+            return (int(_hx9 + facing * (_jaw_r + 20*s)), _hy9)
+        if action == 'kick':
+            return (int(_cx9 + facing * int(action_t * 90 * s)), _base_y - int(20*s))
+        return (int(_hx9 + facing * 20*s), _hy9)
+
+    # ── Snider: a spider with a mechanical sniper arm, not a stickman — the ──
+    #    arm raises to aim every 4 seconds.
+    if char_name == "Snider":
+        _st5 = pygame.time.get_ticks() / 1000.0
+        if action == 'dead':
+            return None
+        _bob = int(math.sin(_st5*2.2) * 2 * s)
+        _cx9, _cy9 = int(x), int(y) - int(hd * 1.3) - _bob
+        _ab_r = int(hd * 1.3)   # abdomen
+        _ce_r = int(hd * 0.9)   # cephalothorax
+
+        # Legs — 3 pairs, gently swaying
+        for _li, _lsign in [(0,-1),(1,-1),(2,-1),(0,1),(1,1),(2,1)]:
+            _lang = math.radians(200 + _li*35) if _lsign < 0 else math.radians(-20 - _li*35)
+            _sway = math.sin(_st5*3 + _li) * 4 * s
+            _kx = _cx9 + int(math.cos(_lang) * _ab_r * 1.3)
+            _ky = _cy9 + int(math.sin(_lang) * _ab_r * 0.7)
+            _fx = _kx + int(math.cos(_lang) * _ab_r * 1.1)
+            _fy = int(y) + int(_sway * 0.3)
+            pygame.draw.line(surface, tuple(max(0,c-10) for c in col), (_cx9, _cy9), (_kx, _ky), max(2, int(4*s)))
+            pygame.draw.line(surface, tuple(max(0,c-10) for c in col), (_kx, _ky), (_fx, _fy), max(2, int(3*s)))
+        # Abdomen + cephalothorax
+        pygame.draw.circle(surface, col, (_cx9 - facing*int(_ab_r*0.5), _cy9), _ab_r)
+        pygame.draw.circle(surface, tuple(max(0,c-15) for c in col), (_cx9 - facing*int(_ab_r*0.5), _cy9), _ab_r, max(1,int(2*s)))
+        _hx9 = _cx9 + facing*int(_ce_r*0.9)
+        pygame.draw.circle(surface, col, (_hx9, _cy9-int(_ce_r*0.15)), _ce_r)
+        # Eye cluster
+        for _exo, _eyo in [(-0.3,-0.2),(0.1,-0.35),(0.3,-0.1),(-0.1,0.05)]:
+            pygame.draw.circle(surface, (200, 20, 20), (_hx9+int(_exo*_ce_r), _cy9+int(_eyo*_ce_r)), max(1,int(hd*0.14)))
+
+        # Mechanical sniper arm: raises to aim every 4 seconds
+        _cycle = _st5 % 4.0
+        _aiming = _cycle > 3.0
+        _raise = (math.sin(min(1.0,(_cycle-3.0)/0.4)*math.pi/2) if _aiming and _cycle < 3.4
+                  else (1.0 if _aiming else 0.0))
+        _sx9 = _hx9 + facing*int(_ce_r*0.6)
+        _sy9 = _cy9 - int(_ce_r*0.3)
+        _barrel_ang = -0.9 * _raise   # tilts up as it raises
+        _bx9 = _sx9 + facing*int(math.cos(_barrel_ang)*hd*2.6)
+        _by9 = _sy9 + int(math.sin(_barrel_ang)*hd*2.6)
+        pygame.draw.line(surface, (60, 60, 68), (_sx9, _sy9), (_bx9, _by9), max(3, int(6*s)))
+        pygame.draw.circle(surface, (90, 90, 100), (_sx9, _sy9), max(2, int(hd*0.3)))
+        pygame.draw.circle(surface, (140, 190, 255), (_bx9, _by9), max(1, int(hd*0.14)))
+        if _aiming and _cycle > 3.4:
+            pygame.draw.circle(surface, (255, 230, 150), (_bx9, _by9), max(1, int(hd*0.22)), max(1,int(s)))
+        if action == 'punch':
+            return (int(_hx9 + facing * (_ce_r + 20*s)), _cy9)
+        if action == 'kick':
+            return (int(_cx9 + facing * int(action_t * 90 * s)), int(y) - int(20*s))
+        return (int(_hx9 + facing * 20*s), _cy9)
 
     ln(waist, lk); ln(lk, lf)
     ln(waist, rk); ln(rk, rf)

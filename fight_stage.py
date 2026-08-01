@@ -917,6 +917,70 @@ class RollingStone(object):
             pygame.draw.circle(surface, (85, 78, 70), (_cx, _cy), max(1, r // 5))
 
 
+class EyeDestroyer(object):
+    """I's kick ability: he boots his floating eye toward one half of the
+    arena. It flies out, the screen cracks along that half as a warning,
+    then that whole half is obliterated — anyone still standing in it dies."""
+    WINDUP = 50   # eye flies out toward its target half
+    CRACK  = 40   # screen cracks — final warning before impact
+    FLASH  = 14   # detonation flash, held briefly before despawning
+    TOTAL  = WINDUP + CRACK
+
+    def __init__(self, owner, side):
+        self.owner  = owner
+        self.side   = side          # 'left' or 'right'
+        self.timer  = 0
+        self.alive  = True
+        self.just_detonated = False
+        self._cracks = []
+        lo, hi = self.x_range
+        for _ in range(7):
+            x0 = random.randint(lo, hi)
+            pts = [(x0, 0)]
+            cx = x0
+            for seg in range(1, 9):
+                cx = max(lo, min(hi, cx + random.randint(-26, 26)))
+                pts.append((cx, seg * HEIGHT // 9))
+            self._cracks.append(pts)
+
+    @property
+    def x_range(self):
+        return (0, WIDTH // 2) if self.side == 'left' else (WIDTH // 2, WIDTH)
+
+    def update(self):
+        self.timer += 1
+        self.just_detonated = (self.timer == self.TOTAL)
+        if self.timer >= self.TOTAL + self.FLASH:
+            self.alive = False
+
+    def draw(self, surface):
+        lo, hi = self.x_range
+        cx = (lo + hi) // 2
+        if self.timer < self.WINDUP:
+            t  = self.timer / self.WINDUP
+            ex = self.owner.x + (cx - self.owner.x) * t
+            ey = (self.owner.y - 90) - 50 * math.sin(math.pi * t)
+            r  = 16
+            pygame.draw.circle(surface, (255, 250, 240), (int(ex), int(ey)), r + 4)
+            pygame.draw.circle(surface, (255, 255, 255), (int(ex), int(ey)), r)
+            pygame.draw.circle(surface, (200, 30, 30), (int(ex), int(ey)), r - 6)
+            pygame.draw.circle(surface, (10, 10, 10), (int(ex), int(ey)), max(2, r - 12))
+        elif self.timer < self.TOTAL:
+            prog  = (self.timer - self.WINDUP) / self.CRACK
+            alpha = int(30 + 140 * prog)
+            _cs = pygame.Surface((hi - lo, HEIGHT), pygame.SRCALPHA)
+            _cs.fill((120, 0, 0, alpha))
+            surface.blit(_cs, (lo, 0))
+            for pts in self._cracks:
+                pygame.draw.lines(surface, (255, 70, 30), False, pts, 2)
+        else:
+            fprog  = (self.timer - self.TOTAL) / self.FLASH
+            falpha = max(0, int(255 * (1 - fprog)))
+            _fs = pygame.Surface((hi - lo, HEIGHT), pygame.SRCALPHA)
+            _fs.fill((255, 235, 210, falpha))
+            surface.blit(_fs, (lo, 0))
+
+
 class Dino(object):
     """A small skeletal raptor summoned by Amberk's kick — chases a specific
     target (not proximity-based) and bites on contact. Despawns after LIFE

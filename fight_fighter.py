@@ -104,6 +104,9 @@ class Fighter:
         self.umbra_teleport_flash = 0     # Umbra: frames left in the teleport poof visual
         self.pending_dino_summon  = False # Amberk: summon a chasing dino this frame
         self.pending_stampede     = False # Crystallion: summon a horse stampede this frame
+        self.pending_eye_kick     = False # I: kick his eye to destroy half the screen this frame
+        self.eye_kick_cooldown    = 0     # cooldown between eye-kicks
+        self.pending_snider_bolt  = False # Snider: fire a multiplying sniper bolt this frame
         self.pending_ink_clone       = False  # Ink Brush: spawn a clone this frame
         self.ink_clone_cooldown      = 0      # cooldown between clones
         self.squish_frames           = 0      # frames of squish remaining (Hammerhead punch)
@@ -405,6 +408,8 @@ class Fighter:
             self.shock_frames -= 1
         if self.bazooka_cooldown > 0:
             self.bazooka_cooldown -= 1
+        if self.eye_kick_cooldown > 0:
+            self.eye_kick_cooldown -= 1
         if self.pumpkin_cooldown > 0:
             self.pumpkin_cooldown -= 1
         if self.deco_laser_cooldown > 0:
@@ -965,6 +970,11 @@ class Fighter:
                     self.pending_dino_summon = True
                 if self.char.get("stampede_kick"):
                     self.pending_stampede = True
+                if self.char.get("eye_kick_screen_destroy") and self.eye_kick_cooldown == 0:
+                    self.pending_eye_kick  = True
+                    self.eye_kick_cooldown = FPS * 15   # 15-second cooldown
+                if self.char.get("sniper_multiply_kick"):
+                    self.pending_snider_bolt = True
                 if self.char.get("jack_tank"):
                     self.jack_tank_frames = FPS * 10  # activate / refresh tank mode
                     self.pending_jack_seed = True      # kick also fires a seed
@@ -1598,6 +1608,8 @@ class Fighter:
                     other.curse_frames = max(other.curse_frames, FPS * 5)
             if other.char.get("auto_counter") and dmg > 0 and not other.blocking:
                 self.hp = max(0, self.hp - max(1, dmg // 2))
+            if other.char.get("freeze_on_melee_hit") and dmg > 0 and not self.char.get("immune"):
+                self.freeze_frames = max(self.freeze_frames, FPS * 5)
                 self.flash_timer = max(self.flash_timer, 6)
             if other.char.get("colossus") and dmg > 0:
                 other.draw_scale = max(0.5, other.draw_scale - 0.08)
@@ -2219,6 +2231,11 @@ class AIFighter(Fighter):
                     if self.char.get("saint_nix_coal"):
                         self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
                         self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
+                    if self.char.get("eye_kick_screen_destroy") and self.eye_kick_cooldown == 0:
+                        self.pending_eye_kick  = True
+                        self.eye_kick_cooldown = FPS * 15
+                    if self.char.get("sniper_multiply_kick"):
+                        self.pending_snider_bolt = True
             self.ai_attack = None
         elif self.ai_move != 0:
             _ai_spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)

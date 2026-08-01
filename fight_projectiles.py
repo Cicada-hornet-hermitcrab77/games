@@ -1315,6 +1315,51 @@ class SnipeShot:
 
 
 # ---------------------------------------------------------------------------
+# SniderBolt  (Snider kick — a sniper round that multiplies as it travels)
+# ---------------------------------------------------------------------------
+
+class SniderBolt:
+    SPEED          = 14
+    DMG            = 5
+    RADIUS         = 6
+    LIFE           = 80
+    SPLIT_INTERVAL = 6   # 0.1s @ 60 FPS
+
+    def __init__(self, x, y, facing, owner, y_offset=0.0):
+        self.x       = float(x)
+        self.y       = float(y) + y_offset
+        self.vx      = self.SPEED * facing
+        self.facing  = facing
+        self.owner   = owner
+        self.alive   = True
+        self.life    = self.LIFE
+        self.split_timer = self.SPLIT_INTERVAL
+        self.just_split   = False
+
+    def update(self):
+        self.x += self.vx
+        self.life -= 1
+        self.split_timer -= 1
+        self.just_split = False
+        if self.split_timer <= 0:
+            self.split_timer = self.SPLIT_INTERVAL
+            self.just_split  = True
+        if self.life <= 0 or self.x < -40 or self.x > WIDTH + 40:
+            self.alive = False
+
+    def draw(self, surface):
+        x1 = int(self.x)
+        x2 = int(self.x - self.vx * 2.5)
+        y  = int(self.y)
+        pygame.draw.line(surface, (60, 60, 70),   (x2, y), (x1, y), 3)
+        pygame.draw.line(surface, (180, 210, 255), (x2, y), (x1, y), 1)
+        pygame.draw.circle(surface, (230, 240, 255), (x1, y), self.RADIUS)
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
 # FireBall  (Pyro auto-fire — applies fire on hit)
 # ---------------------------------------------------------------------------
 
