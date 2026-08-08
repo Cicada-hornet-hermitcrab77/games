@@ -15056,43 +15056,46 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
         _open_a = (math.sin((_cycle/0.35)*math.pi) if _chomp else 0.0)
         _hx9, _hy9 = _cx9, _stem_top - int(hd*0.5*_pw)
         _jaw_r = int(hd * 2.3 * _pw)
-        _lean_deg, _open_deg, _dome_half_deg = 14, 52, 40
+        _lean_deg, _open_deg, _dome_half_deg = 14, 52, 42
+        _base_ang = 0.0 if facing == 1 else math.pi   # mouth points toward facing, Pac-Man style
 
         def _jaw_lobe(jsign):
             """Rounded Venus-flytrap lobe, hinged at (_hx9,_hy9), as a fan of
-            arc points so it reads as a chomping mouth rather than a shard."""
-            centerline = math.radians(-90 + jsign * (_lean_deg + _open_a * _open_deg))
+            arc points. jsign=-1 is the upper jaw, +1 the lower jaw — they
+            split vertically and open toward `facing`, like a Pac-Man mouth."""
+            centerline = _base_ang + jsign * facing * math.radians(_lean_deg + _open_a * _open_deg)
             half = math.radians(_dome_half_deg)
             pts = [(_hx9, _hy9)]
             steps = 10
             for i in range(steps + 1):
-                t = i / steps                       # 0 = inner (mouth) edge, 1 = outer edge
-                ang = centerline - jsign * half + jsign * half * 2 * t
+                t = i / steps
+                ang = centerline - half + half * 2 * t
                 bulge = 0.55 + 0.45 * math.sin(t * math.pi)   # rounds the tip, pinches at hinge
                 r = _jaw_r * bulge
                 pts.append((_hx9 + math.cos(ang) * r, _hy9 + math.sin(ang) * r))
             return pts, centerline, half
 
-        _lobe_l, _cl_l, _half_l = _jaw_lobe(-1)
-        _lobe_r, _cl_r, _half_r = _jaw_lobe(1)
+        _lobe_top, _cl_top, _half_top = _jaw_lobe(-1)
+        _lobe_bot, _cl_bot, _half_bot = _jaw_lobe(1)
 
-        # Dark maw visible between the jaws when open
+        # Dark maw visible between the jaws when open, opening toward facing
         if _open_a > 0.08:
-            _maw_r = _jaw_r * 0.7
+            _maw_r = _jaw_r * 0.75
+            _maw_tip = (_hx9 + math.cos(_base_ang) * _maw_r, _hy9 + math.sin(_base_ang) * _maw_r)
             pygame.draw.polygon(surface, (25, 15, 15), [
-                (_hx9, _hy9),
-                (_hx9 + math.cos(_cl_l + _half_l) * _maw_r, _hy9 + math.sin(_cl_l + _half_l) * _maw_r),
-                (_hx9, _hy9 - _jaw_r * 0.5),
-                (_hx9 + math.cos(_cl_r - _half_r) * _maw_r, _hy9 + math.sin(_cl_r - _half_r) * _maw_r)])
+                (_hx9, _hy9 - _jaw_r*0.15), _maw_tip, (_hx9, _hy9 + _jaw_r*0.15)])
 
-        for jsign, (lobe_pts, centerline, half) in ((-1, (_lobe_l, _cl_l, _half_l)), (1, (_lobe_r, _cl_r, _half_r))):
+        for jsign, (lobe_pts, centerline, half) in ((-1, (_lobe_top, _cl_top, _half_top)), (1, (_lobe_bot, _cl_bot, _half_bot))):
             _ipts = [(int(px), int(py)) for px, py in lobe_pts]
             pygame.draw.polygon(surface, (150, 210, 200), _ipts)
             pygame.draw.polygon(surface, (80, 150, 140), _ipts, max(1, int(2*s)))
-            # Scalloped teeth along the inner (mouth-facing) rim
+            # Scalloped teeth along the rim edge nearest the mouth opening
+            _d_lo = (centerline - half - _base_ang + math.pi) % (2*math.pi) - math.pi
+            _d_hi = (centerline + half - _base_ang + math.pi) % (2*math.pi) - math.pi
+            _inner_edge = (centerline - half) if abs(_d_lo) < abs(_d_hi) else (centerline + half)
             for _ti in range(5):
-                _tt = 0.05 + _ti * 0.16
-                _tang = centerline - jsign * half + jsign * half * 2 * _tt
+                _tt = 0.1 + _ti * 0.16   # 0 = mouth-facing edge, 1 = toward centerline
+                _tang = _inner_edge + (centerline - _inner_edge) * _tt
                 _tr = _jaw_r * (0.55 + 0.45 * math.sin(_tt * math.pi))
                 _tx9 = _hx9 + math.cos(_tang) * _tr
                 _ty9 = _hy9 + math.sin(_tang) * _tr
@@ -15105,7 +15108,7 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
             # Icicle crown along the outer rim
             for _ci in range(3):
                 _ct6 = 0.25 + _ci * 0.28
-                _cang = centerline - jsign * half + jsign * half * 2 * _ct6
+                _cang = centerline - half + half * 2 * _ct6
                 _cr = _jaw_r * (0.75 + 0.4 * math.sin(_ct6 * math.pi))
                 _cix = _hx9 + math.cos(_cang) * _cr
                 _ciy = _hy9 + math.sin(_cang) * _cr
@@ -15122,7 +15125,9 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
         # Frosty breath puff as the jaws snap shut
         if _chomp and 0.15 < _open_a:
             _puff_r = max(1, int(7*s*_pw * min(1.0, (1.0-_open_a)*2)))
-            pygame.draw.circle(surface, (220, 245, 255), (int(_hx9 + facing*_jaw_r*0.4), int(_hy9-_jaw_r*0.3)), _puff_r, max(1, int(s)))
+            pygame.draw.circle(surface, (220, 245, 255),
+                               (int(_hx9 + math.cos(_base_ang)*_jaw_r*0.5), int(_hy9 + math.sin(_base_ang)*_jaw_r*0.5)),
+                               _puff_r, max(1, int(s)))
         if action == 'punch':
             return (int(_hx9 + facing * (_jaw_r + 20*s)), _hy9)
         if action == 'kick':
