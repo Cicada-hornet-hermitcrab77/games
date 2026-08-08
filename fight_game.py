@@ -1198,6 +1198,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     is_casino        = stage_data["name"] == "The Casino"
     _lava_burn_p1_cd = 0
     _lava_burn_p2_cd = 0
+    # Volcano Core: molten floor rises from the bottom, HEIGHT/90 px/sec
+    _is_volcore = stage_data["name"] == "Volcano Core"
+    _volcore_lava_y = float(HEIGHT + 30)
+    _volcore_p1_cd  = 0
+    _volcore_p2_cd  = 0
     stage_pencil = None
     stage_eraser = None
     if is_computer:
@@ -1548,6 +1553,24 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     if p2.fire_frames == 0: p2.fire_tick = 240
                     p2.fire_frames = max(p2.fire_frames, 90)
                     _lava_burn_p2_cd = 45
+
+            # Volcano Core: the molten floor keeps rising — climb or burn
+            if _is_volcore:
+                _volcore_lava_y -= (HEIGHT / 90.0) / FPS
+                if _volcore_p1_cd > 0: _volcore_p1_cd -= 1
+                if _volcore_p2_cd > 0: _volcore_p2_cd -= 1
+                if p1.y >= _volcore_lava_y and _volcore_p1_cd == 0 and not p1.bubble_shield:
+                    p1.hp = max(0, p1.hp - 4)
+                    p1.flash_timer = max(p1.flash_timer, 6)
+                    if p1.fire_frames == 0: p1.fire_tick = 240
+                    p1.fire_frames = max(p1.fire_frames, 90)
+                    _volcore_p1_cd = 30
+                if p2.y >= _volcore_lava_y and _volcore_p2_cd == 0 and not p2.bubble_shield:
+                    p2.hp = max(0, p2.hp - 4)
+                    p2.flash_timer = max(p2.flash_timer, 6)
+                    if p2.fire_frames == 0: p2.fire_tick = 240
+                    p2.fire_frames = max(p2.fire_frames, 90)
+                    _volcore_p2_cd = 30
 
             # Update clones
             new_clones = []
@@ -3162,6 +3185,18 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             casino_coins = [c for c in casino_coins if c["y"] < GROUND_Y + 30]
 
         draw_bg(screen, stage_idx)
+        if _is_volcore:
+            _vt = pygame.time.get_ticks() / 1000.0
+            _vly = int(_volcore_lava_y)
+            if _vly < HEIGHT:
+                pygame.draw.rect(screen, (180, 40, 10), (0, max(0, _vly), WIDTH, HEIGHT - max(0, _vly)))
+                pygame.draw.rect(screen, (255, 140, 30), (0, max(0, _vly), WIDTH, 6))
+                for _wi in range(0, WIDTH, 24):
+                    _wy = _vly + int(math.sin(_vt*3 + _wi*0.08) * 4)
+                    pygame.draw.circle(screen, (255, 200, 80), (_wi, _wy), 3)
+                _glow = pygame.Surface((WIDTH, 40), pygame.SRCALPHA)
+                _glow.fill((255, 100, 20, 90))
+                screen.blit(_glow, (0, _vly - 40))
         # Draw giant NPC (Giants Among Us)
         if giant_mode and _gnpc is not None:
             _gn_act = 'walk' if _gnpc["phase"] in ("walk", "retreat") else 'punch'
@@ -3671,6 +3706,10 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     is_jungle     = stage_data["name"] == "Jungle"
     is_computer   = stage_data["name"] == "Computer"
     is_underworld = stage_data["name"] == "Underworld"
+    # Volcano Core: molten floor rises from the bottom, HEIGHT/90 px/sec
+    _is_volcore = stage_data["name"] == "Volcano Core"
+    _volcore_lava_y = float(HEIGHT + 30)
+    _volcore_cds = {}   # per-fighter burn cooldown
     stage_pencil = None
     stage_eraser = None
     if is_computer:
@@ -3897,6 +3936,20 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 sp.trigger(p1)
                 if two_player: sp.trigger(p2)
                 for en in enemies: sp.trigger(en)
+
+            # Volcano Core: the molten floor keeps rising — climb or burn
+            if _is_volcore:
+                _volcore_lava_y -= (HEIGHT / 90.0) / FPS
+                for _vf in [p for p in players if p.hp > 0] + enemies:
+                    _vcd = _volcore_cds.get(id(_vf), 0)
+                    if _vcd > 0:
+                        _volcore_cds[id(_vf)] = _vcd - 1
+                    elif _vf.y >= _volcore_lava_y and not _vf.bubble_shield:
+                        _vf.hp = max(0, _vf.hp - 4)
+                        _vf.flash_timer = max(_vf.flash_timer, 6)
+                        if _vf.fire_frames == 0: _vf.fire_tick = 240
+                        _vf.fire_frames = max(_vf.fire_frames, 90)
+                        _volcore_cds[id(_vf)] = 30
 
             # Portals
             for portal in portals_obj_s:
@@ -5008,6 +5061,18 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
 
         # --- Draw ---
         draw_bg(screen, stage_idx)
+        if _is_volcore:
+            _vt = pygame.time.get_ticks() / 1000.0
+            _vly = int(_volcore_lava_y)
+            if _vly < HEIGHT:
+                pygame.draw.rect(screen, (180, 40, 10), (0, max(0, _vly), WIDTH, HEIGHT - max(0, _vly)))
+                pygame.draw.rect(screen, (255, 140, 30), (0, max(0, _vly), WIDTH, 6))
+                for _wi in range(0, WIDTH, 24):
+                    _wy = _vly + int(math.sin(_vt*3 + _wi*0.08) * 4)
+                    pygame.draw.circle(screen, (255, 200, 80), (_wi, _wy), 3)
+                _glow = pygame.Surface((WIDTH, 40), pygame.SRCALPHA)
+                _glow.fill((255, 100, 20, 90))
+                screen.blit(_glow, (0, _vly - 40))
         pygame.draw.rect(screen, (60, 60, 70), (0, 0, WIDTH, 20))
         pygame.draw.line(screen, (180, 180, 200), (0, 20), (WIDTH, 20), 3)
         for portal in portals_obj_s: portal.draw(screen)
