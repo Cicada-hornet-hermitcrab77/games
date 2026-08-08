@@ -1594,7 +1594,7 @@ CHARACTERS = [
      "punch_dmg": 8, "kick_dmg": 8, "max_hp": 140, "block": 9,
      "desc": "Chomps every 2 seconds — melee her and get frozen solid for 5 seconds",
      "double_jump": False, "chomp_bite": True, "freeze_on_melee_hit": True},
-    {"name": "Snider", "color": (50, 48, 58), "speed": 5, "jump": -13,
+    {"name": "Snider", "color": (95, 100, 115), "speed": 5, "jump": -13,
      "punch_dmg": 8, "kick_dmg": 6, "max_hp": 110, "block": 5,
      "desc": "Kick fires a sniper round that splits into more shots every fraction of a second",
      "double_jump": False, "sniper_multiply_kick": True},

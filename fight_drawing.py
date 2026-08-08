@@ -15135,45 +15135,69 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
         _st5 = pygame.time.get_ticks() / 1000.0
         if action == 'dead':
             return None
-        _bob = int(math.sin(_st5*2.2) * 2 * s)
-        _cx9, _cy9 = int(x), int(y) - int(hd * 1.3) - _bob
-        _ab_r = int(hd * 1.3)   # abdomen
-        _ce_r = int(hd * 0.9)   # cephalothorax
+        _pw = 1.3   # overall size multiplier
+        _kick_lunge = int(math.sin(action_t * math.pi) * 26 * s) if action == 'kick' else 0
+        _bob = int(math.sin(_st5*2.2) * 2 * s) - _kick_lunge
+        _cx9, _cy9 = int(x) + facing*_kick_lunge, int(y) - int(hd * 1.5 * _pw) - _bob
+        _ab_r = int(hd * 1.55 * _pw)   # abdomen
+        _ce_r = int(hd * 1.05 * _pw)   # cephalothorax
+        _hi_col = tuple(min(255, c+45) for c in col)
+        _dk_col = tuple(max(0, c-35) for c in col)
+        _leg_col = tuple(min(255, c+20) for c in col)
 
-        # Legs — 3 pairs, gently swaying
+        # Legs — 3 pairs, gently swaying (kick punches all legs back into a lunge)
         for _li, _lsign in [(0,-1),(1,-1),(2,-1),(0,1),(1,1),(2,1)]:
             _lang = math.radians(200 + _li*35) if _lsign < 0 else math.radians(-20 - _li*35)
             _sway = math.sin(_st5*3 + _li) * 4 * s
             _kx = _cx9 + int(math.cos(_lang) * _ab_r * 1.3)
             _ky = _cy9 + int(math.sin(_lang) * _ab_r * 0.7)
-            _fx = _kx + int(math.cos(_lang) * _ab_r * 1.1)
+            _fx = _kx + int(math.cos(_lang) * _ab_r * 1.1) - facing*_kick_lunge//2
             _fy = int(y) + int(_sway * 0.3)
-            pygame.draw.line(surface, tuple(max(0,c-10) for c in col), (_cx9, _cy9), (_kx, _ky), max(2, int(4*s)))
-            pygame.draw.line(surface, tuple(max(0,c-10) for c in col), (_kx, _ky), (_fx, _fy), max(2, int(3*s)))
-        # Abdomen + cephalothorax
-        pygame.draw.circle(surface, col, (_cx9 - facing*int(_ab_r*0.5), _cy9), _ab_r)
-        pygame.draw.circle(surface, tuple(max(0,c-15) for c in col), (_cx9 - facing*int(_ab_r*0.5), _cy9), _ab_r, max(1,int(2*s)))
-        _hx9 = _cx9 + facing*int(_ce_r*0.9)
+            pygame.draw.line(surface, _leg_col, (_cx9, _cy9), (_kx, _ky), max(3, int(5*s*_pw)))
+            pygame.draw.line(surface, _leg_col, (_kx, _ky), (_fx, _fy), max(2, int(4*s*_pw)))
+        # Abdomen + cephalothorax, clearly separated with distinct shading
+        _abx = _cx9 - facing*int(_ab_r*0.55)
+        pygame.draw.circle(surface, _dk_col, (_abx, _cy9), _ab_r)
+        pygame.draw.circle(surface, col, (_abx, _cy9-int(_ab_r*0.2)), int(_ab_r*0.8))
+        pygame.draw.circle(surface, _hi_col, (_abx-facing*int(_ab_r*0.2), _cy9-int(_ab_r*0.35)), max(2,int(_ab_r*0.3)))
+        # Faint hourglass marking
+        pygame.draw.polygon(surface, (170, 30, 30), [
+            (_abx, _cy9-int(_ab_r*0.35)), (_abx-int(_ab_r*0.22), _cy9), (_abx, _cy9+int(_ab_r*0.35)),
+            (_abx+int(_ab_r*0.22), _cy9)], max(1, int(2*s)))
+        _hx9 = _cx9 + facing*int(_ce_r*0.95)
         pygame.draw.circle(surface, col, (_hx9, _cy9-int(_ce_r*0.15)), _ce_r)
-        # Eye cluster
+        pygame.draw.circle(surface, _dk_col, (_hx9, _cy9-int(_ce_r*0.15)), _ce_r, max(1, int(2*s)))
+        # Eye cluster — bright, readable against dark arenas
         for _exo, _eyo in [(-0.3,-0.2),(0.1,-0.35),(0.3,-0.1),(-0.1,0.05)]:
-            pygame.draw.circle(surface, (200, 20, 20), (_hx9+int(_exo*_ce_r), _cy9+int(_eyo*_ce_r)), max(1,int(hd*0.14)))
+            _eex = _hx9 + int(_exo*_ce_r)
+            pygame.draw.circle(surface, (230, 40, 30), (_eex, _cy9-int(_ce_r*0.15)+int(_eyo*_ce_r)), max(2,int(hd*0.16*_pw)))
+            pygame.draw.circle(surface, (255, 140, 120), (_eex, _cy9-int(_ce_r*0.15)+int(_eyo*_ce_r)), max(1,int(hd*0.06*_pw)))
 
-        # Mechanical sniper arm: raises to aim every 4 seconds
+        # Mechanical sniper arm: retracted at rest, extends and raises to aim
+        # every 4 seconds — both its LENGTH and angle grow with _raise
         _cycle = _st5 % 4.0
         _aiming = _cycle > 3.0
         _raise = (math.sin(min(1.0,(_cycle-3.0)/0.4)*math.pi/2) if _aiming and _cycle < 3.4
                   else (1.0 if _aiming else 0.0))
         _sx9 = _hx9 + facing*int(_ce_r*0.6)
         _sy9 = _cy9 - int(_ce_r*0.3)
-        _barrel_ang = -0.9 * _raise   # tilts up as it raises
-        _bx9 = _sx9 + facing*int(math.cos(_barrel_ang)*hd*2.6)
-        _by9 = _sy9 + int(math.sin(_barrel_ang)*hd*2.6)
-        pygame.draw.line(surface, (60, 60, 68), (_sx9, _sy9), (_bx9, _by9), max(3, int(6*s)))
-        pygame.draw.circle(surface, (90, 90, 100), (_sx9, _sy9), max(2, int(hd*0.3)))
-        pygame.draw.circle(surface, (140, 190, 255), (_bx9, _by9), max(1, int(hd*0.14)))
+        _barrel_ang = -1.1 * _raise   # tilts up as it raises
+        _barrel_len = hd * _pw * (0.5 + 2.3 * _raise)   # short stub -> long barrel
+        _bx9 = _sx9 + facing*int(math.cos(_barrel_ang)*_barrel_len)
+        _by9 = _sy9 + int(math.sin(_barrel_ang)*_barrel_len)
+        _mx9 = _sx9 + facing*int(math.cos(_barrel_ang)*_barrel_len*0.4)
+        _my9 = _sy9 + int(math.sin(_barrel_ang)*_barrel_len*0.4)
+        pygame.draw.line(surface, (70, 72, 82), (_sx9, _sy9), (_mx9, _my9), max(4, int(8*s*_pw)))
+        pygame.draw.line(surface, (110, 112, 125), (_sx9, _sy9), (_mx9, _my9), max(1, int(3*s*_pw)))
+        pygame.draw.line(surface, (55, 56, 65), (_mx9, _my9), (_bx9, _by9), max(3, int(5*s*_pw)))
+        pygame.draw.circle(surface, (100, 102, 115), (_sx9, _sy9), max(3, int(hd*0.35*_pw)))
+        pygame.draw.circle(surface, (150, 200, 255), (_bx9, _by9), max(1, int(hd*0.14*_pw)))
+        # Laser sight — only visible while raised, gives a clear tell before it fires
+        if _raise > 0.3:
+            _laser_end = (_bx9 + facing*int(hd*4*_pw*_raise), _by9)
+            pygame.draw.line(surface, (255, 60, 40), (_bx9, _by9), _laser_end, 1)
         if _aiming and _cycle > 3.4:
-            pygame.draw.circle(surface, (255, 230, 150), (_bx9, _by9), max(1, int(hd*0.22)), max(1,int(s)))
+            pygame.draw.circle(surface, (255, 230, 150), (_bx9, _by9), max(2, int(hd*0.24*_pw)), max(1,int(s)))
         if action == 'punch':
             return (int(_hx9 + facing * (_ce_r + 20*s)), _cy9)
         if action == 'kick':
