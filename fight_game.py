@@ -201,7 +201,7 @@ UNLOCK_CONDITIONS = {
     "Warlock":             ("win_hard_ai",          None,           15,  "Win 15 matches vs Hard AI"),
     # ── Secret characters (hint hidden in UI) ───────────────────────────────
     "777":                 ("daily_streak",          None,            7,  "The lucky triple",                   True),
-    "Scratch":             ("konami_unlock",        None,            1,  "???",                                True),
+    "Scratch":             ("konami_unlock",        None,            1,  "kkoonnaammii",                                True),
     "Void Master":         ("win_on_stage",         "The Void",      5,  "Some masters fear no darkness",      True),
     "Screentime":          ("played_at_noon",       None,            1,  "Timing is everything",               True),
     "God":                 ("iddqd_win",            None,            1,  "A feat only gods achieve",           True),
@@ -1821,7 +1821,6 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         if victim.fire_frames == 0: victim.fire_tick = 480
                         victim.fire_frames = max(victim.fire_frames, 300)
                         wb.alive = False
-                wb.draw(screen)
             wildfire_balls = [wb for wb in wildfire_balls if wb.alive]
 
             # Snider: multiplying sniper bolt on kick
@@ -1842,7 +1841,6 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     elif sn.just_split and len(snider_bolts) + len(_new_snider_bolts) < 24:
                         _new_snider_bolts.append(SniderBolt(sn.x, sn.y, sn.facing, sn.owner,
                                                              y_offset=random.choice([-14, 14])))
-                sn.draw(screen)
             snider_bolts = [sn for sn in snider_bolts if sn.alive] + _new_snider_bolts
 
             # Spawn orbs from bazooka_kick
@@ -3229,6 +3227,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             _sd.draw(screen)
         for _ed in eye_destroyers:
             _ed.draw(screen)
+        for wb in wildfire_balls:
+            wb.draw(screen)
+        for sn in snider_bolts:
+            sn.draw(screen)
         for pu in powerups:
             pu.draw(screen)
         for b in balls:
