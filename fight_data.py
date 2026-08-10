@@ -1598,6 +1598,14 @@ CHARACTERS = [
      "punch_dmg": 8, "kick_dmg": 6, "max_hp": 110, "block": 5,
      "desc": "Kick fires a sniper round that splits into more shots every fraction of a second",
      "double_jump": False, "sniper_multiply_kick": True},
+    {"name": "Splaut & Dusty", "color": (140, 120, 70), "speed": 4, "jump": -12,
+     "punch_dmg": 9, "kick_dmg": 12, "max_hp": 130, "block": 6,
+     "desc": "Punch spits sand, kick lobs a slime bomb — and don't mind the tail's snake head",
+     "double_jump": False, "sand_spit_punch": True, "slime_bomb_kick": True, "snake_tail_lunge": True},
+    {"name": "Bloob & Beatrix", "color": (80, 190, 150), "speed": 5, "jump": -13,
+     "punch_dmg": 10, "kick_dmg": 11, "max_hp": 120, "block": 5,
+     "desc": "Punch fires tentamissiles, kick throws exploding tires — Bloob shapeshifts every 5s",
+     "double_jump": False, "tentamissile_punch": True, "exploding_tire_kick": True, "bloob_shapeshift": True},
 ]
 
 # ---------------------------------------------------------------------------
@@ -1616,13 +1624,20 @@ FUSER_ELEMENTS = [
     ("fire",     50, (230, 90,  30)),
 ]
 
-# frozenset({elem_a, elem_b}) -> character name. Empty until characters
-# are designed for specific element pairs.
-FUSER_RECIPES = {}
+# frozenset({elem_a, elem_b}) -> {"name": character, "fail_chance": 0.0-1.0}.
+# An element combo with no matching recipe always fails the fuse (the
+# player gets one of the two spent elements back).
+FUSER_RECIPES = {
+    frozenset({"water", "rock"}):  {"name": "Splaut & Dusty",   "fail_chance": 0.10},
+    frozenset({"water", "plant"}): {"name": "Bloob & Beatrix",  "fail_chance": 0.16},
+}
 
 # Characters purchasable directly in the Fuser shop, like SEASONAL_SHOP_CHARS
-# but paid for with elements instead of seasonal coins. Empty for now.
-FUSER_SHOP_CHARS = []
+# but paid for with seasonal coins instead of elements.
+FUSER_SHOP_CHARS = [
+    {"name": "Splaut & Dusty",  "cost": 100},
+    {"name": "Bloob & Beatrix", "cost": 125},
+]
 
 POWERUPS = [
     # --- existing ---

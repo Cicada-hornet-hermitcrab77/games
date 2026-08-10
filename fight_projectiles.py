@@ -1360,6 +1360,178 @@ class SniderBolt:
 
 
 # ---------------------------------------------------------------------------
+# SandSpit  (Splaut & Dusty punch)
+# ---------------------------------------------------------------------------
+
+class SandSpit:
+    SPEED  = 11
+    DMG    = 8
+    RADIUS = 7
+    LIFE   = 70
+
+    def __init__(self, x, y, facing, owner):
+        self.x = float(x); self.y = float(y)
+        self.vx = self.SPEED * facing
+        self.owner = owner
+        self.alive = True
+        self.life = self.LIFE
+
+    def update(self):
+        self.x += self.vx
+        self.life -= 1
+        if self.life <= 0 or self.x < -40 or self.x > WIDTH + 40:
+            self.alive = False
+
+    def draw(self, surface):
+        for i in range(3):
+            gx = int(self.x - self.vx * 0.15 * i)
+            pygame.draw.circle(surface, (170, 140, 90), (gx, int(self.y) + i - 1), max(1, self.RADIUS - i * 2))
+        pygame.draw.circle(surface, (210, 180, 130), (int(self.x), int(self.y)), self.RADIUS)
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
+# SlimeBomb  (Splaut & Dusty kick — arcs, explodes, leaves the victim sticky)
+# ---------------------------------------------------------------------------
+
+class SlimeBomb:
+    SPEED         = 8
+    DMG           = 12
+    RADIUS        = 13
+    EXPLODE_RADIUS = 60
+    STICKY_FRAMES = 90
+
+    def __init__(self, x, y, facing, owner):
+        self.x = float(x); self.y = float(y)
+        self.vx = self.SPEED * facing
+        self.vy = -8.5
+        self.owner = owner
+        self.alive = True
+        self.exploded = False
+        self.damaged = False
+        self.pop_timer = 0
+
+    def update(self):
+        if self.exploded:
+            self.pop_timer -= 1
+            if self.pop_timer <= 0:
+                self.alive = False
+            return
+        self.vy += 0.45
+        self.x += self.vx
+        self.y += self.vy
+        if self.y >= GROUND_Y or self.x < -40 or self.x > WIDTH + 40:
+            self.y = min(self.y, GROUND_Y)
+            self.exploded = True
+            self.pop_timer = 16
+
+    def draw(self, surface):
+        if not self.exploded:
+            pygame.draw.circle(surface, (110, 200, 90), (int(self.x), int(self.y)), self.RADIUS)
+            pygame.draw.circle(surface, (60, 150, 50), (int(self.x), int(self.y)), self.RADIUS, 2)
+        else:
+            prog = 1.0 - self.pop_timer / 16.0
+            r = max(1, int(self.EXPLODE_RADIUS * prog))
+            surf = pygame.Surface((r * 2 + 4, r * 2 + 4), pygame.SRCALPHA)
+            pygame.draw.circle(surf, (110, 210, 90, max(0, 160 - int(160 * prog))), (r + 2, r + 2), r)
+            surface.blit(surf, (int(self.x) - r - 2, int(self.y) - r - 2))
+
+    def collides(self, fighter):
+        if self.exploded:
+            return math.hypot(self.x - fighter.x, self.y - fighter.y) < self.EXPLODE_RADIUS
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
+# TentaMissile  (Bloob & Beatrix punch — fires in a 3-shot spread)
+# ---------------------------------------------------------------------------
+
+class TentaMissile:
+    SPEED  = 10
+    DMG    = 6
+    RADIUS = 6
+    LIFE   = 65
+
+    def __init__(self, x, y, facing, owner, vy=0.0):
+        self.x = float(x); self.y = float(y)
+        self.vx = self.SPEED * facing
+        self.vy = vy
+        self.owner = owner
+        self.alive = True
+        self.life = self.LIFE
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+        self.life -= 1
+        if self.life <= 0 or self.x < -40 or self.x > WIDTH + 40:
+            self.alive = False
+
+    def draw(self, surface):
+        pygame.draw.circle(surface, (60, 170, 130), (int(self.x), int(self.y)), self.RADIUS)
+        pygame.draw.circle(surface, (150, 230, 200), (int(self.x), int(self.y)), max(1, self.RADIUS - 3))
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
+# ExplodingTire  (Bloob & Beatrix kick — rolls, then detonates)
+# ---------------------------------------------------------------------------
+
+class ExplodingTire:
+    SPEED         = 6
+    DMG           = 14
+    RADIUS        = 14
+    EXPLODE_RADIUS = 65
+    FUSE          = 55
+
+    def __init__(self, x, y, facing, owner):
+        self.x = float(x); self.y = float(y)
+        self.vx = self.SPEED * facing
+        self.owner = owner
+        self.alive = True
+        self.exploded = False
+        self.damaged = False
+        self.fuse = self.FUSE
+        self.pop_timer = 0
+
+    def update(self):
+        if self.exploded:
+            self.pop_timer -= 1
+            if self.pop_timer <= 0:
+                self.alive = False
+            return
+        self.x += self.vx
+        if self.x < 40 or self.x > WIDTH - 40:
+            self.vx = -self.vx
+        self.fuse -= 1
+        if self.fuse <= 0:
+            self.exploded = True
+            self.pop_timer = 16
+
+    def draw(self, surface):
+        if not self.exploded:
+            pygame.draw.circle(surface, (40, 40, 45), (int(self.x), int(self.y)), self.RADIUS)
+            pygame.draw.circle(surface, (90, 90, 95), (int(self.x), int(self.y)), self.RADIUS, 3)
+            if self.fuse < 20 and (self.fuse // 4) % 2 == 0:
+                pygame.draw.circle(surface, (255, 80, 30), (int(self.x), int(self.y)), self.RADIUS - 5)
+        else:
+            prog = 1.0 - self.pop_timer / 16.0
+            r = max(1, int(self.EXPLODE_RADIUS * prog))
+            surf = pygame.Surface((r * 2 + 4, r * 2 + 4), pygame.SRCALPHA)
+            pygame.draw.circle(surf, (255, 140, 30, max(0, 180 - int(180 * prog))), (r + 2, r + 2), r)
+            surface.blit(surf, (int(self.x) - r - 2, int(self.y) - r - 2))
+
+    def collides(self, fighter):
+        if self.exploded:
+            return math.hypot(self.x - fighter.x, self.y - fighter.y) < self.EXPLODE_RADIUS
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
 # FireBall  (Pyro auto-fire — applies fire on hit)
 # ---------------------------------------------------------------------------
 

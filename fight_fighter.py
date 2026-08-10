@@ -109,6 +109,10 @@ class Fighter:
         self.pending_eye_kick     = False # I: kick his eye to destroy half the screen this frame
         self.eye_kick_cooldown    = 0     # cooldown between eye-kicks
         self.pending_snider_bolt  = False # Snider: fire a multiplying sniper bolt this frame
+        self.pending_sand_spit    = False # Splaut & Dusty: punch spits sand this frame
+        self.pending_slime_bomb   = False # Splaut & Dusty: kick lobs a slime bomb this frame
+        self.pending_tentamissile = False # Bloob & Beatrix: punch fires tentamissiles this frame
+        self.pending_exploding_tire = False # Bloob & Beatrix: kick throws an exploding tire this frame
         self.pending_ink_clone       = False  # Ink Brush: spawn a clone this frame
         self.ink_clone_cooldown      = 0      # cooldown between clones
         self.squish_frames           = 0      # frames of squish remaining (Hammerhead punch)
@@ -909,6 +913,10 @@ class Fighter:
                 self.is_crit = moving_toward or bool(self.char.get("always_crit"))
                 if self.char.get("summer_wildfire"):
                     self.pending_wildfire = True
+                if self.char.get("sand_spit_punch"):
+                    self.pending_sand_spit = True
+                if self.char.get("tentamissile_punch"):
+                    self.pending_tentamissile = True
                 if self.char.get("bounce_punch"):
                     self.pending_bounce = True
                 if self.char.get("whip_punch") and self.whip_cooldown == 0:
@@ -994,6 +1002,10 @@ class Fighter:
                     self.eye_kick_cooldown = FPS * 15   # 15-second cooldown
                 if self.char.get("sniper_multiply_kick"):
                     self.pending_snider_bolt = True
+                if self.char.get("slime_bomb_kick"):
+                    self.pending_slime_bomb = True
+                if self.char.get("exploding_tire_kick"):
+                    self.pending_exploding_tire = True
                 if self.char.get("jack_tank"):
                     self.jack_tank_frames = FPS * 10  # activate / refresh tank mode
                     self.pending_jack_seed = True      # kick also fires a seed
@@ -2197,6 +2209,10 @@ class AIFighter(Fighter):
                     self.is_crit = (self.ai_move == self.facing and random.random() > 0.5) or bool(self.char.get("always_crit"))
                     if self.char.get("summer_wildfire"):
                         self.pending_wildfire = True
+                    if self.char.get("sand_spit_punch"):
+                        self.pending_sand_spit = True
+                    if self.char.get("tentamissile_punch"):
+                        self.pending_tentamissile = True
                     if self.char.get("bounce_punch"):
                         self.pending_bounce = True
                     if self.char.get("whip_punch") and self.whip_cooldown == 0:
@@ -2265,6 +2281,10 @@ class AIFighter(Fighter):
                         self.eye_kick_cooldown = FPS * 15
                     if self.char.get("sniper_multiply_kick"):
                         self.pending_snider_bolt = True
+                    if self.char.get("slime_bomb_kick"):
+                        self.pending_slime_bomb = True
+                    if self.char.get("exploding_tire_kick"):
+                        self.pending_exploding_tire = True
             self.ai_attack = None
         elif self.ai_move != 0:
             _ai_spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)

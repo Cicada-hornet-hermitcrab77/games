@@ -15209,6 +15209,110 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
             return (int(_cx9 + facing * int(action_t * 90 * s)), int(y) - int(20*s))
         return (int(_hx9 + facing * 20*s), _cy9)
 
+    # ── Splaut & Dusty: a round creature with 3 spitting tongues, webbed ────
+    #    feet, and a floppy snake-headed tail that lunges — no stickman.
+    if char_name == "Splaut & Dusty":
+        _pt = pygame.time.get_ticks() / 1000.0
+        if action == 'dead':
+            return None
+        _bob = int(math.sin(_pt * 2) * 3 * s)
+        _cx9, _cy9 = int(x), int(y) - int(hd * 1.6) - _bob
+        _br = int(hd * 1.7)
+        pygame.draw.circle(surface, col, (_cx9, _cy9), _br)
+        pygame.draw.circle(surface, tuple(max(0,c-25) for c in col), (_cx9, _cy9), _br, max(1,int(2*s)))
+        # Webbed feet
+        for _fxo in (-int(_br*0.5), int(_br*0.5)):
+            _fx9, _fy9 = _cx9+_fxo, int(y)
+            for _toe in (-1,0,1):
+                pygame.draw.line(surface, tuple(max(0,c-25) for c in col),
+                                 (_fx9, _fy9-int(6*s)), (_fx9+_toe*int(8*s), _fy9), max(2,int(3*s)))
+        # Eyes
+        for _ex in (_cx9-int(_br*0.35), _cx9+int(_br*0.35)):
+            pygame.draw.circle(surface, (255,255,255), (_ex, _cy9-int(_br*0.3)), max(3,int(hd*0.28)))
+            pygame.draw.circle(surface, (20,20,20), (_ex, _cy9-int(_br*0.3)), max(1,int(hd*0.12)))
+        # 3 tongues around the mouth, flick out to spit
+        _spit_cycle = _pt % 1.8
+        _spitting = _spit_cycle < 0.3
+        _flick = math.sin((_spit_cycle/0.3)*math.pi) if _spitting else 0.0
+        for _ti, _tang in enumerate((-0.5, 0.0, 0.5)):
+            _tbx = _cx9 + facing*int(_br*0.7*math.cos(_tang))
+            _tby = _cy9 + int(_br*0.35) + int(_br*0.3*math.sin(_tang))
+            _tlen = int((10 + _flick*22) * s)
+            _ttx = _tbx + facing*_tlen
+            pygame.draw.line(surface, (230,60,90), (_tbx,_tby), (_ttx,_tby), max(2,int(4*s)))
+            pygame.draw.circle(surface, (230,60,90), (_ttx,_tby), max(1,int(3*s)))
+        # Tail with a sloppy snake head, lunges forward periodically
+        _lunge_cycle = _pt % 3.0
+        _lunging = _lunge_cycle < 0.4
+        _lunge = math.sin((_lunge_cycle/0.4)*math.pi) if _lunging else 0.0
+        _tail_bx, _tail_by = _cx9 - facing*int(_br*0.8), _cy9 + int(_br*0.2)
+        _tail_hx = _tail_bx - facing*int((18 + _lunge*26)*s)
+        _tail_hy = _tail_by + int(math.sin(_pt*1.5)*4*s)
+        pygame.draw.line(surface, tuple(max(0,c-15) for c in col), (_tail_bx,_tail_by), (_tail_hx,_tail_hy), max(3,int(6*s)))
+        pygame.draw.circle(surface, (110,140,70), (_tail_hx,_tail_hy), max(3,int(hd*0.35)))
+        pygame.draw.circle(surface, (255,255,255), (_tail_hx-facing*int(3*s), _tail_hy-int(3*s)), max(1,int(hd*0.1)))
+        if action == 'punch':
+            return (int(_cx9 + facing * (_br + 20*s)), _cy9)
+        if action == 'kick':
+            return (int(_cx9 + facing * int(action_t * 90 * s)), int(y) - int(20*s))
+        return (int(_cx9 + facing * 20*s), _cy9)
+
+    # ── Bloob & Beatrix: a tentacled slime blob carrying a helmeted bug, ────
+    #    shapeshifts between a ball, a stickman, and a motorcycle — no
+    #    stickman body of its own.
+    if char_name == "Bloob & Beatrix":
+        _bt = pygame.time.get_ticks() / 1000.0
+        if action == 'dead':
+            return None
+        _cx9 = int(x)
+        _base_y = int(y)
+        _form = int(_bt // 5) % 3   # 0=ball 1=stickman 2=motorcycle
+        _blob_col = col
+        _blob_dk  = tuple(max(0,c-30) for c in col)
+
+        if _form == 0:
+            # Ball form
+            _r = int(hd * 1.6)
+            _cy9 = _base_y - _r
+            pygame.draw.circle(surface, _blob_col, (_cx9, _cy9), _r)
+            pygame.draw.circle(surface, _blob_dk, (_cx9, _cy9), _r, max(1,int(2*s)))
+            for _tsign in (-1,1):
+                _ttx = _cx9+_tsign*int(_r*0.7); _tty = _cy9+int(_r*0.8)
+                pygame.draw.line(surface, _blob_col, (_cx9+_tsign*int(_r*0.5), _cy9+int(_r*0.5)), (_ttx,_tty), max(2,int(4*s)))
+            _rider_y = _cy9 - _r
+        elif _form == 1:
+            # Stickman form — a simplified humanoid blob body
+            _bl9 = int(hd*2.4)
+            _cy9 = _base_y - _bl9
+            pygame.draw.line(surface, _blob_col, (_cx9,_base_y), (_cx9,_cy9), max(4,int(9*s)))
+            pygame.draw.circle(surface, _blob_col, (_cx9,_cy9), int(hd*0.9))
+            for _lsign in (-1,1):
+                pygame.draw.line(surface, _blob_col, (_cx9, _base_y-_bl9//3), (_cx9+_lsign*int(hd*1.1), _base_y), max(2,int(5*s)))
+                pygame.draw.line(surface, _blob_col, (_cx9, _cy9+int(hd*0.6)), (_cx9+_lsign*int(hd*1.0), _cy9+int(hd*1.6)), max(2,int(5*s)))
+            _rider_y = _cy9 - int(hd*0.9)
+        else:
+            # Motorcycle form
+            _mw, _mh = int(hd*3.2), int(hd*1.1)
+            _my9 = _base_y - int(hd*0.7)
+            pygame.draw.circle(surface, (40,40,45), (_cx9-facing*_mw//2, _base_y), int(hd*0.8), max(1,int(3*s)))
+            pygame.draw.circle(surface, (40,40,45), (_cx9+facing*_mw//2, _base_y), int(hd*0.8), max(1,int(3*s)))
+            pygame.draw.rect(surface, _blob_col, (_cx9-_mw//2, _my9-_mh//2, _mw, _mh), border_radius=max(2,int(6*s)))
+            pygame.draw.rect(surface, _blob_dk, (_cx9-_mw//2, _my9-_mh//2, _mw, _mh), max(1,int(2*s)), border_radius=max(2,int(6*s)))
+            _rider_y = _my9 - _mh
+
+        # Beatrix — a small helmeted bug riding on top of whichever form Bloob takes
+        _rx9 = _cx9 + facing*int(hd*0.2)
+        pygame.draw.circle(surface, (200,50,50), (_rx9, _rider_y), int(hd*0.55))
+        pygame.draw.circle(surface, (230,230,230), (_rx9, _rider_y-int(hd*0.15)), int(hd*0.4), max(1,int(2*s)))
+        for _lxo in (-int(hd*0.3), int(hd*0.3)):
+            pygame.draw.line(surface, (30,30,30), (_rx9,_rider_y), (_rx9+_lxo, _rider_y-int(hd*0.55)), max(1,int(2*s)))
+
+        if action == 'punch':
+            return (int(_cx9 + facing * (hd*2 + 20*s)), _rider_y)
+        if action == 'kick':
+            return (int(_cx9 + facing * int(action_t * 90 * s)), _base_y - int(20*s))
+        return (int(_cx9 + facing * 20*s), _rider_y)
+
     ln(waist, lk); ln(lk, lf)
     ln(waist, rk); ln(rk, rf)
     ln(shoulder, la); ln(la, lh)

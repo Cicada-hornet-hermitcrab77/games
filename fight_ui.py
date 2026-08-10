@@ -609,6 +609,8 @@ CHEAT_CODES = {
     "half_the_world":       "I",
     "frozen_chomp":         "Crytrap",
     "web_scope":            "Snider",
+    "sand_slime":           "Splaut & Dusty",
+    "shapeshift_blob":      "Bloob & Beatrix",
 }
 
 # ---------------------------------------------------------------------------
@@ -1973,6 +1975,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if _detail_display.get("eye_kick_screen_destroy"): badges.append(("SCREEN DESTROYER", (200,  30,  30)))
             if _detail_display.get("freeze_on_melee_hit"):  badges.append(("RETALIATE FREEZE", (120, 205, 195)))
             if _detail_display.get("sniper_multiply_kick"): badges.append(("MULTIPLYING SHOT", ( 50,  48,  58)))
+            if _detail_display.get("sand_spit_punch"):       badges.append(("SAND SPIT",        (140, 120,  70)))
+            if _detail_display.get("slime_bomb_kick"):        badges.append(("SLIME BOMB",       (110, 200,  90)))
+            if _detail_display.get("tentamissile_punch"):     badges.append(("TENTAMISSILES",    ( 60, 170, 130)))
+            if _detail_display.get("exploding_tire_kick"):    badges.append(("EXPLODING TIRE",   ( 40,  40,  45)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)
@@ -3581,8 +3587,10 @@ def fuser_mode(screen, clock, stats, unlocked):
                         else:
                             elements[_name_b] = elements.get(_name_b, 0) - 1
                         _recipe_key = frozenset({_name_a, _name_b})
-                        _result = FUSER_RECIPES.get(_recipe_key)
-                        if _result:
+                        _recipe = FUSER_RECIPES.get(_recipe_key)
+                        _fused_ok = _recipe is not None and random.random() >= _recipe.get("fail_chance", 0.0)
+                        if _fused_ok:
+                            _result = _recipe["name"]
                             if _result not in unlocked:
                                 unlocked.add(_result)
                             _msg, _msg_col, _msg_t = f"Fusion succeeded — {_result}!", OK_COL, FPS * 4
