@@ -63,6 +63,8 @@ class Fighter:
         self.fire_tick        = 0   # frames until next fire damage
         self.freeze_frames    = 0   # frames of freeze remaining
         self._frozen_streak   = 0   # consecutive frames freeze_frames has been > 0
+        self._underwater_frames = 0 # consecutive frames spent submerged (Underwater stage)
+        self._drown_tick        = 0 # frames until next drowning damage tick
         self.is_crit          = False  # current punch is a critical hit
         self.crit_display_timer = 0   # frames to show CRIT! popup
         self.ducking          = False  # currently ducking (immune to punches)
@@ -404,6 +406,20 @@ class Fighter:
             self._frozen_streak += 1
         else:
             self._frozen_streak = 0
+        # Underwater: drown after 10 continuous seconds with your head under
+        # the waterline, until you surface again
+        if constants.STAGE_WATER and (self.y - 95 * self.draw_scale) > HEIGHT / 2:
+            self._underwater_frames += 1
+            if self._underwater_frames > FPS * 10:
+                if self._drown_tick > 0:
+                    self._drown_tick -= 1
+                else:
+                    self.hp = max(0, self.hp - 2)
+                    self.flash_timer = max(self.flash_timer, 6)
+                    self._drown_tick = 30
+        else:
+            self._underwater_frames = 0
+            self._drown_tick = 0
         if self.shock_frames > 0:
             self.shock_frames -= 1
         if self.bazooka_cooldown > 0:
@@ -705,12 +721,15 @@ class Fighter:
             self.knockback *= 0.65
 
         prev_y = self.y
+        _submerged = constants.STAGE_WATER and (self.y - 95 * self.draw_scale) > HEIGHT / 2
         if self.char.get("anti_gravity"):
             eff_grav = 0.13
         elif self.char.get("ghost_float"):
             eff_grav = 0.06   # very slow drift downward
         elif self.char.get("slow_fall") and self.vy > 0:
             eff_grav = constants.GRAVITY * 0.35
+        elif _submerged:
+            eff_grav = 0.05   # floaty like Space while underwater
         else:
             eff_grav = constants.GRAVITY
         self.vy += eff_grav
@@ -1104,6 +1123,13 @@ class Fighter:
             elif dk and keys[dk]:
                 self.vy = min(self.vy + 1.2, 8)
                 self.on_ground = False
+
+        # Underwater: drift up toward the surface whenever you stop moving
+        if _submerged and self.hurt_timer == 0:
+            _uw_moving = bool(_ec) and any(
+                keys[_ec[k]] for k in ('left', 'right', 'jump', 'duck') if _ec.get(k) is not None)
+            if not _uw_moving:
+                self.vy = max(self.vy - 0.14, -3.5)
 
         self._prev_left  = bool(_ec and keys[_ec.get('left',  0)])
         self._prev_right = bool(_ec and keys[_ec.get('right', 0)])
@@ -1997,12 +2023,15 @@ class AIFighter(Fighter):
             self.knockback *= 0.65
 
         prev_y = self.y
+        _submerged = constants.STAGE_WATER and (self.y - 95 * self.draw_scale) > HEIGHT / 2
         if self.char.get("anti_gravity"):
             eff_grav = 0.13
         elif self.char.get("ghost_float"):
             eff_grav = 0.06   # very slow drift downward
         elif self.char.get("slow_fall") and self.vy > 0:
             eff_grav = constants.GRAVITY * 0.35
+        elif _submerged:
+            eff_grav = 0.05   # floaty like Space while underwater
         else:
             eff_grav = constants.GRAVITY
         self.vy += eff_grav
@@ -2297,6 +2326,10 @@ class AIFighter(Fighter):
             self.on_ground = False
             if self.action not in ('punch', 'kick', 'hurt'):
                 self.action = 'jump'
+
+        # Underwater: drift up toward the surface whenever the AI isn't moving
+        if _submerged and self.hurt_timer == 0 and self.ai_move == 0:
+            self.vy = max(self.vy - 0.14, -3.5)
 
         # Captured at the END of the frame — see Fighter.update for why.
         self._prev_x = self.x

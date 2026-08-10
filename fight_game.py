@@ -1041,6 +1041,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
         constants.GRAVITY = 0.13   # floaty anti-gravity
     constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World", "Booked"))
     constants.STAGE_CEILING = (_stage_name == "The Nether")
+    constants.STAGE_WATER   = (_stage_name == "Underwater")
 
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
                    punch=pygame.K_f, kick=pygame.K_g, duck=pygame.K_s, block=pygame.K_r)
@@ -1206,6 +1207,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     _volcore_lava_y = float(HEIGHT + 30)
     _volcore_p1_cd  = 0
     _volcore_p2_cd  = 0
+    # Underwater: bottom half of the arena is water (see constants.STAGE_WATER)
+    _is_underwater = stage_data["name"] == "Underwater"
     stage_pencil = None
     stage_eraser = None
     if is_computer:
@@ -1337,14 +1340,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                              p2.char["name"], ai_difficulty, p1.void_falls,
                              p1.hp, p1.hp <= p1.max_hp // 2)
                     if event.key == pygame.K_r:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('rematch', _info)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('rematch', _info)
                     if event.key == pygame.K_c:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('select',  _info)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('select',  _info)
                     if event.key == pygame.K_ESCAPE:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('select', _info)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('select', _info)
                 else:
                     if event.key == pygame.K_ESCAPE:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False
                         return ('select', (False, p1.char["name"], _stage_name, False, False, p2.char["name"], ai_difficulty, p1.void_falls))
                     # Konami code tracking (only on Computer stage)
                     if is_computer and not _konami_unlocked_this_fight:
@@ -1757,6 +1760,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         _is_graveyard = stage_data["name"] == "Graveyard"
                         constants.STAGE_VOID    = (stage_data["name"] in ("The Void", "Conveyor World", "Booked"))
                         constants.STAGE_CEILING = (stage_data["name"] == "The Nether")
+                        constants.STAGE_WATER   = (stage_data["name"] == "Underwater")
                         jungle_snakes.clear()
                         computer_bugs.clear()
                         falling_skulls.clear()
@@ -3198,6 +3202,19 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 _glow = pygame.Surface((WIDTH, 40), pygame.SRCALPHA)
                 _glow.fill((255, 100, 20, 90))
                 screen.blit(_glow, (0, _vly - 40))
+        if _is_underwater:
+            _uwt = pygame.time.get_ticks() / 1000.0
+            _wly = HEIGHT // 2
+            _air = pygame.Surface((WIDTH, _wly), pygame.SRCALPHA)
+            _air.fill((200, 230, 255, 55))
+            screen.blit(_air, (0, 0))
+            _sea = pygame.Surface((WIDTH, HEIGHT - _wly), pygame.SRCALPHA)
+            _sea.fill((0, 30, 70, 90))
+            screen.blit(_sea, (0, _wly))
+            pygame.draw.rect(screen, (210, 240, 255), (0, _wly - 2, WIDTH, 4))
+            for _wi in range(0, WIDTH, 22):
+                _wy = _wly + int(math.sin(_uwt * 2.4 + _wi * 0.12) * 3)
+                pygame.draw.circle(screen, (230, 250, 255), (_wi, _wy), 2)
         # Draw giant NPC (Giants Among Us)
         if giant_mode and _gnpc is not None:
             _gn_act = 'walk' if _gnpc["phase"] in ("walk", "retreat") else 'punch'
@@ -3687,6 +3704,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         constants.GRAVITY = 0.13
     constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World", "Booked"))
     constants.STAGE_CEILING = (_stage_name == "The Nether")
+    constants.STAGE_WATER   = (_stage_name == "Underwater")
 
     P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
                    punch=pygame.K_f, kick=pygame.K_g, duck=pygame.K_s, block=pygame.K_r)
@@ -3715,6 +3733,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     _is_volcore = stage_data["name"] == "Volcano Core"
     _volcore_lava_y = float(HEIGHT + 30)
     _volcore_cds = {}   # per-fighter burn cooldown
+    # Underwater: bottom half of the arena is water (see constants.STAGE_WATER)
+    _is_underwater = stage_data["name"] == "Underwater"
     stage_pencil = None
     stage_eraser = None
     if is_computer:
@@ -3869,14 +3889,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             if event.type == pygame.KEYDOWN:
                 if game_over:
                     if event.key == pygame.K_r:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('rematch', enemies_killed)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('rematch', enemies_killed)
                     if event.key == pygame.K_c:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('select',  enemies_killed)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('select',  enemies_killed)
                     if event.key == pygame.K_ESCAPE:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('select', enemies_killed)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('select', enemies_killed)
                 else:
                     if event.key == pygame.K_ESCAPE:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; return ('select', enemies_killed)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('select', enemies_killed)
                     # Red Herring: type CLUE to heal to full (if a Red Herring player is alive)
                     _rh_player = next((p for p in players if p.char.get("red_herring") and p.hp > 0), None)
                     if _rh_player is not None:
@@ -5078,6 +5098,19 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 _glow = pygame.Surface((WIDTH, 40), pygame.SRCALPHA)
                 _glow.fill((255, 100, 20, 90))
                 screen.blit(_glow, (0, _vly - 40))
+        if _is_underwater:
+            _uwt = pygame.time.get_ticks() / 1000.0
+            _wly = HEIGHT // 2
+            _air = pygame.Surface((WIDTH, _wly), pygame.SRCALPHA)
+            _air.fill((200, 230, 255, 55))
+            screen.blit(_air, (0, 0))
+            _sea = pygame.Surface((WIDTH, HEIGHT - _wly), pygame.SRCALPHA)
+            _sea.fill((0, 30, 70, 90))
+            screen.blit(_sea, (0, _wly))
+            pygame.draw.rect(screen, (210, 240, 255), (0, _wly - 2, WIDTH, 4))
+            for _wi in range(0, WIDTH, 22):
+                _wy = _wly + int(math.sin(_uwt * 2.4 + _wi * 0.12) * 3)
+                pygame.draw.circle(screen, (230, 250, 255), (_wi, _wy), 2)
         pygame.draw.rect(screen, (60, 60, 70), (0, 0, WIDTH, 20))
         pygame.draw.line(screen, (180, 180, 200), (0, 20), (WIDTH, 20), 3)
         for portal in portals_obj_s: portal.draw(screen)
@@ -5379,6 +5412,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
         constants.GRAVITY = 0.13
     constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World", "Booked"))
     constants.STAGE_CEILING = (_stage_name == "The Nether")
+    constants.STAGE_WATER   = (_stage_name == "Underwater")
 
     P1_CTRL = dict(left=pygame.K_a,     right=pygame.K_d,     jump=pygame.K_w,
                    punch=pygame.K_f,    kick=pygame.K_g,      duck=pygame.K_s,
@@ -5451,7 +5485,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 constants.GRAVITY = _orig_gravity
-                constants.STAGE_VOID = False; constants.STAGE_CEILING = False
+                constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False
                 net.close(); pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN:
                 if chat_active:
@@ -5471,7 +5505,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                     if game_over and event.key in (pygame.K_q, pygame.K_ESCAPE,
                                                    pygame.K_RETURN, pygame.K_r):
                         constants.GRAVITY = _orig_gravity
-                        constants.STAGE_VOID = False; constants.STAGE_CEILING = False
+                        constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False
                         net.close(); return 'select'
 
         if not net.connected and not game_over:
@@ -6485,7 +6519,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
         pygame.display.flip()
 
     constants.GRAVITY    = _orig_gravity
-    constants.STAGE_VOID = False; constants.STAGE_CEILING = False
+    constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False
 
     # Report win to server (relay fights) and save locally
     if winner and winner not in ("disconnect", "draw"):

@@ -34,6 +34,7 @@ font_tiny   = pygame.font.SysFont("Arial", 11)
 GRAVITY = 0.55
 STAGE_VOID    = False   # when True the ground floor is removed; falling off = instant death
 STAGE_CEILING = False   # when True the ceiling is lethal; jumping into the top kills you
+STAGE_WATER   = False   # when True the bottom half of the arena is water (Underwater stage)
 
 
 HEAD_R   = 18
