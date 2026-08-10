@@ -7,7 +7,7 @@ import threading
 import datetime
 import fight_network as _net
 from constants import *
-from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS
+from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS, FUSER_ELEMENTS, FUSER_RECIPES, FUSER_SHOP_CHARS
 from fight_drawing import draw_bg, draw_stickman
 from fight_seasonal import (SEASONAL_EVENTS, SEASONAL_SHOP_CHARS, get_active_event, draw_seasonal_decos,
                             is_solar_eclipse_today, is_lunar_eclipse_today)
@@ -691,8 +691,11 @@ def stage_select():
 # Mode select screen
 # ---------------------------------------------------------------------------
 
-def mode_select():
-    """Returns ('1p', difficulty), '2p', 'survival_1p', 'survival_2p', 'online', or 'seasonal_shop'."""
+def mode_select(unlocked=None):
+    """Returns ('1p', difficulty), '2p', 'survival_1p', 'survival_2p', 'online',
+    'seasonal_shop', or 'fuser' (typing "the fuser" — requires Deco & Emoj)."""
+    if unlocked is None:
+        unlocked = set()
     selected = 0   # 0=1P, 1=2P, 2=SURVIVAL, 3=ONLINE, 4=SHOP
     difficulty_idx = 1
     difficulties = ['easy', 'medium', 'hard', 'super_hard', 'super_super_hard', 'mega_hard']
@@ -711,6 +714,8 @@ def mode_select():
     _type42_buf = ""
     _secret_seq = "all_the_secrets_of_the_world"
     _secret_buf = ""
+    _fuser_seq  = "the fuser"
+    _fuser_buf  = ""
     _confirm_rect = pygame.Rect(WIDTH // 2 - 80, HEIGHT - 52, 160, 44)
 
     # Solar/Lunar Eclipse: real-world dated events. Type "solar" during an
@@ -827,6 +832,13 @@ def mode_select():
                         return 'secret_menu'
                     if len(_secret_buf) > len(_secret_seq) + 5:
                         _secret_buf = _secret_buf[-len(_secret_seq):]
+                # The Fuser: type "the fuser" (requires Deco & Emoj unlocked)
+                if hasattr(event, 'unicode') and event.unicode:
+                    _fuser_buf += event.unicode.lower()
+                    if _fuser_seq in _fuser_buf and "Deco & Emoj" in unlocked:
+                        return 'fuser'
+                    if len(_fuser_buf) > len(_fuser_seq) + 5:
+                        _fuser_buf = _fuser_buf[-len(_fuser_seq):]
                 # Type "solar" during a real Solar Eclipse to unlock Volcanis,
                 # or "umbra" during a real Lunar Eclipse to unlock Umbra
                 if (_is_solar_eclipse or _is_lunar_eclipse) and hasattr(event, 'unicode') and event.unicode:
@@ -3483,5 +3495,204 @@ def seasonal_shop(screen, clock, stats, unlocked):
             _yuletide_gift_msg -= 1
             _gm = font_small.render("Ho ho ho! +$20 Yuletide gift!", True, (255, 230, 100))
             screen.blit(_gm, (WIDTH//2 - _gm.get_width()//2, HEIGHT - 60))
+
+        pygame.display.flip()
+
+
+def fuser_mode(screen, clock, stats, unlocked):
+    """The Fuser: buy elements with seasonal coins, fuse two of them for a
+    chance at a character (fails and refunds one element if no recipe
+    matches), or buy fused characters directly. Modifies stats in-place."""
+    from fight_data import CHARACTERS as _CHARS
+    _char_map = {c["name"]: c for c in _CHARS}
+
+    COIN_COL  = (255, 200, 0)
+    OK_COL    = (60, 180, 60)
+    BAD_COL   = (150, 60, 60)
+    OWNED_COL = (60, 120, 200)
+
+    LP_X, LP_W = 10, 260   # elements panel
+    MP_X = LP_X + LP_W + 10   # fuse panel
+    MP_W = 260
+    RP_X = MP_X + MP_W + 10   # fuser shop panel
+    RP_W = WIDTH - RP_X - 10
+
+    CARD_W, CARD_H = 140, 100
+    CARD_GAP = 8
+    CARDS_PER_ROW = max(1, (RP_W + CARD_GAP) // (CARD_W + CARD_GAP))
+
+    slot_a, slot_b = 0, 1   # indices into FUSER_ELEMENTS
+    _msg, _msg_col, _msg_t = "", WHITE, 0
+
+    def _elements():
+        return stats.setdefault("fuser_elements", {})
+
+    while True:
+        clock.tick(FPS)
+        coins     = stats.get("seasonal_coins", 0)
+        elements  = _elements()
+        purchased = stats.get("fuser_purchased", [])
+
+        buy_rects  = []   # (rect, element_name, cost)
+        slot_rects = []   # (rect, 'a'/'b', -1/+1)
+        fuse_rect  = pygame.Rect(MP_X + 20, 330, MP_W - 40, 40)
+        back_rect  = pygame.Rect(LP_X, HEIGHT - 52, LP_W, 38)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                return
+            if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                mx, my = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
+
+                if back_rect.collidepoint(mx, my):
+                    return
+
+                for i, (ename, cost, ecol) in enumerate(FUSER_ELEMENTS):
+                    ry = 100 + i * 60
+                    rect = pygame.Rect(LP_X + 10, ry, LP_W - 20, 50)
+                    if rect.collidepoint(mx, my) and coins >= cost:
+                        stats["seasonal_coins"] = coins - cost
+                        elements[ename] = elements.get(ename, 0) + 1
+                        coins = stats["seasonal_coins"]
+
+                _sa_left  = pygame.Rect(MP_X + 20, 120, 30, 40)
+                _sa_right = pygame.Rect(MP_X + MP_W - 50, 120, 30, 40)
+                _sb_left  = pygame.Rect(MP_X + 20, 200, 30, 40)
+                _sb_right = pygame.Rect(MP_X + MP_W - 50, 200, 30, 40)
+                if _sa_left.collidepoint(mx, my):  slot_a = (slot_a - 1) % len(FUSER_ELEMENTS)
+                if _sa_right.collidepoint(mx, my): slot_a = (slot_a + 1) % len(FUSER_ELEMENTS)
+                if _sb_left.collidepoint(mx, my):  slot_b = (slot_b - 1) % len(FUSER_ELEMENTS)
+                if _sb_right.collidepoint(mx, my): slot_b = (slot_b + 1) % len(FUSER_ELEMENTS)
+
+                if fuse_rect.collidepoint(mx, my):
+                    _name_a = FUSER_ELEMENTS[slot_a][0]
+                    _name_b = FUSER_ELEMENTS[slot_b][0]
+                    _have_a = elements.get(_name_a, 0)
+                    _have_b = elements.get(_name_b, 0)
+                    _enough = (_have_a >= 2) if slot_a == slot_b else (_have_a >= 1 and _have_b >= 1)
+                    if not _enough:
+                        _msg, _msg_col, _msg_t = "Not enough elements for that fuse!", BAD_COL, FPS * 3
+                    else:
+                        elements[_name_a] = elements.get(_name_a, 0) - 1
+                        if slot_a == slot_b:
+                            elements[_name_a] -= 1
+                        else:
+                            elements[_name_b] = elements.get(_name_b, 0) - 1
+                        _recipe_key = frozenset({_name_a, _name_b})
+                        _result = FUSER_RECIPES.get(_recipe_key)
+                        if _result:
+                            if _result not in unlocked:
+                                unlocked.add(_result)
+                            _msg, _msg_col, _msg_t = f"Fusion succeeded — {_result}!", OK_COL, FPS * 4
+                        else:
+                            _refund = random.choice([_name_a, _name_b])
+                            elements[_refund] = elements.get(_refund, 0) + 1
+                            _msg, _msg_col, _msg_t = f"Fusion failed... got back 1 {_refund}.", BAD_COL, FPS * 4
+
+                for i, shop_item in enumerate(FUSER_SHOP_CHARS):
+                    col_idx = i % CARDS_PER_ROW
+                    row_idx = i // CARDS_PER_ROW
+                    cx = RP_X + col_idx * (CARD_W + CARD_GAP)
+                    cy = 100 + row_idx * (CARD_H + CARD_GAP)
+                    name = shop_item["name"]
+                    owned = name in unlocked
+                    btn_rect = pygame.Rect(cx + 10, cy + CARD_H - 24, CARD_W - 20, 18)
+                    if btn_rect.collidepoint(mx, my) and not owned and coins >= shop_item["cost"]:
+                        stats["seasonal_coins"] = coins - shop_item["cost"]
+                        plist = list(purchased)
+                        if name not in plist:
+                            plist.append(name)
+                        stats["fuser_purchased"] = plist
+                        unlocked.add(name)
+
+        if _msg_t > 0:
+            _msg_t -= 1
+
+        # ── Draw ─────────────────────────────────────────────────────────────
+        screen.fill((16, 14, 22))
+        title = font_medium.render("THE FUSER", True, (200, 160, 255))
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, 12))
+        _bal = font_small.render(f"{coins} coins", True, COIN_COL)
+        pygame.draw.circle(screen, COIN_COL, (WIDTH//2 - _bal.get_width()//2 - 14, 46), 8)
+        screen.blit(_bal, (WIDTH//2 - _bal.get_width()//2, 38))
+
+        # Elements panel
+        _lp_hdr = font_small.render("BUY ELEMENTS", True, WHITE)
+        screen.blit(_lp_hdr, (LP_X + 10, 76))
+        for i, (ename, cost, ecol) in enumerate(FUSER_ELEMENTS):
+            ry = 100 + i * 60
+            rect = pygame.Rect(LP_X + 10, ry, LP_W - 20, 50)
+            can_buy = coins >= cost
+            pygame.draw.rect(screen, (35, 33, 45), rect, border_radius=8)
+            pygame.draw.rect(screen, ecol, rect, 2, border_radius=8)
+            pygame.draw.circle(screen, ecol, (rect.x + 26, rect.centery), 14)
+            _nm = font_small.render(ename.capitalize(), True, WHITE)
+            screen.blit(_nm, (rect.x + 50, rect.y + 6))
+            _own_txt = font_tiny.render(f"owned: {elements.get(ename, 0)}", True, GRAY)
+            screen.blit(_own_txt, (rect.x + 50, rect.y + 26))
+            _cost_txt = font_small.render(f"${cost}", True, COIN_COL if can_buy else (110, 90, 20))
+            screen.blit(_cost_txt, (rect.right - _cost_txt.get_width() - 10, rect.centery - 10))
+
+        # Fuse panel
+        _mp_hdr = font_small.render("FUSE", True, WHITE)
+        screen.blit(_mp_hdr, (MP_X + MP_W//2 - _mp_hdr.get_width()//2, 76))
+        for slot, y0 in (('a', 120), ('b', 200)):
+            idx = slot_a if slot == 'a' else slot_b
+            ename, cost, ecol = FUSER_ELEMENTS[idx]
+            box = pygame.Rect(MP_X + 55, y0, MP_W - 110, 40)
+            pygame.draw.rect(screen, (35, 33, 45), box, border_radius=8)
+            pygame.draw.rect(screen, ecol, box, 2, border_radius=8)
+            _sl = font_small.render(ename.capitalize(), True, ecol)
+            screen.blit(_sl, (box.centerx - _sl.get_width()//2, box.centery - _sl.get_height()//2))
+            for arrow_x, txt in ((MP_X + 20, "<"), (MP_X + MP_W - 50, ">")):
+                _ar = pygame.Rect(arrow_x, y0, 30, 40)
+                pygame.draw.rect(screen, (45, 43, 55), _ar, border_radius=6)
+                _at = font_small.render(txt, True, WHITE)
+                screen.blit(_at, (_ar.centerx - _at.get_width()//2, _ar.centery - _at.get_height()//2))
+        _plus = font_medium.render("+", True, GRAY)
+        screen.blit(_plus, (MP_X + MP_W//2 - _plus.get_width()//2, 168))
+        pygame.draw.rect(screen, OK_COL, fuse_rect, border_radius=8)
+        _ft = font_small.render("FUSE", True, WHITE)
+        screen.blit(_ft, (fuse_rect.centerx - _ft.get_width()//2, fuse_rect.centery - _ft.get_height()//2))
+        if _msg_t > 0:
+            _ms = font_small.render(_msg, True, _msg_col)
+            screen.blit(_ms, (MP_X + MP_W//2 - _ms.get_width()//2, 390))
+
+        # Fuser shop panel
+        _rp_hdr = font_small.render("FUSER SHOP", True, WHITE)
+        screen.blit(_rp_hdr, (RP_X, 76))
+        if not FUSER_SHOP_CHARS:
+            _empty = font_small.render("No fused characters discovered yet!", True, GRAY)
+            screen.blit(_empty, (RP_X, 110))
+        else:
+            for i, shop_item in enumerate(FUSER_SHOP_CHARS):
+                col_idx = i % CARDS_PER_ROW
+                row_idx = i // CARDS_PER_ROW
+                cx = RP_X + col_idx * (CARD_W + CARD_GAP)
+                cy = 100 + row_idx * (CARD_H + CARD_GAP)
+                name = shop_item["name"]
+                ch = _char_map.get(name, {})
+                owned = name in unlocked
+                can_buy = not owned and coins >= shop_item["cost"]
+                pygame.draw.rect(screen, (35, 33, 45), (cx, cy, CARD_W, CARD_H), border_radius=8)
+                pygame.draw.rect(screen, OWNED_COL if owned else (70, 70, 70), (cx, cy, CARD_W, CARD_H), 2, border_radius=8)
+                pygame.draw.circle(screen, ch.get("color", GRAY), (cx + CARD_W//2, cy + 26), 12)
+                _nm = font_small.render(name, True, WHITE)
+                screen.blit(_nm, (cx + CARD_W//2 - _nm.get_width()//2, cy + 44))
+                btn_rect = pygame.Rect(cx + 10, cy + CARD_H - 24, CARD_W - 20, 18)
+                if owned:
+                    pygame.draw.rect(screen, OWNED_COL, btn_rect, border_radius=5)
+                    _lbl = font_tiny.render("OWNED", True, WHITE)
+                else:
+                    pygame.draw.rect(screen, OK_COL if can_buy else (60, 60, 60), btn_rect, border_radius=5)
+                    _lbl = font_tiny.render(f"${shop_item['cost']}", True, WHITE)
+                screen.blit(_lbl, (btn_rect.centerx - _lbl.get_width()//2, btn_rect.centery - _lbl.get_height()//2))
+
+        pygame.draw.rect(screen, (60, 40, 80), back_rect, border_radius=8)
+        pygame.draw.rect(screen, (150, 100, 200), back_rect, 2, border_radius=8)
+        _bk = font_small.render("BACK (ESC)", True, WHITE)
+        screen.blit(_bk, (back_rect.centerx - _bk.get_width()//2, back_rect.centery - _bk.get_height()//2))
 
         pygame.display.flip()

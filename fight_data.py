@@ -1600,6 +1600,30 @@ CHARACTERS = [
      "double_jump": False, "sniper_multiply_kick": True},
 ]
 
+# ---------------------------------------------------------------------------
+# The Fuser — unlocked once Deco & Emoj is owned. Buy raw elements with
+# seasonal coins, then fuse two of them together for a chance at a
+# character. Recipes are added here as characters are designed for it;
+# an element combo with no matching recipe always fails the fuse (the
+# player gets one of the two spent elements back).
+# ---------------------------------------------------------------------------
+FUSER_ELEMENTS = [
+    ("water",    5,  (60,  130, 220)),
+    ("rock",     10, (120, 100, 80)),
+    ("plant",    20, (70,  160, 70)),
+    ("air",      30, (210, 230, 240)),
+    ("electric", 40, (230, 210, 40)),
+    ("fire",     50, (230, 90,  30)),
+]
+
+# frozenset({elem_a, elem_b}) -> character name. Empty until characters
+# are designed for specific element pairs.
+FUSER_RECIPES = {}
+
+# Characters purchasable directly in the Fuser shop, like SEASONAL_SHOP_CHARS
+# but paid for with elements instead of seasonal coins. Empty for now.
+FUSER_SHOP_CHARS = []
+
 POWERUPS = [
     # --- existing ---
     {'name': 'Swiftness',     'type': 'speed',     'mult': 1.6,  'duration': 360, 'color': (80, 200, 250)},

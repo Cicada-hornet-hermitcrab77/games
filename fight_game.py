@@ -7,7 +7,7 @@ import os
 import datetime
 import constants
 from constants import *
-from fight_data import CHARACTERS, POWERUPS, STAGES, STAGE_MATCHUPS
+from fight_data import CHARACTERS, POWERUPS, STAGES, STAGE_MATCHUPS, FUSER_ELEMENTS, FUSER_RECIPES, FUSER_SHOP_CHARS
 from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
                            draw_win_screen, draw_active_powerups, _get_font)
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
@@ -23,7 +23,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             SunBeam, LibertyDove, PumpkinSeed,
                             FruitProj, CoalProj, WildfireBall, SniderBolt)
 import fight_network as _net
-from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop
+from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, fuser_mode
 from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
 
 # ---------------------------------------------------------------------------
@@ -593,6 +593,9 @@ def _default_stats():
         # Seasonal shop
         "seasonal_coins":           0,
         "seasonal_purchased":       [],
+        # The Fuser (requires Deco & Emoj)
+        "fuser_elements":           {},   # element name -> owned count
+        "fuser_purchased":          [],   # characters bought directly in the Fuser shop
         # I: longest streak of matches played in a row without stopping
         "marathon_best":            0,
         # Crytrap: froze an opponent 20 seconds continuously
@@ -6590,7 +6593,7 @@ def main():
              for name, cond in UNLOCK_CONDITIONS.items()}
 
     while True:
-        mode = mode_select()
+        mode = mode_select(unlocked)
         # Reaching the main menu means the marathon streak (I: play 30 matches
         # in a row without stopping) has been broken — reset it here.
         _session_match_streak[0] = 0
@@ -6632,6 +6635,12 @@ def main():
         # --- Seasonal shop path ---
         if mode == 'seasonal_shop':
             seasonal_shop(screen, clock, stats, unlocked)
+            _save_data(unlocked, stats)
+            continue
+
+        # --- The Fuser path (requires Deco & Emoj) ---
+        if mode == 'fuser':
+            fuser_mode(screen, clock, stats, unlocked)
             _save_data(unlocked, stats)
             continue
 
