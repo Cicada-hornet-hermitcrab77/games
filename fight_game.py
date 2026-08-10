@@ -21,7 +21,8 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             RemoteController, Apple, VenomBean, PlantSpike,
                             ChargedOrb, BubbleShot, PoisonOrb, BlackHole, MusicNote, ArcaneOrb,
                             SunBeam, LibertyDove, PumpkinSeed,
-                            FruitProj, CoalProj, WildfireBall, SniderBolt)
+                            FruitProj, CoalProj, WildfireBall, SniderBolt,
+                            SandSpit, SlimeBomb, TentaMissile, ExplodingTire)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, fuser_mode
 from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
@@ -985,6 +986,7 @@ def _show_seasonal_coin_earned(total):
                 return
         elapsed = (pygame.time.get_ticks() - start) / 1800
         alpha = int(255 * (1.0 - max(0, elapsed - 0.6) / 0.4)) if elapsed > 0.6 else 255
+        alpha = max(0, min(255, alpha))
         ov = pygame.Surface((260, 56), pygame.SRCALPHA)
         ov.fill((20, 20, 20, min(220, alpha)))
         pygame.draw.rect(ov, (255, 200, 0, alpha), (0, 0, 260, 56), 2, border_radius=8)
@@ -1174,6 +1176,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     arcane_orbs   = []   # active ArcaneOrb objects (Arcanist)
     wildfire_balls = []  # active WildfireBall objects (Summer Eartha)
     snider_bolts   = []  # active SniderBolt objects (Snider)
+    sand_spits     = []  # active SandSpit objects (Splaut & Dusty)
+    slime_bombs    = []  # active SlimeBomb objects (Splaut & Dusty)
+    tentamissiles  = []  # active TentaMissile objects (Bloob & Beatrix)
+    exploding_tires = [] # active ExplodingTire objects (Bloob & Beatrix)
     sun_beams     = []   # active SunBeam objects (Solara)
     nian_breaths  = []   # active NianBreath cones (Nian)
     liberty_doves      = []   # active LibertyDove companions (Stickman of Liberty)
@@ -1849,6 +1855,72 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         _new_snider_bolts.append(SniderBolt(sn.x, sn.y, sn.facing, sn.owner,
                                                              y_offset=random.choice([-14, 14])))
             snider_bolts = [sn for sn in snider_bolts if sn.alive] + _new_snider_bolts
+
+            # Splaut & Dusty: sand spit on punch
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_sand_spit:
+                    shooter.pending_sand_spit = False
+                    sand_spits.append(SandSpit(shooter.x + shooter.facing * 30, shooter.y - 60,
+                                                shooter.facing, shooter))
+            for ss in sand_spits:
+                ss.update()
+                if ss.alive:
+                    victim = p2 if ss.owner is p1 else p1
+                    if ss.collides(victim) and not victim.bubble_shield:
+                        victim.take_proj_dmg(SandSpit.DMG)
+                        victim.flash_timer = 8
+                        ss.alive = False
+            sand_spits = [ss for ss in sand_spits if ss.alive]
+
+            # Splaut & Dusty: slime bomb on kick — sticks the victim on explosion
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_slime_bomb:
+                    shooter.pending_slime_bomb = False
+                    slime_bombs.append(SlimeBomb(shooter.x + shooter.facing * 30, shooter.y - 60,
+                                                  shooter.facing, shooter))
+            for sb in slime_bombs:
+                sb.update()
+                if sb.alive and sb.exploded and not sb.damaged:
+                    victim = p2 if sb.owner is p1 else p1
+                    if sb.collides(victim) and not victim.bubble_shield:
+                        victim.take_proj_dmg(SlimeBomb.DMG)
+                        victim.flash_timer = 12
+                        victim.sticky_frames = max(victim.sticky_frames, SlimeBomb.STICKY_FRAMES)
+                        sb.damaged = True
+            slime_bombs = [sb for sb in slime_bombs if sb.alive]
+
+            # Bloob & Beatrix: tentamissile spread on punch
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_tentamissile:
+                    shooter.pending_tentamissile = False
+                    for _tvy in (-2.2, 0.0, 2.2):
+                        tentamissiles.append(TentaMissile(shooter.x + shooter.facing * 30, shooter.y - 60,
+                                                           shooter.facing, shooter, vy=_tvy))
+            for tm in tentamissiles:
+                tm.update()
+                if tm.alive:
+                    victim = p2 if tm.owner is p1 else p1
+                    if tm.collides(victim) and not victim.bubble_shield:
+                        victim.take_proj_dmg(TentaMissile.DMG)
+                        victim.flash_timer = 8
+                        tm.alive = False
+            tentamissiles = [tm for tm in tentamissiles if tm.alive]
+
+            # Bloob & Beatrix: exploding tire on kick
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_exploding_tire:
+                    shooter.pending_exploding_tire = False
+                    exploding_tires.append(ExplodingTire(shooter.x + shooter.facing * 30, shooter.y - 40,
+                                                          shooter.facing, shooter))
+            for et in exploding_tires:
+                et.update()
+                if et.alive and et.exploded and not et.damaged:
+                    victim = p2 if et.owner is p1 else p1
+                    if et.collides(victim) and not victim.bubble_shield:
+                        victim.take_proj_dmg(ExplodingTire.DMG)
+                        victim.flash_timer = 12
+                        et.damaged = True
+            exploding_tires = [et for et in exploding_tires if et.alive]
 
             # Spawn orbs from bazooka_kick
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -3251,6 +3323,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             wb.draw(screen)
         for sn in snider_bolts:
             sn.draw(screen)
+        for ss in sand_spits:
+            ss.draw(screen)
+        for sb in slime_bombs:
+            sb.draw(screen)
+        for tm in tentamissiles:
+            tm.draw(screen)
+        for et in exploding_tires:
+            et.draw(screen)
         for pu in powerups:
             pu.draw(screen)
         for b in balls:
@@ -3793,6 +3873,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     eye_destroyers      = []  # EyeDestroyer (I: half-screen destroying eye kicks)
     snider_bolts        = []  # SniderBolt (Snider, player-owned)
     en_snider_bolts     = []  # SniderBolt (Snider, enemy-owned)
+    sand_spits          = []  # SandSpit (Splaut & Dusty, player-owned)
+    en_sand_spits       = []  # SandSpit (Splaut & Dusty, enemy-owned)
+    slime_bombs         = []  # SlimeBomb (Splaut & Dusty, player-owned)
+    en_slime_bombs      = []  # SlimeBomb (Splaut & Dusty, enemy-owned)
+    tentamissiles       = []  # TentaMissile (Bloob & Beatrix, player-owned)
+    en_tentamissiles    = []  # TentaMissile (Bloob & Beatrix, enemy-owned)
+    exploding_tires     = []  # ExplodingTire (Bloob & Beatrix, player-owned)
+    en_exploding_tires  = []  # ExplodingTire (Bloob & Beatrix, enemy-owned)
     en_balls          = []
     en_orbs           = []
     en_bounce_balls   = []
@@ -4040,6 +4128,19 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     if en.pending_snider_bolt:
                         en.pending_snider_bolt = False
                         en_snider_bolts.append(SniderBolt(en.x + en.facing*40, en.y-55, en.facing, en))
+                    if en.pending_sand_spit:
+                        en.pending_sand_spit = False
+                        en_sand_spits.append(SandSpit(en.x + en.facing*30, en.y-60, en.facing, en))
+                    if en.pending_slime_bomb:
+                        en.pending_slime_bomb = False
+                        en_slime_bombs.append(SlimeBomb(en.x + en.facing*30, en.y-60, en.facing, en))
+                    if en.pending_tentamissile:
+                        en.pending_tentamissile = False
+                        for _tvy in (-2.2, 0.0, 2.2):
+                            en_tentamissiles.append(TentaMissile(en.x + en.facing*30, en.y-60, en.facing, en, vy=_tvy))
+                    if en.pending_exploding_tire:
+                        en.pending_exploding_tire = False
+                        en_exploding_tires.append(ExplodingTire(en.x + en.facing*30, en.y-40, en.facing, en))
 
             # Mark newly dead players and freeze them
             for p in players:
@@ -4109,6 +4210,23 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     shooter.pending_snider_bolt = False
                     snider_bolts.append(SniderBolt(shooter.x + shooter.facing*40, shooter.y-55,
                                                     shooter.facing, shooter))
+                if shooter.pending_sand_spit:
+                    shooter.pending_sand_spit = False
+                    sand_spits.append(SandSpit(shooter.x + shooter.facing*30, shooter.y-60,
+                                                shooter.facing, shooter))
+                if shooter.pending_slime_bomb:
+                    shooter.pending_slime_bomb = False
+                    slime_bombs.append(SlimeBomb(shooter.x + shooter.facing*30, shooter.y-60,
+                                                  shooter.facing, shooter))
+                if shooter.pending_tentamissile:
+                    shooter.pending_tentamissile = False
+                    for _tvy in (-2.2, 0.0, 2.2):
+                        tentamissiles.append(TentaMissile(shooter.x + shooter.facing*30, shooter.y-60,
+                                                           shooter.facing, shooter, vy=_tvy))
+                if shooter.pending_exploding_tire:
+                    shooter.pending_exploding_tire = False
+                    exploding_tires.append(ExplodingTire(shooter.x + shooter.facing*30, shooter.y-40,
+                                                          shooter.facing, shooter))
 
             # Laser Eyes beam damage (survival)
             for shooter in players:
@@ -4484,6 +4602,96 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         _new_en_sn.append(SniderBolt(sn.x, sn.y, sn.facing, sn.owner,
                                                       y_offset=random.choice([-14, 14])))
             en_snider_bolts = [sn for sn in en_snider_bolts if sn.alive] + _new_en_sn
+
+            # Splaut & Dusty: sand spit (survival)
+            for ss in sand_spits:
+                ss.update()
+                if ss.alive:
+                    for en in enemies:
+                        if ss.collides(en) and not en.bubble_shield:
+                            en.take_proj_dmg(SandSpit.DMG)
+                            en.flash_timer = 8
+                            ss.alive = False
+                            break
+            sand_spits = [ss for ss in sand_spits if ss.alive]
+            for ss in en_sand_spits:
+                ss.update()
+                if ss.alive:
+                    for p in players:
+                        if p.hp > 0 and ss.collides(p) and not p.bubble_shield:
+                            p.take_proj_dmg(SandSpit.DMG)
+                            p.flash_timer = 8
+                            ss.alive = False
+                            break
+            en_sand_spits = [ss for ss in en_sand_spits if ss.alive]
+
+            # Splaut & Dusty: slime bomb (survival) — sticks the victim on explosion
+            for sb in slime_bombs:
+                sb.update()
+                if sb.alive and sb.exploded and not sb.damaged:
+                    for en in enemies:
+                        if sb.collides(en) and not en.bubble_shield:
+                            en.take_proj_dmg(SlimeBomb.DMG)
+                            en.flash_timer = 12
+                            en.sticky_frames = max(en.sticky_frames, SlimeBomb.STICKY_FRAMES)
+                            sb.damaged = True
+                            break
+            slime_bombs = [sb for sb in slime_bombs if sb.alive]
+            for sb in en_slime_bombs:
+                sb.update()
+                if sb.alive and sb.exploded and not sb.damaged:
+                    for p in players:
+                        if p.hp > 0 and sb.collides(p) and not p.bubble_shield:
+                            p.take_proj_dmg(SlimeBomb.DMG)
+                            p.flash_timer = 12
+                            p.sticky_frames = max(p.sticky_frames, SlimeBomb.STICKY_FRAMES)
+                            sb.damaged = True
+                            break
+            en_slime_bombs = [sb for sb in en_slime_bombs if sb.alive]
+
+            # Bloob & Beatrix: tentamissiles (survival)
+            for tm in tentamissiles:
+                tm.update()
+                if tm.alive:
+                    for en in enemies:
+                        if tm.collides(en) and not en.bubble_shield:
+                            en.take_proj_dmg(TentaMissile.DMG)
+                            en.flash_timer = 8
+                            tm.alive = False
+                            break
+            tentamissiles = [tm for tm in tentamissiles if tm.alive]
+            for tm in en_tentamissiles:
+                tm.update()
+                if tm.alive:
+                    for p in players:
+                        if p.hp > 0 and tm.collides(p) and not p.bubble_shield:
+                            p.take_proj_dmg(TentaMissile.DMG)
+                            p.flash_timer = 8
+                            tm.alive = False
+                            break
+            en_tentamissiles = [tm for tm in en_tentamissiles if tm.alive]
+
+            # Bloob & Beatrix: exploding tires (survival)
+            for et in exploding_tires:
+                et.update()
+                if et.alive and et.exploded and not et.damaged:
+                    for en in enemies:
+                        if et.collides(en) and not en.bubble_shield:
+                            en.take_proj_dmg(ExplodingTire.DMG)
+                            en.flash_timer = 12
+                            et.damaged = True
+                            break
+            exploding_tires = [et for et in exploding_tires if et.alive]
+            for et in en_exploding_tires:
+                et.update()
+                if et.alive and et.exploded and not et.damaged:
+                    for p in players:
+                        if p.hp > 0 and et.collides(p) and not p.bubble_shield:
+                            p.take_proj_dmg(ExplodingTire.DMG)
+                            p.flash_timer = 12
+                            et.damaged = True
+                            break
+            en_exploding_tires = [et for et in en_exploding_tires if et.alive]
 
             # I: half-screen destroying eye kicks (survival — hits anyone, no team check)
             for ed in eye_destroyers:
@@ -5123,6 +5331,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for ed   in eye_destroyers:    ed.draw(screen)
         for sn   in snider_bolts:      sn.draw(screen)
         for sn   in en_snider_bolts:   sn.draw(screen)
+        for ss   in sand_spits:        ss.draw(screen)
+        for ss   in en_sand_spits:     ss.draw(screen)
+        for sb   in slime_bombs:       sb.draw(screen)
+        for sb   in en_slime_bombs:    sb.draw(screen)
+        for tm   in tentamissiles:     tm.draw(screen)
+        for tm   in en_tentamissiles:  tm.draw(screen)
+        for et   in exploding_tires:   et.draw(screen)
+        for et   in en_exploding_tires: et.draw(screen)
         for ao   in arcane_orbs:   ao.draw(screen)
         for sb   in sun_beams:     sb.draw(screen)
         for nb   in nian_breaths:  nb.draw(screen)
