@@ -15528,17 +15528,23 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
         _br = int(hd*1.6)
         _cx9, _cy9 = int(x)+int(math.sin(_lean)*hd*0.5), _base_y - int(hd*1.4) - int(math.cos(_lean)*hd*0.3)
 
-        # Wooden peg leg, spans from the body down to the ground, tilts as
-        # Rook tries to balance
+        # Two legs: a normal rocky leg plus the wooden peg leg he's trying
+        # to balance on
         _leg_top = (_cx9, _cy9 + int(_br*0.7))
-        _leg_bot = (int(x) + int(math.sin(_lean)*hd*1.2), _base_y)
-        pygame.draw.line(surface, (110,75,40), _leg_top, _leg_bot, max(5,int(11*s)))
-        pygame.draw.line(surface, (80,50,25), _leg_top, _leg_bot, max(1,int(2*s)))
+        _peg_bot = (int(x) + int(math.sin(_lean)*hd*1.2) + facing*int(hd*0.55), _base_y)
+        _reg_bot = (int(x) + int(math.sin(_lean)*hd*1.2) - facing*int(hd*0.55), _base_y)
+        # Normal leg (behind, drawn first)
+        pygame.draw.line(surface, _rock_dk, _leg_top, _reg_bot, max(6,int(12*s)))
+        pygame.draw.line(surface, _rock_col, _leg_top, _reg_bot, max(4,int(8*s)))
+        pygame.draw.ellipse(surface, _rock_dk, (_reg_bot[0]-int(9*s), _reg_bot[1]-int(4*s), int(18*s), int(8*s)))
+        # Wooden peg leg (front), tilts as Rook tries to balance
+        pygame.draw.line(surface, (110,75,40), _leg_top, _peg_bot, max(5,int(11*s)))
+        pygame.draw.line(surface, (80,50,25), _leg_top, _peg_bot, max(1,int(2*s)))
         for _ring in (0.3,0.6):
-            _rx0 = int(_leg_top[0]+(_leg_bot[0]-_leg_top[0])*_ring)
-            _ry0 = int(_leg_top[1]+(_leg_bot[1]-_leg_top[1])*_ring)
+            _rx0 = int(_leg_top[0]+(_peg_bot[0]-_leg_top[0])*_ring)
+            _ry0 = int(_leg_top[1]+(_peg_bot[1]-_leg_top[1])*_ring)
             pygame.draw.circle(surface, (80,50,25), (_rx0,_ry0), max(2,int(5*s)), max(1,int(2*s)))
-        pygame.draw.circle(surface, (70,45,20), _leg_bot, max(3,int(6*s)))
+        pygame.draw.circle(surface, (70,45,20), _peg_bot, max(3,int(6*s)))
 
         # Rocky body, lumpy silhouette, tilts with the wobble
         _lumps = [(0.0,-1.0,1.0),(0.55,-0.65,0.9),(0.9,-0.05,0.88),(0.6,0.55,0.9),
@@ -15564,15 +15570,25 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
         # Bandana
         pygame.draw.arc(surface, (180,30,30), (_cx9-_br, _cy9-int(_br*1.25), _br*2, _br), math.radians(200), math.radians(340), max(2,int(4*s)))
 
-        # Moosh — a mushroom sidekick perched on top of Rook
-        _mx9, _my9 = _cx9-facing*int(_br*0.15), _cy9-_br-int(hd*0.3)
-        pygame.draw.ellipse(surface, (200,70,60), (_mx9-int(hd*0.7), _my9-int(hd*0.4), int(hd*1.4), int(hd*0.9)))
-        pygame.draw.ellipse(surface, (150,45,40), (_mx9-int(hd*0.7), _my9-int(hd*0.4), int(hd*1.4), int(hd*0.9)), max(1,int(2*s)))
-        for _dxo,_dyo in [(-0.3,-0.1),(0.15,-0.25),(0.35,0.05),(-0.05,0.1)]:
-            pygame.draw.circle(surface, (240,220,210), (_mx9+int(_dxo*hd), _my9+int(_dyo*hd*0.7)), max(1,int(3*s)))
-        pygame.draw.rect(surface, (230,220,200), (_mx9-int(hd*0.22), _my9, int(hd*0.44), int(hd*0.5)))
-        for _mex in (-int(hd*0.15), int(hd*0.15)):
-            pygame.draw.circle(surface, (20,20,20), (_mx9+_mex, _my9+int(hd*0.15)), max(1,int(hd*0.08)))
+        # Cutlass, held out front — matches his "fires a cutlass" kick
+        _swx, _swy = _cx9+facing*int(_br*0.85), _cy9+int(_br*0.05)
+        _swtip = (_swx+facing*int(hd*1.3), _swy-int(hd*0.5))
+        pygame.draw.line(surface, (215,215,225), (_swx,_swy), _swtip, max(3,int(6*s)))
+        pygame.draw.line(surface, (150,150,160), (_swx,_swy), _swtip, max(1,int(2*s)))
+        _ghx = _swx-facing*int(hd*0.35)
+        pygame.draw.line(surface, (255,215,60), (_swx-int(6*s),_swy+int(6*s)), (_swx+int(6*s),_swy-int(6*s)), max(2,int(4*s)))
+        pygame.draw.line(surface, (100,65,30), (_swx,_swy), (_ghx,_swy+int(3*s)), max(2,int(5*s)))
+
+        # Moosh — a big green mushroom sidekick perched on top of Rook
+        _mx9, _my9 = _cx9-facing*int(_br*0.15), _cy9-_br-int(hd*0.45)
+        _msc = 1.5
+        pygame.draw.ellipse(surface, (60,150,70), (_mx9-int(hd*0.7*_msc), _my9-int(hd*0.4*_msc), int(hd*1.4*_msc), int(hd*0.9*_msc)))
+        pygame.draw.ellipse(surface, (35,110,50), (_mx9-int(hd*0.7*_msc), _my9-int(hd*0.4*_msc), int(hd*1.4*_msc), int(hd*0.9*_msc)), max(1,int(2*s)))
+        for _dxo,_dyo in [(-0.3,-0.1),(0.15,-0.25),(0.35,0.05),(-0.05,0.1),(-0.15,0.25)]:
+            pygame.draw.circle(surface, (220,240,210), (_mx9+int(_dxo*hd*_msc), _my9+int(_dyo*hd*0.7*_msc)), max(1,int(4*s)))
+        pygame.draw.rect(surface, (230,225,200), (_mx9-int(hd*0.24*_msc), _my9, int(hd*0.48*_msc), int(hd*0.6*_msc)))
+        for _mex in (-int(hd*0.16*_msc), int(hd*0.16*_msc)):
+            pygame.draw.circle(surface, (20,20,20), (_mx9+_mex, _my9+int(hd*0.18*_msc)), max(1,int(hd*0.1*_msc)))
 
         if action == 'punch':
             return (int(_cx9 + facing * (_br + 24*s)), _cy9)

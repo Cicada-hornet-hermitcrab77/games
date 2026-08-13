@@ -1547,7 +1547,7 @@ class ExplodingTire:
 class Muskshroom:
     SPEED  = 10
     DMG    = 9
-    RADIUS = 8
+    RADIUS = 15
     LIFE   = 70
 
     def __init__(self, x, y, facing, owner):
@@ -1566,9 +1566,11 @@ class Muskshroom:
     def draw(self, surface):
         cx, cy = int(self.x), int(self.y)
         pygame.draw.ellipse(surface, (200, 80, 70), (cx - self.RADIUS, cy - self.RADIUS, self.RADIUS*2, self.RADIUS))
-        for dx, dy in [(-3, -1), (2, -3), (4, 1)]:
-            pygame.draw.circle(surface, (240, 220, 200), (cx + dx, cy - self.RADIUS//2 + dy), 2)
-        pygame.draw.rect(surface, (230, 220, 200), (cx - 3, cy, 6, self.RADIUS))
+        pygame.draw.ellipse(surface, (150, 55, 48), (cx - self.RADIUS, cy - self.RADIUS, self.RADIUS*2, self.RADIUS), 2)
+        for dx, dy in [(-6, -2), (4, -6), (8, 2), (-2, -8), (0, 3)]:
+            pygame.draw.circle(surface, (240, 220, 200), (cx + dx, cy - self.RADIUS//2 + dy), 3)
+        pygame.draw.rect(surface, (230, 220, 200), (cx - 5, cy, 10, self.RADIUS))
+        pygame.draw.rect(surface, (190, 180, 160), (cx - 5, cy, 10, self.RADIUS), 1)
 
     def collides(self, fighter):
         return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
