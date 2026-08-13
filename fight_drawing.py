@@ -1808,6 +1808,37 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.ellipse(surface, (30, 30, 30),
                             (hx - int(hd*0.7), hy - hd - int(18*s), int(hd*1.4), int(14*s)))
 
+        # Classic mime routine: trace out an invisible box, then lean on it
+        _mt = pygame.time.get_ticks() / 1000.0
+        _mcycle = _mt % 4.5
+        _handmidy = (lhy + rhy) // 2
+        _bx0, _by0 = sx + facing*int(24*s), _handmidy - int(20*s)
+        _bw, _bh = int(28*s), int(40*s)
+        _corners = [(_bx0, _by0), (_bx0+facing*_bw, _by0), (_bx0+facing*_bw, _by0+_bh), (_bx0, _by0+_bh)]
+        if _mcycle < 3.2:
+            # Tracing phase: outline draws on corner by corner, hand "finds" each edge
+            _trace_t = min(1.0, _mcycle / 3.2)
+            _nseg = _trace_t * 4
+            for _ci in range(4):
+                if _nseg > _ci:
+                    _p1, _p2 = _corners[_ci], _corners[(_ci+1) % 4]
+                    _segfrac = min(1.0, _nseg - _ci)
+                    _pe = (int(_p1[0]+(_p2[0]-_p1[0])*_segfrac), int(_p1[1]+(_p2[1]-_p1[1])*_segfrac))
+                    pygame.draw.line(surface, (235,235,245), _p1, _pe, max(1, int(2*s)))
+            _handi = min(3, int(_nseg))
+            _handpos = _corners[_handi]
+            pygame.draw.circle(surface, (255,255,255), _handpos, max(2, int(3*s)))
+        else:
+            # Lean phase: flat palms pressed against the finished box, faint glint
+            _glint = abs(math.sin((_mcycle-3.2)*6))
+            for _p1, _p2 in zip(_corners, _corners[1:]+_corners[:1]):
+                pygame.draw.line(surface, (235,235,245), _p1, _p2, max(1, int(2*s)))
+            _glow = pygame.Surface((_bw+4, _bh+4), pygame.SRCALPHA)
+            pygame.draw.rect(_glow, (255,255,255,int(40*_glint)), (0,0,_bw+4,_bh+4), border_radius=max(1,int(3*s)))
+            surface.blit(_glow, (min(_bx0,_bx0+facing*_bw)-2, _by0-2))
+            pygame.draw.circle(surface, (255,255,255), (lhx, lhy), max(2, int(3*s)), max(1,int(2*s)))
+            pygame.draw.circle(surface, (255,255,255), (rhx, rhy), max(2, int(3*s)), max(1,int(2*s)))
+
     elif char_name == "Lumberjack":
         # Flannel shirt (red/dark checked)
         for ci in range(3):
@@ -9562,16 +9593,27 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                            (hx - max(5, int(7*s)), hy - hd - max(14, int(16*s))), max(3, int(3*s)))
         pygame.draw.circle(surface, (255, 220, 50),
                            (hx + max(5, int(7*s)), hy - hd - max(14, int(16*s))), max(3, int(3*s)))
-        # Chaos swirl around body
-        _jphase = t * 0.08
-        for _ji in range(6):
-            _ja = math.radians(_ji * 60) + _jphase
-            _jsurf = pygame.Surface((6, 6), pygame.SRCALPHA)
-            _jcols = [(255,80,180),(255,220,40),(80,200,255),(255,120,40),(120,255,80),(200,80,255)]
-            pygame.draw.circle(_jsurf, (*_jcols[_ji], 180), (3, 3), 2)
-            surface.blit(_jsurf,
-                         (sx + int(math.cos(_ja) * int(15*s)) - 3,
-                          (sy + wy)//2 + int(math.sin(_ja) * int(9*s)) - 3))
+        # Juggling — 3 balls cascading back and forth between his hands,
+        # arcing up over his head
+        _jcols = [(255,80,180),(255,220,40),(80,200,255)]
+        _jug_t = (t / 1000.0)
+        _jug_period = 0.85
+        for _bi in range(3):
+            _bphase = ((_jug_t / _jug_period) + _bi / 3.0) % 1.0
+            if _bphase < 0.5:
+                _t2 = _bphase / 0.5
+                _bx = lhx + (rhx - lhx) * _t2
+                _by_base = lhy + (rhy - lhy) * _t2
+            else:
+                _t2 = (_bphase - 0.5) / 0.5
+                _bx = rhx + (lhx - rhx) * _t2
+                _by_base = rhy + (lhy - rhy) * _t2
+            _arc = math.sin(_t2 * math.pi) * int(34 * s)
+            _bx = int(_bx)
+            _by = int(_by_base - _arc - hd * 1.3)
+            pygame.draw.circle(surface, tuple(max(0,c-60) for c in _jcols[_bi]), (_bx, _by+1), max(2, int(5*s)))
+            pygame.draw.circle(surface, _jcols[_bi], (_bx, _by), max(2, int(5*s)))
+            pygame.draw.circle(surface, (255,255,255), (_bx-int(2*s), _by-int(2*s)), max(1, int(2*s)))
 
     elif char_name == "Golem":
         t = pygame.time.get_ticks()
@@ -15281,26 +15323,27 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
         _lunge = math.sin((_lunge_cycle/0.4)*math.pi) if _lunging else 0.0
         # Curled "resting" path: hugs up and over the back of the body.
         # Lunging straightens the curl out toward the opponent.
+        _tsc = 1.55   # tail size multiplier — Dusty is a big part of this monster
         _root = (_cx9 - facing*int(_br*0.7), _cy9 + int(_br*0.15))
-        _curl_mid  = (_cx9 - facing*int(_br*0.95), _cy9 - int(_br*0.75))
-        _curl_head = (_cx9 - facing*int(_br*0.35), _cy9 - int(_br*1.15))
-        _lunge_mid  = (_root[0] - facing*int((16+_lunge*22)*s), _root[1] - int(4*s))
-        _lunge_head = (_lunge_mid[0] - facing*int((20+_lunge*30)*s), _lunge_mid[1] + int(math.sin(_pt*1.5+1)*4*s))
+        _curl_mid  = (_cx9 - facing*int(_br*1.05*_tsc), _cy9 - int(_br*0.85*_tsc))
+        _curl_head = (_cx9 - facing*int(_br*0.4*_tsc), _cy9 - int(_br*1.3*_tsc))
+        _lunge_mid  = (_root[0] - facing*int((16+_lunge*22)*s*_tsc), _root[1] - int(4*s))
+        _lunge_head = (_lunge_mid[0] - facing*int((20+_lunge*30)*s*_tsc), _lunge_mid[1] + int(math.sin(_pt*1.5+1)*4*s))
         _tmidx = int(_curl_mid[0]  + (_lunge_mid[0]  - _curl_mid[0])  * _lunge)
         _tmidy = int(_curl_mid[1]  + (_lunge_mid[1]  - _curl_mid[1])  * _lunge)
         _tail_hx = int(_curl_head[0] + (_lunge_head[0] - _curl_head[0]) * _lunge)
         _tail_hy = int(_curl_head[1] + (_lunge_head[1] - _curl_head[1]) * _lunge)
         # Thick, fleshy fish-tail body with small triangular frills
-        pygame.draw.line(surface, _dk, _root, (_tmidx,_tmidy), max(7,int(13*s)))
-        pygame.draw.line(surface, col, _root, (_tmidx,_tmidy), max(4,int(9*s)))
-        pygame.draw.line(surface, _dk, (_tmidx,_tmidy), (_tail_hx,_tail_hy), max(6,int(11*s)))
-        pygame.draw.line(surface, col, (_tmidx,_tmidy), (_tail_hx,_tail_hy), max(3,int(7*s)))
+        pygame.draw.line(surface, _dk, _root, (_tmidx,_tmidy), max(9,int(17*s)))
+        pygame.draw.line(surface, col, _root, (_tmidx,_tmidy), max(6,int(12*s)))
+        pygame.draw.line(surface, _dk, (_tmidx,_tmidy), (_tail_hx,_tail_hy), max(8,int(15*s)))
+        pygame.draw.line(surface, col, (_tmidx,_tmidy), (_tail_hx,_tail_hy), max(5,int(10*s)))
         for _ft in (0.3, 0.55, 0.8):
             _fpx = int(_root[0]+(_tmidx-_root[0])*_ft); _fpy = int(_root[1]+(_tmidy-_root[1])*_ft)
-            pygame.draw.polygon(surface, _dk, [(_fpx,_fpy), (_fpx,_fpy-int(9*s)), (_fpx+facing*int(6*s),_fpy-int(3*s))])
+            pygame.draw.polygon(surface, _dk, [(_fpx,_fpy), (_fpx,_fpy-int(13*s)), (_fpx+facing*int(9*s),_fpy-int(4*s))])
         # Dusty's head — melted/blank fish-head look: no pupils, a small
         # gaping hole for a mouth, frilled crest
-        _shd_r = max(5,int(hd*0.45))
+        _shd_r = max(7,int(hd*0.45*_tsc))
         pygame.draw.circle(surface, (130,160,90), (_tail_hx,_tail_hy), _shd_r)
         pygame.draw.circle(surface, (95,120,65), (_tail_hx,_tail_hy), _shd_r, max(1,int(2*s)))
         for _fi9 in range(3):
