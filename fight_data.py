@@ -1601,11 +1601,23 @@ CHARACTERS = [
     {"name": "Splaut & Dusty", "color": (140, 120, 70), "speed": 4, "jump": -12,
      "punch_dmg": 9, "kick_dmg": 12, "max_hp": 130, "block": 6,
      "desc": "Punch spits sand, kick lobs a slime bomb — and don't mind the tail's snake head",
-     "double_jump": False, "sand_spit_punch": True, "slime_bomb_kick": True, "snake_tail_lunge": True},
+     "double_jump": False, "sand_spit_punch": True, "slime_bomb_kick": True, "snake_tail_lunge": True,
+     "shop_only": True},
     {"name": "Bloob & Beatrix", "color": (80, 190, 150), "speed": 5, "jump": -13,
      "punch_dmg": 10, "kick_dmg": 11, "max_hp": 120, "block": 5,
      "desc": "Punch fires tentamissiles, kick throws exploding tires — Bloob shapeshifts every 5s",
-     "double_jump": False, "tentamissile_punch": True, "exploding_tire_kick": True, "bloob_shapeshift": True},
+     "double_jump": False, "tentamissile_punch": True, "exploding_tire_kick": True, "bloob_shapeshift": True,
+     "shop_only": True},
+    {"name": "Rook & Moosh", "color": (110, 105, 100), "speed": 4, "jump": -12,
+     "punch_dmg": 10, "kick_dmg": 11, "max_hp": 135, "block": 7,
+     "desc": "Punch shoots muskshrooms, kick fires a cutlass off in a random direction",
+     "double_jump": False, "muskshroom_punch": True, "cutlass_kick": True, "peg_leg_balance": True,
+     "shop_only": True},
+    {"name": "Xix!?xy & Zaor@k", "color": (150, 140, 60), "speed": 4, "jump": -12,
+     "punch_dmg": 9, "kick_dmg": 13, "max_hp": 125, "block": 6,
+     "desc": "Punch lays a barrage of mines, kick calls down ultralightning",
+     "double_jump": False, "worm_mine_punch": True, "ultralightning_kick": True,
+     "shop_only": True},
 ]
 
 # ---------------------------------------------------------------------------
@@ -1628,15 +1640,19 @@ FUSER_ELEMENTS = [
 # An element combo with no matching recipe always fails the fuse (the
 # player gets one of the two spent elements back).
 FUSER_RECIPES = {
-    frozenset({"water", "rock"}):  {"name": "Splaut & Dusty",   "fail_chance": 0.10},
-    frozenset({"water", "plant"}): {"name": "Bloob & Beatrix",  "fail_chance": 0.16},
+    frozenset({"water", "rock"}):    {"name": "Splaut & Dusty",      "fail_chance": 0.10},
+    frozenset({"water", "plant"}):   {"name": "Bloob & Beatrix",     "fail_chance": 0.16},
+    frozenset({"rock", "plant"}):    {"name": "Rook & Moosh",        "fail_chance": 0.30},
+    frozenset({"electric", "rock"}): {"name": "Xix!?xy & Zaor@k",    "fail_chance": 0.48},
 }
 
 # Characters purchasable directly in the Fuser shop, like SEASONAL_SHOP_CHARS
 # but paid for with seasonal coins instead of elements.
 FUSER_SHOP_CHARS = [
-    {"name": "Splaut & Dusty",  "cost": 100},
-    {"name": "Bloob & Beatrix", "cost": 125},
+    {"name": "Splaut & Dusty",   "cost": 100},
+    {"name": "Bloob & Beatrix",  "cost": 125},
+    {"name": "Rook & Moosh",     "cost": 175},
+    {"name": "Xix!?xy & Zaor@k", "cost": 300},
 ]
 
 POWERUPS = [

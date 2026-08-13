@@ -1532,6 +1532,117 @@ class ExplodingTire:
 
 
 # ---------------------------------------------------------------------------
+# Muskshroom  (Rook & Moosh punch)
+# ---------------------------------------------------------------------------
+
+class Muskshroom:
+    SPEED  = 10
+    DMG    = 9
+    RADIUS = 8
+    LIFE   = 70
+
+    def __init__(self, x, y, facing, owner):
+        self.x = float(x); self.y = float(y)
+        self.vx = self.SPEED * facing
+        self.owner = owner
+        self.alive = True
+        self.life = self.LIFE
+
+    def update(self):
+        self.x += self.vx
+        self.life -= 1
+        if self.life <= 0 or self.x < -40 or self.x > WIDTH + 40:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pygame.draw.ellipse(surface, (200, 80, 70), (cx - self.RADIUS, cy - self.RADIUS, self.RADIUS*2, self.RADIUS))
+        for dx, dy in [(-3, -1), (2, -3), (4, 1)]:
+            pygame.draw.circle(surface, (240, 220, 200), (cx + dx, cy - self.RADIUS//2 + dy), 2)
+        pygame.draw.rect(surface, (230, 220, 200), (cx - 3, cy, 6, self.RADIUS))
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
+# Cutlass  (Rook & Moosh kick — flies off in a random direction)
+# ---------------------------------------------------------------------------
+
+class Cutlass:
+    SPEED  = 12
+    DMG    = 13
+    RADIUS = 9
+    LIFE   = 55
+
+    def __init__(self, x, y, owner):
+        ang = random.uniform(0, 2 * math.pi)
+        self.x = float(x); self.y = float(y)
+        self.vx = math.cos(ang) * self.SPEED
+        self.vy = math.sin(ang) * self.SPEED
+        self.owner = owner
+        self.alive = True
+        self.life = self.LIFE
+        self.spin = 0.0
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+        self.spin = (self.spin + 25) % 360
+        self.life -= 1
+        if self.life <= 0 or self.x < -40 or self.x > WIDTH + 40 or self.y < -40 or self.y > HEIGHT + 40:
+            self.alive = False
+
+    def draw(self, surface):
+        _bl = pygame.Surface((self.RADIUS*4, self.RADIUS*4), pygame.SRCALPHA)
+        _c = self.RADIUS*2
+        pygame.draw.line(_bl, (210, 210, 220), (_c - self.RADIUS*2, _c), (_c + self.RADIUS*2, _c), 3)
+        pygame.draw.line(_bl, (150, 110, 60), (_c - self.RADIUS*2, _c), (_c - self.RADIUS, _c), 5)
+        _bl = pygame.transform.rotate(_bl, self.spin)
+        surface.blit(_bl, (int(self.x) - _bl.get_width()//2, int(self.y) - _bl.get_height()//2))
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
+# WormMine  (Xix!?xy & Zaor@k punch — lays a barrage of ground mines)
+# ---------------------------------------------------------------------------
+
+class WormMine:
+    DMG    = 11
+    RADIUS = 11
+    ARM_TIME = 30
+    LIFE   = FPS * 8
+
+    def __init__(self, x, owner):
+        self.x = float(x)
+        self.y = float(GROUND_Y)
+        self.owner = owner
+        self.alive = True
+        self.arm = self.ARM_TIME
+        self.life = self.LIFE
+
+    def update(self):
+        if self.arm > 0:
+            self.arm -= 1
+        self.life -= 1
+        if self.life <= 0:
+            self.alive = False
+
+    def draw(self, surface):
+        armed = self.arm == 0
+        blink = armed and (self.life // 8) % 2 == 0
+        pygame.draw.circle(surface, (90, 70, 40), (int(self.x), int(self.y) - 6), self.RADIUS)
+        pygame.draw.circle(surface, (60, 45, 25), (int(self.x), int(self.y) - 6), self.RADIUS, 2)
+        pygame.draw.circle(surface, (255, 220, 0) if blink else (200, 60, 20),
+                           (int(self.x), int(self.y) - 6), max(2, self.RADIUS // 2))
+
+    def collides(self, fighter):
+        return self.arm == 0 and abs(self.x - fighter.x) < 28 and fighter.hp > 0
+
+
+# ---------------------------------------------------------------------------
 # FireBall  (Pyro auto-fire — applies fire on hit)
 # ---------------------------------------------------------------------------
 

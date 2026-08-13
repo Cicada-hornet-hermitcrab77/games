@@ -113,6 +113,10 @@ class Fighter:
         self.pending_slime_bomb   = False # Splaut & Dusty: kick lobs a slime bomb this frame
         self.pending_tentamissile = False # Bloob & Beatrix: punch fires tentamissiles this frame
         self.pending_exploding_tire = False # Bloob & Beatrix: kick throws an exploding tire this frame
+        self.pending_muskshroom   = False # Rook & Moosh: punch shoots a muskshroom this frame
+        self.pending_cutlass      = False # Rook & Moosh: kick fires a cutlass this frame
+        self.pending_worm_mines   = False # Xix!?xy & Zaor@k: punch lays a barrage of mines this frame
+        self.pending_ultralightning = False # Xix!?xy & Zaor@k: kick calls down ultralightning this frame
         self.pending_ink_clone       = False  # Ink Brush: spawn a clone this frame
         self.ink_clone_cooldown      = 0      # cooldown between clones
         self.squish_frames           = 0      # frames of squish remaining (Hammerhead punch)
@@ -917,6 +921,10 @@ class Fighter:
                     self.pending_sand_spit = True
                 if self.char.get("tentamissile_punch"):
                     self.pending_tentamissile = True
+                if self.char.get("muskshroom_punch"):
+                    self.pending_muskshroom = True
+                if self.char.get("worm_mine_punch"):
+                    self.pending_worm_mines = True
                 if self.char.get("bounce_punch"):
                     self.pending_bounce = True
                 if self.char.get("whip_punch") and self.whip_cooldown == 0:
@@ -1006,6 +1014,10 @@ class Fighter:
                     self.pending_slime_bomb = True
                 if self.char.get("exploding_tire_kick"):
                     self.pending_exploding_tire = True
+                if self.char.get("cutlass_kick"):
+                    self.pending_cutlass = True
+                if self.char.get("ultralightning_kick"):
+                    self.pending_ultralightning = True
                 if self.char.get("jack_tank"):
                     self.jack_tank_frames = FPS * 10  # activate / refresh tank mode
                     self.pending_jack_seed = True      # kick also fires a seed
@@ -2213,6 +2225,10 @@ class AIFighter(Fighter):
                         self.pending_sand_spit = True
                     if self.char.get("tentamissile_punch"):
                         self.pending_tentamissile = True
+                    if self.char.get("muskshroom_punch"):
+                        self.pending_muskshroom = True
+                    if self.char.get("worm_mine_punch"):
+                        self.pending_worm_mines = True
                     if self.char.get("bounce_punch"):
                         self.pending_bounce = True
                     if self.char.get("whip_punch") and self.whip_cooldown == 0:
@@ -2285,6 +2301,10 @@ class AIFighter(Fighter):
                         self.pending_slime_bomb = True
                     if self.char.get("exploding_tire_kick"):
                         self.pending_exploding_tire = True
+                    if self.char.get("cutlass_kick"):
+                        self.pending_cutlass = True
+                    if self.char.get("ultralightning_kick"):
+                        self.pending_ultralightning = True
             self.ai_attack = None
         elif self.ai_move != 0:
             _ai_spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)

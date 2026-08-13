@@ -611,6 +611,8 @@ CHEAT_CODES = {
     "web_scope":            "Snider",
     "sand_slime":           "Splaut & Dusty",
     "shapeshift_blob":      "Bloob & Beatrix",
+    "peg_leg_pirate":       "Rook & Moosh",
+    "worm_costume":         "Xix!?xy & Zaor@k",
 }
 
 # ---------------------------------------------------------------------------
@@ -749,6 +751,8 @@ def mode_select(unlocked=None):
         _ev_mode    = _ev_mode_ev.get("special_mode") if _ev_mode_ev else None
         _ev_label   = _ev_mode_ev.get("special_mode_label", "Event Mode") if _ev_mode_ev and _ev_mode else None
         _ev_btn_rect = pygame.Rect(WIDTH // 2 - 175, HEIGHT - 92, 350, 38) if _ev_mode else None
+        _fuser_unlocked = "Deco & Emoj" in unlocked
+        _fuser_btn_rect = pygame.Rect(WIDTH // 2 - 175, HEIGHT - 136, 350, 38) if _fuser_unlocked else None
 
         _is_solar_eclipse = is_solar_eclipse_today()
         _is_lunar_eclipse = is_lunar_eclipse_today()
@@ -880,12 +884,21 @@ def mode_select(unlocked=None):
                 if event.key == pygame.K_e and _ev_mode:
                     if _home_lobby: _home_lobby.close()
                     return _ev_mode
+                if event.key == pygame.K_u and _fuser_unlocked:
+                    if _home_lobby: _home_lobby.close()
+                    return 'fuser'
 
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN) and _ev_btn_rect:
                 _mp2 = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
                 if _ev_btn_rect.collidepoint(_mp2):
                     if _home_lobby: _home_lobby.close()
                     return _ev_mode
+
+            if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN) and _fuser_btn_rect:
+                _mp3 = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
+                if _fuser_btn_rect.collidepoint(_mp3):
+                    if _home_lobby: _home_lobby.close()
+                    return 'fuser'
 
         screen.fill(DARK)
         draw_seasonal_decos(screen)
@@ -1979,6 +1992,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if _detail_display.get("slime_bomb_kick"):        badges.append(("SLIME BOMB",       (110, 200,  90)))
             if _detail_display.get("tentamissile_punch"):     badges.append(("TENTAMISSILES",    ( 60, 170, 130)))
             if _detail_display.get("exploding_tire_kick"):    badges.append(("EXPLODING TIRE",   ( 40,  40,  45)))
+            if _detail_display.get("muskshroom_punch"):       badges.append(("MUSKSHROOM",       (200,  80,  70)))
+            if _detail_display.get("cutlass_kick"):           badges.append(("RANDOM CUTLASS",   (150, 110,  60)))
+            if _detail_display.get("worm_mine_punch"):        badges.append(("MINE BARRAGE",     ( 90,  70,  40)))
+            if _detail_display.get("ultralightning_kick"):    badges.append(("ULTRALIGHTNING",   (230, 210,  40)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)

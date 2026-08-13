@@ -15217,40 +15217,87 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
             return None
         _bob = int(math.sin(_pt * 2) * 3 * s)
         _cx9, _cy9 = int(x), int(y) - int(hd * 1.6) - _bob
-        _br = int(hd * 1.7)
-        pygame.draw.circle(surface, col, (_cx9, _cy9), _br)
-        pygame.draw.circle(surface, tuple(max(0,c-25) for c in col), (_cx9, _cy9), _br, max(1,int(2*s)))
-        # Webbed feet
-        for _fxo in (-int(_br*0.5), int(_br*0.5)):
+        _br = int(hd * 1.75)
+        _dk = tuple(max(0,c-35) for c in col)
+        _lt = tuple(min(255,c+35) for c in col)
+
+        # Ground contact shadow
+        _shsurf = pygame.Surface((_br*2+8, int(_br*0.7)), pygame.SRCALPHA)
+        pygame.draw.ellipse(_shsurf, (0,0,0,70), (0,0,_br*2+8,int(_br*0.7)))
+        surface.blit(_shsurf, (_cx9-_br-4, int(y)-int(_br*0.35)))
+
+        # Webbed feet — drawn first so the body overlaps them
+        for _fxo in (-int(_br*0.55), int(_br*0.55)):
             _fx9, _fy9 = _cx9+_fxo, int(y)
-            for _toe in (-1,0,1):
-                pygame.draw.line(surface, tuple(max(0,c-25) for c in col),
-                                 (_fx9, _fy9-int(6*s)), (_fx9+_toe*int(8*s), _fy9), max(2,int(3*s)))
-        # Eyes
-        for _ex in (_cx9-int(_br*0.35), _cx9+int(_br*0.35)):
-            pygame.draw.circle(surface, (255,255,255), (_ex, _cy9-int(_br*0.3)), max(3,int(hd*0.28)))
-            pygame.draw.circle(surface, (20,20,20), (_ex, _cy9-int(_br*0.3)), max(1,int(hd*0.12)))
-        # 3 tongues around the mouth, flick out to spit
+            _fweb = pygame.Surface((int(30*s), int(16*s)), pygame.SRCALPHA)
+            pygame.draw.polygon(_fweb, _dk, [(0,int(16*s)),(int(15*s),0),(int(30*s),int(16*s))])
+            for _toe in range(4):
+                _tx0 = int(_toe*10*s)
+                pygame.draw.line(_fweb, col, (int(15*s),0), (_tx0,int(16*s)), max(1,int(2*s)))
+            surface.blit(_fweb, (_fx9-int(15*s), _fy9-int(4*s)))
+
+        # Body — gradient-ish shaded sphere with mottled spots
+        pygame.draw.circle(surface, _dk, (_cx9, _cy9), _br)
+        pygame.draw.circle(surface, col, (_cx9, _cy9-int(_br*0.08)), int(_br*0.92))
+        pygame.draw.circle(surface, _lt, (_cx9-int(_br*0.32), _cy9-int(_br*0.38)), int(_br*0.34))
+        for _sxo,_syo,_sr in [(-0.45,0.15,0.16),(0.35,0.35,0.13),(0.05,0.55,0.11),(0.5,-0.05,0.1)]:
+            pygame.draw.circle(surface, _dk, (_cx9+int(_sxo*_br), _cy9+int(_syo*_br)), max(2,int(_sr*_br)))
+        pygame.draw.circle(surface, _dk, (_cx9, _cy9), _br, max(1,int(2*s)))
+
+        # Big expressive eyes that track the opponent's general direction
+        for _exo in (-0.36, 0.36):
+            _ex = _cx9+int(_exo*_br); _ey = _cy9-int(_br*0.32)
+            pygame.draw.circle(surface, (255,255,255), (_ex,_ey), max(4,int(hd*0.34)))
+            pygame.draw.circle(surface, (25,20,15), (_ex+facing*int(2*s),_ey), max(2,int(hd*0.16)))
+            pygame.draw.circle(surface, (255,255,255), (_ex+facing*int(3*s)-1,_ey-int(2*s)), max(1,int(hd*0.05)))
+        # Nostril slits
+        for _nxo in (-0.1,0.1):
+            pygame.draw.line(surface, _dk, (_cx9+int(_nxo*_br), _cy9+int(_br*0.05)),
+                             (_cx9+int(_nxo*_br), _cy9+int(_br*0.15)), max(1,int(2*s)))
+
+        # 3 forked tongues around the mouth, flick out and spit sand
         _spit_cycle = _pt % 1.8
         _spitting = _spit_cycle < 0.3
         _flick = math.sin((_spit_cycle/0.3)*math.pi) if _spitting else 0.0
-        for _ti, _tang in enumerate((-0.5, 0.0, 0.5)):
-            _tbx = _cx9 + facing*int(_br*0.7*math.cos(_tang))
-            _tby = _cy9 + int(_br*0.35) + int(_br*0.3*math.sin(_tang))
-            _tlen = int((10 + _flick*22) * s)
+        for _ti, _tang in enumerate((-0.55, 0.0, 0.55)):
+            _tbx = _cx9 + facing*int(_br*0.75*math.cos(_tang))
+            _tby = _cy9 + int(_br*0.4) + int(_br*0.32*math.sin(_tang))
+            _tlen = int((9 + _flick*24) * s)
+            _midx = _tbx + facing*int(_tlen*0.7)
             _ttx = _tbx + facing*_tlen
-            pygame.draw.line(surface, (230,60,90), (_tbx,_tby), (_ttx,_tby), max(2,int(4*s)))
-            pygame.draw.circle(surface, (230,60,90), (_ttx,_tby), max(1,int(3*s)))
-        # Tail with a sloppy snake head, lunges forward periodically
+            _twav = int(math.sin(_pt*8+_ti)*3*s)
+            pygame.draw.line(surface, (235,70,95), (_tbx,_tby), (_midx,_tby+_twav), max(2,int(4*s)))
+            pygame.draw.line(surface, (235,70,95), (_midx,_tby+_twav), (_ttx-facing*int(3*s),_tby+_twav-int(3*s)), max(2,int(3*s)))
+            pygame.draw.line(surface, (235,70,95), (_midx,_tby+_twav), (_ttx-facing*int(3*s),_tby+_twav+int(3*s)), max(2,int(3*s)))
+
+        # Tail with a sloppy snake head — scaled, eyed, forked-tongued —
+        # lunges forward toward the opponent periodically
         _lunge_cycle = _pt % 3.0
         _lunging = _lunge_cycle < 0.4
         _lunge = math.sin((_lunge_cycle/0.4)*math.pi) if _lunging else 0.0
-        _tail_bx, _tail_by = _cx9 - facing*int(_br*0.8), _cy9 + int(_br*0.2)
-        _tail_hx = _tail_bx - facing*int((18 + _lunge*26)*s)
-        _tail_hy = _tail_by + int(math.sin(_pt*1.5)*4*s)
-        pygame.draw.line(surface, tuple(max(0,c-15) for c in col), (_tail_bx,_tail_by), (_tail_hx,_tail_hy), max(3,int(6*s)))
-        pygame.draw.circle(surface, (110,140,70), (_tail_hx,_tail_hy), max(3,int(hd*0.35)))
-        pygame.draw.circle(surface, (255,255,255), (_tail_hx-facing*int(3*s), _tail_hy-int(3*s)), max(1,int(hd*0.1)))
+        _tail_bx, _tail_by = _cx9 - facing*int(_br*0.85), _cy9 + int(_br*0.25)
+        _tmidx = _tail_bx - facing*int((10+_lunge*14)*s)
+        _tmidy = _tail_by + int(math.sin(_pt*1.3)*6*s)
+        _tail_hx = _tmidx - facing*int((14+_lunge*20)*s)
+        _tail_hy = _tmidy + int(math.sin(_pt*1.5+1)*4*s)
+        pygame.draw.line(surface, _dk, (_tail_bx,_tail_by), (_tmidx,_tmidy), max(4,int(8*s)))
+        pygame.draw.line(surface, _dk, (_tmidx,_tmidy), (_tail_hx,_tail_hy), max(3,int(6*s)))
+        _shd_r = max(4,int(hd*0.4))
+        pygame.draw.circle(surface, (120,150,80), (_tail_hx,_tail_hy), _shd_r)
+        pygame.draw.circle(surface, (90,115,60), (_tail_hx,_tail_hy), _shd_r, max(1,int(2*s)))
+        for _sang in range(0,360,50):
+            _scx = _tail_hx+int(math.cos(math.radians(_sang))*_shd_r*0.6)
+            _scy = _tail_hy+int(math.sin(math.radians(_sang))*_shd_r*0.6)
+            pygame.draw.circle(surface, (100,130,65), (_scx,_scy), max(1,int(2*s)))
+        pygame.draw.circle(surface, (255,255,255), (_tail_hx-facing*int(3*s), _tail_hy-int(3*s)), max(2,int(_shd_r*0.35)))
+        pygame.draw.circle(surface, (20,20,20), (_tail_hx-facing*int(3*s), _tail_hy-int(3*s)), max(1,int(_shd_r*0.15)))
+        # Tiny forked snake tongue when lunging
+        if _lunging:
+            _sntx = _tail_hx - facing*int(_shd_r*0.9)
+            pygame.draw.line(surface, (200,40,60), (_tail_hx,_tail_hy), (_sntx,_tail_hy), max(1,int(2*s)))
+            pygame.draw.line(surface, (200,40,60), (_sntx,_tail_hy), (_sntx-facing*int(3*s),_tail_hy-int(2*s)), 1)
+            pygame.draw.line(surface, (200,40,60), (_sntx,_tail_hy), (_sntx-facing*int(3*s),_tail_hy+int(2*s)), 1)
+
         if action == 'punch':
             return (int(_cx9 + facing * (_br + 20*s)), _cy9)
         if action == 'kick':
@@ -15266,52 +15313,231 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
             return None
         _cx9 = int(x)
         _base_y = int(y)
+        _cycle_t = _bt % 5.0
+        _morph = min(1.0, _cycle_t / 0.4) if _cycle_t < 0.4 else (1.0 - min(1.0,(_cycle_t-4.6)/0.4) if _cycle_t > 4.6 else 1.0)
         _form = int(_bt // 5) % 3   # 0=ball 1=stickman 2=motorcycle
         _blob_col = col
         _blob_dk  = tuple(max(0,c-30) for c in col)
+        _blob_lt  = tuple(min(255,c+40) for c in col)
+
+        # Ground shadow
+        _shsurf = pygame.Surface((int(hd*3.6), int(hd*1)), pygame.SRCALPHA)
+        pygame.draw.ellipse(_shsurf, (0,0,0,70), (0,0,int(hd*3.6),int(hd*1)))
+        surface.blit(_shsurf, (_cx9-int(hd*1.8), _base_y-int(hd*0.5)))
 
         if _form == 0:
-            # Ball form
-            _r = int(hd * 1.6)
+            # Ball form — glossy slime sphere with wobbling tentacles
+            _r = int(hd * 1.7 * (1.0 - _morph*0.15))
             _cy9 = _base_y - _r
-            pygame.draw.circle(surface, _blob_col, (_cx9, _cy9), _r)
-            pygame.draw.circle(surface, _blob_dk, (_cx9, _cy9), _r, max(1,int(2*s)))
+            pygame.draw.circle(surface, _blob_dk, (_cx9, _cy9), _r)
+            pygame.draw.circle(surface, _blob_col, (_cx9, _cy9-int(_r*0.1)), int(_r*0.9))
+            pygame.draw.circle(surface, _blob_lt, (_cx9-int(_r*0.3), _cy9-int(_r*0.35)), int(_r*0.3))
             for _tsign in (-1,1):
-                _ttx = _cx9+_tsign*int(_r*0.7); _tty = _cy9+int(_r*0.8)
-                pygame.draw.line(surface, _blob_col, (_cx9+_tsign*int(_r*0.5), _cy9+int(_r*0.5)), (_ttx,_tty), max(2,int(4*s)))
+                _tang = math.sin(_bt*3+_tsign)*0.4
+                _ttx = _cx9+_tsign*int(_r*0.75*math.cos(_tang)); _tty = _cy9+int(_r*0.9)+int(_r*0.3*math.sin(_tang))
+                pygame.draw.line(surface, _blob_dk, (_cx9+_tsign*int(_r*0.55), _cy9+int(_r*0.55)), (_ttx,_tty), max(3,int(6*s)))
+                pygame.draw.circle(surface, _blob_dk, (_ttx,_tty), max(2,int(4*s)))
             _rider_y = _cy9 - _r
         elif _form == 1:
-            # Stickman form — a simplified humanoid blob body
-            _bl9 = int(hd*2.4)
+            # Stickman form — a simplified slime humanoid, drippy at the joints
+            _bl9 = int(hd*2.5)
             _cy9 = _base_y - _bl9
-            pygame.draw.line(surface, _blob_col, (_cx9,_base_y), (_cx9,_cy9), max(4,int(9*s)))
-            pygame.draw.circle(surface, _blob_col, (_cx9,_cy9), int(hd*0.9))
+            pygame.draw.line(surface, _blob_dk, (_cx9,_base_y), (_cx9,_cy9), max(6,int(11*s)))
+            pygame.draw.line(surface, _blob_col, (_cx9-int(2*s),_base_y), (_cx9-int(2*s),_cy9), max(3,int(7*s)))
+            pygame.draw.circle(surface, _blob_col, (_cx9,_cy9), int(hd*0.95))
+            pygame.draw.circle(surface, _blob_lt, (_cx9-int(hd*0.25),_cy9-int(hd*0.25)), int(hd*0.3))
             for _lsign in (-1,1):
-                pygame.draw.line(surface, _blob_col, (_cx9, _base_y-_bl9//3), (_cx9+_lsign*int(hd*1.1), _base_y), max(2,int(5*s)))
-                pygame.draw.line(surface, _blob_col, (_cx9, _cy9+int(hd*0.6)), (_cx9+_lsign*int(hd*1.0), _cy9+int(hd*1.6)), max(2,int(5*s)))
-            _rider_y = _cy9 - int(hd*0.9)
+                _shy = _base_y-_bl9//3
+                pygame.draw.line(surface, _blob_dk, (_cx9, _shy), (_cx9+_lsign*int(hd*1.15), _base_y), max(3,int(6*s)))
+                pygame.draw.line(surface, _blob_dk, (_cx9, _cy9+int(hd*0.65)), (_cx9+_lsign*int(hd*1.05), _cy9+int(hd*1.7)), max(3,int(6*s)))
+                pygame.draw.circle(surface, _blob_col, (_cx9+_lsign*int(hd*1.05), _cy9+int(hd*1.7)), max(2,int(3*s)))
+            _rider_y = _cy9 - int(hd*0.95)
         else:
-            # Motorcycle form
-            _mw, _mh = int(hd*3.2), int(hd*1.1)
-            _my9 = _base_y - int(hd*0.7)
-            pygame.draw.circle(surface, (40,40,45), (_cx9-facing*_mw//2, _base_y), int(hd*0.8), max(1,int(3*s)))
-            pygame.draw.circle(surface, (40,40,45), (_cx9+facing*_mw//2, _base_y), int(hd*0.8), max(1,int(3*s)))
-            pygame.draw.rect(surface, _blob_col, (_cx9-_mw//2, _my9-_mh//2, _mw, _mh), border_radius=max(2,int(6*s)))
+            # Motorcycle form — chrome wheels, slime-green chassis, headlight
+            _mw, _mh = int(hd*3.4), int(hd*1.15)
+            _my9 = _base_y - int(hd*0.75)
+            for _wxo in (-facing*_mw//2, facing*_mw//2):
+                pygame.draw.circle(surface, (25,25,28), (_cx9+_wxo, _base_y), int(hd*0.85))
+                pygame.draw.circle(surface, (90,90,98), (_cx9+_wxo, _base_y), int(hd*0.85), max(1,int(3*s)))
+                pygame.draw.circle(surface, (60,60,66), (_cx9+_wxo, _base_y), int(hd*0.3))
+            pygame.draw.rect(surface, _blob_dk, (_cx9-_mw//2, _my9-_mh//2, _mw, _mh), border_radius=max(2,int(7*s)))
+            pygame.draw.rect(surface, _blob_col, (_cx9-_mw//2, _my9-_mh//2, _mw, int(_mh*0.5)), border_radius=max(2,int(7*s)))
             pygame.draw.rect(surface, _blob_dk, (_cx9-_mw//2, _my9-_mh//2, _mw, _mh), max(1,int(2*s)), border_radius=max(2,int(6*s)))
-            _rider_y = _my9 - _mh
+            _hlx = _cx9+facing*int(_mw*0.42)
+            pygame.draw.circle(surface, (255,240,180), (_hlx, _my9), max(3,int(hd*0.28)))
+            pygame.draw.circle(surface, (200,180,100), (_hlx, _my9), max(3,int(hd*0.28)), max(1,int(2*s)))
+            pygame.draw.line(surface, (40,38,42), (_cx9-facing*int(_mw*0.3), _my9-_mh//2),
+                             (_cx9-facing*int(_mw*0.5), _my9-int(_mh*1.3)), max(2,int(5*s)))
+            _rider_y = _my9 - int(_mh*1.4)
 
         # Beatrix — a small helmeted bug riding on top of whichever form Bloob takes
         _rx9 = _cx9 + facing*int(hd*0.2)
-        pygame.draw.circle(surface, (200,50,50), (_rx9, _rider_y), int(hd*0.55))
-        pygame.draw.circle(surface, (230,230,230), (_rx9, _rider_y-int(hd*0.15)), int(hd*0.4), max(1,int(2*s)))
-        for _lxo in (-int(hd*0.3), int(hd*0.3)):
-            pygame.draw.line(surface, (30,30,30), (_rx9,_rider_y), (_rx9+_lxo, _rider_y-int(hd*0.55)), max(1,int(2*s)))
+        _bug_r = int(hd*0.6)
+        # Antennae
+        for _asign in (-1,1):
+            pygame.draw.line(surface, (30,20,20), (_rx9+_asign*int(_bug_r*0.3), _rider_y-_bug_r),
+                             (_rx9+_asign*int(_bug_r*0.9), _rider_y-int(_bug_r*1.7)), max(1,int(2*s)))
+            pygame.draw.circle(surface, (220,60,60), (_rx9+_asign*int(_bug_r*0.9), _rider_y-int(_bug_r*1.7)), max(1,int(2*s)))
+        # Body (shell) + helmet
+        pygame.draw.circle(surface, (170,35,35), (_rx9, _rider_y), _bug_r)
+        pygame.draw.circle(surface, (120,20,20), (_rx9, _rider_y), _bug_r, max(1,int(2*s)))
+        pygame.draw.line(surface, (120,20,20), (_rx9, _rider_y-_bug_r), (_rx9, _rider_y+_bug_r), max(1,int(2*s)))
+        pygame.draw.circle(surface, (215,215,220), (_rx9, _rider_y-int(_bug_r*0.2)), int(_bug_r*0.75), max(1,int(2*s)))
+        pygame.draw.arc(surface, (255,255,255), (_rx9-int(_bug_r*0.7), _rider_y-int(_bug_r*0.9), int(_bug_r*1.2), int(_bug_r*0.9)),
+                        math.radians(120), math.radians(200), max(1,int(2*s)))
+        # Little bug legs
+        for _lxo in (-1,1):
+            pygame.draw.line(surface, (40,30,30), (_rx9,_rider_y+int(_bug_r*0.3)),
+                             (_rx9+_lxo*int(_bug_r*1.1), _rider_y+int(_bug_r*0.9)), max(1,int(2*s)))
 
         if action == 'punch':
             return (int(_cx9 + facing * (hd*2 + 20*s)), _rider_y)
         if action == 'kick':
             return (int(_cx9 + facing * int(action_t * 90 * s)), _base_y - int(20*s))
         return (int(_cx9 + facing * 20*s), _rider_y)
+
+    # ── Rook & Moosh: a pirate rock on a wooden peg leg, mushroom sidekick ───
+    #    riding on top. Rook wobbles as he tries to balance every 4 seconds.
+    if char_name == "Rook & Moosh":
+        _rt = pygame.time.get_ticks() / 1000.0
+        if action == 'dead':
+            return None
+        _rock_col = col
+        _rock_dk  = tuple(max(0,c-35) for c in col)
+        _rock_lt  = tuple(min(255,c+35) for c in col)
+        _balance_cycle = _rt % 4.0
+        _wobbling = _balance_cycle < 1.0
+        _wobble = math.sin(_balance_cycle * math.pi * 3) * (1.0 - _balance_cycle) * 10 if _wobbling else 0.0
+        _lean = math.radians(_wobble)
+        _base_y = int(y)
+
+        # Ground shadow
+        _shsurf = pygame.Surface((int(hd*3.2), int(hd*0.9)), pygame.SRCALPHA)
+        pygame.draw.ellipse(_shsurf, (0,0,0,70), (0,0,int(hd*3.2),int(hd*0.9)))
+        surface.blit(_shsurf, (int(x)-int(hd*1.6), _base_y-int(hd*0.45)))
+
+        # Rocky body position (computed first so the leg can attach to it)
+        _br = int(hd*1.6)
+        _cx9, _cy9 = int(x)+int(math.sin(_lean)*hd*0.5), _base_y - int(hd*1.4) - int(math.cos(_lean)*hd*0.3)
+
+        # Wooden peg leg, spans from the body down to the ground, tilts as
+        # Rook tries to balance
+        _leg_top = (_cx9, _cy9 + int(_br*0.7))
+        _leg_bot = (int(x) + int(math.sin(_lean)*hd*1.2), _base_y)
+        pygame.draw.line(surface, (110,75,40), _leg_top, _leg_bot, max(5,int(11*s)))
+        pygame.draw.line(surface, (80,50,25), _leg_top, _leg_bot, max(1,int(2*s)))
+        for _ring in (0.3,0.6):
+            _rx0 = int(_leg_top[0]+(_leg_bot[0]-_leg_top[0])*_ring)
+            _ry0 = int(_leg_top[1]+(_leg_bot[1]-_leg_top[1])*_ring)
+            pygame.draw.circle(surface, (80,50,25), (_rx0,_ry0), max(2,int(5*s)), max(1,int(2*s)))
+        pygame.draw.circle(surface, (70,45,20), _leg_bot, max(3,int(6*s)))
+
+        # Rocky body, lumpy silhouette, tilts with the wobble
+        _lumps = [(0.0,-1.0,1.0),(0.55,-0.65,0.9),(0.9,-0.05,0.88),(0.6,0.55,0.9),
+                  (0.0,0.85,1.0),(-0.6,0.55,0.9),(-0.9,-0.05,0.88),(-0.55,-0.65,0.9)]
+        _pts = [(_cx9+int(math.cos(_lean)*bx*_br-math.sin(_lean)*by*_br*0.2),
+                 _cy9+int(math.sin(_lean)*bx*_br*0.3+by*_br*sc)) for bx,by,sc in _lumps]
+        pygame.draw.polygon(surface, _rock_col, _pts)
+        pygame.draw.polygon(surface, _rock_dk, _pts, max(1,int(2*s)))
+        pygame.draw.circle(surface, _rock_lt, (_cx9-int(_br*0.3), _cy9-int(_br*0.35)), int(_br*0.28))
+        # Cracks / texture
+        for _cxo,_cyo in [(-0.3,0.1),(0.2,0.4),(0.4,-0.2)]:
+            pygame.draw.line(surface, _rock_dk, (_cx9+int(_cxo*_br),_cy9+int(_cyo*_br)),
+                             (_cx9+int(_cxo*_br)+int(6*s),_cy9+int(_cyo*_br)+int(4*s)), max(1,int(2*s)))
+
+        # Pirate eyepatch + angry brow eye
+        _eex = _cx9 + facing*int(_br*0.3); _eey = _cy9 - int(_br*0.15)
+        pygame.draw.circle(surface, (255,255,255), (_eex,_eey), max(3,int(hd*0.26)))
+        pygame.draw.circle(surface, (20,20,20), (_eex,_eey), max(1,int(hd*0.12)))
+        pygame.draw.line(surface, (30,30,30), (_eex-int(8*s),_eey-int(10*s)), (_eex+int(6*s),_eey-int(6*s)), max(2,int(3*s)))
+        _pex = _cx9 - facing*int(_br*0.35); _pey = _cy9-int(_br*0.1)
+        pygame.draw.circle(surface, (20,20,20), (_pex,_pey), max(4,int(hd*0.3)))
+        pygame.draw.line(surface, (60,40,20), (_pex-int(_br*0.4),_pey-int(4*s)), (_pex+int(_br*0.4),_pey+int(6*s)), max(1,int(2*s)))
+        # Bandana
+        pygame.draw.arc(surface, (180,30,30), (_cx9-_br, _cy9-int(_br*1.25), _br*2, _br), math.radians(200), math.radians(340), max(2,int(4*s)))
+
+        # Moosh — a mushroom sidekick perched on top of Rook
+        _mx9, _my9 = _cx9-facing*int(_br*0.15), _cy9-_br-int(hd*0.3)
+        pygame.draw.ellipse(surface, (200,70,60), (_mx9-int(hd*0.7), _my9-int(hd*0.4), int(hd*1.4), int(hd*0.9)))
+        pygame.draw.ellipse(surface, (150,45,40), (_mx9-int(hd*0.7), _my9-int(hd*0.4), int(hd*1.4), int(hd*0.9)), max(1,int(2*s)))
+        for _dxo,_dyo in [(-0.3,-0.1),(0.15,-0.25),(0.35,0.05),(-0.05,0.1)]:
+            pygame.draw.circle(surface, (240,220,210), (_mx9+int(_dxo*hd), _my9+int(_dyo*hd*0.7)), max(1,int(3*s)))
+        pygame.draw.rect(surface, (230,220,200), (_mx9-int(hd*0.22), _my9, int(hd*0.44), int(hd*0.5)))
+        for _mex in (-int(hd*0.15), int(hd*0.15)):
+            pygame.draw.circle(surface, (20,20,20), (_mx9+_mex, _my9+int(hd*0.15)), max(1,int(hd*0.08)))
+
+        if action == 'punch':
+            return (int(_cx9 + facing * (_br + 24*s)), _cy9)
+        if action == 'kick':
+            return (int(int(x) + facing * int(action_t * 90 * s)), _base_y - int(20*s))
+        return (int(_cx9 + facing * 20*s), _cy9)
+
+    # ── Xix!?xy & Zaor@k: two worms sharing a circular handmade monster ─────
+    #    costume with gloves — they pop out of holes in the costume.
+    if char_name == "Xix!?xy & Zaor@k":
+        _xt = pygame.time.get_ticks() / 1000.0
+        if action == 'dead':
+            return None
+        _bob = int(math.sin(_xt*1.8)*3*s)
+        _cx9, _cy9 = int(x), int(y) - int(hd*1.7) - _bob
+        _br = int(hd*1.85)
+        _costume_col = col
+        _costume_dk = tuple(max(0,c-35) for c in col)
+
+        # Ground shadow
+        _shsurf = pygame.Surface((int(_br*2.2), int(hd*0.8)), pygame.SRCALPHA)
+        pygame.draw.ellipse(_shsurf, (0,0,0,70), (0,0,int(_br*2.2),int(hd*0.8)))
+        surface.blit(_shsurf, (_cx9-int(_br*1.1), int(y)-int(hd*0.4)))
+
+        # Stubby gloved arms & legs of the handmade costume
+        for _lxo in (-int(_br*0.6), int(_br*0.6)):
+            pygame.draw.line(surface, _costume_dk, (_cx9+_lxo, _cy9+int(_br*0.6)), (_cx9+_lxo, int(y)), max(4,int(8*s)))
+            pygame.draw.circle(surface, (240,240,240), (_cx9+_lxo, int(y)), max(3,int(7*s)))
+        for _axo in (-int(_br*1.0), int(_br*1.0)):
+            _aang = math.sin(_xt*2+_axo)*0.3
+            _ahx = _cx9+_axo+int(math.sin(_aang)*10*s)
+            pygame.draw.line(surface, _costume_dk, (_cx9+int(_axo*0.6), _cy9), (_ahx, _cy9+int(_br*0.3)), max(4,int(8*s)))
+            pygame.draw.circle(surface, (240,240,240), (_ahx, _cy9+int(_br*0.3)), max(3,int(8*s)))
+            pygame.draw.circle(surface, (200,200,200), (_ahx, _cy9+int(_br*0.3)), max(3,int(8*s)), max(1,int(2*s)))
+
+        # Round handmade costume body — stitched fabric look
+        pygame.draw.circle(surface, _costume_col, (_cx9, _cy9), _br)
+        pygame.draw.circle(surface, _costume_dk, (_cx9, _cy9), _br, max(2,int(3*s)))
+        for _sti in range(0, 360, 24):
+            _sx0 = _cx9+int(math.cos(math.radians(_sti))*_br*0.97)
+            _sy0 = _cy9+int(math.sin(math.radians(_sti))*_br*0.97)
+            pygame.draw.circle(surface, _costume_dk, (_sx0,_sy0), max(1,int(2*s)))
+        # Painted-on cartoon monster face
+        for _fex in (-int(_br*0.3), int(_br*0.3)):
+            pygame.draw.circle(surface, (255,255,255), (_cx9+_fex, _cy9-int(_br*0.15)), max(3,int(hd*0.24)))
+            pygame.draw.circle(surface, (20,20,20), (_cx9+_fex, _cy9-int(_br*0.15)), max(1,int(hd*0.1)))
+        for _tth in range(-2,3):
+            pygame.draw.polygon(surface, (250,250,245), [
+                (_cx9+_tth*int(6*s), _cy9+int(_br*0.35)), (_cx9+_tth*int(6*s)-int(3*s), _cy9+int(_br*0.5)),
+                (_cx9+_tth*int(6*s)+int(3*s), _cy9+int(_br*0.5))])
+
+        # Holes with worms popping out on a staggered cycle
+        _hole_specs = [(-0.45,-0.35,0.22),(0.5,-0.25,0.2),(-0.15,0.5,0.2),(0.4,0.45,0.18)]
+        for _hi,(hxr,hyr,hr) in enumerate(_hole_specs):
+            _hx0 = _cx9+int(hxr*_br); _hy0 = _cy9+int(hyr*_br); _hrad = max(4,int(hr*_br))
+            pygame.draw.circle(surface, (15,12,10), (_hx0,_hy0), _hrad)
+            _pcycle = (_xt*0.6 + _hi*0.9) % 3.6
+            _popped = _pcycle < 1.2
+            _pop = math.sin((_pcycle/1.2)*math.pi) if _popped else 0.0
+            if _pop > 0.05:
+                _wcol = (150,190,70) if _hi % 2 == 0 else (200,110,160)
+                _wlen = int(_pop*hr*_br*1.6)
+                _wsway = math.sin(_xt*6+_hi)*3*s
+                pygame.draw.line(surface, _wcol, (_hx0,_hy0), (_hx0+int(_wsway),_hy0-_wlen), max(3,int(6*s)))
+                pygame.draw.circle(surface, _wcol, (_hx0+int(_wsway),_hy0-_wlen), max(2,int(_hrad*0.7)))
+                for _wex in (-1,1):
+                    pygame.draw.circle(surface, (20,20,20), (_hx0+int(_wsway)+_wex*int(2*s), _hy0-_wlen-int(2*s)), max(1,int(2*s)))
+
+        if action == 'punch':
+            return (int(_cx9 + facing * (_br + 22*s)), _cy9)
+        if action == 'kick':
+            return (int(_cx9 + facing * int(action_t * 90 * s)), int(y) - int(20*s))
+        return (int(_cx9 + facing * 20*s), _cy9)
 
     ln(waist, lk); ln(lk, lf)
     ln(waist, rk); ln(rk, rf)

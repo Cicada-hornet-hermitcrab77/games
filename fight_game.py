@@ -22,7 +22,8 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             ChargedOrb, BubbleShot, PoisonOrb, BlackHole, MusicNote, ArcaneOrb,
                             SunBeam, LibertyDove, PumpkinSeed,
                             FruitProj, CoalProj, WildfireBall, SniderBolt,
-                            SandSpit, SlimeBomb, TentaMissile, ExplodingTire)
+                            SandSpit, SlimeBomb, TentaMissile, ExplodingTire,
+                            Muskshroom, Cutlass, WormMine)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, fuser_mode
 from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
@@ -1180,6 +1181,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     slime_bombs    = []  # active SlimeBomb objects (Splaut & Dusty)
     tentamissiles  = []  # active TentaMissile objects (Bloob & Beatrix)
     exploding_tires = [] # active ExplodingTire objects (Bloob & Beatrix)
+    muskshrooms    = []  # active Muskshroom objects (Rook & Moosh)
+    cutlasses      = []  # active Cutlass objects (Rook & Moosh)
+    worm_mines     = []  # active WormMine objects (Xix!?xy & Zaor@k)
     sun_beams     = []   # active SunBeam objects (Solara)
     nian_breaths  = []   # active NianBreath cones (Nian)
     liberty_doves      = []   # active LibertyDove companions (Stickman of Liberty)
@@ -1921,6 +1925,53 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         victim.flash_timer = 12
                         et.damaged = True
             exploding_tires = [et for et in exploding_tires if et.alive]
+
+            # Rook & Moosh: muskshroom on punch
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_muskshroom:
+                    shooter.pending_muskshroom = False
+                    muskshrooms.append(Muskshroom(shooter.x + shooter.facing * 30, shooter.y - 60,
+                                                   shooter.facing, shooter))
+            for ms in muskshrooms:
+                ms.update()
+                if ms.alive:
+                    victim = p2 if ms.owner is p1 else p1
+                    if ms.collides(victim) and not victim.bubble_shield:
+                        victim.take_proj_dmg(Muskshroom.DMG)
+                        victim.flash_timer = 8
+                        ms.alive = False
+            muskshrooms = [ms for ms in muskshrooms if ms.alive]
+
+            # Rook & Moosh: cutlass on kick — flies off in a random direction
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_cutlass:
+                    shooter.pending_cutlass = False
+                    cutlasses.append(Cutlass(shooter.x, shooter.y - 60, shooter))
+            for cl in cutlasses:
+                cl.update()
+                if cl.alive:
+                    victim = p2 if cl.owner is p1 else p1
+                    if cl.collides(victim) and not victim.bubble_shield:
+                        victim.take_proj_dmg(Cutlass.DMG)
+                        victim.flash_timer = 10
+                        cl.alive = False
+            cutlasses = [cl for cl in cutlasses if cl.alive]
+
+            # Xix!?xy & Zaor@k: barrage of worm mines on punch
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_worm_mines:
+                    shooter.pending_worm_mines = False
+                    for _mxo in (-60, -20, 20, 60):
+                        worm_mines.append(WormMine(shooter.x + shooter.facing * 30 + _mxo, shooter))
+            for wm in worm_mines:
+                wm.update()
+                if wm.alive:
+                    victim = p2 if wm.owner is p1 else p1
+                    if wm.collides(victim) and not victim.bubble_shield:
+                        victim.take_proj_dmg(WormMine.DMG)
+                        victim.flash_timer = 10
+                        wm.alive = False
+            worm_mines = [wm for wm in worm_mines if wm.alive]
 
             # Spawn orbs from bazooka_kick
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -2879,6 +2930,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 if shooter.pending_storm:
                     shooter.pending_storm = False
                     thunder_bolts.append(ThunderBolt(random.randint(80, WIDTH - 80), shooter))
+                if shooter.pending_ultralightning:
+                    shooter.pending_ultralightning = False
+                    for _ulx in (victim.x - 30, victim.x, victim.x + 30):
+                        thunder_bolts.append(ThunderBolt(_ulx, shooter))
             # Quaker shockwave — landing deals area damage
             for attacker, victim in [(p1, p2), (p2, p1)]:
                 if attacker.quake_pending:
@@ -3331,6 +3386,12 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             tm.draw(screen)
         for et in exploding_tires:
             et.draw(screen)
+        for ms in muskshrooms:
+            ms.draw(screen)
+        for cl in cutlasses:
+            cl.draw(screen)
+        for wm in worm_mines:
+            wm.draw(screen)
         for pu in powerups:
             pu.draw(screen)
         for b in balls:
@@ -3881,6 +3942,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     en_tentamissiles    = []  # TentaMissile (Bloob & Beatrix, enemy-owned)
     exploding_tires     = []  # ExplodingTire (Bloob & Beatrix, player-owned)
     en_exploding_tires  = []  # ExplodingTire (Bloob & Beatrix, enemy-owned)
+    muskshrooms         = []  # Muskshroom (Rook & Moosh, player-owned)
+    en_muskshrooms      = []  # Muskshroom (Rook & Moosh, enemy-owned)
+    cutlasses           = []  # Cutlass (Rook & Moosh, player-owned)
+    en_cutlasses        = []  # Cutlass (Rook & Moosh, enemy-owned)
+    worm_mines          = []  # WormMine (Xix!?xy & Zaor@k, player-owned)
+    en_worm_mines       = []  # WormMine (Xix!?xy & Zaor@k, enemy-owned)
+    ultralightning_bolts    = []  # ThunderBolt (Xix!?xy & Zaor@k, player-owned)
+    en_ultralightning_bolts = []  # ThunderBolt (Xix!?xy & Zaor@k, enemy-owned)
     en_balls          = []
     en_orbs           = []
     en_bounce_balls   = []
@@ -4141,6 +4210,21 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     if en.pending_exploding_tire:
                         en.pending_exploding_tire = False
                         en_exploding_tires.append(ExplodingTire(en.x + en.facing*30, en.y-40, en.facing, en))
+                    if en.pending_muskshroom:
+                        en.pending_muskshroom = False
+                        en_muskshrooms.append(Muskshroom(en.x + en.facing*30, en.y-60, en.facing, en))
+                    if en.pending_cutlass:
+                        en.pending_cutlass = False
+                        en_cutlasses.append(Cutlass(en.x, en.y-60, en))
+                    if en.pending_worm_mines:
+                        en.pending_worm_mines = False
+                        for _mxo in (-60, -20, 20, 60):
+                            en_worm_mines.append(WormMine(en.x + en.facing*30 + _mxo, en))
+                    if en.pending_ultralightning:
+                        en.pending_ultralightning = False
+                        _ultgt = target.x if living else en.x
+                        for _ulx in (_ultgt - 30, _ultgt, _ultgt + 30):
+                            en_ultralightning_bolts.append(ThunderBolt(_ulx, en))
 
             # Mark newly dead players and freeze them
             for p in players:
@@ -4227,6 +4311,22 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     shooter.pending_exploding_tire = False
                     exploding_tires.append(ExplodingTire(shooter.x + shooter.facing*30, shooter.y-40,
                                                           shooter.facing, shooter))
+                if shooter.pending_muskshroom:
+                    shooter.pending_muskshroom = False
+                    muskshrooms.append(Muskshroom(shooter.x + shooter.facing*30, shooter.y-60,
+                                                   shooter.facing, shooter))
+                if shooter.pending_cutlass:
+                    shooter.pending_cutlass = False
+                    cutlasses.append(Cutlass(shooter.x, shooter.y-60, shooter))
+                if shooter.pending_worm_mines:
+                    shooter.pending_worm_mines = False
+                    for _mxo in (-60, -20, 20, 60):
+                        worm_mines.append(WormMine(shooter.x + shooter.facing*30 + _mxo, shooter))
+                if shooter.pending_ultralightning:
+                    shooter.pending_ultralightning = False
+                    _ultgt = min(enemies, key=lambda e: abs(e.x - shooter.x)).x if enemies else shooter.x
+                    for _ulx in (_ultgt - 30, _ultgt, _ultgt + 30):
+                        ultralightning_bolts.append(ThunderBolt(_ulx, shooter))
 
             # Laser Eyes beam damage (survival)
             for shooter in players:
@@ -4692,6 +4792,98 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             et.damaged = True
                             break
             en_exploding_tires = [et for et in en_exploding_tires if et.alive]
+
+            # Rook & Moosh: muskshrooms (survival)
+            for ms in muskshrooms:
+                ms.update()
+                if ms.alive:
+                    for en in enemies:
+                        if ms.collides(en) and not en.bubble_shield:
+                            en.take_proj_dmg(Muskshroom.DMG)
+                            en.flash_timer = 8
+                            ms.alive = False
+                            break
+            muskshrooms = [ms for ms in muskshrooms if ms.alive]
+            for ms in en_muskshrooms:
+                ms.update()
+                if ms.alive:
+                    for p in players:
+                        if p.hp > 0 and ms.collides(p) and not p.bubble_shield:
+                            p.take_proj_dmg(Muskshroom.DMG)
+                            p.flash_timer = 8
+                            ms.alive = False
+                            break
+            en_muskshrooms = [ms for ms in en_muskshrooms if ms.alive]
+
+            # Rook & Moosh: cutlasses (survival)
+            for cl in cutlasses:
+                cl.update()
+                if cl.alive:
+                    for en in enemies:
+                        if cl.collides(en) and not en.bubble_shield:
+                            en.take_proj_dmg(Cutlass.DMG)
+                            en.flash_timer = 10
+                            cl.alive = False
+                            break
+            cutlasses = [cl for cl in cutlasses if cl.alive]
+            for cl in en_cutlasses:
+                cl.update()
+                if cl.alive:
+                    for p in players:
+                        if p.hp > 0 and cl.collides(p) and not p.bubble_shield:
+                            p.take_proj_dmg(Cutlass.DMG)
+                            p.flash_timer = 10
+                            cl.alive = False
+                            break
+            en_cutlasses = [cl for cl in en_cutlasses if cl.alive]
+
+            # Xix!?xy & Zaor@k: worm mines (survival)
+            for wm in worm_mines:
+                wm.update()
+                if wm.alive:
+                    for en in enemies:
+                        if wm.collides(en) and not en.bubble_shield:
+                            en.take_proj_dmg(WormMine.DMG)
+                            en.flash_timer = 10
+                            wm.alive = False
+                            break
+            worm_mines = [wm for wm in worm_mines if wm.alive]
+            for wm in en_worm_mines:
+                wm.update()
+                if wm.alive:
+                    for p in players:
+                        if p.hp > 0 and wm.collides(p) and not p.bubble_shield:
+                            p.take_proj_dmg(WormMine.DMG)
+                            p.flash_timer = 10
+                            wm.alive = False
+                            break
+            en_worm_mines = [wm for wm in en_worm_mines if wm.alive]
+
+            # Xix!?xy & Zaor@k: ultralightning (survival)
+            for tb in ultralightning_bolts:
+                tb.update()
+                if tb.alive and not tb.hit:
+                    for en in enemies:
+                        if tb.collides(en) and not en.bubble_shield:
+                            en.take_proj_dmg(ThunderBolt.DMG)
+                            en.flash_timer = 12
+                            if not en.char.get("immune"):
+                                en.shock_frames = max(en.shock_frames, 180)
+                            tb.hit = True
+                            break
+            ultralightning_bolts = [tb for tb in ultralightning_bolts if tb.alive]
+            for tb in en_ultralightning_bolts:
+                tb.update()
+                if tb.alive and not tb.hit:
+                    for p in players:
+                        if p.hp > 0 and tb.collides(p) and not p.bubble_shield:
+                            p.take_proj_dmg(ThunderBolt.DMG)
+                            p.flash_timer = 12
+                            if not p.char.get("immune"):
+                                p.shock_frames = max(p.shock_frames, 180)
+                            tb.hit = True
+                            break
+            en_ultralightning_bolts = [tb for tb in en_ultralightning_bolts if tb.alive]
 
             # I: half-screen destroying eye kicks (survival — hits anyone, no team check)
             for ed in eye_destroyers:
@@ -5339,6 +5531,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for tm   in en_tentamissiles:  tm.draw(screen)
         for et   in exploding_tires:   et.draw(screen)
         for et   in en_exploding_tires: et.draw(screen)
+        for ms   in muskshrooms:       ms.draw(screen)
+        for ms   in en_muskshrooms:    ms.draw(screen)
+        for cl   in cutlasses:         cl.draw(screen)
+        for cl   in en_cutlasses:      cl.draw(screen)
+        for wm   in worm_mines:        wm.draw(screen)
+        for wm   in en_worm_mines:     wm.draw(screen)
+        for tb   in ultralightning_bolts:    tb.draw(screen)
+        for tb   in en_ultralightning_bolts: tb.draw(screen)
         for ao   in arcane_orbs:   ao.draw(screen)
         for sb   in sun_beams:     sb.draw(screen)
         for nb   in nian_breaths:  nb.draw(screen)
