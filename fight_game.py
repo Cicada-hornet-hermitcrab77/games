@@ -23,7 +23,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             SunBeam, LibertyDove, PumpkinSeed,
                             FruitProj, CoalProj, WildfireBall, SniderBolt,
                             SandSpit, SlimeBomb, TentaMissile, ExplodingTire,
-                            Muskshroom, Cutlass, WormMine)
+                            Muskshroom, Cutlass, WormMine, Car)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, fuser_mode
 from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
@@ -1219,6 +1219,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     _volcore_p2_cd  = 0
     # Underwater: bottom half of the arena is water (see constants.STAGE_WATER)
     _is_underwater = stage_data["name"] == "Underwater"
+    # City Rooftop: cars speed across — ride the roof or get roadkilled
+    _is_city_rooftop = stage_data["name"] == "City Rooftop"
+    cars = []
+    _car_spawn_timer = FPS * 3
     stage_pencil = None
     stage_eraser = None
     if is_computer:
@@ -1587,6 +1591,30 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     if p2.fire_frames == 0: p2.fire_tick = 240
                     p2.fire_frames = max(p2.fire_frames, 90)
                     _volcore_p2_cd = 30
+
+            # City Rooftop: cars speed across — ride the roof or get roadkilled
+            if _is_city_rooftop:
+                _car_spawn_timer -= 1
+                if _car_spawn_timer <= 0:
+                    _new_car = Car(random.choice([-1, 1]))
+                    cars.append(_new_car)
+                    platforms.append(_new_car)
+                    _car_spawn_timer = random.randint(FPS * 3, FPS * 6)
+                # NOTE: cars are already updated by the generic
+                # "for plat in platforms: plat.update()" pass above (they're
+                # in that list too, for free ride-on-roof physics) — don't
+                # update() them again here, just check the roadkill hitbox.
+                for _cr in cars:
+                    for _cv in (p1, p2):
+                        if _cr.alive and _cr.collides_side(_cv) and not _cv.bubble_shield:
+                            _cv.hp = max(0, _cv.hp - 35)
+                            _cv.flash_timer = 16
+                            _cv.knockback = _cr.direction * 22
+                            _cr.hit_ids.add(id(_cv))
+                _dead_cars = [_cr for _cr in cars if not _cr.alive]
+                for _cr in _dead_cars:
+                    if _cr in platforms: platforms.remove(_cr)
+                cars = [_cr for _cr in cars if _cr.alive]
 
             # Update clones
             new_clones = []
@@ -3876,6 +3904,10 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     _volcore_cds = {}   # per-fighter burn cooldown
     # Underwater: bottom half of the arena is water (see constants.STAGE_WATER)
     _is_underwater = stage_data["name"] == "Underwater"
+    # City Rooftop: cars speed across — ride the roof or get roadkilled
+    _is_city_rooftop = stage_data["name"] == "City Rooftop"
+    cars = []
+    _car_spawn_timer = FPS * 3
     stage_pencil = None
     stage_eraser = None
     if is_computer:
@@ -4132,6 +4164,29 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         if _vf.fire_frames == 0: _vf.fire_tick = 240
                         _vf.fire_frames = max(_vf.fire_frames, 90)
                         _volcore_cds[id(_vf)] = 30
+
+            # City Rooftop: cars speed across — ride the roof or get roadkilled.
+            # Cars are updated by the generic "for plat in platforms:
+            # plat.update()" pass above (they're in that list too, for free
+            # ride-on-roof physics) — don't update() them again here.
+            if _is_city_rooftop:
+                _car_spawn_timer -= 1
+                if _car_spawn_timer <= 0:
+                    _new_car = Car(random.choice([-1, 1]))
+                    cars.append(_new_car)
+                    platforms.append(_new_car)
+                    _car_spawn_timer = random.randint(FPS * 3, FPS * 6)
+                for _cr in cars:
+                    for _cv in [p for p in players if p.hp > 0] + enemies:
+                        if _cr.alive and _cr.collides_side(_cv) and not _cv.bubble_shield:
+                            _cv.hp = max(0, _cv.hp - 35)
+                            _cv.flash_timer = 16
+                            _cv.knockback = _cr.direction * 22
+                            _cr.hit_ids.add(id(_cv))
+                _dead_cars = [_cr for _cr in cars if not _cr.alive]
+                for _cr in _dead_cars:
+                    if _cr in platforms: platforms.remove(_cr)
+                cars = [_cr for _cr in cars if _cr.alive]
 
             # Portals
             for portal in portals_obj_s:

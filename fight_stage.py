@@ -850,6 +850,53 @@ class JungleSnake:
         pygame.draw.rect(surface, (60, 220, 60),  (bx_l, by_t, int(bw * self.hp / self.MAX_HP), 4))
 
 
+class Car(object):
+    """City Rooftop hazard: speeds across the roof. Exposes the same
+    x/y/w/vx interface as Platform so it drops straight into the shared
+    platforms list and fighters can land on / ride its roof for free —
+    catch one at street level instead and it's roadkill (handled by the
+    game loop, since that's a lethal side-hit rather than a landing)."""
+    W = 100
+    H = 30
+    SPEED = 7
+
+    def __init__(self, direction):
+        self.direction = direction
+        self.x  = float(-self.W - 20) if direction == 1 else float(WIDTH + 20)
+        self.y  = float(GROUND_Y - self.H)
+        self.w  = self.W
+        self.vx = float(self.SPEED * direction)
+        self.alive = True
+        self.hit_ids = set()   # fighters already roadkilled by this car
+
+    def update(self):
+        self.x += self.vx
+        if (self.direction == 1 and self.x > WIDTH + 20) or \
+           (self.direction == -1 and self.x < -self.W - 20):
+            self.alive = False
+
+    def draw(self, surface, stage_idx=None):
+        rx, ry = int(self.x), int(self.y)
+        body_col = (200, 60, 50) if self.direction == 1 else (50, 110, 200)
+        dk = tuple(max(0, c - 50) for c in body_col)
+        pygame.draw.rect(surface, dk, (rx, ry + int(self.H*0.4), self.W, int(self.H*0.6)), border_radius=6)
+        pygame.draw.rect(surface, body_col, (rx, ry + int(self.H*0.3), self.W, int(self.H*0.55)), border_radius=6)
+        pygame.draw.rect(surface, dk, (rx + int(self.W*0.22), ry, int(self.W*0.56), int(self.H*0.5)), border_radius=4)
+        pygame.draw.rect(surface, (170, 215, 235), (rx + int(self.W*0.27), ry + int(self.H*0.08),
+                         int(self.W*0.46), int(self.H*0.32)), border_radius=3)
+        for _wxo in (0.18, 0.82):
+            pygame.draw.circle(surface, (20, 20, 20), (rx + int(self.W*_wxo), ry + self.H), 8)
+            pygame.draw.circle(surface, (100, 100, 105), (rx + int(self.W*_wxo), ry + self.H), 3)
+        _lx = rx + self.W - 4 if self.direction == 1 else rx + 4
+        pygame.draw.circle(surface, (255, 240, 180), (_lx, ry + int(self.H*0.55)), 4)
+
+    def collides_side(self, fighter):
+        """A street-level (not on-roof) hit — the fighter is caught in
+        the car's path instead of standing on top of it."""
+        return (self.x - 10 <= fighter.x <= self.x + self.w + 10
+                and fighter.y > self.y + 6 and id(fighter) not in self.hit_ids)
+
+
 class RollingStone(object):
     """Project Yellowstone's Rollin' Stones mode — falls from the sky, lands
     and rolls like a boulder, hurts fighters on contact. Splits into two
