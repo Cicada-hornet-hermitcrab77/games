@@ -5098,43 +5098,91 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                         0, math.pi, max(1, int(2*s)))
 
     elif char_name == "Copycat":
-        # Patchwork costume stitched from multiple character colors
-        _ccols = [(200, 40, 40), (40, 100, 200), (40, 160, 60), (160, 60, 200), (200, 160, 20)]
-        for _cci in range(5):
-            _ccx = sx - int(10*s) + (_cci % 3) * int(7*s)
-            _ccy = sy + int(bl * (0.05 + (_cci // 3) * 0.5))
-            pygame.draw.rect(surface, _ccols[_cci],
-                             (_ccx, _ccy, int(8*s), int(bl * 0.45)),
-                             border_radius=max(1, int(2*s)))
-        # Stitching lines between patches
-        for _sti in range(4):
-            _stx = sx - int(8*s) + _sti * int(5*s)
-            for _stdy in range(0, int(bl), max(4, int(6*s))):
-                pygame.draw.line(surface, (240, 240, 200),
-                                 (_stx, sy + _stdy), (_stx, sy + _stdy + int(3*s)), max(1, int(s)))
-        # Ghost copy silhouette offset behind
-        _ccsurf = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        _ccoff = facing * int(16*s)
-        pygame.draw.circle(_ccsurf, (200, 200, 230, 50), (hx + _ccoff, hy), hd)
-        pygame.draw.line(_ccsurf, (200, 200, 230, 50),
-                         (sx + _ccoff, sy), (wx + _ccoff, wy), max(2, int(3*s)))
-        surface.blit(_ccsurf, (0, 0))
-        # Two overlapping translucent faces
-        for _ci, _cof in enumerate((-1, 1)):
-            _cx = hx + _cof * int(hd * 0.28)
-            pygame.draw.circle(surface, (160 + _ci*40, 160 + _ci*40, 180),
-                               (_cx, hy), hd, max(2, int(3*s)))
-        # Mask divider line down face
-        pygame.draw.line(surface, (200, 200, 220),
-                         (hx, hy - hd + int(2*s)), (hx, hy + int(hd*0.6)), max(1, int(2*s)))
-        # Question mark on forehead
-        _qf = _get_font(max(8, int(14*s)))
-        _qt = _qf.render("?", True, (220, 220, 255))
-        surface.blit(_qt, (hx - _qt.get_width()//2, hy - hd - int(3*s)))
-        # Morphing hand shapes (one per side)
-        for _mhx, _mhy, _mhcol in [(lhx, lhy, (200, 60, 60)), (rhx, rhy, (60, 100, 220))]:
-            pygame.draw.circle(surface, _mhcol, (_mhx, _mhy), max(5, int(7*s)))
-            pygame.draw.circle(surface, (240, 240, 255), (_mhx, _mhy), max(5, int(7*s)), max(1, int(s)))
+        _cct = pygame.time.get_ticks() / 1000.0
+        _cccycle = _cct % 6.0
+        _is_cat = _cccycle < 1.6
+        if _is_cat:
+            # Fully shapeshifts into a cat every 6 seconds — solid shape
+            # painted over the whole stickman silhouette
+            _cat_in = min(1.0, _cccycle / 0.25)
+            _cat_out = min(1.0, (1.6 - _cccycle) / 0.25) if _cccycle > 1.35 else 1.0
+            _cat_scale = min(_cat_in, _cat_out)
+            if _cat_scale > 0.02:
+                _catcol = col
+                _catdk  = tuple(max(0, c-40) for c in col)
+                _cbx, _cby = (sx+wx)//2, (sy+wy)//2
+                _cr = int(hd * 1.15 * _cat_scale)
+                # Body
+                pygame.draw.ellipse(surface, _catcol, (_cbx-int(_cr*1.4), _cby-int(_cr*0.8), int(_cr*2.8), int(_cr*1.6)))
+                # Tail, curls up behind
+                _ttx = _cbx - facing*int(_cr*1.7)
+                _tty = _cby - int(math.sin(_cct*3)*_cr*0.3)
+                pygame.draw.line(surface, _catcol, (_cbx-facing*int(_cr*1.2), _cby), (_ttx, _cby-int(_cr*0.6)), max(2,int(4*s*_cat_scale)))
+                pygame.draw.line(surface, _catcol, (_ttx, _cby-int(_cr*0.6)), (_ttx-facing*int(_cr*0.3), _tty-int(_cr*1.1)), max(2,int(3*s*_cat_scale)))
+                # Head
+                _chx, _chy = _cbx+facing*int(_cr*1.1), _cby-int(_cr*0.9)
+                pygame.draw.circle(surface, _catcol, (_chx, _chy), int(_cr*0.75))
+                # Ears
+                for _esign in (-1,1):
+                    pygame.draw.polygon(surface, _catcol, [
+                        (_chx+_esign*int(_cr*0.5), _chy-int(_cr*0.4)),
+                        (_chx+_esign*int(_cr*0.75), _chy-int(_cr*1.15)),
+                        (_chx+_esign*int(_cr*0.15), _chy-int(_cr*0.55))])
+                    pygame.draw.polygon(surface, (240,170,180), [
+                        (_chx+_esign*int(_cr*0.48), _chy-int(_cr*0.48)),
+                        (_chx+_esign*int(_cr*0.6), _chy-int(_cr*0.9)),
+                        (_chx+_esign*int(_cr*0.28), _chy-int(_cr*0.55))])
+                # Face
+                for _eexo in (-0.28, 0.28):
+                    pygame.draw.circle(surface, (30,30,30), (_chx+int(_eexo*_cr), _chy-int(_cr*0.05)), max(1,int(_cr*0.14)))
+                pygame.draw.circle(surface, (230,150,160), (_chx+facing*int(_cr*0.12), _chy+int(_cr*0.22)), max(1,int(_cr*0.12)))
+                for _wsign in (-1,1):
+                    for _wi9 in range(3):
+                        _wy0 = _chy+int(_cr*0.22)+_wi9*max(1,int(_cr*0.12))-int(_cr*0.12)
+                        pygame.draw.line(surface, _catdk, (_chx+_wsign*int(_cr*0.15), _wy0),
+                                         (_chx+_wsign*int(_cr*0.75), _wy0-int(_cr*0.08)), 1)
+                # Legs
+                for _lxo in (-0.7,-0.2,0.3,0.8):
+                    pygame.draw.line(surface, _catdk, (_cbx+int(_lxo*_cr), _cby+int(_cr*0.6)),
+                                     (_cbx+int(_lxo*_cr), _cby+int(_cr*1.15)), max(2,int(3*s*_cat_scale)))
+        else:
+            # Patchwork costume stitched from multiple character colors
+            _ccols = [(200, 40, 40), (40, 100, 200), (40, 160, 60), (160, 60, 200), (200, 160, 20)]
+            for _cci in range(5):
+                _ccx = sx - int(10*s) + (_cci % 3) * int(7*s)
+                _ccy = sy + int(bl * (0.05 + (_cci // 3) * 0.5))
+                pygame.draw.rect(surface, _ccols[_cci],
+                                 (_ccx, _ccy, int(8*s), int(bl * 0.45)),
+                                 border_radius=max(1, int(2*s)))
+            # Stitching lines between patches
+            for _sti in range(4):
+                _stx = sx - int(8*s) + _sti * int(5*s)
+                for _stdy in range(0, int(bl), max(4, int(6*s))):
+                    pygame.draw.line(surface, (240, 240, 200),
+                                     (_stx, sy + _stdy), (_stx, sy + _stdy + int(3*s)), max(1, int(s)))
+            # Ghost copy silhouette offset behind
+            _ccsurf = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            _ccoff = facing * int(16*s)
+            pygame.draw.circle(_ccsurf, (200, 200, 230, 50), (hx + _ccoff, hy), hd)
+            pygame.draw.line(_ccsurf, (200, 200, 230, 50),
+                             (sx + _ccoff, sy), (wx + _ccoff, wy), max(2, int(3*s)))
+            surface.blit(_ccsurf, (0, 0))
+            # Two overlapping translucent faces
+            for _ci, _cof in enumerate((-1, 1)):
+                _cx = hx + _cof * int(hd * 0.28)
+                pygame.draw.circle(surface, (160 + _ci*40, 160 + _ci*40, 180),
+                                   (_cx, hy), hd, max(2, int(3*s)))
+            # Mask divider line down face
+            pygame.draw.line(surface, (200, 200, 220),
+                             (hx, hy - hd + int(2*s)), (hx, hy + int(hd*0.6)), max(1, int(2*s)))
+            # Question mark on forehead
+            _qf = _get_font(max(8, int(14*s)))
+            _qt = _qf.render("?", True, (220, 220, 255))
+            surface.blit(_qt, (hx - _qt.get_width()//2, hy - hd - int(3*s)))
+            # Morphing hand shapes (one per side)
+            for _mhx, _mhy, _mhcol in [(lhx, lhy, (200, 60, 60)), (rhx, rhy, (60, 100, 220))]:
+                pygame.draw.circle(surface, _mhcol, (_mhx, _mhy), max(5, int(7*s)))
+                pygame.draw.circle(surface, (240, 240, 255), (_mhx, _mhy), max(5, int(7*s)), max(1, int(s)))
 
     elif char_name == "Windshield Viper":
         # Snake scales on torso

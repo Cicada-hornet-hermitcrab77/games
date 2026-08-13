@@ -1451,7 +1451,7 @@ class SlimeBomb:
 class TentaMissile:
     SPEED  = 10
     DMG    = 6
-    RADIUS = 6
+    RADIUS = 11
     LIFE   = 65
 
     def __init__(self, x, y, facing, owner, vy=0.0):
@@ -1470,8 +1470,17 @@ class TentaMissile:
             self.alive = False
 
     def draw(self, surface):
-        pygame.draw.circle(surface, (60, 170, 130), (int(self.x), int(self.y)), self.RADIUS)
-        pygame.draw.circle(surface, (150, 230, 200), (int(self.x), int(self.y)), max(1, self.RADIUS - 3))
+        cx, cy = int(self.x), int(self.y)
+        _t = self.life * 0.3
+        # Trailing tentacle wisps
+        for _wi in range(3):
+            _wa = _wi * 2.1 + _t
+            _wx = cx - int(self.vx * (1.4 + _wi*0.6)) + int(math.sin(_wa)*4)
+            _wy = cy - int(self.vy * (1.4 + _wi*0.6)) + int(math.cos(_wa)*4)
+            pygame.draw.circle(surface, (50, 150, 115), (_wx, _wy), max(1, self.RADIUS - 4 - _wi*2))
+        pygame.draw.circle(surface, (60, 170, 130), (cx, cy), self.RADIUS)
+        pygame.draw.circle(surface, (150, 230, 200), (cx, cy), max(1, self.RADIUS - 4))
+        pygame.draw.circle(surface, (230, 255, 245), (cx, cy), max(1, self.RADIUS - 8))
 
     def collides(self, fighter):
         return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
