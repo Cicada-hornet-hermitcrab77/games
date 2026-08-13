@@ -15270,33 +15270,50 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
             pygame.draw.line(surface, (235,70,95), (_midx,_tby+_twav), (_ttx-facing*int(3*s),_tby+_twav-int(3*s)), max(2,int(3*s)))
             pygame.draw.line(surface, (235,70,95), (_midx,_tby+_twav), (_ttx-facing*int(3*s),_tby+_twav+int(3*s)), max(2,int(3*s)))
 
-        # Tail with a sloppy snake head — scaled, eyed, forked-tongued —
-        # lunges forward toward the opponent periodically
+        # Galymph-style build: Dusty isn't a separate creature riding on
+        # Splaut — he's the same monster's tail, curled up and back so it
+        # LOOKS like a second head perched behind/atop the body, the same
+        # "steed and rider are one animal" illusion Galymph uses. The tail
+        # is thick, finned, and fish-like rather than a thin snake line,
+        # and unfurls into a lunge toward the opponent periodically.
         _lunge_cycle = _pt % 3.0
         _lunging = _lunge_cycle < 0.4
         _lunge = math.sin((_lunge_cycle/0.4)*math.pi) if _lunging else 0.0
-        _tail_bx, _tail_by = _cx9 - facing*int(_br*0.85), _cy9 + int(_br*0.25)
-        _tmidx = _tail_bx - facing*int((10+_lunge*14)*s)
-        _tmidy = _tail_by + int(math.sin(_pt*1.3)*6*s)
-        _tail_hx = _tmidx - facing*int((14+_lunge*20)*s)
-        _tail_hy = _tmidy + int(math.sin(_pt*1.5+1)*4*s)
-        pygame.draw.line(surface, _dk, (_tail_bx,_tail_by), (_tmidx,_tmidy), max(4,int(8*s)))
-        pygame.draw.line(surface, _dk, (_tmidx,_tmidy), (_tail_hx,_tail_hy), max(3,int(6*s)))
-        _shd_r = max(4,int(hd*0.4))
-        pygame.draw.circle(surface, (120,150,80), (_tail_hx,_tail_hy), _shd_r)
-        pygame.draw.circle(surface, (90,115,60), (_tail_hx,_tail_hy), _shd_r, max(1,int(2*s)))
-        for _sang in range(0,360,50):
-            _scx = _tail_hx+int(math.cos(math.radians(_sang))*_shd_r*0.6)
-            _scy = _tail_hy+int(math.sin(math.radians(_sang))*_shd_r*0.6)
-            pygame.draw.circle(surface, (100,130,65), (_scx,_scy), max(1,int(2*s)))
-        pygame.draw.circle(surface, (255,255,255), (_tail_hx-facing*int(3*s), _tail_hy-int(3*s)), max(2,int(_shd_r*0.35)))
-        pygame.draw.circle(surface, (20,20,20), (_tail_hx-facing*int(3*s), _tail_hy-int(3*s)), max(1,int(_shd_r*0.15)))
-        # Tiny forked snake tongue when lunging
-        if _lunging:
-            _sntx = _tail_hx - facing*int(_shd_r*0.9)
-            pygame.draw.line(surface, (200,40,60), (_tail_hx,_tail_hy), (_sntx,_tail_hy), max(1,int(2*s)))
-            pygame.draw.line(surface, (200,40,60), (_sntx,_tail_hy), (_sntx-facing*int(3*s),_tail_hy-int(2*s)), 1)
-            pygame.draw.line(surface, (200,40,60), (_sntx,_tail_hy), (_sntx-facing*int(3*s),_tail_hy+int(2*s)), 1)
+        # Curled "resting" path: hugs up and over the back of the body.
+        # Lunging straightens the curl out toward the opponent.
+        _root = (_cx9 - facing*int(_br*0.7), _cy9 + int(_br*0.15))
+        _curl_mid  = (_cx9 - facing*int(_br*0.95), _cy9 - int(_br*0.75))
+        _curl_head = (_cx9 - facing*int(_br*0.35), _cy9 - int(_br*1.15))
+        _lunge_mid  = (_root[0] - facing*int((16+_lunge*22)*s), _root[1] - int(4*s))
+        _lunge_head = (_lunge_mid[0] - facing*int((20+_lunge*30)*s), _lunge_mid[1] + int(math.sin(_pt*1.5+1)*4*s))
+        _tmidx = int(_curl_mid[0]  + (_lunge_mid[0]  - _curl_mid[0])  * _lunge)
+        _tmidy = int(_curl_mid[1]  + (_lunge_mid[1]  - _curl_mid[1])  * _lunge)
+        _tail_hx = int(_curl_head[0] + (_lunge_head[0] - _curl_head[0]) * _lunge)
+        _tail_hy = int(_curl_head[1] + (_lunge_head[1] - _curl_head[1]) * _lunge)
+        # Thick, fleshy fish-tail body with small triangular frills
+        pygame.draw.line(surface, _dk, _root, (_tmidx,_tmidy), max(7,int(13*s)))
+        pygame.draw.line(surface, col, _root, (_tmidx,_tmidy), max(4,int(9*s)))
+        pygame.draw.line(surface, _dk, (_tmidx,_tmidy), (_tail_hx,_tail_hy), max(6,int(11*s)))
+        pygame.draw.line(surface, col, (_tmidx,_tmidy), (_tail_hx,_tail_hy), max(3,int(7*s)))
+        for _ft in (0.3, 0.55, 0.8):
+            _fpx = int(_root[0]+(_tmidx-_root[0])*_ft); _fpy = int(_root[1]+(_tmidy-_root[1])*_ft)
+            pygame.draw.polygon(surface, _dk, [(_fpx,_fpy), (_fpx,_fpy-int(9*s)), (_fpx+facing*int(6*s),_fpy-int(3*s))])
+        # Dusty's head — melted/blank fish-head look: no pupils, a small
+        # gaping hole for a mouth, frilled crest
+        _shd_r = max(5,int(hd*0.45))
+        pygame.draw.circle(surface, (130,160,90), (_tail_hx,_tail_hy), _shd_r)
+        pygame.draw.circle(surface, (95,120,65), (_tail_hx,_tail_hy), _shd_r, max(1,int(2*s)))
+        for _fi9 in range(3):
+            _fang = math.radians(-90 + (_fi9-1)*30)
+            _fcx = _tail_hx+int(math.cos(_fang)*_shd_r*0.9); _fcy = _tail_hy+int(math.sin(_fang)*_shd_r*0.9)
+            pygame.draw.polygon(surface, (95,120,65), [(_tail_hx,_tail_hy-int(_shd_r*0.5)), (_fcx,_fcy),
+                                (_tail_hx+int(8*s),_tail_hy-int(_shd_r*0.3))])
+        # Blank pupil-less eyes
+        for _dexo in (-0.32, 0.32):
+            _dex = _tail_hx+int(_dexo*_shd_r); _dey = _tail_hy-int(_shd_r*0.15)
+            pygame.draw.ellipse(surface, (240,245,240), (_dex-int(3*s), _dey-int(4*s), int(6*s), int(8*s)))
+        # Small gaping hole mouth instead of a snout
+        pygame.draw.circle(surface, (25,15,15), (_tail_hx-facing*int(_shd_r*0.1), _tail_hy+int(_shd_r*0.45)), max(2,int(_shd_r*0.28)))
 
         if action == 'punch':
             return (int(_cx9 + facing * (_br + 20*s)), _cy9)
