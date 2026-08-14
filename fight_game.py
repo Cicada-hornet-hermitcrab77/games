@@ -1091,17 +1091,23 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             _mimic.max_hp = _target.char["max_hp"]
             _mimic.hp     = _mimic.max_hp
 
-    if constants.STAGE_VOID:
-        # Spawn on the central platform (GROUND_Y-70), not on the (absent) floor
-        p1.x = 380.0; p1.y = float(GROUND_Y - 70); p1.on_ground = True
-        p2.x = 520.0; p2.y = float(GROUND_Y - 70); p2.on_ground = True
-
     stage_data = STAGES[stage_idx % len(STAGES)]
     platforms  = [Platform(*p) for p in stage_data["platforms"]] + [ConveyorBelt(*c) for c in stage_data.get("conveyors", [])] + [SlantedConveyorBelt(*c) for c in stage_data.get("slanted_conveyors", [])]
     if stage_data.get("book_stage"):
         for _pl in platforms:
             if isinstance(_pl, Platform):
                 _pl.book_style = True
+                _pl._book_redirect_timer = FPS * 99999  # frozen until the 5s delay ends
+
+    if constants.STAGE_VOID:
+        # Spawn on the central platform (GROUND_Y-70), not on the (absent) floor
+        p1.x = 380.0; p1.y = float(GROUND_Y - 70); p1.on_ground = True
+        p2.x = 520.0; p2.y = float(GROUND_Y - 70); p2.on_ground = True
+    if stage_data.get("book_stage") and len(platforms) >= 2:
+        # Spawn standing on the 2nd and 5th books in the line
+        _bk1, _bk2 = platforms[1], platforms[4]
+        p1.x = _bk1.x + _bk1.w / 2; p1.y = float(_bk1.y); p1.on_ground = True
+        p2.x = _bk2.x + _bk2.w / 2; p2.y = float(_bk2.y); p2.on_ground = True
     springs    = [Spring(*s)   for s in stage_data["springs"]]
     hazards    = [HazardZone(*h) for h in stage_data.get("hazards", [])]
 
@@ -1223,6 +1229,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     _is_city_rooftop = stage_data["name"] == "City Rooftop"
     cars = []
     _car_spawn_timer = FPS * 3
+    # Booked: books stay lined up & still for 5s, then drift off randomly
+    _is_booked = stage_data.get("book_stage", False)
+    _book_move_timer = FPS * 5
     stage_pencil = None
     stage_eraser = None
     if is_computer:
@@ -1615,6 +1624,27 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 for _cr in _dead_cars:
                     if _cr in platforms: platforms.remove(_cr)
                 cars = [_cr for _cr in cars if _cr.alive]
+
+            # Booked: books sit still in a line for 5s, then drift randomly,
+            # re-randomizing direction/speed every couple seconds so it
+            # never settles into a simple back-and-forth oscillation.
+            if _is_booked:
+                if _book_move_timer > 0:
+                    _book_move_timer -= 1
+                    if _book_move_timer == 0:
+                        for _bk in platforms:
+                            if getattr(_bk, "book_style", False):
+                                _bk._book_redirect_timer = 0
+                for _bk in platforms:
+                    if not getattr(_bk, "book_style", False):
+                        continue
+                    _bk._book_redirect_timer -= 1
+                    if _bk._book_redirect_timer <= 0:
+                        _bk.vx = random.choice([-1, 1]) * random.uniform(0.8, 2.2)
+                        _bk.start_x = _bk.x
+                        _bk.move_range = random.randint(70, 160)
+                        _bk._book_redirect_timer = random.randint(FPS * 2, FPS * 4)
+                    _bk.x = max(10.0, min(float(WIDTH - 10 - _bk.w), _bk.x))
 
             # Update clones
             new_clones = []

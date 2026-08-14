@@ -1129,8 +1129,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 break
 
     if char_filter is not None:
-        _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS)
-                     if c["name"] in char_filter and not c.get("eartha_variant") and not c.get("clover_variant") and not c.get("solara_variant") and not c.get("nghs_variant") and not c.get("bookzworm_variant") and not c.get("yellowstone_variant")]
+        # An explicit char_filter is a curated roster (e.g. Booked wanting
+        # "Graduated Bookzworm" shown directly) — trust it outright rather
+        # than also applying the general variant-exclusion filters below.
+        _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS) if c["name"] in char_filter]
         _CHARS    = [c for _, c in _cf_pairs]
         _orig_idx = [i for i, _ in _cf_pairs]
         COLS      = min(4, max(1, len(_CHARS)))

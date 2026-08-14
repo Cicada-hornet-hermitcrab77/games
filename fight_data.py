@@ -2080,15 +2080,16 @@ STAGES = [
         (300, GROUND_Y-130), (560, GROUND_Y-130),
         (440, GROUND_Y-260), (450, GROUND_Y-70),
     ], "hazards": []},
-    # Booked (dedicated mode stage — index 30). Drifting book platforms over a void.
+    # Booked (dedicated mode stage — index 30). Books start lined up and
+    # stationary; after 5 seconds they start drifting randomly (see
+    # run_fight/run_survival "_is_booked" handling in fight_game.py).
     {"name": "Booked", "special_mode_only": True, "book_stage": True, "platforms": [
-        (140, GROUND_Y-90,  130, 1.6, 90),
-        (630, GROUND_Y-90,  130, -1.6, 90),
-        (380, GROUND_Y-170, 150, 1.2, 110),
-        (90,  GROUND_Y-260, 120, -1.4, 80),
-        (690, GROUND_Y-260, 120, 1.4, 80),
-        (250, GROUND_Y-350, 130, 1.8, 100),
-        (520, GROUND_Y-350, 130, -1.8, 100),
+        (40,  GROUND_Y-120, 120, 0, 0),
+        (180, GROUND_Y-120, 120, 0, 0),
+        (320, GROUND_Y-120, 120, 0, 0),
+        (460, GROUND_Y-120, 120, 0, 0),
+        (600, GROUND_Y-120, 120, 0, 0),
+        (740, GROUND_Y-120, 120, 0, 0),
     ], "springs": [], "conveyors": [], "portals": [], "hazards": []},
     # Rolling Stones (dedicated mode stage — index 31). Stones fall from above every 5s.
     {"name": "Rolling Stones", "special_mode_only": True, "platforms": [
@@ -2127,5 +2128,7 @@ STAGE_MATCHUPS = {
     "Graveyard":       {"adv": "Ghost",       "dis": "Medic"},
     "The Nether":      {"adv": "Void Master", "dis": "Wisp"},
     "Portal World":    {"adv": "Teleporter",  "dis": "Anchor"},
+    "Spring World":    {"adv": "Jetpack",     "dis": "Boulder"},
+    "Conveyor World":  {"adv": "Whirlpool",   "dis": "Sniper"},
 }
 

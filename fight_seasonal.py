@@ -136,12 +136,58 @@ def is_lunar_eclipse_today():
 # Decoration drawing — called each frame on all UI screens during an event
 # ---------------------------------------------------------------------------
 
+                              # (color, shape) ambient particles scattered across the whole
+# screen for each event, layered under the main per-event decorations
+# so the screen reads as genuinely crowded rather than a thin top strip.
+_AMBIENT_DECO = {
+    "new_dynasties": [((220, 30, 30), "dot"), ((255, 200, 0), "dot")],
+    "hearts":        [((255, 140, 180), "heart")],
+    "emerald":       [((40, 190, 80), "dot")],
+    "easter":        [((255, 100, 100), "dot"), ((100, 180, 255), "dot"), ((255, 220, 50), "dot")],
+    "earth":         [((50, 190, 70), "dot"), ((80, 130, 50), "dot")],
+    "memorial":      [((200, 30, 30), "star"), ((30, 60, 200), "star")],
+    "summer":        [((255, 210, 0), "dot"), ((255, 140, 40), "dot")],
+    "july4":         [((255, 255, 255), "star"), ((220, 40, 40), "dot"), ((40, 80, 220), "dot")],
+    "school":        [((200, 60, 60), "dot"), ((60, 100, 200), "dot"), ((255, 220, 50), "dot")],
+    "mountain":      [((215, 225, 235), "dot"), ((150, 165, 175), "dot")],
+    "halloween":     [((200, 100, 20), "dot"), ((140, 90, 200), "dot")],
+    "thanksgiving":  [((200, 100, 30), "dot"), ((180, 60, 20), "dot"), ((220, 160, 40), "dot")],
+    "hanukkah":      [((200, 180, 60), "star"), ((50, 110, 220), "dot")],
+    "christmas":     [((200, 230, 255), "snowflake"), ((220, 40, 40), "dot")],
+}
+
+
+def _scatter_ambient(surf, deco):
+    """Deterministic (not re-randomized every frame) scatter of small
+    themed particles across the full screen — crowds the background
+    without ever jittering, since positions are a fixed hash of index."""
+    palette = _AMBIENT_DECO.get(deco)
+    if not palette:
+        return
+    for i in range(46):
+        px = (i * 137 + 53) % (WIDTH - 20) + 10
+        py = (i * 91 + 23) % (HEIGHT - 40) + 15
+        col, shape = palette[i % len(palette)]
+        r = 2 + (i % 3)
+        alpha = 70 + (i * 7) % 60
+        c = (*col, alpha)
+        if shape == "dot":
+            pygame.draw.circle(surf, c, (px, py), r)
+        elif shape == "star":
+            _draw_star(surf, px, py, r + 2, c)
+        elif shape == "heart":
+            _draw_heart(surf, px, py, r + 1, c)
+        elif shape == "snowflake":
+            _draw_snowflake(surf, px, py, r + 3, c)
+
+
 def draw_seasonal_decos(screen):
     ev = get_active_event()
     if ev is None:
         return
     surf = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
     deco = ev["deco"]
+    _scatter_ambient(surf, deco)
     if   deco == "new_dynasties": _deco_new_dynasties(surf)
     elif deco == "hearts":        _deco_hearts(surf)
     elif deco == "emerald":       _deco_emerald(surf)
