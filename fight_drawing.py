@@ -16566,6 +16566,44 @@ def draw_bg(surface, stage_idx=0):
             pygame.draw.rect(surface, _sc, (_si * _strip_w, GROUND_Y + 2, _strip_w, HEIGHT - GROUND_Y - 2))
         pygame.draw.line(surface, (255, 80, 200), (0, GROUND_Y + 2), (WIDTH, GROUND_Y + 2), 3)
 
+    elif s == 30:  # Booked — the fighters battle inside a giant open book
+        surface.fill((26, 18, 38))
+        _glow = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        for _gr, _ga in [(420, 16), (320, 24), (220, 32)]:
+            pygame.draw.circle(_glow, (100, 80, 160, _ga), (WIDTH // 2, HEIGHT // 2 - 10), _gr)
+        surface.blit(_glow, (0, 0))
+        _bcx   = WIDTH // 2
+        _btop  = -30
+        _bbot  = HEIGHT + 40
+        _bhalf = WIDTH // 2 - 10
+        # book cover peeking out behind the pages
+        pygame.draw.polygon(surface, (80, 42, 26), [
+            (_bcx - _bhalf - 22, _btop - 10), (_bcx, _btop - 26), (_bcx + _bhalf + 22, _btop - 10),
+            (_bcx + _bhalf + 22, _bbot + 10), (_bcx, _bbot + 26), (_bcx - _bhalf - 22, _bbot + 10)])
+        # left & right pages, curving slightly toward the spine
+        pygame.draw.polygon(surface, (232, 220, 188), [
+            (_bcx, _btop), (_bcx - _bhalf, _btop + 36),
+            (_bcx - _bhalf, _bbot - 36), (_bcx, _bbot)])
+        pygame.draw.polygon(surface, (222, 210, 176), [
+            (_bcx, _btop), (_bcx + _bhalf, _btop + 36),
+            (_bcx + _bhalf, _bbot - 36), (_bcx, _bbot)])
+        # faint printed text lines on both pages
+        for _side in (-1, 1):
+            for _row in range(16):
+                _ly  = 40 + _row * 32
+                if _ly > HEIGHT - 20:
+                    break
+                _lw  = int((_bhalf - 90) * (0.55 + 0.35 * math.sin(_row * 0.8 + _side)))
+                _lx0 = _bcx + _side * 46
+                pygame.draw.line(surface, (160, 150, 118), (_lx0, _ly), (_lx0 + _side * _lw, _ly), 2)
+        # spine shadow down the middle
+        _spine = pygame.Surface((44, HEIGHT + 80), pygame.SRCALPHA)
+        for _dx in range(22):
+            _a = int(90 * (1 - _dx / 22.0))
+            pygame.draw.line(_spine, (20, 12, 10, _a), (22 - _dx, 0), (22 - _dx, HEIGHT + 80))
+            pygame.draw.line(_spine, (20, 12, 10, _a), (22 + _dx, 0), (22 + _dx, HEIGHT + 80))
+        surface.blit(_spine, (_bcx - 22, _btop))
+
 
 def draw_health_bars(surface, p1, p2):
     draw_health_bars_labeled(surface, p1, p2, f"P2 — {p2.char['name']}")
