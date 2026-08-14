@@ -3545,9 +3545,12 @@ def fuser_mode(screen, clock, stats, unlocked):
     RP_X = MP_X + MP_W + 10   # fuser shop panel
     RP_W = WIDTH - RP_X - 10
 
-    CARD_W, CARD_H = 140, 100
+    CARD_W, CARD_H = 140, 118
     CARD_GAP = 8
     CARDS_PER_ROW = max(1, (RP_W + CARD_GAP) // (CARD_W + CARD_GAP))
+
+    _recipe_by_name = {r["name"]: key for key, r in FUSER_RECIPES.items()}
+    _elem_color     = {ename: ecol for ename, _cost, ecol in FUSER_ELEMENTS}
 
     slot_a, slot_b = 0, 1   # indices into FUSER_ELEMENTS
     _msg, _msg_col, _msg_t = "", WHITE, 0
@@ -3708,9 +3711,19 @@ def fuser_mode(screen, clock, stats, unlocked):
                 can_buy = not owned and coins >= shop_item["cost"]
                 pygame.draw.rect(screen, (35, 33, 45), (cx, cy, CARD_W, CARD_H), border_radius=8)
                 pygame.draw.rect(screen, OWNED_COL if owned else (70, 70, 70), (cx, cy, CARD_W, CARD_H), 2, border_radius=8)
-                pygame.draw.circle(screen, ch.get("color", GRAY), (cx + CARD_W//2, cy + 26), 12)
+                pygame.draw.circle(screen, ch.get("color", GRAY), (cx + CARD_W//2, cy + 24), 12)
                 _nm = font_small.render(name, True, WHITE)
-                screen.blit(_nm, (cx + CARD_W//2 - _nm.get_width()//2, cy + 44))
+                screen.blit(_nm, (cx + CARD_W//2 - _nm.get_width()//2, cy + 40))
+                _recipe_key = _recipe_by_name.get(name)
+                if _recipe_key:
+                    _elems = sorted(_recipe_key)
+                    _ey = cy + 68
+                    _exs = [cx + CARD_W//2 - 34, cx + CARD_W//2 + 34] if len(_elems) == 2 else [cx + CARD_W//2]
+                    for _ex, _en in zip(_exs, _elems):
+                        pygame.draw.circle(screen, _elem_color.get(_en, GRAY), (_ex, _ey), 6)
+                        pygame.draw.circle(screen, (20, 20, 20), (_ex, _ey), 6, 1)
+                        _elbl = font_tiny.render(_en, True, (210, 210, 210))
+                        screen.blit(_elbl, (_ex - _elbl.get_width()//2, _ey + 8))
                 btn_rect = pygame.Rect(cx + 10, cy + CARD_H - 24, CARD_W - 20, 18)
                 if owned:
                     pygame.draw.rect(screen, OWNED_COL, btn_rect, border_radius=5)
