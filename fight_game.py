@@ -1223,7 +1223,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     _volcore_lava_y = float(HEIGHT + 30)
     _volcore_p1_cd  = 0
     _volcore_p2_cd  = 0
-    # Underwater: bottom half of the arena is water (see constants.STAGE_WATER)
+    # Underwater: arena is flooded up to WATER_LINE_Y (see constants.STAGE_WATER)
     _is_underwater = stage_data["name"] == "Underwater"
     # City Rooftop: cars speed across — ride the roof or get roadkilled.
     # Separate timers per direction so traffic reliably comes from both
@@ -3398,7 +3398,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 screen.blit(_glow, (0, _vly - 40))
         if _is_underwater:
             _uwt = pygame.time.get_ticks() / 1000.0
-            _wly = HEIGHT // 2
+            _wly = int(constants.WATER_LINE_Y)
             _air = pygame.Surface((WIDTH, _wly), pygame.SRCALPHA)
             _air.fill((200, 230, 255, 55))
             screen.blit(_air, (0, 0))
@@ -3941,7 +3941,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     _is_volcore = stage_data["name"] == "Volcano Core"
     _volcore_lava_y = float(HEIGHT + 30)
     _volcore_cds = {}   # per-fighter burn cooldown
-    # Underwater: bottom half of the arena is water (see constants.STAGE_WATER)
+    # Underwater: arena is flooded up to WATER_LINE_Y (see constants.STAGE_WATER)
     _is_underwater = stage_data["name"] == "Underwater"
     # City Rooftop: cars speed across — ride the roof or get roadkilled.
     # Separate timers per direction so traffic reliably comes from both
@@ -5603,7 +5603,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 screen.blit(_glow, (0, _vly - 40))
         if _is_underwater:
             _uwt = pygame.time.get_ticks() / 1000.0
-            _wly = HEIGHT // 2
+            _wly = int(constants.WATER_LINE_Y)
             _air = pygame.Surface((WIDTH, _wly), pygame.SRCALPHA)
             _air.fill((200, 230, 255, 55))
             screen.blit(_air, (0, 0))

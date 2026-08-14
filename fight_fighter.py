@@ -416,7 +416,7 @@ class Fighter:
             self._frozen_streak = 0
         # Underwater: drown after 10 continuous seconds with your head under
         # the waterline, until you surface again
-        if constants.STAGE_WATER and (self.y - 95 * self.draw_scale) > HEIGHT / 2:
+        if constants.STAGE_WATER and (self.y - 95 * self.draw_scale) > constants.WATER_LINE_Y:
             self._underwater_frames += 1
             if self._underwater_frames > FPS * 10:
                 if self._drown_tick > 0:
@@ -729,7 +729,7 @@ class Fighter:
             self.knockback *= 0.65
 
         prev_y = self.y
-        _submerged = constants.STAGE_WATER and (self.y - 95 * self.draw_scale) > HEIGHT / 2
+        _submerged = constants.STAGE_WATER and (self.y - 95 * self.draw_scale) > constants.WATER_LINE_Y
         if self.char.get("anti_gravity"):
             eff_grav = 0.13
         elif self.char.get("ghost_float"):
@@ -2047,7 +2047,7 @@ class AIFighter(Fighter):
             self.knockback *= 0.65
 
         prev_y = self.y
-        _submerged = constants.STAGE_WATER and (self.y - 95 * self.draw_scale) > HEIGHT / 2
+        _submerged = constants.STAGE_WATER and (self.y - 95 * self.draw_scale) > constants.WATER_LINE_Y
         if self.char.get("anti_gravity"):
             eff_grav = 0.13
         elif self.char.get("ghost_float"):
