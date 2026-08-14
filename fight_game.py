@@ -1225,10 +1225,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     _volcore_p2_cd  = 0
     # Underwater: bottom half of the arena is water (see constants.STAGE_WATER)
     _is_underwater = stage_data["name"] == "Underwater"
-    # City Rooftop: cars speed across — ride the roof or get roadkilled
+    # City Rooftop: cars speed across — ride the roof or get roadkilled.
+    # Separate timers per direction so traffic reliably comes from both
+    # sides at once, not just whichever direction random.choice() favors.
     _is_city_rooftop = stage_data["name"] == "City Rooftop"
     cars = []
-    _car_spawn_timer = FPS * 3
+    _car_spawn_timer_l = FPS * 1
+    _car_spawn_timer_r = FPS * 2
     # Booked: books stay lined up & still for 5s, then drift off randomly
     _is_booked = stage_data.get("book_stage", False)
     _book_move_timer = FPS * 5
@@ -1603,12 +1606,18 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
 
             # City Rooftop: cars speed across — ride the roof or get roadkilled
             if _is_city_rooftop:
-                _car_spawn_timer -= 1
-                if _car_spawn_timer <= 0:
-                    _new_car = Car(random.choice([-1, 1]))
+                _car_spawn_timer_l -= 1
+                if _car_spawn_timer_l <= 0:
+                    _new_car = Car(1)
                     cars.append(_new_car)
                     platforms.append(_new_car)
-                    _car_spawn_timer = random.randint(FPS * 3, FPS * 6)
+                    _car_spawn_timer_l = random.randint(FPS * 2, FPS * 4)
+                _car_spawn_timer_r -= 1
+                if _car_spawn_timer_r <= 0:
+                    _new_car = Car(-1)
+                    cars.append(_new_car)
+                    platforms.append(_new_car)
+                    _car_spawn_timer_r = random.randint(FPS * 2, FPS * 4)
                 # NOTE: cars are already updated by the generic
                 # "for plat in platforms: plat.update()" pass above (they're
                 # in that list too, for free ride-on-roof physics) — don't
@@ -3934,10 +3943,13 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     _volcore_cds = {}   # per-fighter burn cooldown
     # Underwater: bottom half of the arena is water (see constants.STAGE_WATER)
     _is_underwater = stage_data["name"] == "Underwater"
-    # City Rooftop: cars speed across — ride the roof or get roadkilled
+    # City Rooftop: cars speed across — ride the roof or get roadkilled.
+    # Separate timers per direction so traffic reliably comes from both
+    # sides at once, not just whichever direction random.choice() favors.
     _is_city_rooftop = stage_data["name"] == "City Rooftop"
     cars = []
-    _car_spawn_timer = FPS * 3
+    _car_spawn_timer_l = FPS * 1
+    _car_spawn_timer_r = FPS * 2
     stage_pencil = None
     stage_eraser = None
     if is_computer:
@@ -4200,12 +4212,18 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             # plat.update()" pass above (they're in that list too, for free
             # ride-on-roof physics) — don't update() them again here.
             if _is_city_rooftop:
-                _car_spawn_timer -= 1
-                if _car_spawn_timer <= 0:
-                    _new_car = Car(random.choice([-1, 1]))
+                _car_spawn_timer_l -= 1
+                if _car_spawn_timer_l <= 0:
+                    _new_car = Car(1)
                     cars.append(_new_car)
                     platforms.append(_new_car)
-                    _car_spawn_timer = random.randint(FPS * 3, FPS * 6)
+                    _car_spawn_timer_l = random.randint(FPS * 2, FPS * 4)
+                _car_spawn_timer_r -= 1
+                if _car_spawn_timer_r <= 0:
+                    _new_car = Car(-1)
+                    cars.append(_new_car)
+                    platforms.append(_new_car)
+                    _car_spawn_timer_r = random.randint(FPS * 2, FPS * 4)
                 for _cr in cars:
                     for _cv in [p for p in players if p.hp > 0] + enemies:
                         if _cr.alive and _cr.collides_side(_cv) and not _cv.bubble_shield:
