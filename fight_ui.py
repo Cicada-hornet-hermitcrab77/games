@@ -709,11 +709,11 @@ def mode_select(unlocked=None):
     survival_players = 0   # 0=1P survival, 1=2P survival
     preview_t = 0.0
 
-    # 5 cards layout
+    # 6 cards layout (6th is Fuser, dimmed/locked until Deco & Emoj is owned)
     card_w, card_h = 140, 240
     GAP   = 8
-    START = WIDTH // 2 - (5 * card_w + 4 * GAP) // 2
-    card_xs = [START + i * (card_w + GAP) for i in range(5)]
+    START = WIDTH // 2 - (6 * card_w + 5 * GAP) // 2
+    card_xs = [START + i * (card_w + GAP) for i in range(6)]
 
     _type42_buf = ""
     _secret_seq = "all_the_secrets_of_the_world"
@@ -742,7 +742,8 @@ def mode_select(unlocked=None):
         elif selected == 1: return '2p'
         elif selected == 2: return 'survival_2p' if survival_players else 'survival_1p'
         elif selected == 3: return 'online'
-        else:               return 'seasonal_shop'
+        elif selected == 4: return 'seasonal_shop'
+        else:               return 'fuser'
 
     while True:
         clock.tick(FPS)
@@ -752,7 +753,6 @@ def mode_select(unlocked=None):
         _ev_label   = _ev_mode_ev.get("special_mode_label", "Event Mode") if _ev_mode_ev and _ev_mode else None
         _ev_btn_rect = pygame.Rect(WIDTH // 2 - 175, HEIGHT - 92, 350, 38) if _ev_mode else None
         _fuser_unlocked = "Deco & Emoj" in unlocked
-        _fuser_btn_rect = pygame.Rect(WIDTH // 2 - 175, HEIGHT - 136, 350, 38) if _fuser_unlocked else None
 
         _is_solar_eclipse = is_solar_eclipse_today()
         _is_lunar_eclipse = is_lunar_eclipse_today()
@@ -798,7 +798,7 @@ def mode_select(unlocked=None):
                         _dino_bone_popup.append([f"+1 BONE ({_dino_bones_collected[0]}/10)",
                                                  _bn['x'], _bn['y'], FPS * 2])
                         break
-                if _confirm_rect.collidepoint(_mp):
+                if _confirm_rect.collidepoint(_mp) and not (selected == 5 and not _fuser_unlocked):
                     if _home_lobby: _home_lobby.close()
                     return _mode_confirm()
                 for _ci, _cx in enumerate(card_xs):
@@ -860,9 +860,9 @@ def mode_select(unlocked=None):
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit(); sys.exit()
                 if event.key in (pygame.K_LEFT, pygame.K_a):
-                    selected = (selected - 1) % 5
+                    selected = (selected - 1) % 6
                 if event.key in (pygame.K_RIGHT, pygame.K_d):
-                    selected = (selected + 1) % 5
+                    selected = (selected + 1) % 6
                 if selected == 0:   # 1P: difficulty picker
                     if event.key in (pygame.K_UP, pygame.K_w):
                         difficulty_idx = (difficulty_idx - 1) % len(difficulties)
@@ -879,26 +879,18 @@ def mode_select(unlocked=None):
                     touch_p1_enabled[0] = not touch_p1_enabled[0]
                     touch_p2_enabled[0] = touch_p1_enabled[0]
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    if _home_lobby: _home_lobby.close()
-                    return _mode_confirm()
+                    if not (selected == 5 and not _fuser_unlocked):
+                        if _home_lobby: _home_lobby.close()
+                        return _mode_confirm()
                 if event.key == pygame.K_e and _ev_mode:
                     if _home_lobby: _home_lobby.close()
                     return _ev_mode
-                if event.key == pygame.K_u and _fuser_unlocked:
-                    if _home_lobby: _home_lobby.close()
-                    return 'fuser'
 
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN) and _ev_btn_rect:
                 _mp2 = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
                 if _ev_btn_rect.collidepoint(_mp2):
                     if _home_lobby: _home_lobby.close()
                     return _ev_mode
-
-            if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN) and _fuser_btn_rect:
-                _mp3 = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
-                if _fuser_btn_rect.collidepoint(_mp3):
-                    if _home_lobby: _home_lobby.close()
-                    return 'fuser'
 
         screen.fill(DARK)
         draw_seasonal_decos(screen)
@@ -927,10 +919,12 @@ def mode_select(unlocked=None):
             (card_xs[2], "SURVIVAL",  "endless",     GREEN),
             (card_xs[3], "ONLINE",    "internet",    CYAN),
             (card_xs[4], "SHOP",      "seasonal",    (255, 200, 0)),
+            (card_xs[5], "FUSER",     "elements",     (200, 140, 255) if _fuser_unlocked else GRAY),
         ]
         for ci, (cx, top, sub, col) in enumerate(cards):
-            border = WHITE if ci == selected else GRAY
-            bg_col = (50, 45, 10) if ci == 4 else (50, 50, 50)
+            _fuser_locked = (ci == 5 and not _fuser_unlocked)
+            border = WHITE if (ci == selected and not _fuser_locked) else GRAY
+            bg_col = (50, 45, 10) if ci == 4 else ((35, 30, 45) if ci == 5 else (50, 50, 50))
             pygame.draw.rect(screen, bg_col, (cx, 140, card_w, card_h), border_radius=12)
             pygame.draw.rect(screen, border,  (cx, 140, card_w, card_h), 3, border_radius=12)
             lbl = font_medium.render(top, True, col)
@@ -943,10 +937,19 @@ def mode_select(unlocked=None):
                 pygame.draw.circle(screen, (200, 150, 0), (cx + card_w//2, 140 + card_h - 55), 28, 3)
                 _clbl = font_medium.render("$", True, (120, 90, 0))
                 screen.blit(_clbl, (cx + card_w//2 - _clbl.get_width()//2, 140 + card_h - 55 - _clbl.get_height()//2))
+            elif ci == 5:
+                # Draw a beaker/flask symbol instead of stickman
+                _fcx, _fcy = cx + card_w//2, 140 + card_h - 55
+                _fcol = (200, 140, 255) if _fuser_unlocked else (90, 90, 95)
+                pygame.draw.polygon(screen, _fcol, [(_fcx-14,_fcy+20),(_fcx-8,_fcy-16),(_fcx+8,_fcy-16),(_fcx+14,_fcy+20)])
+                pygame.draw.line(screen, _fcol, (_fcx-10,_fcy-20), (_fcx+10,_fcy-20), 4)
+                if not _fuser_unlocked:
+                    _lktxt = font_tiny.render("Requires Deco & Emoj", True, (150, 150, 150))
+                    screen.blit(_lktxt, (cx + card_w//2 - _lktxt.get_width()//2, 140 + card_h - 22))
             else:
                 draw_stickman(screen, cx + card_w//2 - 25, 140 + card_h - 30, BLUE, 1, 'walk', preview_t)
                 draw_stickman(screen, cx + card_w//2 + 25, 140 + card_h - 30, RED, -1, 'idle', 0.0)
-            if ci == selected:
+            if ci == selected and not _fuser_locked:
                 sel_txt = font_tiny.render("ENTER / SPACE to select", True, WHITE)
                 screen.blit(sel_txt, (cx + card_w//2 - sel_txt.get_width()//2, 390))
 
