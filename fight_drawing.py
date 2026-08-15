@@ -11285,7 +11285,7 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                              (_tex, sy + bl), (_tex + int(math.sin(_t_rk*0.004+_tei)*int(3*s)), sy + bl + int(_tel)), max(1, int(s)))
         # Rising phoenix glow on chest
         _rkg = int(abs(math.sin(_t_rk * 0.003)) * 80)
-        pygame.draw.circle(surface, (180 + _rkg, 60, 30), (sx, sy + int(bl*0.4)), max(4, int(5*s)), max(1, int(2*s)))
+        pygame.draw.circle(surface, (min(255, 180 + _rkg), 60, 30), (sx, sy + int(bl*0.4)), max(4, int(5*s)), max(1, int(2*s)))
         # Five-spike undead crown
         for _ki2 in range(5):
             _kx2 = hx - int(hd*0.8) + _ki2 * int(hd*0.4)
