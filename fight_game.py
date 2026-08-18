@@ -7472,7 +7472,7 @@ def main():
                 ("BOOKED",                  font_large,  (90, 140, 200),   -130),
                 ("The library has come alive.",
                                             font_small,  (180, 200, 230),   -60),
-                ("Choose from 8 literary fighters and",
+                ("Choose from 11 literary fighters and",
                                             font_small,  (180, 200, 230),   -40),
                 ("battle across drifting book platforms.",
                                             font_small,  (180, 200, 230),   -20),
@@ -7512,6 +7512,7 @@ def main():
             _BOOKED_FILTER = frozenset({
                 "Oni", "Rainbow Snake", "Hydra", "Chimera",
                 "Sphinx", "Anansi", "Bookzworm", "Graduated Bookzworm",
+                "Badb", "Nemain", "Morrigan",
             })
             p1_idx, p2_idx = character_select(
                 vs_ai=True, unlocked=_BOOKED_FILTER,
