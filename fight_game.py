@@ -7206,7 +7206,7 @@ def main():
              for name, cond in UNLOCK_CONDITIONS.items()}
 
     while True:
-        mode = mode_select(unlocked)
+        mode = mode_select(unlocked, stats)
         # Reaching the main menu means the marathon streak (I: play 30 matches
         # in a row without stopping) has been broken — reset it here.
         _session_match_streak[0] = 0

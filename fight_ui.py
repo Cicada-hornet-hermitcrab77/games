@@ -5,6 +5,7 @@ import random
 import socket
 import threading
 import datetime
+import constants
 import fight_network as _net
 from constants import *
 from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS, FUSER_ELEMENTS, FUSER_RECIPES, FUSER_SHOP_CHARS
@@ -25,6 +26,10 @@ _dino_bones_collected = [0]
 # Touch-control device flags: which players use on-screen buttons (default: both)
 touch_p1_enabled = [True]
 touch_p2_enabled = [True]
+# Dev mode ("cicada77" on the home screen): while True, clicking any
+# character (main grid or a variant panel) in character_select instantly
+# unlocks it, and mode_select shows the time-offset / exit controls.
+_dev_mode = [False]
 
 # ---------------------------------------------------------------------------
 # TouchControls — on-screen buttons for touch / no-keyboard play
@@ -695,11 +700,15 @@ def stage_select():
 # Mode select screen
 # ---------------------------------------------------------------------------
 
-def mode_select(unlocked=None):
+def mode_select(unlocked=None, stats=None):
     """Returns ('1p', difficulty), '2p', 'survival_1p', 'survival_2p', 'online',
-    'seasonal_shop', or 'fuser' (typing "the fuser" — requires Deco & Emoj)."""
+    'seasonal_shop', or 'fuser' (typing "the fuser" — requires Deco & Emoj).
+    Also handles dev mode ("cicada77"): a top-left time-offset panel and
+    a top-right exit/re-entry button, both drawn inline in this loop."""
     if unlocked is None:
         unlocked = set()
+    if stats is None:
+        stats = {}
     selected = 0   # 0=1P, 1=2P, 2=SURVIVAL, 3=ONLINE, 4=SHOP
     difficulty_idx = 1
     difficulties = ['easy', 'medium', 'hard', 'super_hard', 'super_super_hard', 'mega_hard']
@@ -720,7 +729,12 @@ def mode_select(unlocked=None):
     _secret_buf = ""
     _fuser_seq  = "the fuser"
     _fuser_buf  = ""
+    _dev_seq    = "cicada77"
+    _dev_buf    = ""
+    _dev_time_panel_open = False
     _confirm_rect = pygame.Rect(WIDTH // 2 - 80, HEIGHT - 52, 160, 44)
+    _dev_time_rect = pygame.Rect(10, 10, 90, 30)
+    _dev_exit_rect = pygame.Rect(WIDTH - 100, 10, 90, 30)
 
     # Solar/Lunar Eclipse: real-world dated events. Type "solar" during an
     # actual solar eclipse to unlock Volcanis, or "umbra" during an actual
@@ -798,6 +812,29 @@ def mode_select(unlocked=None):
                         _dino_bone_popup.append([f"+1 BONE ({_dino_bones_collected[0]}/10)",
                                                  _bn['x'], _bn['y'], FPS * 2])
                         break
+                # Dev mode: top-left TIME button, top-right EXIT/DEV button
+                if _dev_mode[0]:
+                    if _dev_time_rect.collidepoint(_mp):
+                        _dev_time_panel_open = not _dev_time_panel_open
+                    elif _dev_exit_rect.collidepoint(_mp):
+                        _dev_mode[0] = False
+                        _dev_time_panel_open = False
+                    elif _dev_time_panel_open:
+                        _dtp_y = 46
+                        _dtp_btns = [
+                            ("-1 Day",  pygame.Rect(10, _dtp_y,      90, 26), datetime.timedelta(days=-1)),
+                            ("+1 Day",  pygame.Rect(10, _dtp_y + 30, 90, 26), datetime.timedelta(days=1)),
+                            ("-1 Hour", pygame.Rect(106, _dtp_y,     90, 26), datetime.timedelta(hours=-1)),
+                            ("+1 Hour", pygame.Rect(106, _dtp_y+30,  90, 26), datetime.timedelta(hours=1)),
+                        ]
+                        for _lbl, _r, _delta in _dtp_btns:
+                            if _r.collidepoint(_mp):
+                                constants.DEV_TIME_OFFSET = constants.DEV_TIME_OFFSET + _delta
+                        _dtp_reset = pygame.Rect(10, _dtp_y + 64, 186, 26)
+                        if _dtp_reset.collidepoint(_mp):
+                            constants.DEV_TIME_OFFSET = datetime.timedelta(0)
+                elif stats.get("dev_mode_unlocked") and _dev_exit_rect.collidepoint(_mp):
+                    _dev_mode[0] = True
                 if _confirm_rect.collidepoint(_mp) and not (selected == 5 and not _fuser_unlocked):
                     if _home_lobby: _home_lobby.close()
                     return _mode_confirm()
@@ -838,6 +875,15 @@ def mode_select(unlocked=None):
                         return 'secret_menu'
                     if len(_secret_buf) > len(_secret_seq) + 5:
                         _secret_buf = _secret_buf[-len(_secret_seq):]
+                # Dev mode: type "cicada77" anywhere on the home screen
+                if hasattr(event, 'unicode') and event.unicode:
+                    _dev_buf += event.unicode.lower()
+                    if _dev_seq in _dev_buf:
+                        _dev_mode[0] = True
+                        stats["dev_mode_unlocked"] = True
+                        _dev_buf = ""
+                    if len(_dev_buf) > len(_dev_seq) + 5:
+                        _dev_buf = _dev_buf[-len(_dev_seq):]
                 # The Fuser: type "the fuser" (requires Deco & Emoj unlocked)
                 if hasattr(event, 'unicode') and event.unicode:
                     _fuser_buf += event.unicode.lower()
@@ -1056,6 +1102,43 @@ def mode_select(unlocked=None):
                 _pop_s.set_alpha(min(255, _bn_f * 4))
                 screen.blit(_pop_s, (_bn_x - _pop_s.get_width()//2, _bn_y - 30 - (FPS*2 - _bn_f)//6))
 
+        # Dev mode controls
+        if _dev_mode[0]:
+            pygame.draw.rect(screen, (80, 30, 100), _dev_time_rect, border_radius=6)
+            pygame.draw.rect(screen, (200, 140, 255), _dev_time_rect, 2, border_radius=6)
+            _dtt = font_tiny.render("TIME", True, WHITE)
+            screen.blit(_dtt, (_dev_time_rect.centerx - _dtt.get_width()//2, _dev_time_rect.centery - _dtt.get_height()//2))
+            pygame.draw.rect(screen, (100, 30, 30), _dev_exit_rect, border_radius=6)
+            pygame.draw.rect(screen, (255, 140, 140), _dev_exit_rect, 2, border_radius=6)
+            _det = font_tiny.render("EXIT DEV", True, WHITE)
+            screen.blit(_det, (_dev_exit_rect.centerx - _det.get_width()//2, _dev_exit_rect.centery - _det.get_height()//2))
+            if _dev_time_panel_open:
+                _dtp_y = 46
+                _panel = pygame.Rect(8, _dtp_y - 4, 190, 98)
+                pygame.draw.rect(screen, (25, 20, 35), _panel, border_radius=8)
+                pygame.draw.rect(screen, (150, 100, 200), _panel, 2, border_radius=8)
+                _dtp_btns = [("-1 Day", 10, _dtp_y), ("+1 Day", 10, _dtp_y+30),
+                             ("-1 Hour", 106, _dtp_y), ("+1 Hour", 106, _dtp_y+30)]
+                for _lbl, _bx, _by in _dtp_btns:
+                    _br = pygame.Rect(_bx, _by, 90, 26)
+                    pygame.draw.rect(screen, (55, 45, 70), _br, border_radius=5)
+                    pygame.draw.rect(screen, (150, 100, 200), _br, 1, border_radius=5)
+                    _bt = font_tiny.render(_lbl, True, WHITE)
+                    screen.blit(_bt, (_br.centerx - _bt.get_width()//2, _br.centery - _bt.get_height()//2))
+                _dtp_reset = pygame.Rect(10, _dtp_y + 64, 186, 26)
+                pygame.draw.rect(screen, (55, 45, 70), _dtp_reset, border_radius=5)
+                pygame.draw.rect(screen, (150, 100, 200), _dtp_reset, 1, border_radius=5)
+                _rt = font_tiny.render("RESET TO REAL TIME", True, WHITE)
+                screen.blit(_rt, (_dtp_reset.centerx - _rt.get_width()//2, _dtp_reset.centery - _rt.get_height()//2))
+                _now_str = dev_now().strftime("%Y-%m-%d %H:%M")
+                _nowt = font_tiny.render(_now_str, True, (200, 200, 255))
+                screen.blit(_nowt, (14, _dtp_y - 18))
+        elif stats.get("dev_mode_unlocked"):
+            pygame.draw.rect(screen, (40, 40, 50), _dev_exit_rect, border_radius=6)
+            pygame.draw.rect(screen, (110, 110, 130), _dev_exit_rect, 1, border_radius=6)
+            _ddt = font_tiny.render("DEV", True, (170, 170, 190))
+            screen.blit(_ddt, (_dev_exit_rect.centerx - _ddt.get_width()//2, _dev_exit_rect.centery - _ddt.get_height()//2))
+
         pygame.display.flip()
 
 # ---------------------------------------------------------------------------
@@ -1237,6 +1320,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                     _col = (_tx - GX) // CW
                     _row = (_ty - GY) // CH + scroll_top
                     _ni  = min(_row * COLS + _col, n - 1)
+                    if _dev_mode[0]:
+                        unlocked.add(_CHARS[_ni]["name"])
                     if not p1_ready:
                         p1_idx = _ni; clip_scroll(p1_idx)
                     elif not vs_ai and not p2_ready:
@@ -1250,6 +1335,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                     for _vti in range(len(_eartha_variant_indices)):
                         _vtx = PX + 10 + _vti * _vp_tbw
                         if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if _dev_mode[0]:
+                                unlocked.add(CHARACTERS[_eartha_variant_indices[_vti]]["name"])
                             if not p1_ready:
                                 p1_ev = _vti
                             elif not vs_ai and not p2_ready:
@@ -1260,6 +1347,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                     for _vti in range(len(_clover_variant_indices)):
                         _vtx = PX + 10 + _vti * _vp_tbw
                         if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if _dev_mode[0]:
+                                unlocked.add(CHARACTERS[_clover_variant_indices[_vti]]["name"])
                             if not p1_ready:
                                 p1_cv = _vti
                             elif not vs_ai and not p2_ready:
@@ -1270,6 +1359,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                     for _vti in range(len(_solara_variant_indices)):
                         _vtx = PX + 10 + _vti * _vp_tbw
                         if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if _dev_mode[0]:
+                                unlocked.add(CHARACTERS[_solara_variant_indices[_vti]]["name"])
                             if not p1_ready:
                                 p1_sv = _vti
                             elif not vs_ai and not p2_ready:
@@ -1280,6 +1371,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                     for _vti in range(len(_nghs_variant_indices)):
                         _vtx = PX + 10 + _vti * _vp_tbw
                         if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if _dev_mode[0]:
+                                unlocked.add(CHARACTERS[_nghs_variant_indices[_vti]]["name"])
                             if not p1_ready:
                                 p1_nv = _vti
                             elif not vs_ai and not p2_ready:
@@ -1290,6 +1383,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                     for _vti in range(len(_bookzworm_variant_indices)):
                         _vtx = PX + 10 + _vti * _vp_tbw
                         if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if _dev_mode[0]:
+                                unlocked.add(CHARACTERS[_bookzworm_variant_indices[_vti]]["name"])
                             if not p1_ready:
                                 p1_bv = _vti
                             elif not vs_ai and not p2_ready:
@@ -1300,6 +1395,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                     for _vti in range(len(_yellowstone_variant_indices)):
                         _vtx = PX + 10 + _vti * _vp_tbw
                         if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if _dev_mode[0]:
+                                unlocked.add(CHARACTERS[_yellowstone_variant_indices[_vti]]["name"])
                             if not p1_ready:
                                 p1_yv = _vti
                             elif not vs_ai and not p2_ready:
@@ -1310,6 +1407,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                     for _vti in range(len(_tombstone_variant_indices)):
                         _vtx = PX + 10 + _vti * _vp_tbw
                         if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if _dev_mode[0]:
+                                unlocked.add(CHARACTERS[_tombstone_variant_indices[_vti]]["name"])
                             if not p1_ready:
                                 p1_tv = _vti
                             elif not vs_ai and not p2_ready:
