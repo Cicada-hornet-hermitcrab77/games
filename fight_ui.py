@@ -1128,6 +1128,17 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _yellowstone_variant_indices.append(_yvi2)
                 break
 
+    # Build Tombstone variant lookup (Original + 4 Minefield prize costumes,
+    # excluded from main grid)
+    _tombstone_variant_names   = ["Tombstone", "Booma", "Testa di Testy", "Boxy", "Supa"]
+    _tombstone_variant_labels  = ["Original", "Booma", "Testa di Testy", "Boxy", "Supa"]
+    _tombstone_variant_indices = []
+    for _tvn2 in _tombstone_variant_names:
+        for _tvi3, _tvc3 in enumerate(CHARACTERS):
+            if _tvc3["name"] == _tvn2:
+                _tombstone_variant_indices.append(_tvi3)
+                break
+
     if char_filter is not None:
         # An explicit char_filter is a curated roster (e.g. Booked wanting
         # "Graduated Bookzworm" shown directly) — trust it outright rather
@@ -1138,7 +1149,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         COLS      = min(4, max(1, len(_CHARS)))
     else:
         _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS)
-                     if not c.get("eartha_variant") and not c.get("clover_variant") and not c.get("solara_variant") and not c.get("nghs_variant") and not c.get("bookzworm_variant") and not c.get("yellowstone_variant")]
+                     if not c.get("eartha_variant") and not c.get("clover_variant") and not c.get("solara_variant") and not c.get("nghs_variant") and not c.get("bookzworm_variant") and not c.get("yellowstone_variant") and not c.get("tombstone_variant")]
         _CHARS    = [c for _, c in _cf_pairs]
         _orig_idx = [i for i, _ in _cf_pairs]
         COLS      = 7
@@ -1192,6 +1203,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
     p2_bv = 0
     p1_yv = 0   # yellowstone variant index (0 = Original Yellowstone)
     p2_yv = 0
+    p1_tv = 0   # tombstone variant index (0 = Original Tombstone)
+    p2_tv = 0
 
     def clip_scroll(idx):
         nonlocal scroll_top
@@ -1291,6 +1304,16 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 p1_yv = _vti
                             elif not vs_ai and not p2_ready:
                                 p2_yv = _vti
+                elif _td_ch["name"] == "Tombstone" and _tombstone_variant_indices:
+                    _vp_ty = PY + PH - 132
+                    _vp_tbw = (PW - 20) // len(_tombstone_variant_indices)
+                    for _vti in range(len(_tombstone_variant_indices)):
+                        _vtx = PX + 10 + _vti * _vp_tbw
+                        if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if not p1_ready:
+                                p1_tv = _vti
+                            elif not vs_ai and not p2_ready:
+                                p2_tv = _vti
                 # Tap READY button (drawn at bottom-right of detail panel)
                 _ready_rect = pygame.Rect(PX, PY + PH - 52, PW, 44)
                 if _ready_rect.collidepoint(_tp):
@@ -1362,6 +1385,11 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             p1_yv = (p1_yv + 1) % len(_yellowstone_variant_indices)
                         elif event.key == pygame.K_q:
                             p1_yv = (p1_yv - 1) % len(_yellowstone_variant_indices)
+                    if _CHARS[p1_idx]["name"] == "Tombstone" and _tombstone_variant_indices:
+                        if event.key == pygame.K_e:
+                            p1_tv = (p1_tv + 1) % len(_tombstone_variant_indices)
+                        elif event.key == pygame.K_q:
+                            p1_tv = (p1_tv - 1) % len(_tombstone_variant_indices)
                     if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_f):
                         if _CHARS[p1_idx]["name"] not in unlocked:
                             pass  # locked — do nothing
@@ -1390,6 +1418,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             if _CHARS[p1_idx]["name"] == "Yellowstone" and _yellowstone_variant_indices:
                                 _vyn = CHARACTERS[_yellowstone_variant_indices[p1_yv]]["name"]
                                 if _vyn not in unlocked:
+                                    _ev_ok = False
+                            if _CHARS[p1_idx]["name"] == "Tombstone" and _tombstone_variant_indices:
+                                _vtn = CHARACTERS[_tombstone_variant_indices[p1_tv]]["name"]
+                                if _vtn not in unlocked:
                                     _ev_ok = False
                             if _ev_ok:
                                 p1_ready = True
@@ -1432,6 +1464,11 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             p2_yv = (p2_yv + 1) % len(_yellowstone_variant_indices)
                         elif event.key == pygame.K_j:
                             p2_yv = (p2_yv - 1) % len(_yellowstone_variant_indices)
+                    if _CHARS[p2_idx]["name"] == "Tombstone" and _tombstone_variant_indices:
+                        if event.key == pygame.K_l:
+                            p2_tv = (p2_tv + 1) % len(_tombstone_variant_indices)
+                        elif event.key == pygame.K_j:
+                            p2_tv = (p2_tv - 1) % len(_tombstone_variant_indices)
                     if event.key in (pygame.K_RETURN, pygame.K_k):
                         if _CHARS[p2_idx]["name"] in unlocked:
                             _ev_ok2 = True
@@ -1458,6 +1495,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             if _CHARS[p2_idx]["name"] == "Yellowstone" and _yellowstone_variant_indices:
                                 _vyn2 = CHARACTERS[_yellowstone_variant_indices[p2_yv]]["name"]
                                 if _vyn2 not in unlocked:
+                                    _ev_ok2 = False
+                            if _CHARS[p2_idx]["name"] == "Tombstone" and _tombstone_variant_indices:
+                                _vtn2 = CHARACTERS[_tombstone_variant_indices[p2_tv]]["name"]
+                                if _vtn2 not in unlocked:
                                     _ev_ok2 = False
                             if _ev_ok2:
                                 p2_ready = True
@@ -1489,6 +1530,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _r1 = _yellowstone_variant_indices[p1_yv]
             if not vs_ai and _CHARS[p2_idx]["name"] == "Yellowstone" and _yellowstone_variant_indices:
                 _r2 = _yellowstone_variant_indices[p2_yv]
+            if _CHARS[p1_idx]["name"] == "Tombstone" and _tombstone_variant_indices:
+                _r1 = _tombstone_variant_indices[p1_tv]
+            if not vs_ai and _CHARS[p2_idx]["name"] == "Tombstone" and _tombstone_variant_indices:
+                _r2 = _tombstone_variant_indices[p2_tv]
             return _r1, _r2
 
         # Whose detail to show: the active picker
@@ -1501,6 +1546,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         _active_nv = p2_nv if (p1_ready and not p2_ready) else p1_nv
         _active_bv = p2_bv if (p1_ready and not p2_ready) else p1_bv
         _active_yv = p2_yv if (p1_ready and not p2_ready) else p1_yv
+        _active_tv = p2_tv if (p1_ready and not p2_ready) else p1_tv
         _detail_display = detail_ch
         if detail_ch["name"] == "Eartha" and detail_ch["name"] in unlocked and _eartha_variant_indices:
             _detail_display = CHARACTERS[_eartha_variant_indices[_active_ev]]
@@ -1514,6 +1560,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             _detail_display = CHARACTERS[_bookzworm_variant_indices[_active_bv]]
         if detail_ch["name"] == "Yellowstone" and detail_ch["name"] in unlocked and _yellowstone_variant_indices:
             _detail_display = CHARACTERS[_yellowstone_variant_indices[_active_yv]]
+        if detail_ch["name"] == "Tombstone" and detail_ch["name"] in unlocked and _tombstone_variant_indices:
+            _detail_display = CHARACTERS[_tombstone_variant_indices[_active_tv]]
 
         # ── Background ──────────────────────────────────────────────────────
         screen.fill((18, 18, 28))
@@ -2136,6 +2184,27 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _vtc8  = (90, 90, 90) if _vlk8 else (WHITE if _vsel8 else _vc8)
                 _vtxt8 = font_tiny.render(("?" + _vlb8[0]) if _vlk8 else _vlb8, True, _vtc8)
                 screen.blit(_vtxt8, (_vx8 + _vp_bw//2 - _vtxt8.get_width()//2, _vp_y + 8))
+
+        # Tombstone variant picker
+        if detail_ch["name"] == "Tombstone" and detail_ch["name"] in unlocked and _tombstone_variant_indices:
+            _vp_y   = PY + PH - 132
+            _vp_lbl = font_tiny.render("VARIANT  (Q/E  or  J/L)", True, (160, 160, 185))
+            screen.blit(_vp_lbl, (PX + PW//2 - _vp_lbl.get_width()//2, _vp_y - 16))
+            _vp_bw = (PW - 20) // len(_tombstone_variant_indices)
+            for _vi9, _vlb9 in enumerate(_tombstone_variant_labels):
+                _vx9   = PX + 10 + _vi9 * _vp_bw
+                _vc9   = CHARACTERS[_tombstone_variant_indices[_vi9]]["color"]
+                _vn9   = CHARACTERS[_tombstone_variant_indices[_vi9]]["name"]
+                _vlk9  = _vn9 not in unlocked
+                _vsel9 = (_vi9 == _active_tv)
+                _vbg9  = tuple(max(8, c // 5) for c in _vc9)
+                pygame.draw.rect(screen, _vbg9, (_vx9+1, _vp_y+1, _vp_bw-2, 28), border_radius=4)
+                _vbrd9 = _vc9 if _vsel9 else tuple(c // 2 for c in _vc9)
+                _vbw9  = 2 if _vsel9 else 1
+                pygame.draw.rect(screen, _vbrd9, (_vx9+1, _vp_y+1, _vp_bw-2, 28), _vbw9, border_radius=4)
+                _vtc9  = (90, 90, 90) if _vlk9 else (WHITE if _vsel9 else _vc9)
+                _vtxt9 = font_tiny.render(("?" + _vlb9[0]) if _vlk9 else _vlb9, True, _vtc9)
+                screen.blit(_vtxt9, (_vx9 + _vp_bw//2 - _vtxt9.get_width()//2, _vp_y + 8))
 
         # READY touch button
         _rdy_col = BLUE if not p1_ready else ORANGE
@@ -3792,8 +3861,9 @@ _MINEFIELD_VARIANT_CHARS = [
     "Graduated Bookzworm", "Ice Age Yellowstone",
 ]
 
-# 4 Minebomb character versions — not yet designed, left empty until specced.
-_MINEFIELD_MINEBOMB_VERSIONS = []
+# 4 Minebomb version costumes — Tombstone variants, toggled from Tombstone's
+# own character-detail panel (see _tombstone_variant_names).
+_MINEFIELD_MINEBOMB_VERSIONS = ["Booma", "Testa di Testy", "Boxy", "Supa"]
 
 
 def _mf_award_prize(unlocked, stats):
