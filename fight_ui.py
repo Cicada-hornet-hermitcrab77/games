@@ -3745,18 +3745,36 @@ def fuser_mode(screen, clock, stats, unlocked):
 # Tombstone's Minefield — Legacy of Valor's minigame
 # ---------------------------------------------------------------------------
 
-# (tier label, grid dimension (NxN squares), tombstone count, mine count,
-#  red herring's clue count, reward). A clue tile reveals how many mines
-# sit in its 8 surrounding squares (Minesweeper-style); blank tiles show
-# nothing. Remaining squares (NxN - tombstones - mines - clues) are blank.
+# Each tier: grid dimension (NxN squares), per-kind tile counts, and the
+# coin reward. Tile kinds:
+#   tombstone       — find every one of these to win
+#   mine            — instant loss
+#   clue            — reveals how many mines sit in its 8 neighboring
+#                      squares (Minesweeper-style), computed at grid-gen time
+#   kirin_computer  — reveals every clue tile on the whole grid at once
+#   (anything left over after the named kinds fills the grid) — blank,
+#   reveals nothing
+# NOTE: super hard / super super hard / mega hard compositions are a
+# placeholder extrapolation pending exact numbers.
 _MINEFIELD_TIERS = [
-    ("easy",              2, 1,  1,  0,  200),
-    ("medium",            3, 2,  3,  1,  300),
-    ("hard",              4, 3,  5,  2,  400),
-    ("super hard",        5, 4,  7,  3,  550),
-    ("super super hard",  6, 5, 10,  4,  700),
-    ("mega hard",         7, 6, 13,  5,  900),
+    {"label": "easy",             "dim": 2, "reward": 200,
+     "tiles": {"tombstone": 1, "mine": 1}},
+    {"label": "medium",           "dim": 3, "reward": 300,
+     "tiles": {"tombstone": 2, "mine": 3, "clue": 1}},
+    {"label": "hard",             "dim": 4, "reward": 400,
+     "tiles": {"tombstone": 3, "mine": 4, "clue": 3, "kirin_computer": 1}},
+    {"label": "super hard",       "dim": 5, "reward": 550,
+     "tiles": {"tombstone": 4, "mine": 6, "clue": 4, "kirin_computer": 1}},
+    {"label": "super super hard", "dim": 6, "reward": 700,
+     "tiles": {"tombstone": 5, "mine": 9, "clue": 5, "kirin_computer": 2}},
+    {"label": "mega hard",        "dim": 7, "reward": 900,
+     "tiles": {"tombstone": 6, "mine": 13, "clue": 6, "kirin_computer": 2}},
 ]
+
+_MINEFIELD_KIND_LABEL = {
+    'tombstone': "Tombstone", 'mine': "Minebomb",
+    'clue': "Red Herring's Clue", 'kirin_computer': "Kirin's Computer", 'blank': "Blank",
+}
 
 
 def _mf_message(screen, clock, title, sub, col):
@@ -3820,6 +3838,17 @@ def _mf_draw_tile(surface, rect, cell):
         _cf = font_medium if w >= 60 else font_small
         _ct = _cf.render(str(_cval), True, _ccol)
         surface.blit(_ct, (x + w // 2 - _ct.get_width() // 2, y + h // 2 - _ct.get_height() // 2))
+    elif cell['kind'] == 'kirin_computer':
+        pygame.draw.rect(surface, (20, 45, 35), rect, border_radius=6)
+        pygame.draw.rect(surface, (60, 220, 140), rect, 2, border_radius=6)
+        _mw, _mh = int(w * 0.6), int(h * 0.42)
+        _mx, _my = x + w // 2 - _mw // 2, y + h // 2 - _mh // 2 - int(h * 0.08)
+        pygame.draw.rect(surface, (10, 20, 16), (_mx, _my, _mw, _mh), border_radius=2)
+        pygame.draw.rect(surface, (60, 220, 140), (_mx, _my, _mw, _mh), 2, border_radius=2)
+        _blink = int(pygame.time.get_ticks() / 400) % 2 == 0
+        if _blink:
+            pygame.draw.rect(surface, (60, 220, 140), (_mx + 4, _my + _mh - 10, 8, 5))
+        pygame.draw.rect(surface, (40, 60, 50), (x + w // 2 - _mw // 4, _my + _mh, _mw // 2, int(h * 0.08)))
     else:  # blank
         pygame.draw.rect(surface, (55, 50, 40), rect, border_radius=6)
         pygame.draw.rect(surface, (40, 36, 28), rect, 2, border_radius=6)
@@ -3842,20 +3871,16 @@ def tombstones_minefield(screen, clock, stats, unlocked):
         return
     stats["seasonal_coins"] = coins - COST
 
-    tier_label, grid_dim, tomb_count, mine_count, clue_count, reward = random.choice(_MINEFIELD_TIERS)
+    tier = random.choice(_MINEFIELD_TIERS)
+    tier_label, grid_dim, reward = tier["label"], tier["dim"], tier["reward"]
+    tile_counts = tier["tiles"]
+    tomb_count  = tile_counts.get("tombstone", 0)
     total = grid_dim * grid_dim
 
     _mf_message(screen, clock, "TOMBSTONE'S MINEFIELD",
                 f"Tier: {tier_label.title()}  —  find all {tomb_count} tombstone"
                 f"{'s' if tomb_count != 1 else ''}, avoid the mines.  Reward: {reward} coins",
                 (200, 160, 140))
-
-    _idxs = list(range(total))
-    random.shuffle(_idxs)
-    tomb_idxs = set(_idxs[:tomb_count])
-    mine_idxs = set(_idxs[tomb_count:tomb_count + mine_count])
-    _rest     = _idxs[tomb_count + mine_count:]
-    clue_idxs = set(_rest[:clue_count])
 
     def _neighbors(idx):
         r, c = divmod(idx, grid_dim)
@@ -3867,17 +3892,26 @@ def tombstones_minefield(screen, clock, stats, unlocked):
                 if 0 <= nr < grid_dim and 0 <= nc < grid_dim:
                     yield nr * grid_dim + nc
 
-    cells = []
+    _idxs = list(range(total))
+    random.shuffle(_idxs)
+    _kind_idxs = {}   # kind -> set of grid indices
+    _cursor = 0
+    for _kind, _cnt in tile_counts.items():
+        _kind_idxs[_kind] = set(_idxs[_cursor:_cursor + _cnt])
+        _cursor += _cnt
+    mine_idxs = _kind_idxs.get("mine", set())
+
+    cells = [None] * total
+    for _kind, _kidxs in _kind_idxs.items():
+        for i in _kidxs:
+            if _kind == 'clue':
+                _cnt = sum(1 for n in _neighbors(i) if n in mine_idxs)
+                cells[i] = {'kind': 'clue', 'revealed': False, 'value': _cnt}
+            else:
+                cells[i] = {'kind': _kind, 'revealed': False}
     for i in range(total):
-        if i in tomb_idxs:
-            cells.append({'kind': 'tombstone', 'revealed': False})
-        elif i in mine_idxs:
-            cells.append({'kind': 'mine', 'revealed': False})
-        elif i in clue_idxs:
-            _cnt = sum(1 for n in _neighbors(i) if n in mine_idxs)
-            cells.append({'kind': 'clue', 'revealed': False, 'value': _cnt})
-        else:
-            cells.append({'kind': 'blank', 'revealed': False})
+        if cells[i] is None:
+            cells[i] = {'kind': 'blank', 'revealed': False}
 
     FIELD_PX = 420
     cell_sz  = FIELD_PX // grid_dim
@@ -3914,6 +3948,10 @@ def tombstones_minefield(screen, clock, stats, unlocked):
                             found += 1
                             if found >= tomb_count:
                                 result = 'win'
+                        elif _cell['kind'] == 'kirin_computer':
+                            for _oc in cells:
+                                if _oc['kind'] == 'clue':
+                                    _oc['revealed'] = True
 
         # ── Draw ─────────────────────────────────────────────────────────
         screen.fill((16, 14, 20))
