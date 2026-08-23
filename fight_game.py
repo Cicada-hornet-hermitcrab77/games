@@ -3934,6 +3934,9 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             if isinstance(_pl, Platform):
                 _pl.book_style = True
     springs     = [Spring(*s)   for s in stage_data["springs"]]
+    hazards     = [HazardZone(*h) for h in stage_data.get("hazards", [])]
+    dinos       = []   # Dino (Amberk: chasing skeletal raptors)
+    stampedes   = []   # Stampede (Crystallion: charging horse stampedes)
     is_jungle     = stage_data["name"] == "Jungle"
     is_computer   = stage_data["name"] == "Computer"
     is_underworld = stage_data["name"] == "Underworld"
@@ -4193,6 +4196,32 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 if two_player: sp.trigger(p2)
                 for en in enemies: sp.trigger(en)
 
+            # Update hazard zones (stage-baked + Volcanis lava pools) and apply damage
+            for hz in hazards:
+                hz.update()
+                for _hf in [p for p in players if p.hp > 0] + enemies:
+                    if not _hf.char.get("immune") and hz.contains(_hf) and hz.cds.get(id(_hf), 0) <= 0:
+                        hz.cds[id(_hf)] = HazardZone.TICK
+                        _hdmg = 8 if hz.htype == "lava" else 6 if hz.htype == "electric" else 5
+                        _hf.take_proj_dmg(_hdmg, flash=False)
+                        _hf.flash_timer = max(_hf.flash_timer, 6)
+                        if hz.htype == "lava" and _hf.fire_frames == 0:
+                            _hf.fire_tick = 60
+                            _hf.fire_frames = max(_hf.fire_frames, 120)
+                        if hz.htype == "ice":
+                            _hf.shock_frames = max(_hf.shock_frames, 45)
+            hazards = [hz for hz in hazards if hz.alive]
+
+            # Dino chasers (Amberk) and horse stampedes (Crystallion) — each
+            # object already tracks its own target, set at creation, so one
+            # shared list update/draw covers both player- and enemy-owned.
+            for _dn in dinos:
+                _dn.update()
+            dinos = [_dn for _dn in dinos if _dn.alive]
+            for _sd in stampedes:
+                _sd.update()
+            stampedes = [_sd for _sd in stampedes if _sd.alive]
+
             # Volcano Core: the molten floor keeps rising — climb or burn
             if _is_volcore:
                 _volcore_lava_y -= (HEIGHT / 90.0) / FPS
@@ -4328,6 +4357,18 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         _ultgt = target.x if living else en.x
                         for _ulx in (_ultgt - 30, _ultgt, _ultgt + 30):
                             en_ultralightning_bolts.append(ThunderBolt(_ulx, en))
+                    if en.pending_lava_pools:
+                        en.pending_lava_pools = False
+                        for _lpi in range(3):
+                            _lpx = en.x + en.facing * (40 + _lpi * 55) - 25
+                            _lpx = max(20.0, min(float(WIDTH - 20 - 50), _lpx))
+                            hazards.append(HazardZone(_lpx, 50, "lava", life=FPS * 4))
+                    if en.pending_dino_summon:
+                        en.pending_dino_summon = False
+                        dinos.append(Dino(en.x + en.facing * 30, en, target))
+                    if en.pending_stampede:
+                        en.pending_stampede = False
+                        stampedes.append(Stampede(target))
 
             # Mark newly dead players and freeze them
             for p in players:
@@ -4430,6 +4471,22 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     _ultgt = min(enemies, key=lambda e: abs(e.x - shooter.x)).x if enemies else shooter.x
                     for _ulx in (_ultgt - 30, _ultgt, _ultgt + 30):
                         ultralightning_bolts.append(ThunderBolt(_ulx, shooter))
+                if shooter.pending_lava_pools:
+                    shooter.pending_lava_pools = False
+                    for _lpi in range(3):
+                        _lpx = shooter.x + shooter.facing * (40 + _lpi * 55) - 25
+                        _lpx = max(20.0, min(float(WIDTH - 20 - 50), _lpx))
+                        hazards.append(HazardZone(_lpx, 50, "lava", life=FPS * 4))
+                if shooter.pending_dino_summon:
+                    shooter.pending_dino_summon = False
+                    _dtgt = min(enemies, key=lambda e: abs(e.x - shooter.x)) if enemies else None
+                    if _dtgt:
+                        dinos.append(Dino(shooter.x + shooter.facing * 30, shooter, _dtgt))
+                if shooter.pending_stampede:
+                    shooter.pending_stampede = False
+                    _stgt = min(enemies, key=lambda e: abs(e.x - shooter.x)) if enemies else None
+                    if _stgt:
+                        stampedes.append(Stampede(_stgt))
 
             # Laser Eyes beam damage (survival)
             for shooter in players:
@@ -5619,6 +5676,9 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for portal in portals_obj_s: portal.draw(screen)
         for plat in platforms:     plat.draw(screen, stage_idx)
         for sp   in springs:       sp.draw(screen)
+        for hz   in hazards:       hz.draw(screen)
+        for _dn  in dinos:         _dn.draw(screen)
+        for _sd  in stampedes:     _sd.draw(screen)
         for pu   in powerups:      pu.draw(screen)
         for b    in balls:         b.draw(screen)
         for wb   in wildfire_balls:    wb.draw(screen)

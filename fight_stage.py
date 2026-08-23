@@ -1035,7 +1035,8 @@ class Dino(object):
     SPEED         = 3.2
     BITE_DMG      = 8
     BITE_COOLDOWN = 90
-    BITE_RANGE    = 42
+    DRAW_SCALE    = 1.7
+    BITE_RANGE    = int(42 * DRAW_SCALE)
     LIFE          = FPS * 6
 
     def __init__(self, x, owner, target):
@@ -1070,28 +1071,31 @@ class Dino(object):
             self.bite_cd = self.BITE_COOLDOWN
 
     def draw(self, surface):
-        cx, cy = int(self.x), int(self.y) - 6
+        S = self.DRAW_SCALE
+        cx, cy = int(self.x), int(self.y) - int(6 * S)
         bone_col, bone_dk = (225, 218, 200), (160, 150, 130)
         # Tail
         for i in range(4):
-            tx = cx - self.facing * int(10 + i * 9)
-            ty = cy + int(math.sin(self.t * 0.2 + i) * 3)
-            pygame.draw.circle(surface, bone_col, (tx, ty), max(1, 4 - i))
+            tx = cx - self.facing * int((10 + i * 9) * S)
+            ty = cy + int(math.sin(self.t * 0.2 + i) * 3 * S)
+            pygame.draw.circle(surface, bone_col, (tx, ty), max(1, int((4 - i) * S)))
         # Body
-        pygame.draw.ellipse(surface, bone_col, (cx - 12, cy - 8, 22, 14))
-        pygame.draw.ellipse(surface, bone_dk, (cx - 12, cy - 8, 22, 14), 1)
+        _body_rect = (cx - int(12 * S), cy - int(8 * S), int(22 * S), int(14 * S))
+        pygame.draw.ellipse(surface, bone_col, _body_rect)
+        pygame.draw.ellipse(surface, bone_dk, _body_rect, 1)
         # Legs
-        _leg_swing = math.sin(self.t * 0.4) * 4
+        _leg_swing = math.sin(self.t * 0.4) * 4 * S
         for sgn in (-1, 1):
-            pygame.draw.line(surface, bone_col, (cx + sgn * 3, cy + 4),
-                             (cx + sgn * 3 + int(_leg_swing * sgn), cy + 12), 2)
+            pygame.draw.line(surface, bone_col, (cx + int(sgn * 3 * S), cy + int(4 * S)),
+                             (cx + int(sgn * 3 * S) + int(_leg_swing * sgn), cy + int(12 * S)), max(1, int(2 * S)))
         # Head + jaw
-        hx = cx + self.facing * 14
-        pygame.draw.circle(surface, bone_col, (hx, cy - 4), 7)
-        pygame.draw.circle(surface, bone_dk, (hx, cy - 4), 7, 1)
-        pygame.draw.line(surface, bone_dk, (hx + self.facing * 4, cy - 1),
-                         (hx + self.facing * 9, cy + 2), 2)
-        pygame.draw.circle(surface, (200, 40, 30), (hx - self.facing * 2, cy - 6), 2)
+        hx = cx + self.facing * int(14 * S)
+        _head_r = int(7 * S)
+        pygame.draw.circle(surface, bone_col, (hx, cy - int(4 * S)), _head_r)
+        pygame.draw.circle(surface, bone_dk, (hx, cy - int(4 * S)), _head_r, 1)
+        pygame.draw.line(surface, bone_dk, (hx + self.facing * int(4 * S), cy - int(1 * S)),
+                         (hx + self.facing * int(9 * S), cy + int(2 * S)), max(1, int(2 * S)))
+        pygame.draw.circle(surface, (200, 40, 30), (hx - self.facing * int(2 * S), cy - int(6 * S)), max(1, int(2 * S)))
 
 
 class Stampede(object):
@@ -1100,6 +1104,9 @@ class Stampede(object):
     SPEED       = 11
     DMG         = 14
     HORSE_COUNT = 5
+    DRAW_SCALE  = 1.6
+    SPACING     = int(34 * DRAW_SCALE)
+    HIT_RANGE   = int(50 * DRAW_SCALE)
 
     def __init__(self, target):
         self.target = target
@@ -1111,31 +1118,37 @@ class Stampede(object):
     def update(self):
         self.t += 1
         self.x += self.SPEED
-        if not self.hit and self.target.hp > 0 and abs(self.x - self.target.x) < 50:
+        if not self.hit and self.target.hp > 0 and abs(self.x - self.target.x) < self.HIT_RANGE:
             self.target.take_proj_dmg(self.DMG, flash=False)
             self.target.flash_timer = 14
             self.hit = True
-        if self.x - self.HORSE_COUNT * 34 > WIDTH + 80:
+        if self.x - self.HORSE_COUNT * self.SPACING > WIDTH + 80:
             self.alive = False
 
     def draw(self, surface):
+        S = self.DRAW_SCALE
         for i in range(self.HORSE_COUNT):
-            hx = int(self.x - i * 34)
-            if hx < -40 or hx > WIDTH + 40:
+            hx = int(self.x - i * self.SPACING)
+            if hx < -int(40 * S) or hx > WIDTH + int(40 * S):
                 continue
-            hy = GROUND_Y - 14 + (i % 2) * 5
-            gallop = math.sin(self.t * 0.5 + i) * 5
+            hy = GROUND_Y - int(14 * S) + (i % 2) * int(5 * S)
+            gallop = math.sin(self.t * 0.5 + i) * 5 * S
             col, col_dk = (150, 220, 240), (80, 150, 180)
-            pygame.draw.ellipse(surface, col, (hx - 14, hy - 8, 26, 14))
-            pygame.draw.ellipse(surface, col_dk, (hx - 14, hy - 8, 26, 14), 1)
+            _body_rect = (hx - int(14 * S), hy - int(8 * S), int(26 * S), int(14 * S))
+            pygame.draw.ellipse(surface, col, _body_rect)
+            pygame.draw.ellipse(surface, col_dk, _body_rect, 1)
             # Legs, galloping
             for sgn in (-1, 1):
-                pygame.draw.line(surface, col, (hx + sgn * 8, hy + 4),
-                                 (hx + sgn * 8 + int(gallop * sgn), hy + 16), 2)
+                pygame.draw.line(surface, col, (hx + int(sgn * 8 * S), hy + int(4 * S)),
+                                 (hx + int(sgn * 8 * S) + int(gallop * sgn), hy + int(16 * S)), max(1, int(2 * S)))
             # Neck + head, facing right (direction of travel)
-            pygame.draw.polygon(surface, col, [(hx + 12, hy - 4), (hx + 22, hy - 12), (hx + 22, hy - 2)])
+            pygame.draw.polygon(surface, col, [
+                (hx + int(12 * S), hy - int(4 * S)),
+                (hx + int(22 * S), hy - int(12 * S)),
+                (hx + int(22 * S), hy - int(2 * S))])
             # Mane
-            pygame.draw.line(surface, (220, 250, 255), (hx + 8, hy - 8), (hx + 2, hy - 14), 2)
+            pygame.draw.line(surface, (220, 250, 255), (hx + int(8 * S), hy - int(8 * S)),
+                             (hx + int(2 * S), hy - int(14 * S)), max(1, int(2 * S)))
 
 
 class GoldenJungleSnake(JungleSnake):
@@ -1366,6 +1379,7 @@ class HazardZone:
         self._t     = 0
         self.p1_cd  = 0
         self.p2_cd  = 0
+        self.cds    = {}   # id(fighter) -> cooldown, for >2-fighter modes (survival)
         self.life   = life    # frames remaining before despawn; None = permanent stage hazard
         self.alive  = True
 
@@ -1373,6 +1387,10 @@ class HazardZone:
         self._t = (self._t + 1) % 60
         if self.p1_cd > 0: self.p1_cd -= 1
         if self.p2_cd > 0: self.p2_cd -= 1
+        for _k in list(self.cds):
+            self.cds[_k] -= 1
+            if self.cds[_k] <= 0:
+                del self.cds[_k]
         if self.life is not None:
             self.life -= 1
             if self.life <= 0:

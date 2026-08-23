@@ -2292,6 +2292,12 @@ class AIFighter(Fighter):
                     if self.char.get("saint_nix_coal"):
                         self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
                         self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
+                    if self.char.get("hammer_slam_kick") and self.hammer_slam_timer == 0:
+                        self.hammer_slam_timer = 14
+                    if self.char.get("dino_summon_kick"):
+                        self.pending_dino_summon = True
+                    if self.char.get("stampede_kick"):
+                        self.pending_stampede = True
                     if self.char.get("eye_kick_screen_destroy") and self.eye_kick_cooldown == 0:
                         self.pending_eye_kick  = True
                         self.eye_kick_cooldown = FPS * 15
