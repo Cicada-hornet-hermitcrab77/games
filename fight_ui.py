@@ -3755,24 +3755,95 @@ def fuser_mode(screen, clock, stats, unlocked):
 #   (anything left over after the named kinds fills the grid) — blank,
 #   reveals nothing
 _MINEFIELD_TIERS = [
-    {"label": "easy",             "dim": 2, "reward": 200,
+    {"label": "easy",             "dim": 2,
      "tiles": {"tombstone": 1, "mine": 1}},
-    {"label": "medium",           "dim": 3, "reward": 300,
+    {"label": "medium",           "dim": 3,
      "tiles": {"tombstone": 2, "mine": 3, "clue": 1}},
-    {"label": "hard",             "dim": 4, "reward": 400,
+    {"label": "hard",             "dim": 4,
      "tiles": {"tombstone": 3, "mine": 4, "clue": 3, "kirin_computer": 1}},
-    {"label": "super hard",       "dim": 4, "reward": 550,
+    {"label": "super hard",       "dim": 4,
      "tiles": {"tombstone": 3, "mine": 6, "clue": 2}},
-    {"label": "super super hard", "dim": 5, "reward": 700,
+    {"label": "super super hard", "dim": 5,
      "tiles": {"tombstone": 4, "mine": 7, "clue": 4, "kirin_computer": 1}},
-    {"label": "mega hard",        "dim": 6, "reward": 900,
+    {"label": "mega hard",        "dim": 6,
      "tiles": {"tombstone": 5, "mine": 10, "clue": 6, "kirin_computer": 1}},
 ]
 
-_MINEFIELD_KIND_LABEL = {
-    'tombstone': "Tombstone", 'mine': "Minebomb",
-    'clue': "Red Herring's Clue", 'kirin_computer': "Kirin's Computer", 'blank': "Blank",
-}
+# Post-win prize table (rolled once per win, regardless of tier):
+#   20% a random secret character (the True-flagged UNLOCK_CONDITIONS)
+#   20% a random Fuser character
+#   20% a random seasonal-shop character
+#   20% a random seasonal variant character
+#    5% Tombstone specifically
+#    5% a random Minebomb version (4 versions — TODO, not yet designed)
+#   10% 3 random characters you don't have
+_MINEFIELD_SECRET_CHARS = [
+    "777", "Scratch", "Void Master", "Screentime", "God", "Nightfall", "Lucky",
+    "Great Totem Spirit", "Prime Time", "Rage Quitter", "Mirror", "Paradox",
+    "Jetpack", "ChickenBanana", "Life the Universe Everything", "Dementor",
+    "Map Man", "<|-\\||>+()", "Death Defyer", "Friday the 13th", "Overload",
+    "Glitch", "Nick of Time", "Volcanis", "Umbra", "Amberk", "Crystallion",
+    "I", "Crytrap", "Snider",
+]   # excludes "The One" — its own unlock requires already owning all of these
+
+_MINEFIELD_VARIANT_CHARS = [
+    "Spring Eartha", "Summer Eartha", "Autumn Eartha", "Winter Eartha",
+    "Gilded Clover", "Performer Solara", "Chaos Nun-Gimel-Hei-Shin",
+    "Graduated Bookzworm", "Ice Age Yellowstone",
+]
+
+# 4 Minebomb character versions — not yet designed, left empty until specced.
+_MINEFIELD_MINEBOMB_VERSIONS = []
+
+
+def _mf_award_prize(unlocked, stats):
+    """Roll the post-win prize table and grant it. Returns (message, sub)."""
+    def _grant_from(pool):
+        candidates = [n for n in pool if n not in unlocked]
+        if not candidates:
+            return None
+        name = random.choice(candidates)
+        unlocked.add(name)
+        return name
+
+    def _grant_random_missing(count):
+        missing = [c["name"] for c in CHARACTERS if c["name"] not in unlocked]
+        random.shuffle(missing)
+        grant = missing[:count]
+        for n in grant:
+            unlocked.add(n)
+        return grant
+
+    roll = random.random()
+    if roll < 0.20:
+        name = _grant_from(_MINEFIELD_SECRET_CHARS)
+        if name: return ("A SECRET CHARACTER!", name)
+    elif roll < 0.40:
+        name = _grant_from([c["name"] for c in FUSER_SHOP_CHARS])
+        if name: return ("A FUSER CHARACTER!", name)
+    elif roll < 0.60:
+        name = _grant_from([c["name"] for c in SEASONAL_SHOP_CHARS])
+        if name: return ("A SEASONAL CHARACTER!", name)
+    elif roll < 0.80:
+        name = _grant_from(_MINEFIELD_VARIANT_CHARS)
+        if name: return ("A SEASONAL VARIANT!", name)
+    elif roll < 0.85:
+        name = _grant_from(["Tombstone"])
+        if name: return ("TOMBSTONE!", name)
+    elif roll < 0.90:
+        name = _grant_from(_MINEFIELD_MINEBOMB_VERSIONS)
+        if name: return ("A MINEBOMB VERSION!", name)
+    else:
+        grant = _grant_random_missing(3)
+        if grant:
+            return ("3 NEW CHARACTERS!", ", ".join(grant))
+
+    # Whatever category was rolled had nothing left to give (already owned,
+    # or — for Minebomb — not designed yet) — fall back to 3 random missing.
+    grant = _grant_random_missing(3)
+    if grant:
+        return ("3 NEW CHARACTERS!", ", ".join(grant))
+    return ("You already own every character!", "")
 
 
 def _mf_message(screen, clock, title, sub, col):
@@ -3859,8 +3930,9 @@ def tombstones_minefield(screen, clock, stats, unlocked):
     tiers, which scales the grid size, tombstone count, mine count, and
     red herring's clue count (a clue tile reveals how many mines sit in
     its 8 surrounding squares; the rest are blank/uninformative).
-    Reveal every tombstone to win the tier's coin reward; reveal a mine
-    and the round ends immediately. Modifies stats in-place."""
+    Reveal every tombstone to win a random prize off the post-win table
+    (see _mf_award_prize); reveal a mine and the round ends immediately
+    with nothing awarded. Modifies unlocked/stats in-place."""
     COST = 50
     coins = stats.get("seasonal_coins", 0)
     if coins < COST:
@@ -3870,14 +3942,14 @@ def tombstones_minefield(screen, clock, stats, unlocked):
     stats["seasonal_coins"] = coins - COST
 
     tier = random.choice(_MINEFIELD_TIERS)
-    tier_label, grid_dim, reward = tier["label"], tier["dim"], tier["reward"]
+    tier_label, grid_dim = tier["label"], tier["dim"]
     tile_counts = tier["tiles"]
     tomb_count  = tile_counts.get("tombstone", 0)
     total = grid_dim * grid_dim
 
     _mf_message(screen, clock, "TOMBSTONE'S MINEFIELD",
                 f"Tier: {tier_label.title()}  —  find all {tomb_count} tombstone"
-                f"{'s' if tomb_count != 1 else ''}, avoid the mines.  Reward: {reward} coins",
+                f"{'s' if tomb_count != 1 else ''}, avoid the mines.  Win for a random prize!",
                 (200, 160, 140))
 
     def _neighbors(idx):
@@ -3959,16 +4031,14 @@ def tombstones_minefield(screen, clock, stats, unlocked):
         screen.blit(_tier_txt, (16, 16))
         _found_txt = font_small.render(f"Tombstones: {found}/{tomb_count}", True, WHITE)
         screen.blit(_found_txt, (16, 40))
-        _rew_txt = font_small.render(f"Reward: {reward} coins", True, (255, 215, 60))
-        screen.blit(_rew_txt, (16, 64))
         for _idx, _cell in enumerate(cells):
             _mf_draw_tile(screen, _cell_rect(_idx), _cell)
         pygame.display.flip()
 
     if result == 'win':
-        stats["seasonal_coins"]  = stats.get("seasonal_coins", 0) + reward
         stats["minefield_wins"]  = stats.get("minefield_wins", 0) + 1
-        _mf_message(screen, clock, "ALL TOMBSTONES FOUND!", f"+{reward} coins", (100, 230, 120))
+        _prize_title, _prize_sub = _mf_award_prize(unlocked, stats)
+        _mf_message(screen, clock, _prize_title, _prize_sub, (100, 230, 120))
     else:
         for _cell in cells:
             _cell['revealed'] = True
