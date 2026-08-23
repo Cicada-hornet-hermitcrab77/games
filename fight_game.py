@@ -640,8 +640,8 @@ def _count_daily_streak(dates):
     if not dates:
         return 0
     unique = sorted(set(dates), reverse=True)
-    today     = datetime.date.today().isoformat()
-    yesterday = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+    today     = dev_today().isoformat()
+    yesterday = (dev_today() - datetime.timedelta(days=1)).isoformat()
     if unique[0] not in (today, yesterday):
         return 0
     streak = 1
@@ -848,13 +848,13 @@ def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=N
     """Update stats dict after a vs-AI fight."""
     stats["matches_played"] = stats.get("matches_played", 0) + 1
     # Track daily play date
-    today = datetime.date.today().isoformat()
+    today = dev_today().isoformat()
     dates = stats.get("daily_play_dates", [])
     if today not in dates:
         dates.append(today)
     stats["daily_play_dates"] = dates
     # Track 3:33 PM (legacy)
-    now = datetime.datetime.now()
+    now = dev_now()
     if now.hour == 15 and now.minute == 33:
         stats["played_at_333pm"] = True
     # Track noon (12:xx)
@@ -891,7 +891,7 @@ def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=N
         stats["wins_on_stage"][stage] = stats["wins_on_stage"].get(stage, 0) + 1
         if p1_full_hp:
             stats["perfect_wins"] += 1
-            _today = datetime.date.today()
+            _today = dev_today()
             if _today.month == 2 and _today.day == 29:
                 stats["crystallion_unlocked"] = True
         if p1_low_hp:
@@ -1459,7 +1459,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     if hasattr(event, 'unicode') and event.unicode:
                         _f13_buf += event.unicode
                         if "13" in _f13_buf:
-                            _now = datetime.datetime.now()
+                            _now = dev_now()
                             if _now.weekday() == 4 and _now.day == 13:
                                 _friday13_flag[0] = True
                             _f13_buf = ""
@@ -7232,7 +7232,7 @@ def main():
                 _save_data(unlocked, stats)
                 _show_unlocks(new_unlocks)
         if _dino_bones_collected[0] > 0:
-            _today_iso = datetime.date.today().isoformat()
+            _today_iso = dev_today().isoformat()
             if stats.get("dino_bones_date") != _today_iso:
                 stats["dino_bones_date"]  = _today_iso
                 stats["dino_bones_count"] = 0
@@ -7315,12 +7315,12 @@ def main():
                 stats["survival_runs"] = stats.get("survival_runs", 0) + 1
                 stats["survival_best_kills"] = max(stats.get("survival_best_kills", 0), kills)
                 # Track daily date and 3:33pm for survival too
-                _today = datetime.date.today().isoformat()
+                _today = dev_today().isoformat()
                 _dates = stats.get("daily_play_dates", [])
                 if _today not in _dates:
                     _dates.append(_today)
                     stats["daily_play_dates"] = _dates
-                _now = datetime.datetime.now()
+                _now = dev_now()
                 if _now.hour == 15 and _now.minute == 33:
                     stats["played_at_333pm"] = True
                 if _konami_flag[0]:
@@ -7835,12 +7835,12 @@ def main():
                     stats["wins_2p"] = stats.get("wins_2p", 0) + 1
                 stats["void_deaths"] = stats.get("void_deaths", 0) + p1_void_falls
             # Track daily date and 3:33pm even outside vs-AI fights
-            today = datetime.date.today().isoformat()
+            today = dev_today().isoformat()
             dates = stats.get("daily_play_dates", [])
             if today not in dates:
                 dates.append(today)
                 stats["daily_play_dates"] = dates
-            now = datetime.datetime.now()
+            now = dev_now()
             if now.hour == 15 and now.minute == 33:
                 stats["played_at_333pm"] = True
             if _konami_flag[0]:

@@ -758,7 +758,7 @@ def mode_select(unlocked=None):
         _is_lunar_eclipse = is_lunar_eclipse_today()
 
         # Dinosaur Day: spawn bones that must be tapped within 5s
-        _today_date  = datetime.date.today()
+        _today_date  = dev_today()
         _is_dino_day = (_today_date.month == 7 and _today_date.day == 11)
         if _is_dino_day:
             for _bn in _dino_bones:
@@ -3364,8 +3364,7 @@ def seasonal_shop(screen, clock, stats, unlocked):
     _yuletide_gift_msg = 0   # frames to show gift notification
 
     # Yuletide Gatherings: free $20 gift on first visit each year
-    import datetime as _dt
-    _today = _dt.date.today()
+    _today = dev_today()
     if active_ev and active_ev["name"] == "Yuletide Gatherings":
         _gift_key = f"yuletide_gift_{_today.year}"
         if not stats.get(_gift_key):
@@ -3958,15 +3957,25 @@ def _mf_draw_tile(surface, rect, cell):
         pygame.draw.line(surface, (150, 150, 140), (x + w // 2 - _tw // 5, _ty + _th // 2),
                          (x + w // 2 + _tw // 5, _ty + _th // 2), max(2, int(w * 0.03)))
     elif cell['kind'] == 'mine':
-        pygame.draw.rect(surface, (90, 20, 20), rect, border_radius=6)
-        _cx, _cy = x + w // 2, y + h // 2
-        _r = int(min(w, h) * 0.26)
-        pygame.draw.circle(surface, (20, 20, 20), (_cx, _cy), _r)
-        for _ai in range(8):
-            _ang = _ai * math.pi / 4
-            pygame.draw.line(surface, (20, 20, 20), (_cx, _cy),
-                             (_cx + int(math.cos(_ang) * _r * 1.7), _cy + int(math.sin(_ang) * _r * 1.7)), 3)
-        pygame.draw.circle(surface, (255, 210, 60), (_cx, _cy), max(2, _r // 3))
+        # Potato-mine styled: a spud peeking out of a dirt mound, armed
+        # and angry the instant it's revealed.
+        pygame.draw.rect(surface, (70, 30, 20), rect, border_radius=6)
+        _cx = x + w // 2
+        _mound_y = y + int(h * 0.62)
+        pygame.draw.ellipse(surface, (92, 60, 34), (x + int(w*0.08), _mound_y, int(w*0.84), int(h*0.34)))
+        pygame.draw.ellipse(surface, (60, 38, 20), (x + int(w*0.08), _mound_y, int(w*0.84), int(h*0.34)), max(1, int(w*0.015)))
+        _pr = int(min(w, h) * 0.32)
+        _pcy = y + int(h * 0.5)
+        pygame.draw.ellipse(surface, (185, 145, 85), (_cx - _pr, _pcy - int(_pr*0.85), _pr * 2, int(_pr * 1.7)))
+        pygame.draw.ellipse(surface, (140, 105, 55), (_cx - _pr, _pcy - int(_pr*0.85), _pr * 2, int(_pr * 1.7)), max(1, int(w*0.02)))
+        for _sxo, _syo in [(-0.4, -0.5), (0.5, -0.2), (-0.1, 0.4)]:
+            pygame.draw.circle(surface, (150, 112, 58), (_cx + int(_sxo*_pr), _pcy + int(_syo*_pr)), max(1, int(_pr*0.1)))
+        _eo = max(2, int(_pr * 0.32))
+        for _exo in (-1, 1):
+            _ex, _ey = _cx + _exo * int(_pr*0.4), _pcy - int(_pr*0.15)
+            pygame.draw.circle(surface, (255, 220, 60), (_ex, _ey), _eo)
+            pygame.draw.circle(surface, (30, 10, 5), (_ex, _ey), max(1, _eo//2))
+            pygame.draw.line(surface, (60, 30, 10), (_ex - _eo, _ey - _eo), (_ex + _eo, _ey - int(_eo*0.3)), max(1, int(w*0.02)))
     elif cell['kind'] == 'clue':
         pygame.draw.rect(surface, (60, 55, 75), rect, border_radius=6)
         pygame.draw.rect(surface, (140, 120, 180), rect, 2, border_radius=6)

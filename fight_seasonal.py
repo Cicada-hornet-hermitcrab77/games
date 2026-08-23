@@ -80,7 +80,7 @@ SEASONAL_SHOP_CHARS = [
 
 def get_active_event():
     """Return the currently active seasonal event dict, or None."""
-    today = datetime.date.today()
+    today = dev_today()
     t = today.month * 100 + today.day
     for ev in SEASONAL_EVENTS:
         sm, sd = ev["start"]
@@ -124,12 +124,12 @@ LUNAR_ECLIPSE_DATES = {
 
 
 def is_solar_eclipse_today():
-    today = datetime.date.today()
+    today = dev_today()
     return (today.year, today.month, today.day) in SOLAR_ECLIPSE_DATES
 
 
 def is_lunar_eclipse_today():
-    today = datetime.date.today()
+    today = dev_today()
     return (today.year, today.month, today.day) in LUNAR_ECLIPSE_DATES
 
 

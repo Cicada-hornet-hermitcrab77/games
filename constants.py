@@ -3,12 +3,27 @@ import pygame
 import sys
 import math
 import random
+import datetime as _datetime
 
 pygame.init()
 
 WIDTH, HEIGHT = 900, 550
 GROUND_Y = 430
 FPS = 60
+
+# Dev mode ("cicada77" on the home screen): lets the offset below be
+# nudged from a UI panel so date-gated content (seasonal events,
+# eclipses, daily streaks, etc.) can be tested without waiting for the
+# real calendar date. 0 offset == real time.
+DEV_TIME_OFFSET = _datetime.timedelta(0)
+
+
+def dev_now():
+    return _datetime.datetime.now() + DEV_TIME_OFFSET
+
+
+def dev_today():
+    return dev_now().date()
 
 WHITE  = (255, 255, 255)
 BLACK  = (0,   0,   0)
