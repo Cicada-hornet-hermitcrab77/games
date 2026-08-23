@@ -3754,8 +3754,8 @@ def fuser_mode(screen, clock, stats, unlocked):
 #   kirin_computer  — reveals every clue tile on the whole grid at once
 #   (anything left over after the named kinds fills the grid) — blank,
 #   reveals nothing
-# NOTE: super super hard / mega hard compositions are a placeholder
-# extrapolation pending exact numbers.
+# NOTE: mega hard's composition is a placeholder extrapolation pending
+# exact numbers.
 _MINEFIELD_TIERS = [
     {"label": "easy",             "dim": 2, "reward": 200,
      "tiles": {"tombstone": 1, "mine": 1}},
@@ -3765,8 +3765,8 @@ _MINEFIELD_TIERS = [
      "tiles": {"tombstone": 3, "mine": 4, "clue": 3, "kirin_computer": 1}},
     {"label": "super hard",       "dim": 4, "reward": 550,
      "tiles": {"tombstone": 3, "mine": 6, "clue": 2}},
-    {"label": "super super hard", "dim": 6, "reward": 700,
-     "tiles": {"tombstone": 5, "mine": 9, "clue": 5, "kirin_computer": 2}},
+    {"label": "super super hard", "dim": 5, "reward": 700,
+     "tiles": {"tombstone": 4, "mine": 7, "clue": 4, "kirin_computer": 1}},
     {"label": "mega hard",        "dim": 7, "reward": 900,
      "tiles": {"tombstone": 6, "mine": 13, "clue": 6, "kirin_computer": 2}},
 ]
