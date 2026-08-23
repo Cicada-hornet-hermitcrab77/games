@@ -25,7 +25,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             SandSpit, SlimeBomb, TentaMissile, ExplodingTire,
                             Muskshroom, Cutlass, WormMine, Car)
 import fight_network as _net
-from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, fuser_mode
+from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, fuser_mode, tombstones_minefield
 from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
 
 # ---------------------------------------------------------------------------
@@ -7254,6 +7254,12 @@ def main():
         # --- The Fuser path (requires Deco & Emoj) ---
         if mode == 'fuser':
             fuser_mode(screen, clock, stats, unlocked)
+            _save_data(unlocked, stats)
+            continue
+
+        # --- Tombstone's Minefield (Legacy of Valor event minigame) ---
+        if mode == 'tombstones_minefield':
+            tombstones_minefield(screen, clock, stats, unlocked)
             _save_data(unlocked, stats)
             continue
 

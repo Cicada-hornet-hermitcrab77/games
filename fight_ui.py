@@ -3739,3 +3739,206 @@ def fuser_mode(screen, clock, stats, unlocked):
         screen.blit(_bk, (back_rect.centerx - _bk.get_width()//2, back_rect.centery - _bk.get_height()//2))
 
         pygame.display.flip()
+
+
+# ---------------------------------------------------------------------------
+# Tombstone's Minefield — Legacy of Valor's minigame
+# ---------------------------------------------------------------------------
+
+# (tier label, grid dimension (NxN squares), tombstone count, mine count,
+#  red herring's clue count, reward). A clue tile reveals how many mines
+# sit in its 8 surrounding squares (Minesweeper-style); blank tiles show
+# nothing. Remaining squares (NxN - tombstones - mines - clues) are blank.
+_MINEFIELD_TIERS = [
+    ("easy",              2, 1,  1,  0,  200),
+    ("medium",            3, 2,  3,  1,  300),
+    ("hard",              4, 3,  5,  2,  400),
+    ("super hard",        5, 4,  7,  3,  550),
+    ("super super hard",  6, 5, 10,  4,  700),
+    ("mega hard",         7, 6, 13,  5,  900),
+]
+
+
+def _mf_message(screen, clock, title, sub, col):
+    """Simple 'press any key' interstitial used by the minefield minigame."""
+    _t0 = pygame.time.get_ticks()
+    _waiting = True
+    while _waiting:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                _waiting = False
+        if pygame.time.get_ticks() - _t0 > 6000:
+            _waiting = False
+        screen.fill((14, 12, 18))
+        _tt = font_large.render(title, True, col)
+        screen.blit(_tt, (WIDTH // 2 - _tt.get_width() // 2, HEIGHT // 2 - 50))
+        _st = font_small.render(sub, True, (200, 200, 200))
+        screen.blit(_st, (WIDTH // 2 - _st.get_width() // 2, HEIGHT // 2 + 10))
+        _ht = font_tiny.render("press any key to continue", True, (110, 110, 110))
+        screen.blit(_ht, (WIDTH // 2 - _ht.get_width() // 2, HEIGHT // 2 + 50))
+        pygame.display.flip()
+
+
+def _mf_draw_tile(surface, rect, cell):
+    x, y, w, h = rect
+    if not cell['revealed']:
+        pygame.draw.rect(surface, (90, 78, 60), rect, border_radius=6)
+        pygame.draw.rect(surface, (50, 42, 32), rect, 3, border_radius=6)
+        pygame.draw.line(surface, (70, 60, 46), (x + 8, y + h * 0.4), (x + w - 8, y + h * 0.4), 2)
+        pygame.draw.line(surface, (70, 60, 46), (x + 8, y + h * 0.65), (x + w - 8, y + h * 0.65), 2)
+        return
+    if cell['kind'] == 'tombstone':
+        pygame.draw.rect(surface, (30, 90, 40), rect, border_radius=6)
+        _tw, _th = int(w * 0.42), int(h * 0.55)
+        _tx, _ty = x + w // 2 - _tw // 2, y + h // 2 - _th // 2 + int(h * 0.06)
+        pygame.draw.rect(surface, (210, 210, 200), (_tx, _ty + _th // 4, _tw, _th - _th // 4))
+        pygame.draw.ellipse(surface, (210, 210, 200), (_tx, _ty, _tw, _th // 2 + 4))
+        pygame.draw.line(surface, (150, 150, 140), (x + w // 2, _ty + _th // 3),
+                         (x + w // 2, _ty + _th - 6), max(2, int(w * 0.03)))
+        pygame.draw.line(surface, (150, 150, 140), (x + w // 2 - _tw // 5, _ty + _th // 2),
+                         (x + w // 2 + _tw // 5, _ty + _th // 2), max(2, int(w * 0.03)))
+    elif cell['kind'] == 'mine':
+        pygame.draw.rect(surface, (90, 20, 20), rect, border_radius=6)
+        _cx, _cy = x + w // 2, y + h // 2
+        _r = int(min(w, h) * 0.26)
+        pygame.draw.circle(surface, (20, 20, 20), (_cx, _cy), _r)
+        for _ai in range(8):
+            _ang = _ai * math.pi / 4
+            pygame.draw.line(surface, (20, 20, 20), (_cx, _cy),
+                             (_cx + int(math.cos(_ang) * _r * 1.7), _cy + int(math.sin(_ang) * _r * 1.7)), 3)
+        pygame.draw.circle(surface, (255, 210, 60), (_cx, _cy), max(2, _r // 3))
+    elif cell['kind'] == 'clue':
+        pygame.draw.rect(surface, (60, 55, 75), rect, border_radius=6)
+        pygame.draw.rect(surface, (140, 120, 180), rect, 2, border_radius=6)
+        _clue_cols = [(150, 150, 150), (90, 140, 230), (90, 200, 110),
+                      (230, 160, 60), (220, 90, 90), (200, 60, 200)]
+        _cval = cell['value']
+        _ccol = _clue_cols[min(_cval, len(_clue_cols) - 1)]
+        _cf = font_medium if w >= 60 else font_small
+        _ct = _cf.render(str(_cval), True, _ccol)
+        surface.blit(_ct, (x + w // 2 - _ct.get_width() // 2, y + h // 2 - _ct.get_height() // 2))
+    else:  # blank
+        pygame.draw.rect(surface, (55, 50, 40), rect, border_radius=6)
+        pygame.draw.rect(surface, (40, 36, 28), rect, 2, border_radius=6)
+
+
+def tombstones_minefield(screen, clock, stats, unlocked):
+    """Legacy of Valor's minigame: pay 50 seasonal coins to play a round
+    of Minesweeper-style tile flipping on a grid of grave plots. Each
+    attempt is randomly assigned one of the six standard difficulty
+    tiers, which scales the grid size, tombstone count, mine count, and
+    red herring's clue count (a clue tile reveals how many mines sit in
+    its 8 surrounding squares; the rest are blank/uninformative).
+    Reveal every tombstone to win the tier's coin reward; reveal a mine
+    and the round ends immediately. Modifies stats in-place."""
+    COST = 50
+    coins = stats.get("seasonal_coins", 0)
+    if coins < COST:
+        _mf_message(screen, clock, "NOT ENOUGH COINS",
+                    f"Tombstone's Minefield costs {COST} coins to play.", (220, 90, 90))
+        return
+    stats["seasonal_coins"] = coins - COST
+
+    tier_label, grid_dim, tomb_count, mine_count, clue_count, reward = random.choice(_MINEFIELD_TIERS)
+    total = grid_dim * grid_dim
+
+    _mf_message(screen, clock, "TOMBSTONE'S MINEFIELD",
+                f"Tier: {tier_label.title()}  —  find all {tomb_count} tombstone"
+                f"{'s' if tomb_count != 1 else ''}, avoid the mines.  Reward: {reward} coins",
+                (200, 160, 140))
+
+    _idxs = list(range(total))
+    random.shuffle(_idxs)
+    tomb_idxs = set(_idxs[:tomb_count])
+    mine_idxs = set(_idxs[tomb_count:tomb_count + mine_count])
+    _rest     = _idxs[tomb_count + mine_count:]
+    clue_idxs = set(_rest[:clue_count])
+
+    def _neighbors(idx):
+        r, c = divmod(idx, grid_dim)
+        for dr in (-1, 0, 1):
+            for dc in (-1, 0, 1):
+                if dr == 0 and dc == 0:
+                    continue
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < grid_dim and 0 <= nc < grid_dim:
+                    yield nr * grid_dim + nc
+
+    cells = []
+    for i in range(total):
+        if i in tomb_idxs:
+            cells.append({'kind': 'tombstone', 'revealed': False})
+        elif i in mine_idxs:
+            cells.append({'kind': 'mine', 'revealed': False})
+        elif i in clue_idxs:
+            _cnt = sum(1 for n in _neighbors(i) if n in mine_idxs)
+            cells.append({'kind': 'clue', 'revealed': False, 'value': _cnt})
+        else:
+            cells.append({'kind': 'blank', 'revealed': False})
+
+    FIELD_PX = 420
+    cell_sz  = FIELD_PX // grid_dim
+    grid_px  = cell_sz * grid_dim
+    gx0 = WIDTH  // 2 - grid_px // 2
+    gy0 = 120
+
+    def _cell_rect(idx):
+        r, c = divmod(idx, grid_dim)
+        return (gx0 + c * cell_sz + 3, gy0 + r * cell_sz + 3, cell_sz - 6, cell_sz - 6)
+
+    found = 0
+    result = None
+
+    while result is None:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                return   # forfeit — entry fee already spent
+            if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                _mp = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
+                _col = (_mp[0] - gx0) // cell_sz
+                _row = (_mp[1] - gy0) // cell_sz
+                if 0 <= _col < grid_dim and 0 <= _row < grid_dim:
+                    _idx = _row * grid_dim + _col
+                    _cell = cells[_idx]
+                    if not _cell['revealed']:
+                        _cell['revealed'] = True
+                        if _cell['kind'] == 'mine':
+                            result = 'lose_mine'
+                        elif _cell['kind'] == 'tombstone':
+                            found += 1
+                            if found >= tomb_count:
+                                result = 'win'
+
+        # ── Draw ─────────────────────────────────────────────────────────
+        screen.fill((16, 14, 20))
+        _title = font_medium.render("TOMBSTONE'S MINEFIELD", True, (200, 160, 140))
+        screen.blit(_title, (WIDTH // 2 - _title.get_width() // 2, 10))
+        _tier_txt = font_small.render(f"Tier: {tier_label.title()}", True, (230, 200, 120))
+        screen.blit(_tier_txt, (16, 16))
+        _found_txt = font_small.render(f"Tombstones: {found}/{tomb_count}", True, WHITE)
+        screen.blit(_found_txt, (16, 40))
+        _rew_txt = font_small.render(f"Reward: {reward} coins", True, (255, 215, 60))
+        screen.blit(_rew_txt, (16, 64))
+        for _idx, _cell in enumerate(cells):
+            _mf_draw_tile(screen, _cell_rect(_idx), _cell)
+        pygame.display.flip()
+
+    if result == 'win':
+        stats["seasonal_coins"]  = stats.get("seasonal_coins", 0) + reward
+        stats["minefield_wins"]  = stats.get("minefield_wins", 0) + 1
+        _mf_message(screen, clock, "ALL TOMBSTONES FOUND!", f"+{reward} coins", (100, 230, 120))
+    else:
+        for _cell in cells:
+            _cell['revealed'] = True
+        screen.fill((16, 14, 20))
+        for _idx, _cell in enumerate(cells):
+            _mf_draw_tile(screen, _cell_rect(_idx), _cell)
+        pygame.display.flip()
+        pygame.time.wait(700)
+        _mf_message(screen, clock, "BOOM.", "Better luck next time.", (230, 90, 90))
