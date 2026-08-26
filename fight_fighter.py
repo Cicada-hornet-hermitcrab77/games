@@ -265,6 +265,7 @@ class Fighter:
         self.liberty_dove_timer   = FPS * 8 if char_data.get("liberty_dove") else 0
         self.bookzworm_book_cd       = 0      # Bookzworm: cooldown between book aura hits
         self.pending_yellowstone_geysers = False  # Yellowstone: spawn 10 geysers this frame
+        self.pending_ice_yellowstone_kick = False  # Ice Age Yellowstone: 10 icicles from below + 10 from the left
         self.jack_tank_frames    = 0      # Jack O' Slash: frames of pumpkin tank mode remaining
         self.pending_jack_pumpkin = False  # Jack O' Slash tank: fire pumpkin this frame
         self.pending_jack_seed   = False  # Jack O' Slash tank: fire seed this frame
@@ -1705,6 +1706,8 @@ class Fighter:
                 self.pending_golden_snake = True
             if self.char.get("yellowstone_kick") and self.action == 'kick':
                 self.pending_yellowstone_geysers = True
+            if self.char.get("ice_yellowstone_kick") and self.action == 'kick':
+                self.pending_ice_yellowstone_kick = True
 
     def _cornucopia_fire(self):
         _FRUITS = ['cranberry', 'pear', 'apple', 'grape', 'banana',

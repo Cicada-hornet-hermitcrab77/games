@@ -1195,6 +1195,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     liberty_doves      = []   # active LibertyDove companions (Stickman of Liberty)
     liberty_bombs      = []   # falling bombs dropped by LibertyDoves
     yellowstone_geysers = []  # active geysers (Yellowstone kick)
+    ice_icicles   = []   # active icicles (Ice Age Yellowstone kick)
     jack_seeds    = []   # PumpkinSeed projectiles (Jack O' Slash tank kick)
     fruit_projs   = []   # FruitProj projectiles (Cornucopia)
     coal_projs    = []   # CoalProj projectiles (Saint Nix)
@@ -3115,6 +3116,45 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                             gy['hit'] = True
             yellowstone_geysers = new_gy
 
+            # Ice Age Yellowstone — kick fires 10 icicles up from the
+            # ground and 10 more streaking in from the left edge
+            for shooter in (p1, p2):
+                if shooter.pending_ice_yellowstone_kick:
+                    shooter.pending_ice_yellowstone_kick = False
+                    for i in range(10):
+                        gx = 60 + (WIDTH - 120) * i / 9 + random.uniform(-20, 20)
+                        gx = max(60.0, min(float(WIDTH - 60), gx))
+                        ice_icicles.append({'kind': 'ground', 'x': gx, 'age': 0,
+                                            'alive': True, 'owner': shooter, 'hit': False})
+                    for i in range(10):
+                        iy = 100 + (GROUND_Y - 140) * i / 9 + random.uniform(-8, 8)
+                        ice_icicles.append({'kind': 'side', 'x': 0.0, 'y': iy, 'vx': 10.0,
+                                            'alive': True, 'owner': shooter, 'hit': False})
+            new_ice = []
+            for ic in ice_icicles:
+                victim = p2 if ic['owner'] is p1 else p1
+                if ic['kind'] == 'ground':
+                    ic['age'] += 1
+                    if ic['age'] <= 50:
+                        new_ice.append(ic)
+                        if not ic['hit'] and 15 <= ic['age'] <= 32 and victim.hp > 0:
+                            if abs(victim.x - ic['x']) < 40:
+                                victim.take_proj_dmg(8)
+                                victim.flash_timer = max(victim.flash_timer, 10)
+                                victim.shock_frames = max(victim.shock_frames, 25)
+                                ic['hit'] = True
+                else:
+                    ic['x'] += ic['vx']
+                    if ic['x'] <= WIDTH + 20:
+                        new_ice.append(ic)
+                        if (not ic['hit'] and victim.hp > 0
+                                and abs(victim.x - ic['x']) < 30 and abs((victim.y - 60) - ic['y']) < 40):
+                            victim.take_proj_dmg(8)
+                            victim.flash_timer = max(victim.flash_timer, 10)
+                            victim.shock_frames = max(victim.shock_frames, 25)
+                            ic['hit'] = True
+            ice_icicles = new_ice
+
             # Druid plant spikes
             for shooter, victim in [(p1, p2), (p2, p1)]:
                 if shooter.pending_plant:
@@ -3598,6 +3638,20 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     _gs = pygame.Surface((40, 40), pygame.SRCALPHA)
                     pygame.draw.circle(_gs, (200, 200, 200, a), (20, 20), 18)
                     screen.blit(_gs, (gx - 20, GROUND_Y - 130))
+        for ic in ice_icicles:
+            if ic['kind'] == 'ground':
+                ih = min(ic['age'] * 8, 90)
+                ix = int(ic['x'])
+                pygame.draw.polygon(screen, (200, 230, 255),
+                                    [(ix - 6, GROUND_Y), (ix + 6, GROUND_Y), (ix, GROUND_Y - ih)])
+                pygame.draw.polygon(screen, (150, 200, 240),
+                                    [(ix - 6, GROUND_Y), (ix + 6, GROUND_Y), (ix, GROUND_Y - ih)], 1)
+            else:
+                ix, iy = int(ic['x']), int(ic['y'])
+                pygame.draw.polygon(screen, (200, 230, 255),
+                                    [(ix - 14, iy), (ix + 14, iy - 3), (ix + 14, iy + 3)])
+                pygame.draw.polygon(screen, (150, 200, 240),
+                                    [(ix - 14, iy), (ix + 14, iy - 3), (ix + 14, iy + 3)], 1)
         for mn in mines:
             armed = mn['arm'] == 0
             blink = armed and (mn['life'] // 8) % 2 == 0
@@ -4027,6 +4081,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     liberty_doves       = []   # LibertyDove (Stickman of Liberty)
     liberty_bombs       = []   # bombs dropped by dove
     yellowstone_geysers = []   # Yellowstone kick geysers
+    ice_icicles         = []   # Ice Age Yellowstone kick icicles
     jack_seeds          = []   # PumpkinSeed (Jack O' Slash)
     fruit_projs         = []   # FruitProj (Cornucopia)
     coal_projs          = []   # CoalProj (Saint Nix)
@@ -4743,6 +4798,45 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                                 en.flash_timer = max(en.flash_timer, 10)
                                 gy['hit'].add(id(en))
             yellowstone_geysers = new_gy
+
+            # Ice Age Yellowstone icicles (survival)
+            for p in players:
+                if p.pending_ice_yellowstone_kick:
+                    p.pending_ice_yellowstone_kick = False
+                    for i in range(10):
+                        gx = 60 + (WIDTH - 120) * i / 9 + random.uniform(-20, 20)
+                        gx = max(60.0, min(float(WIDTH - 60), gx))
+                        ice_icicles.append({'kind': 'ground', 'x': gx, 'age': 0,
+                                            'alive': True, 'hit': set()})
+                    for i in range(10):
+                        iy = 100 + (GROUND_Y - 140) * i / 9 + random.uniform(-8, 8)
+                        ice_icicles.append({'kind': 'side', 'x': 0.0, 'y': iy, 'vx': 10.0,
+                                            'alive': True, 'hit': set()})
+            new_ice = []
+            for ic in ice_icicles:
+                if ic['kind'] == 'ground':
+                    ic['age'] += 1
+                    if ic['age'] <= 50:
+                        new_ice.append(ic)
+                        if 15 <= ic['age'] <= 32:
+                            for en in enemies:
+                                if id(en) not in ic['hit'] and abs(en.x - ic['x']) < 40:
+                                    en.take_proj_dmg(8)
+                                    en.flash_timer = max(en.flash_timer, 10)
+                                    en.shock_frames = max(en.shock_frames, 25)
+                                    ic['hit'].add(id(en))
+                else:
+                    ic['x'] += ic['vx']
+                    if ic['x'] <= WIDTH + 20:
+                        new_ice.append(ic)
+                        for en in enemies:
+                            if (id(en) not in ic['hit'] and abs(en.x - ic['x']) < 30
+                                    and abs((en.y - 60) - ic['y']) < 40):
+                                en.take_proj_dmg(8)
+                                en.flash_timer = max(en.flash_timer, 10)
+                                en.shock_frames = max(en.shock_frames, 25)
+                                ic['hit'].add(id(en))
+            ice_icicles = new_ice
             # Bookzworm aura (survival — player hits enemies)
             for p in players:
                 if p.char.get("bookzworm_books") and p.hp > 0 and p.bookzworm_book_cd <= 0:
@@ -5754,6 +5848,20 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 r = int((age - 22) * 5) + 8
                 pygame.draw.circle(screen, (255, 255, 255), (gx, GROUND_Y - 110), r)
                 pygame.draw.circle(screen, (180, 230, 255), (gx, GROUND_Y - 110), r + 4, 3)
+        for ic in ice_icicles:
+            if ic['kind'] == 'ground':
+                ih = min(ic['age'] * 8, 90)
+                ix = int(ic['x'])
+                pygame.draw.polygon(screen, (200, 230, 255),
+                                    [(ix - 6, GROUND_Y), (ix + 6, GROUND_Y), (ix, GROUND_Y - ih)])
+                pygame.draw.polygon(screen, (150, 200, 240),
+                                    [(ix - 6, GROUND_Y), (ix + 6, GROUND_Y), (ix, GROUND_Y - ih)], 1)
+            else:
+                ix, iy = int(ic['x']), int(ic['y'])
+                pygame.draw.polygon(screen, (200, 230, 255),
+                                    [(ix - 14, iy), (ix + 14, iy - 3), (ix + 14, iy + 3)])
+                pygame.draw.polygon(screen, (150, 200, 240),
+                                    [(ix - 14, iy), (ix + 14, iy - 3), (ix + 14, iy + 3)], 1)
         for swb  in survival_widow_bugs: swb['bug'].draw(screen)
         for b    in en_balls:      b.draw(screen)
         for o    in orbs:          o.draw(screen)
@@ -6052,7 +6160,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     notes        = []; kitsune_shots = []; water_balls = []; bee_shots = []; snipe_shots = []
     fire_balls   = []; thunder_bolts = []; plant_spikes = []; arcane_orbs = []; sun_beams = []
     nian_breaths = []
-    liberty_doves = []; liberty_bombs = []; yellowstone_geysers = []; jack_seeds = []
+    liberty_doves = []; liberty_bombs = []; yellowstone_geysers = []; ice_icicles = []; jack_seeds = []
     fruit_projs   = []   # FruitProj (Cornucopia)
     coal_projs    = []   # CoalProj (Saint Nix)
 
@@ -6584,6 +6692,44 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                             victim.flash_timer = max(victim.flash_timer, 10)
                             gy['hit'] = True
             yellowstone_geysers = new_gy
+
+            for shooter in (p1, p2):
+                if shooter.pending_ice_yellowstone_kick:
+                    shooter.pending_ice_yellowstone_kick = False
+                    for i in range(10):
+                        gx = 60 + (WIDTH - 120) * i / 9 + random.uniform(-20, 20)
+                        gx = max(60.0, min(float(WIDTH - 60), gx))
+                        ice_icicles.append({'kind': 'ground', 'x': gx, 'age': 0,
+                                            'alive': True, 'owner': shooter, 'hit': False})
+                    for i in range(10):
+                        iy = 100 + (GROUND_Y - 140) * i / 9 + random.uniform(-8, 8)
+                        ice_icicles.append({'kind': 'side', 'x': 0.0, 'y': iy, 'vx': 10.0,
+                                            'alive': True, 'owner': shooter, 'hit': False})
+            new_ice = []
+            for ic in ice_icicles:
+                victim = p2 if ic['owner'] is p1 else p1
+                if ic['kind'] == 'ground':
+                    ic['age'] += 1
+                    if ic['age'] <= 50:
+                        new_ice.append(ic)
+                        if not ic['hit'] and 15 <= ic['age'] <= 32 and victim.hp > 0:
+                            if abs(victim.x - ic['x']) < 40:
+                                victim.take_proj_dmg(8)
+                                victim.flash_timer = max(victim.flash_timer, 10)
+                                victim.shock_frames = max(victim.shock_frames, 25)
+                                ic['hit'] = True
+                else:
+                    ic['x'] += ic['vx']
+                    if ic['x'] <= WIDTH + 20:
+                        new_ice.append(ic)
+                        if (not ic['hit'] and victim.hp > 0
+                                and abs(victim.x - ic['x']) < 30 and abs((victim.y - 60) - ic['y']) < 40):
+                            victim.take_proj_dmg(8)
+                            victim.flash_timer = max(victim.flash_timer, 10)
+                            victim.shock_frames = max(victim.shock_frames, 25)
+                            ic['hit'] = True
+            ice_icicles = new_ice
+
             for bz, victim in [(p1, p2), (p2, p1)]:
                 if bz.char.get("bookzworm_books") and bz.hp > 0 and bz.bookzworm_book_cd <= 0:
                     if math.hypot(victim.x - bz.x, (victim.y - 60) - (bz.y - 60)) < int(85 * bz.draw_scale):
@@ -7015,6 +7161,20 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                 r = int((age - 22) * 5) + 8
                 pygame.draw.circle(screen, (255, 255, 255), (gx, GROUND_Y - 110), r)
                 pygame.draw.circle(screen, (180, 230, 255), (gx, GROUND_Y - 110), r + 4, 3)
+        for ic in ice_icicles:
+            if ic['kind'] == 'ground':
+                ih = min(ic['age'] * 8, 90)
+                ix = int(ic['x'])
+                pygame.draw.polygon(screen, (200, 230, 255),
+                                    [(ix - 6, GROUND_Y), (ix + 6, GROUND_Y), (ix, GROUND_Y - ih)])
+                pygame.draw.polygon(screen, (150, 200, 240),
+                                    [(ix - 6, GROUND_Y), (ix + 6, GROUND_Y), (ix, GROUND_Y - ih)], 1)
+            else:
+                ix, iy = int(ic['x']), int(ic['y'])
+                pygame.draw.polygon(screen, (200, 230, 255),
+                                    [(ix - 14, iy), (ix + 14, iy - 3), (ix + 14, iy + 3)])
+                pygame.draw.polygon(screen, (150, 200, 240),
+                                    [(ix - 14, iy), (ix + 14, iy - 3), (ix + 14, iy + 3)], 1)
         for fb   in fire_balls:     fb.draw(screen)
         for nb   in nian_breaths:   nb.draw(screen)
         for tb   in thunder_bolts:  tb.draw(screen)
