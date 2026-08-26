@@ -1464,6 +1464,26 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 _vcn = CHARACTERS[_clover_variant_indices[p1_cv]]["name"]
                                 if _vcn not in unlocked:
                                     _ev_ok_t = False
+                            if _CHARS[p1_idx]["name"] == "Solara" and _solara_variant_indices:
+                                _vst = CHARACTERS[_solara_variant_indices[p1_sv]]["name"]
+                                if _vst not in unlocked:
+                                    _ev_ok_t = False
+                            if _CHARS[p1_idx]["name"] == "Nun-Gimel-Hei-Shin" and _nghs_variant_indices:
+                                _vnnt = CHARACTERS[_nghs_variant_indices[p1_nv]]["name"]
+                                if _vnnt not in unlocked:
+                                    _ev_ok_t = False
+                            if _CHARS[p1_idx]["name"] == "Bookzworm" and _bookzworm_variant_indices:
+                                _vbnt = CHARACTERS[_bookzworm_variant_indices[p1_bv]]["name"]
+                                if _vbnt not in unlocked:
+                                    _ev_ok_t = False
+                            if _CHARS[p1_idx]["name"] == "Yellowstone" and _yellowstone_variant_indices:
+                                _vynt = CHARACTERS[_yellowstone_variant_indices[p1_yv]]["name"]
+                                if _vynt not in unlocked:
+                                    _ev_ok_t = False
+                            if _CHARS[p1_idx]["name"] == "Tombstone" and _tombstone_variant_indices:
+                                _vtnt = CHARACTERS[_tombstone_variant_indices[p1_tv]]["name"]
+                                if _vtnt not in unlocked:
+                                    _ev_ok_t = False
                             if _ev_ok_t:
                                 p1_ready = True
                                 if vs_ai:
@@ -1479,6 +1499,26 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             if _CHARS[p2_idx]["name"] == "Clover" and _clover_variant_indices:
                                 _vcn2 = CHARACTERS[_clover_variant_indices[p2_cv]]["name"]
                                 if _vcn2 not in unlocked:
+                                    _ev_ok_t2 = False
+                            if _CHARS[p2_idx]["name"] == "Solara" and _solara_variant_indices:
+                                _vst2 = CHARACTERS[_solara_variant_indices[p2_sv]]["name"]
+                                if _vst2 not in unlocked:
+                                    _ev_ok_t2 = False
+                            if _CHARS[p2_idx]["name"] == "Nun-Gimel-Hei-Shin" and _nghs_variant_indices:
+                                _vnnt2 = CHARACTERS[_nghs_variant_indices[p2_nv]]["name"]
+                                if _vnnt2 not in unlocked:
+                                    _ev_ok_t2 = False
+                            if _CHARS[p2_idx]["name"] == "Bookzworm" and _bookzworm_variant_indices:
+                                _vbnt2 = CHARACTERS[_bookzworm_variant_indices[p2_bv]]["name"]
+                                if _vbnt2 not in unlocked:
+                                    _ev_ok_t2 = False
+                            if _CHARS[p2_idx]["name"] == "Yellowstone" and _yellowstone_variant_indices:
+                                _vynt2 = CHARACTERS[_yellowstone_variant_indices[p2_yv]]["name"]
+                                if _vynt2 not in unlocked:
+                                    _ev_ok_t2 = False
+                            if _CHARS[p2_idx]["name"] == "Tombstone" and _tombstone_variant_indices:
+                                _vtnt2 = CHARACTERS[_tombstone_variant_indices[p2_tv]]["name"]
+                                if _vtnt2 not in unlocked:
                                     _ev_ok_t2 = False
                             if _ev_ok_t2:
                                 p2_ready = True
