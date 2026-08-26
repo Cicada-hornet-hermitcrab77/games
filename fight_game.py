@@ -7580,9 +7580,9 @@ def main():
                                             font_small,  (220, 220, 160),   20),
                 ("fall past them and it's over.",
                                             font_small,  (220, 220, 160),   40),
-                ("Win a match for a chance at a",
+                ("Win 10 matches and a rare fighter",
                                             font_small,  (220, 220, 160),   80),
-                ("rare fighter joining your roster.",
+                ("may join your roster.",
                                             font_small,  (220, 220, 160),  100),
                 ("Available during Novel Beginnings only.",
                                             font_small,  (160, 190, 220),  140),
@@ -7628,24 +7628,27 @@ def main():
                 p1_won = info[0] if isinstance(info, tuple) else False
                 if p1_won:
                     stats["booked_wins"] = stats.get("booked_wins", 0) + 1
-                    _booked_weights = [
-                        ("Oni",              2200),
-                        ("Rainbow Snake",    1980),
-                        ("Hydra",            1760),
-                        ("Chimera",          1540),
-                        ("Sphinx",           1320),
-                        ("Anansi",           1090),
-                        ("Bookzworm",         100),
-                        ("Graduated Bookzworm", 10),
-                    ]
-                    _booked_pool = [n for n, w in _booked_weights for _ in range(w)]
-                    _booked_reward = random.choice(_booked_pool)
-                    if _booked_reward not in unlocked:
-                        unlocked.add(_booked_reward)
-                        _save_data(unlocked, stats)
-                        _show_unlocks([_booked_reward])
-                    else:
-                        _save_data(unlocked, stats)
+                    if stats["booked_wins"] % 10 == 0:
+                        _booked_weights = [
+                            ("Oni",              2200),
+                            ("Rainbow Snake",    1980),
+                            ("Hydra",            1760),
+                            ("Chimera",          1540),
+                            ("Sphinx",           1320),
+                            ("Anansi",           1090),
+                            ("Bookzworm",         100),
+                            ("Graduated Bookzworm", 10),
+                        ]
+                        _booked_pool = [n for n, w in _booked_weights for _ in range(w)]
+                        _booked_locked = [n for n in {n for n, _ in _booked_weights} if n not in unlocked]
+                        _booked_locked_w = [n for n in _booked_pool if n in set(_booked_locked)]
+                        _booked_reward = random.choice(_booked_locked_w) if _booked_locked_w else random.choice(_booked_pool)
+                        if _booked_reward not in unlocked:
+                            unlocked.add(_booked_reward)
+                            _save_data(unlocked, stats)
+                            _show_unlocks([_booked_reward])
+                        else:
+                            _save_data(unlocked, stats)
                 if _konami_flag[0]:
                     stats["konami_unlocked"] = True
                     _konami_flag[0] = False
@@ -7764,9 +7767,9 @@ def main():
                                             font_small,  (230, 210, 140),   20),
                 ("into smaller ones — or just get out of the way.",
                                             font_small,  (230, 210, 140),   40),
-                ("Win a match for a chance at a",
+                ("Win 10 matches and a rare fighter",
                                             font_small,  (230, 210, 140),   80),
-                ("rare fighter joining your roster.",
+                ("may join your roster.",
                                             font_small,  (230, 210, 140),  100),
                 ("Available during Project Yellowstone only.",
                                             font_small,  (170, 190, 220),  140),
@@ -7810,26 +7813,29 @@ def main():
                 p1_won = info[0] if isinstance(info, tuple) else False
                 if p1_won:
                     stats["rolling_stones_wins"] = stats.get("rolling_stones_wins", 0) + 1
-                    _rs_weights = [
-                        ("Boulder",             300),
-                        ("Golem",               260),
-                        ("Stone Golem",         220),
-                        ("Colossus",            180),
-                        ("Sandman",             160),
-                        ("Titan",               140),
-                        ("Ancient",             120),
-                        ("Crystallion",          80),
-                        ("Yellowstone",          40),
-                        ("Ice Age Yellowstone",   5),
-                    ]
-                    _rs_pool = [n for n, w in _rs_weights for _ in range(w)]
-                    _rs_reward = random.choice(_rs_pool)
-                    if _rs_reward not in unlocked:
-                        unlocked.add(_rs_reward)
-                        _save_data(unlocked, stats)
-                        _show_unlocks([_rs_reward])
-                    else:
-                        _save_data(unlocked, stats)
+                    if stats["rolling_stones_wins"] % 10 == 0:
+                        _rs_weights = [
+                            ("Boulder",             300),
+                            ("Golem",               260),
+                            ("Stone Golem",         220),
+                            ("Colossus",            180),
+                            ("Sandman",             160),
+                            ("Titan",               140),
+                            ("Ancient",             120),
+                            ("Crystallion",          80),
+                            ("Yellowstone",          40),
+                            ("Ice Age Yellowstone",   5),
+                        ]
+                        _rs_pool = [n for n, w in _rs_weights for _ in range(w)]
+                        _rs_locked = [n for n in {n for n, _ in _rs_weights} if n not in unlocked]
+                        _rs_locked_w = [n for n in _rs_pool if n in set(_rs_locked)]
+                        _rs_reward = random.choice(_rs_locked_w) if _rs_locked_w else random.choice(_rs_pool)
+                        if _rs_reward not in unlocked:
+                            unlocked.add(_rs_reward)
+                            _save_data(unlocked, stats)
+                            _show_unlocks([_rs_reward])
+                        else:
+                            _save_data(unlocked, stats)
                 if _konami_flag[0]:
                     stats["konami_unlocked"] = True
                     _konami_flag[0] = False
