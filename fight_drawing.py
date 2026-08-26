@@ -12641,98 +12641,110 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.circle(surface, (190, 195, 255), (_ex, _ey), _er)
             pygame.draw.circle(surface, (230, 235, 255), (_ex, _ey), max(1, _er // 2))
 
-    elif char_name == "Booma":
-        # Tombstone's Minefield prize costume: a bomb planted in the dirt.
-        _stone   = (32, 32, 38)
-        _edge    = (60, 60, 68)
-        _dirt    = (92, 68, 42)
-        _dirt_dk = (65, 46, 28)
-        _tw   = al + int(hd * 0.5)
-        _top  = hy - int(hd * 1.2)
-        _bot  = wy + int(LEG_LEN * s)
-        _rect_top = _top + int(hd * 1.7)
-        _bomb_cy  = _top + int(hd * 0.9)
-        _bomb_r   = _tw
-        pygame.draw.rect(surface, _dirt, (sx - _tw, _rect_top, _tw * 2, _bot - _rect_top))
-        pygame.draw.rect(surface, _dirt_dk, (sx - _tw, _rect_top, _tw * 2, _bot - _rect_top), max(1, int(2*s)))
-        pygame.draw.rect(surface, _dirt_dk, (sx - int(_tw*1.15), _bot - int(4*s), int(_tw*2.3), int(6*s)))
-        pygame.draw.circle(surface, _stone, (sx, _bomb_cy), _bomb_r)
-        pygame.draw.circle(surface, _edge, (sx, _bomb_cy), _bomb_r, max(1, int(2*s)))
-        pygame.draw.ellipse(surface, (72, 72, 82),
-                            (sx - _bomb_r//2, _bomb_cy - _bomb_r//2, int(_bomb_r*0.7), int(_bomb_r*0.4)))
-        _fx, _fy = sx, _bomb_cy - _bomb_r
-        _fx2, _fy2 = _fx + int(4*s), _fy - int(10*s)
-        pygame.draw.line(surface, (150, 110, 60), (_fx, _fy), (_fx2, _fy2), max(2, int(3*s)))
-        if (pygame.time.get_ticks() // 120) % 2 == 0:
-            pygame.draw.circle(surface, (255, 190, 40), (_fx2, _fy2), max(2, int(4*s)))
-            pygame.draw.circle(surface, (255, 240, 180), (_fx2, _fy2), max(1, int(2*s)))
-        for _dxo in (-1, 1):
-            _dx = sx + _dxo * int(_tw * 0.75)
-            pygame.draw.rect(surface, (180, 30, 30),
-                             (_dx - int(3*s), _rect_top - int(6*s), int(6*s), int(bl*0.4)))
-            pygame.draw.line(surface, (150, 110, 60), (_dx, _rect_top - int(6*s)),
-                             (_dx, _rect_top - int(12*s)), max(1, int(2*s)))
-
-    elif char_name == "Boxy":
-        # Tombstone's Minefield prize costume: a delivery box torso ("FAMAZON").
-        _box_col = (172, 132, 82)
-        _box_dk  = (130, 96, 56)
-        _tape    = (225, 210, 180)
-        _bw2 = int(hd * 2.3)
-        _bx  = sx - _bw2 // 2
-        _by  = sy - int(hd * 0.3)
-        _bh2 = int(bl * 0.85)
-        pygame.draw.rect(surface, _box_col, (_bx, _by, _bw2, _bh2))
-        pygame.draw.rect(surface, _box_dk,  (_bx, _by, _bw2, _bh2), max(1, int(3*s)))
-        pygame.draw.line(surface, _tape, (sx, _by), (sx, _by + _bh2), max(2, int(4*s)))
-        pygame.draw.line(surface, _tape, (_bx, _by + int(_bh2*0.35)),
-                         (_bx + _bw2, _by + int(_bh2*0.35)), max(1, int(3*s)))
-        _smy = _by + int(_bh2 * 0.68)
-        pygame.draw.arc(surface, (200, 60, 40),
-                        (_bx + int(_bw2*0.12), _smy - int(hd*0.4), int(_bw2*0.76), int(hd*0.8)),
-                        math.radians(200), math.radians(340), max(2, int(3*s)))
-        _atip = (_bx + int(_bw2*0.86), _smy + int(hd*0.05))
-        pygame.draw.polygon(surface, (200, 60, 40), [
-            (_atip[0] - int(5*s), _atip[1] - int(5*s)),
-            (_atip[0] + int(4*s), _atip[1]),
-            (_atip[0] - int(5*s), _atip[1] + int(5*s))])
-
-    elif char_name == "Testa di Testy":
-        # Tombstone's Minefield prize costume: lab goggles + a held beaker.
-        _gy = hy - int(hd * 0.05)
-        _glass = (140, 220, 230)
-        for _gxo in (-1, 1):
-            _gx = hx + _gxo * int(hd * 0.42)
-            pygame.draw.circle(surface, (60, 60, 65), (_gx, _gy), max(2, int(hd*0.38)))
-            pygame.draw.circle(surface, _glass, (_gx, _gy), max(1, int(hd*0.28)))
-        pygame.draw.line(surface, (60, 60, 65), (hx - int(hd*0.15), _gy), (hx + int(hd*0.15), _gy), max(2, int(3*s)))
-        _bkx, _bky = rhx, rhy
-        _bw3, _bh3 = int(hd * 0.5), int(hd * 0.7)
-        _flask = [(_bkx - _bw3//2, _bky - _bh3), (_bkx + _bw3//2, _bky - _bh3),
-                  (_bkx + int(_bw3*0.7), _bky), (_bkx - int(_bw3*0.7), _bky)]
-        pygame.draw.polygon(surface, (200, 220, 220), _flask)
-        pygame.draw.polygon(surface, (60, 60, 65), _flask, max(1, int(2*s)))
-        _liquid = [(_bkx - int(_bw3*0.55), _bky - int(_bh3*0.25)), (_bkx + int(_bw3*0.55), _bky - int(_bh3*0.25)),
-                   (_bkx + int(_bw3*0.7), _bky), (_bkx - int(_bw3*0.7), _bky)]
-        pygame.draw.polygon(surface, (90, 220, 100), _liquid)
-
-    elif char_name == "Supa":
-        # Tombstone's Minefield prize costume: a domino mask and a cape.
-        _my = hy - int(hd * 0.05)
-        pygame.draw.ellipse(surface, (30, 30, 40),
-                            (hx - int(hd*0.85), _my - int(hd*0.3), int(hd*0.7), int(hd*0.4)))
-        pygame.draw.ellipse(surface, (30, 30, 40),
-                            (hx + int(hd*0.15), _my - int(hd*0.3), int(hd*0.7), int(hd*0.4)))
-        _cdir = -facing if facing else 1
-        _cape_pts = [
-            (sx - _cdir*int(hd*0.3), sy - int(hd*0.2)),
-            (sx + _cdir*int(hd*0.3), sy - int(hd*0.2)),
-            (sx + _cdir*int(al*1.3), wy + int(hd*0.6)),
-            (sx - _cdir*int(al*0.2), wy + int(hd*1.0)),
+    elif char_name in ("Booma", "Testa di Testy", "Boxy", "Supa"):
+        # Tombstone's Minefield prize costumes: all four share the same
+        # lumpy potato-mine body (dirt mound + irregular tuber silhouette,
+        # matching the minigame's mine tile shape) sized to fully cover
+        # the stickman underneath, like Tombstone's own gravestone body.
+        # Only the accent details on top differ per version.
+        _potato_pts = [
+            (0.00, -0.90), (0.45, -0.72), (0.78, -0.32), (0.88, 0.18),
+            (0.66, 0.68), (0.18, 0.98), (-0.25, 0.92), (-0.66, 0.62),
+            (-0.88, 0.10), (-0.72, -0.42), (-0.38, -0.82),
         ]
-        pygame.draw.polygon(surface, (190, 20, 30), _cape_pts)
-        pygame.draw.polygon(surface, (120, 10, 20), _cape_pts, max(1, int(2*s)))
-        pygame.draw.circle(surface, (255, 210, 40), (sx, sy + int(bl*0.25)), max(2, int(hd*0.25)))
+        _ptop = hy - int(hd * 1.3)
+        _pbot = wy + int(LEG_LEN * s)
+        _pcy  = (_ptop + _pbot) // 2
+        _pry  = max(1, (_pbot - _ptop) // 2)
+        _prx  = al + int(hd * 0.65)
+        _mound_w = int(_prx * 2.3)
+        _dirt, _dirt_dk = (92, 68, 42), (65, 46, 28)
+        pygame.draw.ellipse(surface, _dirt, (sx - _mound_w//2, _pbot - int(hd*0.4), _mound_w, int(hd*0.8)))
+        pygame.draw.ellipse(surface, _dirt_dk, (sx - _mound_w//2, _pbot - int(hd*0.4), _mound_w, int(hd*0.8)), max(1, int(2*s)))
+
+        if char_name == "Booma":
+            _body_col, _edge_col = (45, 45, 52), (20, 20, 25)
+        elif char_name == "Boxy":
+            _body_col, _edge_col = (172, 132, 82), (130, 96, 56)
+        elif char_name == "Supa":
+            _body_col, _edge_col = (185, 150, 90), (140, 112, 62)
+        else:  # Testa di Testy
+            _body_col, _edge_col = (185, 145, 85), (140, 105, 55)
+
+        _pts = [(sx + int(px * _prx), _pcy + int(py * _pry)) for px, py in _potato_pts]
+        pygame.draw.polygon(surface, _body_col, _pts)
+        pygame.draw.polygon(surface, _edge_col, _pts, max(1, int(3*s)))
+        for _sxo, _syo in [(-0.4, -0.5), (0.5, -0.2), (-0.1, 0.4), (0.4, 0.55)]:
+            pygame.draw.circle(surface, _edge_col, (sx + int(_sxo*_prx), _pcy + int(_syo*_pry)), max(1, int(hd*0.08)))
+
+        if char_name == "Booma":
+            # Fuse + spark on top, dynamite sticks either side
+            _fx, _fy = sx, _pcy - _pry
+            _fx2, _fy2 = _fx + int(4*s), _fy - int(10*s)
+            pygame.draw.line(surface, (150, 110, 60), (_fx, _fy), (_fx2, _fy2), max(2, int(3*s)))
+            if (pygame.time.get_ticks() // 120) % 2 == 0:
+                pygame.draw.circle(surface, (255, 190, 40), (_fx2, _fy2), max(2, int(4*s)))
+                pygame.draw.circle(surface, (255, 240, 180), (_fx2, _fy2), max(1, int(2*s)))
+            for _dxo in (-1, 1):
+                _dx = sx + _dxo * int(_prx * 0.75)
+                pygame.draw.rect(surface, (180, 30, 30),
+                                 (_dx - int(3*s), _pcy - int(_pry*0.3), int(6*s), int(bl*0.4)))
+                pygame.draw.line(surface, (150, 110, 60), (_dx, _pcy - int(_pry*0.3)),
+                                 (_dx, _pcy - int(_pry*0.55)), max(1, int(2*s)))
+
+        elif char_name == "Boxy":
+            # "FAMAZON" tape cross + smile-arrow, painted onto the potato
+            _by  = _pcy - int(_pry * 0.7)
+            _bh2 = int(_pry * 1.3)
+            _tape = (225, 210, 180)
+            pygame.draw.line(surface, _tape, (sx, _by), (sx, _by + _bh2), max(2, int(4*s)))
+            pygame.draw.line(surface, _tape, (sx - int(_prx*0.8), _pcy - int(_pry*0.1)),
+                             (sx + int(_prx*0.8), _pcy - int(_pry*0.1)), max(1, int(3*s)))
+            _smy = _pcy + int(_pry * 0.35)
+            pygame.draw.arc(surface, (200, 60, 40),
+                            (sx - int(_prx*0.55), _smy - int(hd*0.4), int(_prx*1.1), int(hd*0.8)),
+                            math.radians(200), math.radians(340), max(2, int(3*s)))
+            _atip = (sx + int(_prx*0.6), _smy + int(hd*0.05))
+            pygame.draw.polygon(surface, (200, 60, 40), [
+                (_atip[0] - int(5*s), _atip[1] - int(5*s)),
+                (_atip[0] + int(4*s), _atip[1]),
+                (_atip[0] - int(5*s), _atip[1] + int(5*s))])
+
+        elif char_name == "Testa di Testy":
+            # Goggles across the top, beaker held against the body
+            _gy = _pcy - int(_pry * 0.55)
+            _glass = (140, 220, 230)
+            for _gxo in (-1, 1):
+                _gx = sx + _gxo * int(_prx * 0.32)
+                pygame.draw.circle(surface, (60, 60, 65), (_gx, _gy), max(2, int(hd*0.4)))
+                pygame.draw.circle(surface, _glass, (_gx, _gy), max(1, int(hd*0.3)))
+            pygame.draw.line(surface, (60, 60, 65), (sx - int(_prx*0.1), _gy), (sx + int(_prx*0.1), _gy), max(2, int(3*s)))
+            _bkx, _bky = sx + int(_prx * 0.9), _pcy + int(_pry * 0.3)
+            _bw3, _bh3 = int(hd * 0.5), int(hd * 0.7)
+            _flask = [(_bkx - _bw3//2, _bky - _bh3), (_bkx + _bw3//2, _bky - _bh3),
+                      (_bkx + int(_bw3*0.7), _bky), (_bkx - int(_bw3*0.7), _bky)]
+            pygame.draw.polygon(surface, (200, 220, 220), _flask)
+            pygame.draw.polygon(surface, (60, 60, 65), _flask, max(1, int(2*s)))
+            _liquid = [(_bkx - int(_bw3*0.55), _bky - int(_bh3*0.25)), (_bkx + int(_bw3*0.55), _bky - int(_bh3*0.25)),
+                       (_bkx + int(_bw3*0.7), _bky), (_bkx - int(_bw3*0.7), _bky)]
+            pygame.draw.polygon(surface, (90, 220, 100), _liquid)
+
+        else:  # Supa
+            _my = _pcy - int(_pry * 0.55)
+            pygame.draw.ellipse(surface, (30, 30, 40),
+                                (sx - int(_prx*0.55), _my - int(hd*0.28), int(hd*0.65), int(hd*0.38)))
+            pygame.draw.ellipse(surface, (30, 30, 40),
+                                (sx + int(_prx*0.05), _my - int(hd*0.28), int(hd*0.65), int(hd*0.38)))
+            _cdir = -facing if facing else 1
+            _cape_pts = [
+                (sx - _cdir*int(_prx*0.5), _pcy - int(_pry*0.4)),
+                (sx + _cdir*int(_prx*0.5), _pcy - int(_pry*0.4)),
+                (sx + _cdir*int(al*1.3), _pbot + int(hd*0.3)),
+                (sx - _cdir*int(al*0.2), _pbot + int(hd*0.7)),
+            ]
+            pygame.draw.polygon(surface, (190, 20, 30), _cape_pts)
+            pygame.draw.polygon(surface, (120, 10, 20), _cape_pts, max(1, int(2*s)))
+            pygame.draw.circle(surface, (255, 210, 40), (sx, _pcy + int(_pry*0.15)), max(2, int(hd*0.25)))
 
     elif char_name in ("Solara", "Performer Solara"):
         # Sun-ray halo around head (8 rays, slowly rotating)
