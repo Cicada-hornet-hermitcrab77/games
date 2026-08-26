@@ -16709,6 +16709,32 @@ def draw_bg(surface, stage_idx=0):
             pygame.draw.line(_spine, (20, 12, 10, _a), (22 + _dx, 0), (22 + _dx, HEIGHT + 80))
         surface.blit(_spine, (_bcx - 22, _btop))
 
+    elif s == 31:  # Rolling Stones
+        surface.fill((70, 62, 58))
+        # Distant rocky cliff silhouettes
+        pygame.draw.polygon(surface, (52, 46, 42),
+                            [(0, GROUND_Y+2), (140, 120), (300, GROUND_Y+2)])
+        pygame.draw.polygon(surface, (58, 51, 46),
+                            [(220, GROUND_Y+2), (420, 70), (620, GROUND_Y+2)])
+        pygame.draw.polygon(surface, (52, 46, 42),
+                            [(520, GROUND_Y+2), (720, 140), (WIDTH+10, GROUND_Y+2)])
+        # Overcast sky streaks
+        for _sy, _sw in [(30, 260), (70, 340), (110, 200)]:
+            pygame.draw.ellipse(surface, (85, 78, 74), (WIDTH - _sw - 20, _sy, _sw, 14))
+        # Cracks in the cliff faces
+        for _cx5, _cy5, _cang in [(140, 160, 60), (420, 110, 100), (720, 180, 70)]:
+            _ex5 = _cx5 + int(math.cos(math.radians(_cang)) * 40)
+            _ey5 = _cy5 + int(math.sin(math.radians(_cang)) * 40)
+            pygame.draw.line(surface, (34, 30, 27), (_cx5, _cy5), (_ex5, _ey5), 2)
+        # Rubble-strewn ground
+        pygame.draw.rect(surface, (60, 52, 46), (0, GROUND_Y+2, WIDTH, HEIGHT-GROUND_Y-2))
+        pygame.draw.line(surface, (35, 30, 26), (0, GROUND_Y+2), (WIDTH, GROUND_Y+2), 3)
+        for _rx, _ry, _rr in [(60,GROUND_Y+20,6),(140,GROUND_Y+40,4),(260,GROUND_Y+15,5),
+                               (400,GROUND_Y+35,7),(540,GROUND_Y+20,4),(660,GROUND_Y+45,6),
+                               (760,GROUND_Y+15,5),(840,GROUND_Y+35,4)]:
+            pygame.draw.circle(surface, (80, 72, 64), (_rx, _ry), _rr)
+            pygame.draw.circle(surface, (40, 35, 30), (_rx, _ry), _rr, 1)
+
 
 def draw_health_bars(surface, p1, p2):
     draw_health_bars_labeled(surface, p1, p2, f"P2 — {p2.char['name']}")
