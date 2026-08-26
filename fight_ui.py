@@ -4126,6 +4126,13 @@ def _mf_draw_tile(surface, rect, cell):
             pygame.draw.circle(surface, (255, 220, 60), (_ex, _ey), _eo)
             pygame.draw.circle(surface, (30, 10, 5), (_ex, _ey), max(1, _eo//2))
             pygame.draw.line(surface, (60, 30, 10), (_ex - _eo, _ey - _eo), (_ex + _eo, _ey - int(_eo*0.3)), max(1, int(w*0.02)))
+        # Buck teeth (Potato Mine's signature rodent-y front teeth)
+        _ty = _pcy + int(_pr * 0.32)
+        _tw = max(2, int(_pr * 0.16))
+        for _txo in (-0.08, 0.1):
+            _tx = _cx + int(_txo * _pr)
+            pygame.draw.rect(surface, (250, 245, 225), (_tx, _ty, _tw, int(_pr*0.28)))
+            pygame.draw.rect(surface, (150, 140, 100), (_tx, _ty, _tw, int(_pr*0.28)), 1)
     elif cell['kind'] == 'clue':
         pygame.draw.rect(surface, (60, 55, 75), rect, border_radius=6)
         pygame.draw.rect(surface, (140, 120, 180), rect, 2, border_radius=6)

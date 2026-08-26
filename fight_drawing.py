@@ -12676,6 +12676,17 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         pygame.draw.polygon(surface, _edge_col, _pts, max(1, int(3*s)))
         for _sxo, _syo in [(-0.4, -0.5), (0.5, -0.2), (-0.1, 0.4), (0.4, 0.55)]:
             pygame.draw.circle(surface, _edge_col, (sx + int(_sxo*_prx), _pcy + int(_syo*_pry)), max(1, int(hd*0.08)))
+        # Potato Mine's signature rodent-y face: beady eyes + buck teeth
+        _fey = _pcy - int(_pry * 0.5)
+        _feo = max(2, int(hd * 0.22))
+        for _fexo in (-1, 1):
+            pygame.draw.circle(surface, (30, 20, 12), (sx + _fexo * int(_prx*0.28), _fey), _feo)
+        _fty = _pcy - int(_pry * 0.05)
+        _ftw = max(2, int(hd * 0.16))
+        for _ftxo in (-0.1, 0.14):
+            _ftx = sx + int(_ftxo * _prx)
+            pygame.draw.rect(surface, (250, 245, 225), (_ftx, _fty, _ftw, int(hd*0.32)))
+            pygame.draw.rect(surface, (150, 140, 100), (_ftx, _fty, _ftw, int(hd*0.32)), 1)
 
         if char_name == "Booma":
             # Fuse + spark on top, dynamite sticks either side
