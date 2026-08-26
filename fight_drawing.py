@@ -12641,9 +12641,36 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.circle(surface, (190, 195, 255), (_ex, _ey), _er)
             pygame.draw.circle(surface, (230, 235, 255), (_ex, _ey), max(1, _er // 2))
 
-    elif char_name in ("Booma", "Testa di Testy", "Boxy", "Supa"):
-        # Tombstone's Minefield prize costumes: all four share the same
-        # lumpy potato-mine body (dirt mound + irregular tuber silhouette,
+    elif char_name == "Boxy":
+        # Tombstone's Minefield prize costume: a total cardboard box, not
+        # a potato — standing straight on the ground, "FAMAZON" branded,
+        # sized to fully cover the stickman underneath.
+        _btop = hy - int(hd * 1.3)
+        _bbot = wy + int(LEG_LEN * s)
+        _bw2  = int((al + int(hd * 0.65)) * 2)
+        _bx   = sx - _bw2 // 2
+        _box_col, _box_dk = (172, 132, 82), (130, 96, 56)
+        _tape = (225, 210, 180)
+        pygame.draw.rect(surface, _box_col, (_bx, _btop, _bw2, _bbot - _btop))
+        pygame.draw.rect(surface, _box_dk,  (_bx, _btop, _bw2, _bbot - _btop), max(1, int(3*s)))
+        pygame.draw.line(surface, _box_dk, (_bx, _btop + int(hd*0.5)),
+                         (_bx + _bw2, _btop + int(hd*0.5)), max(1, int(2*s)))
+        pygame.draw.line(surface, _tape, (sx, _btop), (sx, _bbot), max(2, int(4*s)))
+        pygame.draw.line(surface, _tape, (_bx, sy + int(bl*0.3)),
+                         (_bx + _bw2, sy + int(bl*0.3)), max(1, int(3*s)))
+        _smy = sy + int(bl * 0.7)
+        pygame.draw.arc(surface, (200, 60, 40),
+                        (_bx + int(_bw2*0.15), _smy - int(hd*0.4), int(_bw2*0.7), int(hd*0.8)),
+                        math.radians(200), math.radians(340), max(2, int(3*s)))
+        _atip = (_bx + int(_bw2*0.82), _smy + int(hd*0.05))
+        pygame.draw.polygon(surface, (200, 60, 40), [
+            (_atip[0] - int(5*s), _atip[1] - int(5*s)),
+            (_atip[0] + int(4*s), _atip[1]),
+            (_atip[0] - int(5*s), _atip[1] + int(5*s))])
+
+    elif char_name in ("Booma", "Testa di Testy", "Supa"):
+        # Tombstone's Minefield prize costumes: both share the same lumpy
+        # potato-mine body (dirt mound + irregular tuber silhouette,
         # matching the minigame's mine tile shape) sized to fully cover
         # the stickman underneath, like Tombstone's own gravestone body.
         # Only the accent details on top differ per version.
@@ -12662,8 +12689,6 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
 
         if char_name == "Booma":
             _body_col, _edge_col = (45, 45, 52), (20, 20, 25)
-        elif char_name == "Boxy":
-            _body_col, _edge_col = (172, 132, 82), (130, 96, 56)
         elif char_name == "Supa":
             _body_col, _edge_col = (185, 150, 90), (140, 112, 62)
         else:  # Testa di Testy
@@ -12706,24 +12731,6 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                                  (_dx - int(3*s), _pcy - int(_pry*0.3), int(6*s), int(bl*0.4)))
                 pygame.draw.line(surface, (150, 110, 60), (_dx, _pcy - int(_pry*0.3)),
                                  (_dx, _pcy - int(_pry*0.55)), max(1, int(2*s)))
-
-        elif char_name == "Boxy":
-            # "FAMAZON" tape cross + smile-arrow, painted onto the potato
-            _by  = _pcy - int(_pry * 0.7)
-            _bh2 = int(_pry * 1.3)
-            _tape = (225, 210, 180)
-            pygame.draw.line(surface, _tape, (sx, _by), (sx, _by + _bh2), max(2, int(4*s)))
-            pygame.draw.line(surface, _tape, (sx - int(_prx*0.8), _pcy - int(_pry*0.1)),
-                             (sx + int(_prx*0.8), _pcy - int(_pry*0.1)), max(1, int(3*s)))
-            _smy = _pcy + int(_pry * 0.35)
-            pygame.draw.arc(surface, (200, 60, 40),
-                            (sx - int(_prx*0.55), _smy - int(hd*0.4), int(_prx*1.1), int(hd*0.8)),
-                            math.radians(200), math.radians(340), max(2, int(3*s)))
-            _atip = (sx + int(_prx*0.6), _smy + int(hd*0.05))
-            pygame.draw.polygon(surface, (200, 60, 40), [
-                (_atip[0] - int(5*s), _atip[1] - int(5*s)),
-                (_atip[0] + int(4*s), _atip[1]),
-                (_atip[0] - int(5*s), _atip[1] + int(5*s))])
 
         elif char_name == "Testa di Testy":
             # Goggles across the top, beaker held against the body
