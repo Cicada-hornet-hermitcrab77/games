@@ -696,6 +696,22 @@ def stage_select():
         pygame.display.flip()
 
 
+def _parse_dev_date(s):
+    """Parse a typed dev-mode date: "YYYY-MM-DD" or "MM/DD/YYYY". Returns
+    a date, or None if the string isn't a valid date in either format."""
+    s = s.strip()
+    try:
+        if "-" in s:
+            y, m, d = s.split("-")
+        elif "/" in s:
+            m, d, y = s.split("/")
+        else:
+            return None
+        return datetime.date(int(y), int(m), int(d))
+    except (ValueError, TypeError):
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Mode select screen
 # ---------------------------------------------------------------------------
@@ -732,6 +748,8 @@ def mode_select(unlocked=None, stats=None):
     _dev_seq    = "cicada77"
     _dev_buf    = ""
     _dev_time_panel_open = False
+    _dev_date_buf = ""
+    _dev_date_err = False
     _confirm_rect = pygame.Rect(WIDTH // 2 - 80, HEIGHT - 52, 160, 44)
     _dev_time_rect = pygame.Rect(10, 10, 90, 30)
     _dev_exit_rect = pygame.Rect(WIDTH - 100, 10, 90, 30)
@@ -821,18 +839,20 @@ def mode_select(unlocked=None, stats=None):
                         _dev_time_panel_open = False
                     elif _dev_time_panel_open:
                         _dtp_y = 46
-                        _dtp_btns = [
-                            ("-1 Day",  pygame.Rect(10, _dtp_y,      90, 26), datetime.timedelta(days=-1)),
-                            ("+1 Day",  pygame.Rect(10, _dtp_y + 30, 90, 26), datetime.timedelta(days=1)),
-                            ("-1 Hour", pygame.Rect(106, _dtp_y,     90, 26), datetime.timedelta(hours=-1)),
-                            ("+1 Hour", pygame.Rect(106, _dtp_y+30,  90, 26), datetime.timedelta(hours=1)),
-                        ]
-                        for _lbl, _r, _delta in _dtp_btns:
-                            if _r.collidepoint(_mp):
-                                constants.DEV_TIME_OFFSET = constants.DEV_TIME_OFFSET + _delta
-                        _dtp_reset = pygame.Rect(10, _dtp_y + 64, 186, 26)
+                        _dtp_go    = pygame.Rect(10, _dtp_y + 32, 88, 26)
+                        _dtp_reset = pygame.Rect(108, _dtp_y + 32, 88, 26)
+                        if _dtp_go.collidepoint(_mp):
+                            _parsed = _parse_dev_date(_dev_date_buf)
+                            if _parsed:
+                                _dev_date_err = False
+                                _target_dt = datetime.datetime.combine(_parsed, datetime.datetime.now().time())
+                                constants.DEV_TIME_OFFSET = _target_dt - datetime.datetime.now()
+                            else:
+                                _dev_date_err = True
                         if _dtp_reset.collidepoint(_mp):
                             constants.DEV_TIME_OFFSET = datetime.timedelta(0)
+                            _dev_date_buf = ""
+                            _dev_date_err = False
                 elif stats.get("dev_mode_unlocked") and _dev_exit_rect.collidepoint(_mp):
                     _dev_mode[0] = True
                 if _confirm_rect.collidepoint(_mp) and not (selected == 5 and not _fuser_unlocked):
@@ -884,6 +904,22 @@ def mode_select(unlocked=None, stats=None):
                         _dev_buf = ""
                     if len(_dev_buf) > len(_dev_seq) + 5:
                         _dev_buf = _dev_buf[-len(_dev_seq):]
+                # Dev mode date panel: typed date, applied on GO / Enter
+                if _dev_mode[0] and _dev_time_panel_open:
+                    if event.key == pygame.K_BACKSPACE:
+                        _dev_date_buf = _dev_date_buf[:-1]
+                        _dev_date_err = False
+                    elif event.key == pygame.K_RETURN:
+                        _parsed = _parse_dev_date(_dev_date_buf)
+                        if _parsed:
+                            _dev_date_err = False
+                            _target_dt = datetime.datetime.combine(_parsed, datetime.datetime.now().time())
+                            constants.DEV_TIME_OFFSET = _target_dt - datetime.datetime.now()
+                        else:
+                            _dev_date_err = True
+                    elif hasattr(event, 'unicode') and event.unicode in '0123456789/-' and len(_dev_date_buf) < 10:
+                        _dev_date_buf += event.unicode
+                        _dev_date_err = False
                 # The Fuser: type "the fuser" (requires Deco & Emoj unlocked)
                 if hasattr(event, 'unicode') and event.unicode:
                     _fuser_buf += event.unicode.lower()
@@ -1114,25 +1150,26 @@ def mode_select(unlocked=None, stats=None):
             screen.blit(_det, (_dev_exit_rect.centerx - _det.get_width()//2, _dev_exit_rect.centery - _det.get_height()//2))
             if _dev_time_panel_open:
                 _dtp_y = 46
-                _panel = pygame.Rect(8, _dtp_y - 4, 190, 98)
+                _panel = pygame.Rect(8, _dtp_y - 22, 196, 88)
                 pygame.draw.rect(screen, (25, 20, 35), _panel, border_radius=8)
                 pygame.draw.rect(screen, (150, 100, 200), _panel, 2, border_radius=8)
-                _dtp_btns = [("-1 Day", 10, _dtp_y), ("+1 Day", 10, _dtp_y+30),
-                             ("-1 Hour", 106, _dtp_y), ("+1 Hour", 106, _dtp_y+30)]
-                for _lbl, _bx, _by in _dtp_btns:
-                    _br = pygame.Rect(_bx, _by, 90, 26)
+                _now_str = dev_now().strftime("%Y-%m-%d %H:%M")
+                _nowt = font_tiny.render(_now_str, True, (200, 200, 255))
+                screen.blit(_nowt, (14, _dtp_y - 18))
+                _dtp_box = pygame.Rect(10, _dtp_y, 186, 28)
+                pygame.draw.rect(screen, (45, 40, 55), _dtp_box, border_radius=5)
+                pygame.draw.rect(screen, (255, 90, 90) if _dev_date_err else (150, 100, 200), _dtp_box, 1, border_radius=5)
+                _buf_disp = _dev_date_buf if _dev_date_buf else "MM/DD/YYYY"
+                _buf_col  = WHITE if _dev_date_buf else (110, 105, 125)
+                _bft = font_small.render(_buf_disp, True, _buf_col)
+                screen.blit(_bft, (_dtp_box.x + 6, _dtp_box.centery - _bft.get_height()//2))
+                _dtp_go    = pygame.Rect(10, _dtp_y + 32, 88, 26)
+                _dtp_reset = pygame.Rect(108, _dtp_y + 32, 88, 26)
+                for _lbl, _br in (("GO", _dtp_go), ("RESET", _dtp_reset)):
                     pygame.draw.rect(screen, (55, 45, 70), _br, border_radius=5)
                     pygame.draw.rect(screen, (150, 100, 200), _br, 1, border_radius=5)
                     _bt = font_tiny.render(_lbl, True, WHITE)
                     screen.blit(_bt, (_br.centerx - _bt.get_width()//2, _br.centery - _bt.get_height()//2))
-                _dtp_reset = pygame.Rect(10, _dtp_y + 64, 186, 26)
-                pygame.draw.rect(screen, (55, 45, 70), _dtp_reset, border_radius=5)
-                pygame.draw.rect(screen, (150, 100, 200), _dtp_reset, 1, border_radius=5)
-                _rt = font_tiny.render("RESET TO REAL TIME", True, WHITE)
-                screen.blit(_rt, (_dtp_reset.centerx - _rt.get_width()//2, _dtp_reset.centery - _rt.get_height()//2))
-                _now_str = dev_now().strftime("%Y-%m-%d %H:%M")
-                _nowt = font_tiny.render(_now_str, True, (200, 200, 255))
-                screen.blit(_nowt, (14, _dtp_y - 18))
         elif stats.get("dev_mode_unlocked"):
             pygame.draw.rect(screen, (40, 40, 50), _dev_exit_rect, border_radius=6)
             pygame.draw.rect(screen, (110, 110, 130), _dev_exit_rect, 1, border_radius=6)
