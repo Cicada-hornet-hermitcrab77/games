@@ -12645,9 +12645,9 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         # Tombstone's Minefield prize costume: a total cardboard box, not
         # a potato — standing straight on the ground, "FAMAZON" branded,
         # sized to fully cover the stickman underneath.
-        _btop = hy - int(hd * 1.3)
+        _btop = hy - int(hd * 1.6)
         _bbot = wy + int(LEG_LEN * s)
-        _bw2  = int((al + int(hd * 0.65)) * 2)
+        _bw2  = int((al + int(hd * 0.95)) * 2)
         _bx   = sx - _bw2 // 2
         _box_col, _box_dk = (172, 132, 82), (130, 96, 56)
         _tape = (225, 210, 180)
@@ -12674,16 +12674,19 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         # matching the minigame's mine tile shape) sized to fully cover
         # the stickman underneath, like Tombstone's own gravestone body.
         # Only the accent details on top differ per version.
+        # Flatter/wider at the top than the minigame tile's version — this
+        # one has to fully hide the stickman's head and arms underneath,
+        # not just look like a potato in a small square.
         _potato_pts = [
-            (0.00, -0.90), (0.45, -0.72), (0.78, -0.32), (0.88, 0.18),
-            (0.66, 0.68), (0.18, 0.98), (-0.25, 0.92), (-0.66, 0.62),
-            (-0.88, 0.10), (-0.72, -0.42), (-0.38, -0.82),
+            (-0.25, -0.92), (0.25, -0.92), (0.72, -0.75), (0.92, -0.28),
+            (0.95, 0.22), (0.70, 0.72), (0.20, 0.98), (-0.25, 0.92),
+            (-0.70, 0.62), (-0.95, 0.08), (-0.92, -0.30), (-0.68, -0.78),
         ]
-        _ptop = hy - int(hd * 1.3)
+        _ptop = hy - int(hd * 1.6)
         _pbot = wy + int(LEG_LEN * s)
         _pcy  = (_ptop + _pbot) // 2
         _pry  = max(1, (_pbot - _ptop) // 2)
-        _prx  = al + int(hd * 0.65)
+        _prx  = al + int(hd * 0.95)
         _mound_w = int(_prx * 2.3)
         _dirt, _dirt_dk = (92, 68, 42), (65, 46, 28)
 
