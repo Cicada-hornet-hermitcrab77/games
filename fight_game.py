@@ -23,7 +23,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             SunBeam, LibertyDove, PumpkinSeed,
                             FruitProj, CoalProj, WildfireBall, SniderBolt,
                             SandSpit, SlimeBomb, TentaMissile, ExplodingTire,
-                            Muskshroom, Cutlass, WormMine, Car)
+                            Muskshroom, Cutlass, WormMine, Car, RollingStone)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, fuser_mode, tombstones_minefield
 from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
@@ -1235,6 +1235,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     # Booked: books stay lined up & still for 5s, then drift off randomly
     _is_booked = stage_data.get("book_stage", False)
     _book_move_timer = FPS * 5
+    # Rollin' Stones: boulders fall from the sky, land and roll, splitting
+    # into smaller ones when punched/kicked
+    _is_rolling_stones = stage_data["name"] == "Rolling Stones"
+    rolling_stones = []
+    _stone_spawn_timer = FPS * 2
     stage_pencil = None
     stage_eraser = None
     if is_computer:
@@ -1654,6 +1659,24 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         _bk.move_range = random.randint(70, 160)
                         _bk._book_redirect_timer = random.randint(FPS * 2, FPS * 4)
                     _bk.x = max(10.0, min(float(WIDTH - 10 - _bk.w), _bk.x))
+
+            # Rollin' Stones: boulders fall, land, roll, and hurt fighters
+            # they touch (attack-triggered splitting happens in the draw
+            # phase, alongside the punch/kick hitbox positions)
+            if _is_rolling_stones:
+                _stone_spawn_timer -= 1
+                if _stone_spawn_timer <= 0:
+                    rolling_stones.append(RollingStone())
+                    _stone_spawn_timer = FPS * 5
+                for _st in rolling_stones:
+                    _st.update()
+                    for _sv in (p1, p2):
+                        if _st.hit_cd == 0 and _st.collides(_sv) and not _sv.bubble_shield:
+                            _sv.hp = max(0, _sv.hp - _st.dmg)
+                            _sv.flash_timer = 10
+                            _sv.knockback = (14 if _sv.x > _st.x else -14)
+                            _st.hit_cd = RollingStone.HIT_CD
+                rolling_stones = [_st for _st in rolling_stones if _st.alive]
 
             # Update clones
             new_clones = []
@@ -3608,6 +3631,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             tb.draw(screen)
         for b in computer_bugs:
             b.draw(screen)
+        for _st in rolling_stones:
+            _st.draw(screen)
         # Draw casino coins
         for _cc2 in casino_coins:
             pygame.draw.circle(screen, (255, 210, 0), (int(_cc2["x"]), int(_cc2["y"])), 8)
@@ -3832,6 +3857,15 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                                 dmg = (attacker.char["punch_dmg"] if attacker.action=='punch'
                                        else attacker.char["kick_dmg"])
                                 b.take_damage(dmg)
+            # Fighter attacks break rolling stones into smaller pieces
+            if _is_rolling_stones:
+                for attacker, hit_pos in [(p1, p1_hit), (p2, p2_hit)]:
+                    if attacker.attacking and hit_pos:
+                        for _st in list(rolling_stones):
+                            if (_st.alive and _st.hit_cd == 0
+                                    and math.hypot(hit_pos[0]-_st.x, hit_pos[1]-_st.y) < _st.radius + 20):
+                                rolling_stones.extend(_st.split())
+                rolling_stones = [_st for _st in rolling_stones if _st.alive]
             for cd, cf_hit in clone_draws:
                 cf = cd['fighter']
                 # clone attacks its target (ink clones can't attack)
@@ -7706,6 +7740,96 @@ def main():
                             _show_unlocks([_cau_reward])
                         else:
                             _save_data(unlocked, stats)
+                if _konami_flag[0]:
+                    stats["konami_unlocked"] = True
+                    _konami_flag[0] = False
+                _session_match_streak[0] += 1
+                stats["marathon_best"] = max(stats.get("marathon_best", 0), _session_match_streak[0])
+                if action == 'rematch':
+                    continue
+                break
+            continue
+
+        # --- Rollin' Stones (Project Yellowstone event) path ---
+        if mode == 'rolling_stones':
+            _rs_lines = [
+                ("ROLLIN' STONES",          font_large,  (200, 180, 150),  -130),
+                ("The mountain is shedding.",
+                                            font_small,  (210, 200, 180),   -60),
+                ("Choose from 10 sturdy fighters and",
+                                            font_small,  (210, 200, 180),   -40),
+                ("dodge the boulders raining from above.",
+                                            font_small,  (210, 200, 180),   -20),
+                ("Punch or kick a boulder to break it",
+                                            font_small,  (230, 210, 140),   20),
+                ("into smaller ones — or just get out of the way.",
+                                            font_small,  (230, 210, 140),   40),
+                ("Win a match for a chance at a",
+                                            font_small,  (230, 210, 140),   80),
+                ("rare fighter joining your roster.",
+                                            font_small,  (230, 210, 140),  100),
+                ("Available during Project Yellowstone only.",
+                                            font_small,  (170, 190, 220),  140),
+                ("press any key to continue",font_tiny,  (110, 110, 110),  190),
+            ]
+            _rs_start = pygame.time.get_ticks()
+            _rs_done  = False
+            while not _rs_done:
+                clock.tick(FPS)
+                for _rsev in pygame.event.get():
+                    if _rsev.type == pygame.QUIT:
+                        pygame.quit(); sys.exit()
+                    if _rsev.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                        _rs_done = True
+                if pygame.time.get_ticks() - _rs_start > 10000:
+                    _rs_done = True
+                _rsa = min(255, int((pygame.time.get_ticks() - _rs_start) / 600 * 255))
+                screen.fill((20, 16, 12))
+                _rscy = HEIGHT // 2
+                for _rst, _rsf, _rsc, _rsdy in _rs_lines:
+                    _rss = _rsf.render(_rst, True, _rsc)
+                    _rss.set_alpha(_rsa)
+                    screen.blit(_rss, (WIDTH // 2 - _rss.get_width() // 2, _rscy + _rsdy))
+                pygame.display.flip()
+
+            _RS_FILTER = frozenset({
+                "Boulder", "Golem", "Stone Golem", "Colossus", "Sandman",
+                "Titan", "Ancient", "Crystallion", "Yellowstone", "Ice Age Yellowstone",
+            })
+            p1_idx, p2_idx = character_select(
+                vs_ai=True, unlocked=_RS_FILTER,
+                char_filter=_RS_FILTER,
+                select_title="ROLLIN' STONES",
+            )
+            if p1_idx is None:
+                continue
+            _rs_stage_idx = next((i for i, st in enumerate(STAGES) if st["name"] == "Rolling Stones"), 0)
+            while True:
+                result = run_fight(p1_idx, p2_idx, vs_ai=True, ai_difficulty='mega_hard', stage_idx=_rs_stage_idx)
+                action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
+                p1_won = info[0] if isinstance(info, tuple) else False
+                if p1_won:
+                    stats["rolling_stones_wins"] = stats.get("rolling_stones_wins", 0) + 1
+                    _rs_weights = [
+                        ("Boulder",             300),
+                        ("Golem",               260),
+                        ("Stone Golem",         220),
+                        ("Colossus",            180),
+                        ("Sandman",             160),
+                        ("Titan",               140),
+                        ("Ancient",             120),
+                        ("Crystallion",          80),
+                        ("Yellowstone",          40),
+                        ("Ice Age Yellowstone",   5),
+                    ]
+                    _rs_pool = [n for n, w in _rs_weights for _ in range(w)]
+                    _rs_reward = random.choice(_rs_pool)
+                    if _rs_reward not in unlocked:
+                        unlocked.add(_rs_reward)
+                        _save_data(unlocked, stats)
+                        _show_unlocks([_rs_reward])
+                    else:
+                        _save_data(unlocked, stats)
                 if _konami_flag[0]:
                     stats["konami_unlocked"] = True
                     _konami_flag[0] = False
