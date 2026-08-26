@@ -4093,15 +4093,13 @@ def _mf_draw_tile(surface, rect, cell):
         pygame.draw.line(surface, (150, 150, 140), (x + w // 2 - _tw // 5, _ty + _th // 2),
                          (x + w // 2 + _tw // 5, _ty + _th // 2), max(2, int(w * 0.03)))
     elif cell['kind'] == 'mine':
-        # Potato-mine styled: a spud peeking out of a dirt mound, armed
-        # and angry the instant it's revealed.
+        # Potato-mine styled: a spud planted in the ground, armed and
+        # angry the instant it's revealed. Only its top half pokes out —
+        # the dirt mound is drawn LAST so it buries the lower body.
         pygame.draw.rect(surface, (70, 30, 20), rect, border_radius=6)
         _cx = x + w // 2
-        _mound_y = y + int(h * 0.62)
-        pygame.draw.ellipse(surface, (92, 60, 34), (x + int(w*0.08), _mound_y, int(w*0.84), int(h*0.34)))
-        pygame.draw.ellipse(surface, (60, 38, 20), (x + int(w*0.08), _mound_y, int(w*0.84), int(h*0.34)), max(1, int(w*0.015)))
         _pr = int(min(w, h) * 0.34)
-        _pcy = y + int(h * 0.52)
+        _pcy = y + int(h * 0.44)
         # Lumpy, irregular tuber outline (not a plain oval) — the classic
         # potato-mine silhouette: rounder and wider toward the bottom.
         _potato_pts = [
@@ -4133,6 +4131,11 @@ def _mf_draw_tile(surface, rect, cell):
             _tx = _cx + int(_txo * _pr)
             pygame.draw.rect(surface, (250, 245, 225), (_tx, _ty, _tw, int(_pr*0.28)))
             pygame.draw.rect(surface, (150, 140, 100), (_tx, _ty, _tw, int(_pr*0.28)), 1)
+        # Dirt mound, drawn over the lower half of the potato to bury it
+        _mound_top = _pcy + int(_pr * 0.62)
+        pygame.draw.rect(surface, (92, 60, 34), (x + 2, _mound_top, w - 4, (y + h) - _mound_top - 2))
+        pygame.draw.ellipse(surface, (92, 60, 34), (x + int(w*0.04), _mound_top - int(h*0.08), int(w*0.92), int(h*0.16)))
+        pygame.draw.ellipse(surface, (60, 38, 20), (x + int(w*0.04), _mound_top - int(h*0.08), int(w*0.92), int(h*0.16)), max(1, int(w*0.015)))
     elif cell['kind'] == 'clue':
         pygame.draw.rect(surface, (60, 55, 75), rect, border_radius=6)
         pygame.draw.rect(surface, (140, 120, 180), rect, 2, border_radius=6)

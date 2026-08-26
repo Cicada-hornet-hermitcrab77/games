@@ -12659,8 +12659,6 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         _prx  = al + int(hd * 0.65)
         _mound_w = int(_prx * 2.3)
         _dirt, _dirt_dk = (92, 68, 42), (65, 46, 28)
-        pygame.draw.ellipse(surface, _dirt, (sx - _mound_w//2, _pbot - int(hd*0.4), _mound_w, int(hd*0.8)))
-        pygame.draw.ellipse(surface, _dirt_dk, (sx - _mound_w//2, _pbot - int(hd*0.4), _mound_w, int(hd*0.8)), max(1, int(2*s)))
 
         if char_name == "Booma":
             _body_col, _edge_col = (45, 45, 52), (20, 20, 25)
@@ -12687,6 +12685,12 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             _ftx = sx + int(_ftxo * _prx)
             pygame.draw.rect(surface, (250, 245, 225), (_ftx, _fty, _ftw, int(hd*0.32)))
             pygame.draw.rect(surface, (150, 140, 100), (_ftx, _fty, _ftw, int(hd*0.32)), 1)
+        # Dirt mound, drawn over the lower half of the potato (and down to
+        # the feet) so it reads as planted in the ground, not floating on it
+        _bury_y = _pcy + int(_pry * 0.5)
+        pygame.draw.rect(surface, _dirt, (sx - _mound_w//2, _bury_y, _mound_w, _pbot - _bury_y + int(hd*0.3)))
+        pygame.draw.ellipse(surface, _dirt, (sx - _mound_w//2, _bury_y - int(hd*0.35), _mound_w, int(hd*0.7)))
+        pygame.draw.ellipse(surface, _dirt_dk, (sx - _mound_w//2, _bury_y - int(hd*0.35), _mound_w, int(hd*0.7)), max(1, int(2*s)))
 
         if char_name == "Booma":
             # Fuse + spark on top, dynamite sticks either side
