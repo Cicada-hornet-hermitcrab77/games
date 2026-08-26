@@ -4063,11 +4063,25 @@ def _mf_draw_tile(surface, rect, cell):
         _mound_y = y + int(h * 0.62)
         pygame.draw.ellipse(surface, (92, 60, 34), (x + int(w*0.08), _mound_y, int(w*0.84), int(h*0.34)))
         pygame.draw.ellipse(surface, (60, 38, 20), (x + int(w*0.08), _mound_y, int(w*0.84), int(h*0.34)), max(1, int(w*0.015)))
-        _pr = int(min(w, h) * 0.32)
-        _pcy = y + int(h * 0.5)
-        pygame.draw.ellipse(surface, (185, 145, 85), (_cx - _pr, _pcy - int(_pr*0.85), _pr * 2, int(_pr * 1.7)))
-        pygame.draw.ellipse(surface, (140, 105, 55), (_cx - _pr, _pcy - int(_pr*0.85), _pr * 2, int(_pr * 1.7)), max(1, int(w*0.02)))
-        for _sxo, _syo in [(-0.4, -0.5), (0.5, -0.2), (-0.1, 0.4)]:
+        _pr = int(min(w, h) * 0.34)
+        _pcy = y + int(h * 0.52)
+        # Lumpy, irregular tuber outline (not a plain oval) — the classic
+        # potato-mine silhouette: rounder and wider toward the bottom.
+        _potato_pts = [
+            (0.00, -0.90), (0.45, -0.72), (0.78, -0.32), (0.88, 0.18),
+            (0.66, 0.68), (0.18, 0.98), (-0.25, 0.92), (-0.66, 0.62),
+            (-0.88, 0.10), (-0.72, -0.42), (-0.38, -0.82),
+        ]
+        _pts = [(_cx + int(px * _pr), _pcy + int(py * _pr)) for px, py in _potato_pts]
+        pygame.draw.polygon(surface, (185, 145, 85), _pts)
+        pygame.draw.polygon(surface, (140, 105, 55), _pts, max(1, int(w*0.02)))
+        # Sprout nubs on top
+        for _sxo in (-0.28, 0.3):
+            _snx, _sny = _cx + int(_sxo*_pr), _pcy - int(_pr*0.88)
+            pygame.draw.polygon(surface, (120, 90, 45), [
+                (_snx - int(_pr*0.1), _sny), (_snx + int(_pr*0.1), _sny),
+                (_snx, _sny - int(_pr*0.22))])
+        for _sxo, _syo in [(-0.4, -0.5), (0.5, -0.2), (-0.1, 0.4), (0.4, 0.5)]:
             pygame.draw.circle(surface, (150, 112, 58), (_cx + int(_sxo*_pr), _pcy + int(_syo*_pr)), max(1, int(_pr*0.1)))
         _eo = max(2, int(_pr * 0.32))
         for _exo in (-1, 1):
