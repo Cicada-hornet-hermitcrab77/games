@@ -12641,136 +12641,6 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.circle(surface, (190, 195, 255), (_ex, _ey), _er)
             pygame.draw.circle(surface, (230, 235, 255), (_ex, _ey), max(1, _er // 2))
 
-    elif char_name == "Boxy":
-        # Tombstone's Minefield prize costume: a total cardboard box, not
-        # a potato — standing straight on the ground, "FAMAZON" branded,
-        # sized to fully cover the stickman underneath.
-        _btop = hy - int(hd * 1.6)
-        _bbot = wy + int(LEG_LEN * s)
-        _bw2  = int((al + int(hd * 0.95)) * 2)
-        _bx   = sx - _bw2 // 2
-        _box_col, _box_dk = (172, 132, 82), (130, 96, 56)
-        _tape = (225, 210, 180)
-        pygame.draw.rect(surface, _box_col, (_bx, _btop, _bw2, _bbot - _btop))
-        pygame.draw.rect(surface, _box_dk,  (_bx, _btop, _bw2, _bbot - _btop), max(1, int(3*s)))
-        pygame.draw.line(surface, _box_dk, (_bx, _btop + int(hd*0.5)),
-                         (_bx + _bw2, _btop + int(hd*0.5)), max(1, int(2*s)))
-        pygame.draw.line(surface, _tape, (sx, _btop), (sx, _bbot), max(2, int(4*s)))
-        pygame.draw.line(surface, _tape, (_bx, sy + int(bl*0.3)),
-                         (_bx + _bw2, sy + int(bl*0.3)), max(1, int(3*s)))
-        _smy = sy + int(bl * 0.7)
-        pygame.draw.arc(surface, (200, 60, 40),
-                        (_bx + int(_bw2*0.15), _smy - int(hd*0.4), int(_bw2*0.7), int(hd*0.8)),
-                        math.radians(200), math.radians(340), max(2, int(3*s)))
-        _atip = (_bx + int(_bw2*0.82), _smy + int(hd*0.05))
-        pygame.draw.polygon(surface, (200, 60, 40), [
-            (_atip[0] - int(5*s), _atip[1] - int(5*s)),
-            (_atip[0] + int(4*s), _atip[1]),
-            (_atip[0] - int(5*s), _atip[1] + int(5*s))])
-
-    elif char_name in ("Booma", "Testa di Testy", "Supa"):
-        # Tombstone's Minefield prize costumes: both share the same lumpy
-        # potato-mine body (dirt mound + irregular tuber silhouette,
-        # matching the minigame's mine tile shape) sized to fully cover
-        # the stickman underneath, like Tombstone's own gravestone body.
-        # Only the accent details on top differ per version.
-        # Flatter/wider at the top than the minigame tile's version — this
-        # one has to fully hide the stickman's head and arms underneath,
-        # not just look like a potato in a small square.
-        _potato_pts = [
-            (-0.25, -0.92), (0.25, -0.92), (0.72, -0.75), (0.92, -0.28),
-            (0.95, 0.22), (0.70, 0.72), (0.20, 0.98), (-0.25, 0.92),
-            (-0.70, 0.62), (-0.95, 0.08), (-0.92, -0.30), (-0.68, -0.78),
-        ]
-        _ptop = hy - int(hd * 1.6)
-        _pbot = wy + int(LEG_LEN * s)
-        _pcy  = (_ptop + _pbot) // 2
-        _pry  = max(1, (_pbot - _ptop) // 2)
-        _prx  = al + int(hd * 0.95)
-        _mound_w = int(_prx * 2.3)
-        _dirt, _dirt_dk = (92, 68, 42), (65, 46, 28)
-
-        if char_name == "Booma":
-            _body_col, _edge_col = (45, 45, 52), (20, 20, 25)
-        elif char_name == "Supa":
-            _body_col, _edge_col = (185, 150, 90), (140, 112, 62)
-        else:  # Testa di Testy
-            _body_col, _edge_col = (185, 145, 85), (140, 105, 55)
-
-        _pts = [(sx + int(px * _prx), _pcy + int(py * _pry)) for px, py in _potato_pts]
-        pygame.draw.polygon(surface, _body_col, _pts)
-        pygame.draw.polygon(surface, _edge_col, _pts, max(1, int(3*s)))
-        for _sxo, _syo in [(-0.4, -0.5), (0.5, -0.2), (-0.1, 0.4), (0.4, 0.55)]:
-            pygame.draw.circle(surface, _edge_col, (sx + int(_sxo*_prx), _pcy + int(_syo*_pry)), max(1, int(hd*0.08)))
-        # Potato Mine's signature rodent-y face: beady eyes + buck teeth
-        _fey = _pcy - int(_pry * 0.5)
-        _feo = max(2, int(hd * 0.22))
-        for _fexo in (-1, 1):
-            pygame.draw.circle(surface, (30, 20, 12), (sx + _fexo * int(_prx*0.28), _fey), _feo)
-        _fty = _pcy - int(_pry * 0.05)
-        _ftw = max(2, int(hd * 0.16))
-        for _ftxo in (-0.1, 0.14):
-            _ftx = sx + int(_ftxo * _prx)
-            pygame.draw.rect(surface, (250, 245, 225), (_ftx, _fty, _ftw, int(hd*0.32)))
-            pygame.draw.rect(surface, (150, 140, 100), (_ftx, _fty, _ftw, int(hd*0.32)), 1)
-        # Dirt mound, drawn over the lower half of the potato (and down to
-        # the feet) so it reads as planted in the ground, not floating on it
-        _bury_y = _pcy + int(_pry * 0.5)
-        pygame.draw.rect(surface, _dirt, (sx - _mound_w//2, _bury_y, _mound_w, _pbot - _bury_y + int(hd*0.3)))
-        pygame.draw.ellipse(surface, _dirt, (sx - _mound_w//2, _bury_y - int(hd*0.35), _mound_w, int(hd*0.7)))
-        pygame.draw.ellipse(surface, _dirt_dk, (sx - _mound_w//2, _bury_y - int(hd*0.35), _mound_w, int(hd*0.7)), max(1, int(2*s)))
-
-        if char_name == "Booma":
-            # Fuse + spark on top, dynamite sticks either side
-            _fx, _fy = sx, _pcy - _pry
-            _fx2, _fy2 = _fx + int(4*s), _fy - int(10*s)
-            pygame.draw.line(surface, (150, 110, 60), (_fx, _fy), (_fx2, _fy2), max(2, int(3*s)))
-            if (pygame.time.get_ticks() // 120) % 2 == 0:
-                pygame.draw.circle(surface, (255, 190, 40), (_fx2, _fy2), max(2, int(4*s)))
-                pygame.draw.circle(surface, (255, 240, 180), (_fx2, _fy2), max(1, int(2*s)))
-            for _dxo in (-1, 1):
-                _dx = sx + _dxo * int(_prx * 0.75)
-                pygame.draw.rect(surface, (180, 30, 30),
-                                 (_dx - int(3*s), _pcy - int(_pry*0.3), int(6*s), int(bl*0.4)))
-                pygame.draw.line(surface, (150, 110, 60), (_dx, _pcy - int(_pry*0.3)),
-                                 (_dx, _pcy - int(_pry*0.55)), max(1, int(2*s)))
-
-        elif char_name == "Testa di Testy":
-            # Goggles across the top, beaker held against the body
-            _gy = _pcy - int(_pry * 0.55)
-            _glass = (140, 220, 230)
-            for _gxo in (-1, 1):
-                _gx = sx + _gxo * int(_prx * 0.32)
-                pygame.draw.circle(surface, (60, 60, 65), (_gx, _gy), max(2, int(hd*0.4)))
-                pygame.draw.circle(surface, _glass, (_gx, _gy), max(1, int(hd*0.3)))
-            pygame.draw.line(surface, (60, 60, 65), (sx - int(_prx*0.1), _gy), (sx + int(_prx*0.1), _gy), max(2, int(3*s)))
-            _bkx, _bky = sx + int(_prx * 0.9), _pcy + int(_pry * 0.3)
-            _bw3, _bh3 = int(hd * 0.5), int(hd * 0.7)
-            _flask = [(_bkx - _bw3//2, _bky - _bh3), (_bkx + _bw3//2, _bky - _bh3),
-                      (_bkx + int(_bw3*0.7), _bky), (_bkx - int(_bw3*0.7), _bky)]
-            pygame.draw.polygon(surface, (200, 220, 220), _flask)
-            pygame.draw.polygon(surface, (60, 60, 65), _flask, max(1, int(2*s)))
-            _liquid = [(_bkx - int(_bw3*0.55), _bky - int(_bh3*0.25)), (_bkx + int(_bw3*0.55), _bky - int(_bh3*0.25)),
-                       (_bkx + int(_bw3*0.7), _bky), (_bkx - int(_bw3*0.7), _bky)]
-            pygame.draw.polygon(surface, (90, 220, 100), _liquid)
-
-        else:  # Supa
-            _my = _pcy - int(_pry * 0.55)
-            pygame.draw.ellipse(surface, (30, 30, 40),
-                                (sx - int(_prx*0.55), _my - int(hd*0.28), int(hd*0.65), int(hd*0.38)))
-            pygame.draw.ellipse(surface, (30, 30, 40),
-                                (sx + int(_prx*0.05), _my - int(hd*0.28), int(hd*0.65), int(hd*0.38)))
-            _cdir = -facing if facing else 1
-            _cape_pts = [
-                (sx - _cdir*int(_prx*0.5), _pcy - int(_pry*0.4)),
-                (sx + _cdir*int(_prx*0.5), _pcy - int(_pry*0.4)),
-                (sx + _cdir*int(al*1.3), _pbot + int(hd*0.3)),
-                (sx - _cdir*int(al*0.2), _pbot + int(hd*0.7)),
-            ]
-            pygame.draw.polygon(surface, (190, 20, 30), _cape_pts)
-            pygame.draw.polygon(surface, (120, 10, 20), _cape_pts, max(1, int(2*s)))
-            pygame.draw.circle(surface, (255, 210, 40), (sx, _pcy + int(_pry*0.15)), max(2, int(hd*0.25)))
-
     elif char_name in ("Solara", "Performer Solara"):
         # Sun-ray halo around head (8 rays, slowly rotating)
         _rt = pygame.time.get_ticks() / 1400.0
@@ -14584,6 +14454,138 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
             pygame.draw.circle(surface, (70, 70, 80), (_bomb_x, _bomb_y), max(3, int(6*s)), max(1, int(s)))
 
         return (int(x + facing * 40 * s), int(y - 100 * s))
+
+    # ── Booma / Testa di Testy / Supa: Tombstone's Minefield prize ──────────
+    #    costumes — a short lumpy potato-mine, not a stickman underneath.
+    if char_name in ("Booma", "Testa di Testy", "Supa"):
+        _pr  = hd * 1.9
+        _dt2 = pygame.time.get_ticks() / 1000.0
+        _duck_sq = 0.7 if action == 'duck' else 1.0
+        _bob = int(math.sin(_dt2 * 3.0 + x * 0.02) * 2 * s) if action in ('idle', 'walk') else 0
+
+        if action == 'dead':
+            _pcy = int(y) - int(_pr * 0.55)
+            pygame.draw.ellipse(surface, (60, 48, 30), (int(x) - int(_pr*1.3), int(y) - int(hd*0.3), int(_pr*2.6), int(hd*0.6)))
+            pygame.draw.circle(surface, (150, 120, 70), (int(x) - facing*int(_pr*0.4), _pcy), int(_pr*0.9))
+            pygame.draw.circle(surface, (60, 20, 15), (int(x) - facing*int(_pr*0.6), _pcy - int(_pr*0.1)), max(1, int(_pr*0.15)))
+            return None
+
+        _pcy = int(y) - int(_pr * 1.15 * _duck_sq) - _bob
+        _potato_pts = [
+            (-0.25, -0.92), (0.25, -0.92), (0.72, -0.75), (0.92, -0.28),
+            (0.95, 0.22), (0.70, 0.72), (0.20, 0.98), (-0.25, 0.92),
+            (-0.70, 0.62), (-0.95, 0.08), (-0.92, -0.30), (-0.68, -0.78),
+        ]
+        if char_name == "Booma":
+            _body_col, _edge_col = (45, 45, 52), (20, 20, 25)
+        elif char_name == "Supa":
+            _body_col, _edge_col = (185, 150, 90), (140, 112, 62)
+        else:
+            _body_col, _edge_col = (185, 145, 85), (140, 105, 55)
+        _pts = [(int(x) + int(px * _pr), _pcy + int(py * _pr * _duck_sq)) for px, py in _potato_pts]
+        pygame.draw.polygon(surface, _body_col, _pts)
+        pygame.draw.polygon(surface, _edge_col, _pts, max(1, int(3*s)))
+        for _sxo, _syo in [(-0.4, -0.5), (0.5, -0.2), (-0.1, 0.4), (0.4, 0.55)]:
+            pygame.draw.circle(surface, _edge_col, (int(x) + int(_sxo*_pr), _pcy + int(_syo*_pr*_duck_sq)), max(1, int(hd*0.08)))
+        # Rodent-y face: beady eyes + buck teeth
+        _fey = _pcy - int(_pr * 0.5 * _duck_sq)
+        _feo = max(2, int(hd * 0.22))
+        for _fexo in (-1, 1):
+            pygame.draw.circle(surface, (30, 20, 12), (int(x) + _fexo * int(_pr*0.28), _fey), _feo)
+        _fty = _pcy - int(_pr * 0.05)
+        _ftw = max(2, int(hd * 0.16))
+        for _ftxo in (-0.1, 0.14):
+            _ftx = int(x) + int(_ftxo * _pr)
+            pygame.draw.rect(surface, (250, 245, 225), (_ftx, _fty, _ftw, int(hd*0.32)))
+            pygame.draw.rect(surface, (150, 140, 100), (_ftx, _fty, _ftw, int(hd*0.32)), 1)
+        # Dirt mound at the base, burying the lower portion
+        _bury_y = _pcy + int(_pr * 0.5 * _duck_sq)
+        _mound_w = int(_pr * 2.3)
+        _dirt, _dirt_dk = (92, 68, 42), (65, 46, 28)
+        pygame.draw.rect(surface, _dirt, (int(x) - _mound_w//2, _bury_y, _mound_w, int(y) - _bury_y))
+        pygame.draw.ellipse(surface, _dirt, (int(x) - _mound_w//2, _bury_y - int(hd*0.35), _mound_w, int(hd*0.7)))
+        pygame.draw.ellipse(surface, _dirt_dk, (int(x) - _mound_w//2, _bury_y - int(hd*0.35), _mound_w, int(hd*0.7)), max(1, int(2*s)))
+
+        if char_name == "Booma":
+            _fx, _fy = int(x), _pcy - int(_pr * _duck_sq)
+            _fx2, _fy2 = _fx + int(4*s), _fy - int(10*s)
+            pygame.draw.line(surface, (150, 110, 60), (_fx, _fy), (_fx2, _fy2), max(2, int(3*s)))
+            if (pygame.time.get_ticks() // 120) % 2 == 0:
+                pygame.draw.circle(surface, (255, 190, 40), (_fx2, _fy2), max(2, int(4*s)))
+                pygame.draw.circle(surface, (255, 240, 180), (_fx2, _fy2), max(1, int(2*s)))
+            for _dxo in (-1, 1):
+                _dx = int(x) + _dxo * int(_pr * 0.75)
+                pygame.draw.rect(surface, (180, 30, 30), (_dx - int(3*s), _pcy - int(_pr*0.3), int(6*s), int(_pr*0.5)))
+                pygame.draw.line(surface, (150, 110, 60), (_dx, _pcy - int(_pr*0.3)),
+                                 (_dx, _pcy - int(_pr*0.55)), max(1, int(2*s)))
+        elif char_name == "Testa di Testy":
+            _gy = _pcy - int(_pr * 0.55)
+            _glass = (140, 220, 230)
+            for _gxo in (-1, 1):
+                _gx = int(x) + _gxo * int(_pr * 0.32)
+                pygame.draw.circle(surface, (60, 60, 65), (_gx, _gy), max(2, int(hd*0.4)))
+                pygame.draw.circle(surface, _glass, (_gx, _gy), max(1, int(hd*0.3)))
+            pygame.draw.line(surface, (60, 60, 65), (int(x) - int(_pr*0.1), _gy), (int(x) + int(_pr*0.1), _gy), max(2, int(3*s)))
+            _bkx, _bky = int(x) + int(_pr * 0.9), _pcy + int(_pr * 0.3)
+            _bw3, _bh3 = int(hd * 0.5), int(hd * 0.7)
+            _flask = [(_bkx - _bw3//2, _bky - _bh3), (_bkx + _bw3//2, _bky - _bh3),
+                      (_bkx + int(_bw3*0.7), _bky), (_bkx - int(_bw3*0.7), _bky)]
+            pygame.draw.polygon(surface, (200, 220, 220), _flask)
+            pygame.draw.polygon(surface, (60, 60, 65), _flask, max(1, int(2*s)))
+            _liquid = [(_bkx - int(_bw3*0.55), _bky - int(_bh3*0.25)), (_bkx + int(_bw3*0.55), _bky - int(_bh3*0.25)),
+                       (_bkx + int(_bw3*0.7), _bky), (_bkx - int(_bw3*0.7), _bky)]
+            pygame.draw.polygon(surface, (90, 220, 100), _liquid)
+        else:  # Supa
+            _my = _pcy - int(_pr * 0.55)
+            pygame.draw.ellipse(surface, (30, 30, 40), (int(x) - int(_pr*0.55), _my - int(hd*0.28), int(hd*0.65), int(hd*0.38)))
+            pygame.draw.ellipse(surface, (30, 30, 40), (int(x) + int(_pr*0.05), _my - int(hd*0.28), int(hd*0.65), int(hd*0.38)))
+            _cdir = -facing if facing else 1
+            _cape_pts = [
+                (int(x) - _cdir*int(_pr*0.5), _pcy - int(_pr*0.4)),
+                (int(x) + _cdir*int(_pr*0.5), _pcy - int(_pr*0.4)),
+                (int(x) + _cdir*int(_pr*1.3), int(y) + int(hd*0.3)),
+                (int(x) - _cdir*int(_pr*0.2), int(y) + int(hd*0.7)),
+            ]
+            pygame.draw.polygon(surface, (190, 20, 30), _cape_pts)
+            pygame.draw.polygon(surface, (120, 10, 20), _cape_pts, max(1, int(2*s)))
+            pygame.draw.circle(surface, (255, 210, 40), (int(x), _pcy + int(_pr*0.15)), max(2, int(hd*0.25)))
+
+        return (int(x + facing * _pr * 0.9), int(_pcy))
+
+    # ── Boxy: Tombstone's Minefield prize costume — a total cardboard box, ──
+    #    "FAMAZON" branded, no stickman underneath.
+    if char_name == "Boxy":
+        _bh = hd * 3.4
+        _bw = hd * 2.6
+        _duck_sq = 0.7 if action == 'duck' else 1.0
+
+        if action == 'dead':
+            _bx = int(x) - int(_bw)
+            _by = int(y) - int(hd * 0.7)
+            pygame.draw.rect(surface, (172, 132, 82), (_bx, _by, int(_bw*2), int(hd*1.4)))
+            pygame.draw.rect(surface, (130, 96, 56), (_bx, _by, int(_bw*2), int(hd*1.4)), max(1, int(2*s)))
+            return None
+
+        _btop = int(y) - int(_bh * _duck_sq)
+        _bx   = int(x) - _bw // 2
+        _box_col, _box_dk = (172, 132, 82), (130, 96, 56)
+        _tape = (225, 210, 180)
+        pygame.draw.rect(surface, _box_col, (_bx, _btop, _bw, int(y) - _btop))
+        pygame.draw.rect(surface, _box_dk,  (_bx, _btop, _bw, int(y) - _btop), max(1, int(3*s)))
+        pygame.draw.line(surface, _box_dk, (_bx, _btop + int(hd*0.5)), (_bx + _bw, _btop + int(hd*0.5)), max(1, int(2*s)))
+        pygame.draw.line(surface, _tape, (int(x), _btop), (int(x), int(y)), max(2, int(4*s)))
+        _midy = (_btop + int(y)) // 2
+        pygame.draw.line(surface, _tape, (_bx, _midy), (_bx + _bw, _midy), max(1, int(3*s)))
+        pygame.draw.arc(surface, (200, 60, 40),
+                        (_bx + int(_bw*0.15), _midy + int(hd*0.2), int(_bw*0.7), int(hd*0.8)),
+                        math.radians(200), math.radians(340), max(2, int(3*s)))
+        _atip = (_bx + int(_bw*0.82), _midy + int(hd*0.65))
+        pygame.draw.polygon(surface, (200, 60, 40), [
+            (_atip[0] - int(5*s), _atip[1] - int(5*s)),
+            (_atip[0] + int(4*s), _atip[1]),
+            (_atip[0] - int(5*s), _atip[1] + int(5*s))])
+
+        return (int(x + facing * _bw * 0.6), int(_btop + hd))
 
     # ── Volcanis: legless golem sitting in a pool of lava, twin hammers, ────
     #    lava periodically spews from his head.
