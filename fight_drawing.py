@@ -14457,7 +14457,7 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
 
     # ── Booma / Testa di Testy / Supa: Tombstone's Minefield prize ──────────
     #    costumes — a short lumpy potato-mine, not a stickman underneath.
-    if char_name in ("Booma", "Testa di Testy", "Supa"):
+    if char_name in ("Booma", "Testa di Testy", "Boxy", "Supa"):
         _pr  = hd * 1.9
         _dt2 = pygame.time.get_ticks() / 1000.0
         _duck_sq = 0.7 if action == 'duck' else 1.0
@@ -14498,13 +14498,39 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
             _ftx = int(x) + int(_ftxo * _pr)
             pygame.draw.rect(surface, (250, 245, 225), (_ftx, _fty, _ftw, int(hd*0.32)))
             pygame.draw.rect(surface, (150, 140, 100), (_ftx, _fty, _ftw, int(hd*0.32)), 1)
-        # Dirt mound at the base, burying the lower portion
+        # Base at the potato's feet: a dirt mound for everyone except Boxy,
+        # who's a potato mine shipped in an open cardboard box instead.
         _bury_y = _pcy + int(_pr * 0.5 * _duck_sq)
         _mound_w = int(_pr * 2.3)
-        _dirt, _dirt_dk = (92, 68, 42), (65, 46, 28)
-        pygame.draw.rect(surface, _dirt, (int(x) - _mound_w//2, _bury_y, _mound_w, int(y) - _bury_y))
-        pygame.draw.ellipse(surface, _dirt, (int(x) - _mound_w//2, _bury_y - int(hd*0.35), _mound_w, int(hd*0.7)))
-        pygame.draw.ellipse(surface, _dirt_dk, (int(x) - _mound_w//2, _bury_y - int(hd*0.35), _mound_w, int(hd*0.7)), max(1, int(2*s)))
+        if char_name == "Boxy":
+            _box_col, _box_dk, _tape = (172, 132, 82), (130, 96, 56), (225, 210, 180)
+            _flap_h = int(hd * 0.5)
+            pygame.draw.rect(surface, _box_col, (int(x) - _mound_w//2, _bury_y + _flap_h, _mound_w, int(y) - _bury_y - _flap_h))
+            pygame.draw.rect(surface, _box_dk,  (int(x) - _mound_w//2, _bury_y + _flap_h, _mound_w, int(y) - _bury_y - _flap_h), max(1, int(2*s)))
+            # Open flaps splayed out to the sides, potato peeking out between them
+            for _flx in (-1, 1):
+                _flap_pts = [
+                    (int(x) + _flx*int(_mound_w*0.05), _bury_y + _flap_h),
+                    (int(x) + _flx*int(_mound_w*0.55), _bury_y - int(hd*0.3)),
+                    (int(x) + _flx*int(_mound_w*0.5), _bury_y + _flap_h),
+                ]
+                pygame.draw.polygon(surface, _box_col, _flap_pts)
+                pygame.draw.polygon(surface, _box_dk, _flap_pts, max(1, int(2*s)))
+            pygame.draw.line(surface, _tape, (int(x), _bury_y + _flap_h), (int(x), int(y)), max(2, int(3*s)))
+            _smy = _bury_y + _flap_h + int((int(y) - _bury_y - _flap_h) * 0.55)
+            pygame.draw.arc(surface, (200, 60, 40),
+                            (int(x) - int(_mound_w*0.28), _smy - int(hd*0.35), int(_mound_w*0.56), int(hd*0.7)),
+                            math.radians(200), math.radians(340), max(2, int(3*s)))
+            _atip = (int(x) + int(_mound_w*0.30), _smy + int(hd*0.05))
+            pygame.draw.polygon(surface, (200, 60, 40), [
+                (_atip[0] - int(4*s), _atip[1] - int(4*s)),
+                (_atip[0] + int(3*s), _atip[1]),
+                (_atip[0] - int(4*s), _atip[1] + int(4*s))])
+        else:
+            _dirt, _dirt_dk = (92, 68, 42), (65, 46, 28)
+            pygame.draw.rect(surface, _dirt, (int(x) - _mound_w//2, _bury_y, _mound_w, int(y) - _bury_y))
+            pygame.draw.ellipse(surface, _dirt, (int(x) - _mound_w//2, _bury_y - int(hd*0.35), _mound_w, int(hd*0.7)))
+            pygame.draw.ellipse(surface, _dirt_dk, (int(x) - _mound_w//2, _bury_y - int(hd*0.35), _mound_w, int(hd*0.7)), max(1, int(2*s)))
 
         if char_name == "Booma":
             _fx, _fy = int(x), _pcy - int(_pr * _duck_sq)
@@ -14535,7 +14561,7 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
             _liquid = [(_bkx - int(_bw3*0.55), _bky - int(_bh3*0.25)), (_bkx + int(_bw3*0.55), _bky - int(_bh3*0.25)),
                        (_bkx + int(_bw3*0.7), _bky), (_bkx - int(_bw3*0.7), _bky)]
             pygame.draw.polygon(surface, (90, 220, 100), _liquid)
-        else:  # Supa
+        elif char_name == "Supa":
             _my = _pcy - int(_pr * 0.55)
             pygame.draw.ellipse(surface, (30, 30, 40), (int(x) - int(_pr*0.55), _my - int(hd*0.28), int(hd*0.65), int(hd*0.38)))
             pygame.draw.ellipse(surface, (30, 30, 40), (int(x) + int(_pr*0.05), _my - int(hd*0.28), int(hd*0.65), int(hd*0.38)))
@@ -14551,41 +14577,6 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
             pygame.draw.circle(surface, (255, 210, 40), (int(x), _pcy + int(_pr*0.15)), max(2, int(hd*0.25)))
 
         return (int(x + facing * _pr * 0.9), int(_pcy))
-
-    # ── Boxy: Tombstone's Minefield prize costume — a total cardboard box, ──
-    #    "FAMAZON" branded, no stickman underneath.
-    if char_name == "Boxy":
-        _bh = hd * 3.4
-        _bw = hd * 2.6
-        _duck_sq = 0.7 if action == 'duck' else 1.0
-
-        if action == 'dead':
-            _bx = int(x) - int(_bw)
-            _by = int(y) - int(hd * 0.7)
-            pygame.draw.rect(surface, (172, 132, 82), (_bx, _by, int(_bw*2), int(hd*1.4)))
-            pygame.draw.rect(surface, (130, 96, 56), (_bx, _by, int(_bw*2), int(hd*1.4)), max(1, int(2*s)))
-            return None
-
-        _btop = int(y) - int(_bh * _duck_sq)
-        _bx   = int(x) - _bw // 2
-        _box_col, _box_dk = (172, 132, 82), (130, 96, 56)
-        _tape = (225, 210, 180)
-        pygame.draw.rect(surface, _box_col, (_bx, _btop, _bw, int(y) - _btop))
-        pygame.draw.rect(surface, _box_dk,  (_bx, _btop, _bw, int(y) - _btop), max(1, int(3*s)))
-        pygame.draw.line(surface, _box_dk, (_bx, _btop + int(hd*0.5)), (_bx + _bw, _btop + int(hd*0.5)), max(1, int(2*s)))
-        pygame.draw.line(surface, _tape, (int(x), _btop), (int(x), int(y)), max(2, int(4*s)))
-        _midy = (_btop + int(y)) // 2
-        pygame.draw.line(surface, _tape, (_bx, _midy), (_bx + _bw, _midy), max(1, int(3*s)))
-        pygame.draw.arc(surface, (200, 60, 40),
-                        (_bx + int(_bw*0.15), _midy + int(hd*0.2), int(_bw*0.7), int(hd*0.8)),
-                        math.radians(200), math.radians(340), max(2, int(3*s)))
-        _atip = (_bx + int(_bw*0.82), _midy + int(hd*0.65))
-        pygame.draw.polygon(surface, (200, 60, 40), [
-            (_atip[0] - int(5*s), _atip[1] - int(5*s)),
-            (_atip[0] + int(4*s), _atip[1]),
-            (_atip[0] - int(5*s), _atip[1] + int(5*s))])
-
-        return (int(x + facing * _bw * 0.6), int(_btop + hd))
 
     # ── Volcanis: legless golem sitting in a pool of lava, twin hammers, ────
     #    lava periodically spews from his head.
