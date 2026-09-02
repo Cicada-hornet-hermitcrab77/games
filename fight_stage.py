@@ -1079,49 +1079,90 @@ class Dino(object):
             self.bite_cd = self.BITE_COOLDOWN
 
     def draw(self, surface):
+        # Proportions tuned off real mounted-skeleton references: T-Rex
+        # (huge skull, tiny 2-finger arms, long legs, thick short neck),
+        # Spinosaurus (small skull, long narrow croc snout, S-curve neck,
+        # robust clawed arms, notably short legs, deep paddle-like tail,
+        # tall boxy sail), Velociraptor (upturned snout, small clawed
+        # arms, sickle claw held raised off the ground, long stiff tail).
         S = self.VISUAL_SCALE
         cx, cy = int(self.x), int(self.y) - int(6 * S)
         bone_col, bone_dk = (225, 218, 200), (160, 150, 130)
         _leg_swing = math.sin(self.t * 0.4) * 4 * S
 
-        # Tail — Velociraptor's is longer and thinner (whip-like), the
-        # other two keep the thicker tapered tail
-        _tail_n = 5 if self.species == 'raptor' else 4
-        for i in range(_tail_n):
-            _tail_step = 8 if self.species == 'raptor' else (11 if self.species == 'spino' else 10)
-            tx = cx - self.facing * int((10 + i * _tail_step) * S)
-            ty = cy + int(math.sin(self.t * 0.2 + i) * 3 * S)
-            _tr = (3 - i * 0.5) if self.species == 'raptor' else (4 - i)
-            pygame.draw.circle(surface, bone_col, (tx, ty), max(1, int(_tr * S)))
-
-        # Body — T-Rex bulkiest, Spinosaurus longest/leanest, Raptor
-        # smallest/slimmest
         if self.species == 'trex':
             _bw, _bh = 26, 16
+            _leg_top, _leg_bot = 3, 15
+            _snout, _head_r, _teeth_n = 12, 9, 4
         elif self.species == 'spino':
-            _bw, _bh = 24, 13
+            _bw, _bh = 22, 12
+            _leg_top, _leg_bot = 6, 11
+            _snout, _head_r, _teeth_n = 20, 5.5, 5
         else:
-            _bw, _bh = 18, 11
+            _bw, _bh = 16, 10
+            _leg_top, _leg_bot = 4, 13
+            _snout, _head_r, _teeth_n = 11, 4.5, 3
+
+        # Tail
+        if self.species == 'spino':
+            # Long, deep, barely-tapering, paddle-like — caps in a fin
+            _tail_n, _tail_step = 7, 12
+            for i in range(_tail_n):
+                tx = cx - self.facing * int((10 + i * _tail_step) * S)
+                ty = cy + int(math.sin(self.t * 0.2 + i) * 3 * S)
+                _tr = max(2.0, 4.6 - i * 0.35)
+                pygame.draw.circle(surface, bone_col, (tx, ty), max(1, int(_tr * S)))
+            _tipx = cx - self.facing * int((10 + (_tail_n - 1) * _tail_step + 6) * S)
+            _tipy = cy + int(math.sin(self.t * 0.2 + _tail_n - 1) * 3 * S)
+            _fin = [(_tipx, _tipy - int(5*S)), (_tipx - self.facing*int(6*S), _tipy),
+                    (_tipx, _tipy + int(5*S))]
+            pygame.draw.polygon(surface, bone_col, _fin)
+            pygame.draw.polygon(surface, bone_dk, _fin, max(1, int(S*0.15)))
+        elif self.species == 'raptor':
+            # Long and rigid — held stiff and straight, barely any wave
+            for i in range(5):
+                tx = cx - self.facing * int((10 + i * 9) * S)
+                ty = cy + int(math.sin(self.t * 0.15 + i) * 1 * S)
+                _tr = max(1.0, 2.8 - i * 0.45)
+                pygame.draw.circle(surface, bone_col, (tx, ty), max(1, int(_tr * S)))
+        else:
+            for i in range(4):
+                tx = cx - self.facing * int((10 + i * 10) * S)
+                ty = cy + int(math.sin(self.t * 0.2 + i) * 3 * S)
+                pygame.draw.circle(surface, bone_col, (tx, ty), max(1, int((4 - i) * S)))
+
+        # Body
         _body_rect = (cx - int(_bw*0.46 * S), cy - int(_bh*0.57 * S), int(_bw * S), int(_bh * S))
         pygame.draw.ellipse(surface, bone_col, _body_rect)
         pygame.draw.ellipse(surface, bone_dk, _body_rect, max(1, int(S * 0.15)))
 
-        # Spinosaurus sail — a row of bone spikes with a thin membrane
-        # arcing along its back
+        # Spinosaurus sail — tall, boxy/rectangular neural-spine profile
+        # (not jagged spikes), with thin internal spine lines
         if self.species == 'spino':
-            _sail_pts = [(cx - int(9*S), cy - int(6*S))]
+            _sail_w, _sail_h = int(20*S), int(11*S)
+            _sail_x = cx - _sail_w // 2
+            _sail_y = cy - int(_bh*0.57*S) - _sail_h + int(1*S)
+            _sail_rect = (_sail_x, _sail_y, _sail_w, _sail_h)
+            pygame.draw.rect(surface, bone_dk, _sail_rect, border_radius=max(1, int(S*0.6)))
+            pygame.draw.rect(surface, bone_col, _sail_rect, max(1, int(S*0.15)), border_radius=max(1, int(S*0.6)))
             for i in range(6):
-                _spx = cx - int(9*S) + int(i * 3.6 * S)
-                _spy = cy - int((7.5 + math.sin(i * 1.1) * 1.5) * S)
-                _sail_pts.append((_spx, _spy))
-            _sail_pts.append((cx + int(9*S), cy - int(6*S)))
-            pygame.draw.polygon(surface, bone_dk, _sail_pts)
-            pygame.draw.polygon(surface, bone_col, _sail_pts, max(1, int(S * 0.15)))
+                _lx = _sail_x + int((i + 0.5) * _sail_w / 6)
+                pygame.draw.line(surface, bone_col, (_lx, _sail_y), (_lx, _sail_y + _sail_h), max(1, int(S*0.12)))
 
-        # Legs — Raptor's are proportionally longer, with a curved
-        # sickle claw on the leading foot
-        _leg_top = 3 if self.species == 'raptor' else 4
-        _leg_bot = 14 if self.species == 'raptor' else 12
+        # Neck — short & thick (T-Rex), long S-curve (Spinosaurus), short
+        # (Velociraptor), bridging the body to wherever the head sits
+        _neck_x0 = cx + self.facing * int(_bw*0.46 * S)
+        _neck_y0 = cy - int(_bh * 0.35 * S)
+        if self.species == 'spino':
+            _neck_mid = (_neck_x0 + self.facing*int(4*S), _neck_y0 - int(5*S))
+            _neck_end = (_neck_x0 + self.facing*int(9*S), _neck_y0 - int(2*S))
+            pygame.draw.lines(surface, bone_col, False, [(_neck_x0, _neck_y0), _neck_mid, _neck_end], max(2, int(2.6*S)))
+        else:
+            _neck_len, _neck_w = (5, 3.2) if self.species == 'trex' else (3, 2.0)
+            _neck_end = (_neck_x0 + self.facing*int(_neck_len*S), _neck_y0 - int(1*S))
+            pygame.draw.line(surface, bone_col, (_neck_x0, _neck_y0), _neck_end, max(2, int(_neck_w*S)))
+
+        # Legs
         for sgn in (-1, 1):
             _lx0 = cx + int(sgn * 3 * S)
             _ly0 = cy + int(_leg_top * S)
@@ -1129,38 +1170,63 @@ class Dino(object):
             _ly1 = cy + int(_leg_bot * S)
             pygame.draw.line(surface, bone_col, (_lx0, _ly0), (_lx1, _ly1), max(1, int(2 * S)))
             if self.species == 'raptor' and sgn == self.facing:
-                _clx = _lx1 + self.facing * int(3 * S)
-                _cly = _ly1 - int(2 * S)
-                pygame.draw.line(surface, (230, 220, 200), (_lx1, _ly1), (_clx, _cly), max(1, int(1.6 * S)))
+                # Sickle claw held raised off the ground, not dragging —
+                # anchored partway up the leg, curving forward and up
+                _ankle_x = _lx0 + int(_leg_swing * sgn * 0.6)
+                _ankle_y = cy + int(_leg_bot * 0.72 * S)
+                _claw_tip = (_ankle_x + self.facing*int(4*S), _ankle_y - int(3*S))
+                pygame.draw.line(surface, (230, 220, 200), (_ankle_x, _ankle_y), _claw_tip, max(1, int(1.8 * S)))
 
-        # Head + jaw — T-Rex has a massive box skull, Spinosaurus a long
-        # crocodile-like snout, Raptor a small sleek head
-        if self.species == 'trex':
-            _snout, _head_r, _teeth_n = 12, 9, 4
-        elif self.species == 'spino':
-            _snout, _head_r, _teeth_n = 18, 6, 3
-        else:
-            _snout, _head_r, _teeth_n = 10, 5, 2
+        # Head + jaw
         hx = cx + self.facing * int(_snout * S)
         _hy = cy - int(4 * S)
         pygame.draw.circle(surface, bone_col, (hx, _hy), int(_head_r * S))
         pygame.draw.circle(surface, bone_dk, (hx, _hy), int(_head_r * S), max(1, int(S * 0.15)))
-        _jaw_x2 = hx + self.facing * int((_head_r + 2) * S)
-        pygame.draw.line(surface, bone_dk, (hx + self.facing * int(_head_r*0.4 * S), _hy + int(2*S)),
-                         (_jaw_x2, _hy + int(4 * S)), max(1, int(2 * S)))
+        if self.species == 'raptor':
+            # Distinctive upturned snout — jaw kinks upward toward the tip
+            _jaw_mid = (hx + self.facing*int(_head_r*S), _hy + int(2.6*S))
+            _jaw_tip = (hx + self.facing*int((_head_r+3)*S), _hy + int(1.2*S))
+            pygame.draw.lines(surface, bone_dk, False,
+                              [(hx + self.facing*int(_head_r*0.4*S), _hy + int(2*S)), _jaw_mid, _jaw_tip],
+                              max(1, int(2*S)))
+        else:
+            _jaw_x2 = hx + self.facing * int((_head_r + 2) * S)
+            pygame.draw.line(surface, bone_dk, (hx + self.facing * int(_head_r*0.4 * S), _hy + int(2*S)),
+                             (_jaw_x2, _hy + int(4 * S)), max(1, int(2 * S)))
         for i in range(_teeth_n):
             _ttx = hx + self.facing * int((_head_r*0.4 + i * 1.6) * S)
             pygame.draw.line(surface, (240, 235, 220), (_ttx, _hy + int(2.5*S)), (_ttx, _hy + int(4.5*S)), max(1, int(S*0.4)))
         pygame.draw.circle(surface, (200, 40, 30), (hx - self.facing * int(2 * S), _hy - int(1.5 * S)), max(1, int(2 * S)))
 
-        # Tiny stub arms on the T-Rex (its signature undersized forelimbs),
-        # drawn last in the darker bone tone so they read clearly against
-        # the body fill instead of blending into it
+        # Arms — drawn last so they read clearly against the body fill
         if self.species == 'trex':
+            # Signature tiny 2-finger arms
             _ax0 = cx + self.facing * int(6 * S)
             _ay0 = cy + int(5 * S)
-            pygame.draw.line(surface, bone_dk, (_ax0, _ay0),
-                             (_ax0 + self.facing * int(3*S), _ay0 + int(3*S)), max(1, int(1.8*S)))
+            _ax1 = _ax0 + self.facing * int(3*S)
+            _ay1 = _ay0 + int(3*S)
+            pygame.draw.line(surface, bone_dk, (_ax0, _ay0), (_ax1, _ay1), max(1, int(1.8*S)))
+            for _fx in (-1, 1):
+                pygame.draw.line(surface, bone_dk, (_ax1, _ay1),
+                                 (_ax1 + self.facing*int(1.2*S), _ay1 + int((1.5 + _fx*0.6)*S)), max(1, int(0.8*S)))
+        elif self.species == 'spino':
+            # Robust, longer arm angled down-forward (wading posture);
+            # three clawed digits, the first the largest
+            _ax0 = cx + self.facing * int(7 * S)
+            _ay0 = cy + int(4 * S)
+            _ax1 = _ax0 + self.facing * int(5*S)
+            _ay1 = _ay0 + int(6*S)
+            pygame.draw.line(surface, bone_dk, (_ax0, _ay0), (_ax1, _ay1), max(1, int(2.2*S)))
+            for _fi, _fx in enumerate((-1, 0, 1)):
+                _cl = 3.2 if _fi == 0 else 2.0
+                pygame.draw.line(surface, bone_dk, (_ax1, _ay1),
+                                 (_ax1 + self.facing*int(_cl*S), _ay1 + int((2 + _fx*0.8)*S)), max(1, int(1.1*S)))
+        else:  # raptor
+            _ax0 = cx + self.facing * int(5 * S)
+            _ay0 = cy + int(2 * S)
+            _ax1 = _ax0 + self.facing * int(2.5*S)
+            _ay1 = _ay0 + int(2.5*S)
+            pygame.draw.line(surface, bone_dk, (_ax0, _ay0), (_ax1, _ay1), max(1, int(1.4*S)))
 
 
 class Stampede(object):
