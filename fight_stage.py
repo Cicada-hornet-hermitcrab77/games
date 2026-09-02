@@ -1035,9 +1035,13 @@ class Dino(object):
     SPEED         = 3.2
     BITE_DMG      = 8
     BITE_COOLDOWN = 90
-    DRAW_SCALE    = 1.7
+    DRAW_SCALE    = 1.7   # gameplay scale — keeps bite range/hitbox sane
     BITE_RANGE    = int(42 * DRAW_SCALE)
     LIFE          = FPS * 6
+    # Visual-only scale: sized so the dino spans roughly the full screen
+    # height (head near the top edge, legs down past the ground line),
+    # independent of DRAW_SCALE so the bite hitbox stays unchanged.
+    VISUAL_SCALE  = GROUND_Y / 17.0
 
     def __init__(self, x, owner, target):
         self.x        = float(x)
@@ -1071,7 +1075,7 @@ class Dino(object):
             self.bite_cd = self.BITE_COOLDOWN
 
     def draw(self, surface):
-        S = self.DRAW_SCALE
+        S = self.VISUAL_SCALE
         cx, cy = int(self.x), int(self.y) - int(6 * S)
         bone_col, bone_dk = (225, 218, 200), (160, 150, 130)
         # Tail
@@ -1082,7 +1086,7 @@ class Dino(object):
         # Body
         _body_rect = (cx - int(12 * S), cy - int(8 * S), int(22 * S), int(14 * S))
         pygame.draw.ellipse(surface, bone_col, _body_rect)
-        pygame.draw.ellipse(surface, bone_dk, _body_rect, 1)
+        pygame.draw.ellipse(surface, bone_dk, _body_rect, max(1, int(S * 0.15)))
         # Legs
         _leg_swing = math.sin(self.t * 0.4) * 4 * S
         for sgn in (-1, 1):
@@ -1092,7 +1096,7 @@ class Dino(object):
         hx = cx + self.facing * int(14 * S)
         _head_r = int(7 * S)
         pygame.draw.circle(surface, bone_col, (hx, cy - int(4 * S)), _head_r)
-        pygame.draw.circle(surface, bone_dk, (hx, cy - int(4 * S)), _head_r, 1)
+        pygame.draw.circle(surface, bone_dk, (hx, cy - int(4 * S)), _head_r, max(1, int(S * 0.15)))
         pygame.draw.line(surface, bone_dk, (hx + self.facing * int(4 * S), cy - int(1 * S)),
                          (hx + self.facing * int(9 * S), cy + int(2 * S)), max(1, int(2 * S)))
         pygame.draw.circle(surface, (200, 40, 30), (hx - self.facing * int(2 * S), cy - int(6 * S)), max(1, int(2 * S)))
