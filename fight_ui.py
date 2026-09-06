@@ -783,6 +783,7 @@ def mode_select(unlocked=None, stats=None):
         _ev_mode_ev = get_active_event()
         _ev_mode    = _ev_mode_ev.get("special_mode") if _ev_mode_ev else None
         _ev_label   = _ev_mode_ev.get("special_mode_label", "Event Mode") if _ev_mode_ev and _ev_mode else None
+        _ev_cost    = _ev_mode_ev.get("special_mode_cost") if _ev_mode_ev and _ev_mode else None
         _ev_btn_rect = pygame.Rect(WIDTH // 2 - 175, HEIGHT - 92, 350, 38) if _ev_mode else None
         _fuser_unlocked = "Deco & Emoj" in unlocked
 
@@ -1070,7 +1071,8 @@ def mode_select(unlocked=None, stats=None):
             _ev_brd = (80 + _pulse, 220, 80 + _pulse)
             pygame.draw.rect(screen, _ev_bg,  _ev_btn_rect, border_radius=10)
             pygame.draw.rect(screen, _ev_brd, _ev_btn_rect, 2, border_radius=10)
-            _ev_txt = font_small.render(f"★ {_ev_label}  [E]", True, (180, 255, 120))
+            _ev_cost_lbl = f"  —  ${_ev_cost}" if _ev_cost else ""
+            _ev_txt = font_small.render(f"★ {_ev_label}{_ev_cost_lbl}  [E]", True, (180, 255, 120))
             screen.blit(_ev_txt, (_ev_btn_rect.centerx - _ev_txt.get_width() // 2,
                                   _ev_btn_rect.centery - _ev_txt.get_height() // 2))
 
@@ -4228,7 +4230,9 @@ def tombstones_minefield(screen, clock, stats, unlocked):
     Reveal every tombstone to win a random prize off the post-win table
     (see _mf_award_prize); reveal a mine and the round ends immediately
     with nothing awarded. Modifies unlocked/stats in-place."""
-    COST = 50
+    # Same value the home-screen button advertises, so the two cannot drift.
+    COST = next((e.get("special_mode_cost", 50) for e in SEASONAL_EVENTS
+                 if e.get("special_mode") == "tombstones_minefield"), 50)
     coins = stats.get("seasonal_coins", 0)
     if coins < COST:
         _mf_message(screen, clock, "NOT ENOUGH COINS",
