@@ -2480,21 +2480,32 @@ def set_username_screen(userdata):
 
 
 def server_settings_screen(userdata):
-    """Let the player type in the fight_server IP (or blank for localhost)."""
+    """Let the player type in the fight_server IP (blank = the default server)."""
     cur = userdata.get("server_ip", "")
-    result = _text_input_screen("Server IP  (blank = localhost):", cur, max_len=48)
+    result = _text_input_screen(
+        f"Server IP  (blank = {_net.DEFAULT_SERVER_IP}):", cur, max_len=48)
     if result is not None:
         userdata["server_ip"] = result.strip()
         _net.save_userdata(userdata)
 
 
+def _server_host(userdata):
+    """The fight_server to talk to: the player's override, else the default."""
+    return (userdata.get("server_ip") or "").strip() or _net.DEFAULT_SERVER_IP
+
+
 def _make_lobby(userdata, timeout=6):
     """Connect to the fight_server and register. Returns LobbyClient or None."""
-    host = _net.DEFAULT_SERVER_IP
+    host = _server_host(userdata)
     lc   = _net.LobbyClient()
-    try:
-        lc.connect(host, timeout=timeout)
-    except Exception as e:
+    # Connect off-thread and keep ticking, so an unreachable server costs a
+    # few idle frames instead of freezing the window for the whole timeout.
+    lc.connect_bg(host, timeout=timeout)
+    _cutoff = pygame.time.get_ticks() + int(timeout * 1000) + 500
+    while not lc.connect_done and pygame.time.get_ticks() < _cutoff:
+        clock.tick(FPS)
+        pygame.event.pump()
+    if not lc.connected:
         return None
     lc.register(userdata["user_code"], userdata["username"])
     # Wait for HELLO_OK (up to 3 s)
@@ -3263,7 +3274,8 @@ def online_menu(userdata):
          or ('join',       (net, p2_char, p1_char, stage))
          or None on cancel.
     """
-    opts = ["QUICK MATCH", "HOST GAME", "JOIN GAME", "FRIENDS", "LEADERBOARD", "SET USERNAME"]
+    opts = ["QUICK MATCH", "HOST GAME", "JOIN GAME", "FRIENDS", "LEADERBOARD",
+            "SET USERNAME", "SERVER"]
     sel  = 0
     _update_banner = []   # server update announcements to show
 
@@ -3323,6 +3335,10 @@ def online_menu(userdata):
                         leaderboard_screen(userdata)
                     elif sel == 5:  # SET USERNAME
                         set_username_screen(userdata)
+                    elif sel == 6:  # SERVER — point the game at your own host
+                        if _lobby_bg: _lobby_bg.close()
+                        server_settings_screen(userdata)
+                        _lobby_bg = _make_lobby(userdata, timeout=3)
 
         screen.fill(DARK)
         title = font_large.render("ONLINE PLAY", True, CYAN)
@@ -3381,7 +3397,7 @@ def leaderboard_screen(userdata):
 
     try:
         lobby = _fn.LobbyClient()
-        lobby.connect(timeout=5)
+        lobby.connect(_server_host(userdata), timeout=5)
         lobby.register(userdata.get("user_code", "????????"),
                        userdata.get("username", "Player"))
         lobby.request_leaderboard()

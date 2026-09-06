@@ -24,6 +24,11 @@ import os
 
 PORT = 7779
 
+# Number of entries in STAGES (fight_data.py). Kept as a plain literal because
+# importing fight_data would drag pygame — and a display — onto the server.
+# Bump this when stages are added, or online play never rolls the new ones.
+STAGE_COUNT = 32
+
 # ── Framing (same format as fight_network.py) ─────────────────────────────────
 
 def _send(sock, obj):
@@ -95,7 +100,7 @@ def _try_match():
         a, b = available[0], available[1]
         _queue.remove(a)
         _queue.remove(b)
-        stage = random.randint(0, 29)
+        stage = random.randint(0, STAGE_COUNT - 1)
         _clients[a]["in_queue"]     = False
         _clients[b]["in_queue"]     = False
         _clients[a]["matched_with"] = b

@@ -191,13 +191,28 @@ import re
 
 _BORE_VERSION = "v0.5.1"
 
+def _runs_here(path: str) -> bool:
+    """True if `path` is a bore binary this machine can actually execute."""
+    try:
+        return subprocess.run([path, "--version"],
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL,
+                              timeout=5).returncode == 0
+    except Exception:
+        return False
+
+
 def _bore_path() -> str:
     """Return path to a bore binary, or '' if none found / can't download."""
     p = shutil.which("bore")
     if p:
         return p
+    # A cached /tmp/bore may be for another platform (an older start_server.sh
+    # always fetched the macOS build). Executable is not enough — it has to run,
+    # otherwise Popen fails with "Exec format error" and hosting dies silently.
     if os.path.isfile("/tmp/bore") and os.access("/tmp/bore", os.X_OK):
-        return "/tmp/bore"
+        if _runs_here("/tmp/bore"):
+            return "/tmp/bore"
     return _download_bore()
 
 
@@ -243,6 +258,7 @@ class BoreTunnel:
         self._remote_port = 0
         self._lock        = threading.Lock()
         self._bore_ip     = ""
+        self._error       = ""   # why the tunnel never came up, for the host screen
 
     def start(self):
         """Non-blocking. Tunnel info appears in `remote_port` within a few seconds."""
@@ -251,6 +267,8 @@ class BoreTunnel:
     def _run(self):
         bore = _bore_path()
         if not bore:
+            with self._lock:
+                self._error = "no usable bore binary (download failed?)"
             return
         try:
             # Resolve bore.pub IP once
@@ -269,13 +287,25 @@ class BoreTunnel:
                     with self._lock:
                         self._remote_port = int(m.group(1))
                     break
-        except Exception:
-            pass
+            else:
+                # stdout closed without ever announcing a port
+                with self._lock:
+                    if not self._remote_port and not self._error:
+                        self._error = "bore exited before opening a tunnel"
+        except Exception as e:
+            with self._lock:
+                self._error = f"{type(e).__name__}: {e}"
 
     @property
     def remote_port(self) -> int:
         with self._lock:
             return self._remote_port
+
+    @property
+    def error(self) -> str:
+        """Non-empty when the tunnel failed to come up."""
+        with self._lock:
+            return self._error
 
     def internet_code(self) -> str:
         """10-char code the joiner enters. Empty string if tunnel not ready."""
@@ -492,6 +522,8 @@ class LobbyClient:
         self.pending_msgs         = []     # non-relay server messages (FRIEND_INFO etc.)
         self.leaderboard          = []     # filled when LEADERBOARD response arrives
         self.update_notify        = []     # [(note_str)] server update announcements
+        self._conn_done           = False  # connect_bg finished (success or not)
+        self._conn_err            = ""     # why connect_bg failed
 
     # ── Connection ────────────────────────────────────────────────────────────
 
@@ -502,6 +534,35 @@ class LobbyClient:
         s.setblocking(False)
         self._sock     = s
         self.connected = True
+
+    def connect_bg(self, host=DEFAULT_SERVER_IP, port=SERVER_PORT, timeout=8):
+        """
+        Same as connect() but on a worker thread, so the caller can keep
+        drawing frames. A blocking connect to an unreachable server freezes
+        the window for the whole timeout. Poll connect_done / connect_error.
+        """
+        self._conn_done = False
+        self._conn_err  = ""
+
+        def _work():
+            try:
+                self.connect(host, port, timeout)
+            except Exception as e:
+                self._conn_err = f"{type(e).__name__}: {e}"
+            finally:
+                self._conn_done = True
+
+        threading.Thread(target=_work, daemon=True).start()
+
+    @property
+    def connect_done(self) -> bool:
+        """True once connect_bg has finished, whether or not it succeeded."""
+        return self._conn_done
+
+    @property
+    def connect_error(self) -> str:
+        """Non-empty if connect_bg failed."""
+        return self._conn_err
 
     def register(self, user_code: str, username: str):
         self._send({"type": "HELLO", "code": user_code, "username": username})
