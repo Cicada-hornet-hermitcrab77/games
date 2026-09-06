@@ -1850,10 +1850,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     if _new_stages:
                         stage_idx    = random.choice(_new_stages)
                         stage_data   = STAGES[stage_idx]
-                        platforms    = [Platform(*_p) for _p in stage_data["platforms"]]
+                        # Conveyors are load-bearing: on stages like Conveyor
+                        # World "platforms" is empty and the belts are the only
+                        # footing, so dropping them leaves a void with no floor.
+                        platforms    = ([Platform(*_p) for _p in stage_data["platforms"]]
+                                        + [ConveyorBelt(*_c) for _c in stage_data.get("conveyors", [])]
+                                        + [SlantedConveyorBelt(*_c) for _c in stage_data.get("slanted_conveyors", [])])
                         if stage_data.get("book_stage"):
                             for _pl in platforms:
-                                _pl.book_style = True
+                                if isinstance(_pl, Platform):
+                                    _pl.book_style = True
                         springs      = [Spring(*_s)   for _s in stage_data["springs"]]
                         is_jungle     = stage_data["name"] == "Jungle"
                         is_computer   = stage_data["name"] == "Computer"
@@ -6143,17 +6149,28 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                    block=pygame.K_o)
 
     p1 = Fighter(200, CHARACTERS[p1_char_idx],  1, P1_CTRL)
-    p2 = Fighter(700, CHARACTERS[p2_char_idx], -1, {})
+    # p2 is driven by the opponent, but it still needs real controls: update()
+    # looks up ctrl['left'] etc. against the key-state object it is handed, and
+    # _proxy() below builds that proxy keyed by P2_CTRL. An empty dict here
+    # raised KeyError('left') on the first frame of every online match.
+    p2 = Fighter(700, CHARACTERS[p2_char_idx], -1, P2_CTRL)
 
     if constants.STAGE_VOID:
         p1.x = 380.0; p1.y = float(GROUND_Y - 70); p1.on_ground = True
         p2.x = 520.0; p2.y = float(GROUND_Y - 70); p2.on_ground = True
 
     stage_data   = STAGES[stage_idx % len(STAGES)]
-    platforms    = [Platform(*p) for p in stage_data["platforms"]]
+    # Same construction as the local fight. Conveyors are load-bearing: on
+    # Conveyor World "platforms" is empty and the belts are the only footing,
+    # so building without them left a void with no floor and both players fell
+    # to their death on the first frame — an instant 0-0 DRAW.
+    platforms    = ([Platform(*p) for p in stage_data["platforms"]]
+                    + [ConveyorBelt(*c) for c in stage_data.get("conveyors", [])]
+                    + [SlantedConveyorBelt(*c) for c in stage_data.get("slanted_conveyors", [])])
     if stage_data.get("book_stage"):
         for _pl in platforms:
-            _pl.book_style = True
+            if isinstance(_pl, Platform):
+                _pl.book_style = True
     springs      = [Spring(*s)   for s in stage_data["springs"]]
     balls        = []; orbs = []; bounce_balls = []; hooks = []; pumpkins = []; whips = []
     charged_orbs = []; bubble_shots = []; poison_orbs = []; scrolls = []; venoms = []
@@ -6974,6 +6991,8 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
             # Send authoritative state to client
             net.send({
                 "type":   "STATE",
+                "timer":  timer,      # only the host counts down; without this
+                                      # the client's clock sits frozen at 90
                 "p1":     _f2s(p1),
                 "p2":     _f2s(p2),
                 "balls":        [{"x": b.x,  "y": b.y,  "vx": b.vx} for b in balls],
@@ -7008,6 +7027,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
             for m in msgs:
                 if m.get("type") == "STATE":
                     _s2f(p1, m["p1"]); _s2f(p2, m["p2"])
+                    timer  = m.get("timer", timer)
                     winner = m.get("winner")
                     if winner:
                         game_over = True
@@ -7472,7 +7492,9 @@ def main():
         # --- Online path ---
         if mode == 'online':
             userdata = _net.load_userdata()
-            result   = online_menu(userdata)
+            # Pass the real unlock set: online used to show the whole roster
+            # as playable, so locked characters were free in online matches.
+            result   = online_menu(userdata, unlocked)
             if result is None:
                 continue
             role, info = result

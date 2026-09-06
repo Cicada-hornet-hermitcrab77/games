@@ -2423,14 +2423,44 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
 # Online play helpers
 # ---------------------------------------------------------------------------
 
-def _draw_waiting(msg, sub=""):
+# How long to wait for the opponent's character pick. The roster is 400+
+# entries, so a short fuse here kills matches while someone is still
+# scrolling — and both sides used to drop out with nothing explaining why.
+PICK_TIMEOUT_MS = 120_000
+
+
+def _draw_waiting(msg, sub="", deadline=None):
+    """`deadline` is a pygame ticks value; when given, a countdown is shown."""
     screen.fill(DARK)
     t = font_medium.render(msg, True, WHITE)
     screen.blit(t, (WIDTH//2 - t.get_width()//2, HEIGHT//2 - 28))
     if sub:
         s = font_small.render(sub, True, GRAY)
         screen.blit(s, (WIDTH//2 - s.get_width()//2, HEIGHT//2 + 20))
+    if deadline is not None:
+        left = max(0, (deadline - pygame.time.get_ticks()) // 1000)
+        col  = (220, 90, 90) if left <= 15 else GRAY
+        c    = font_small.render(f"{left}s", True, col)
+        screen.blit(c, (WIDTH//2 - c.get_width()//2, HEIGHT//2 + 48))
     pygame.display.flip()
+
+
+def _pick_timed_out(opp_name):
+    """Tell the player why the match ended instead of just dumping them out."""
+    end = pygame.time.get_ticks() + 3000
+    while pygame.time.get_ticks() < end:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                return
+        screen.fill(DARK)
+        t = font_medium.render(f"{opp_name} didn't pick in time", True, (220, 90, 90))
+        screen.blit(t, (WIDTH//2 - t.get_width()//2, HEIGHT//2 - 28))
+        s = font_small.render("Match cancelled — press any key", True, GRAY)
+        screen.blit(s, (WIDTH//2 - s.get_width()//2, HEIGHT//2 + 20))
+        pygame.display.flip()
 
 
 def _text_input_screen(prompt, default="", max_len=20,
@@ -2815,7 +2845,7 @@ def friends_screen(userdata):
         pygame.display.flip()
 
 
-def matchmaking_screen(userdata):
+def matchmaking_screen(userdata, unlocked=None):
     """
     Connect to fight_server, join the matchmaking queue, wait for a random
     opponent, pick a character, exchange picks, and return:
@@ -2892,17 +2922,17 @@ def matchmaking_screen(userdata):
         pygame.display.flip()
 
     # Step 5 — Character select (both players do this simultaneously)
-    my_idx, _ = character_select(vs_ai=True)
+    my_idx, _ = character_select(vs_ai=True, unlocked=unlocked)
     if my_idx is None:
         lobby.close(); return None
 
     # Step 6 — Exchange character picks via relay
     lobby.relay({"type": "PICK", "char_idx": my_idx})
     opp_idx  = None
-    deadline = pygame.time.get_ticks() + 20000
+    deadline = pygame.time.get_ticks() + PICK_TIMEOUT_MS
     while opp_idx is None and pygame.time.get_ticks() < deadline:
         clock.tick(FPS)
-        _draw_waiting(f"Waiting for {opp_name} to pick…", "ESC to cancel")
+        _draw_waiting(f"Waiting for {opp_name} to pick…", "ESC to cancel", deadline)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 lobby.close(); pygame.quit(); sys.exit()
@@ -2916,6 +2946,8 @@ def matchmaking_screen(userdata):
             break
 
     if opp_idx is None:
+        if lobby.connected:
+            _pick_timed_out(opp_name)
         lobby.close(); return None
 
     if is_host:
@@ -2926,7 +2958,7 @@ def matchmaking_screen(userdata):
     return lobby, p1_idx, p2_idx, stage_idx, is_host, opp_name
 
 
-def host_lobby(userdata):
+def host_lobby(userdata, unlocked=None):
     """
     Start server, show friend codes, wait for connection, do character
     select + stage select, exchange PICK, return (net, p1_char, p2_char, stage).
@@ -3013,7 +3045,7 @@ def host_lobby(userdata):
                 break
 
     # Character select (host only picks for themselves)
-    p1_idx, _ = character_select(vs_ai=True)
+    p1_idx, _ = character_select(vs_ai=True, unlocked=unlocked)
     if p1_idx is None:
         net.close(); return None
 
@@ -3022,10 +3054,10 @@ def host_lobby(userdata):
     # Send pick and wait for client's pick
     net.send({"type": "PICK", "char_idx": p1_idx, "stage_idx": s_idx})
     p2_idx  = None
-    deadline = pygame.time.get_ticks() + 20000
+    deadline = pygame.time.get_ticks() + PICK_TIMEOUT_MS
     while p2_idx is None and pygame.time.get_ticks() < deadline:
         clock.tick(FPS)
-        _draw_waiting(f"Waiting for {net.opp_name} to pick…", "ESC to cancel")
+        _draw_waiting(f"Waiting for {net.opp_name} to pick…", "ESC to cancel", deadline)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 net.close(); pygame.quit(); sys.exit()
@@ -3037,6 +3069,7 @@ def host_lobby(userdata):
                 p2_idx = m["char_idx"]
 
     if p2_idx is None:
+        _pick_timed_out(net.opp_name)
         net.close(); return None
 
     return net, p1_idx, p2_idx, s_idx
@@ -3085,7 +3118,7 @@ def _lan_scan_screen():
         pygame.display.flip()
 
 
-def join_lobby(userdata):
+def join_lobby(userdata, unlocked=None):
     """
     Ask for game code (or LAN scan), connect, exchange PICK.
     Returns (net, my_char, host_char, stage) or None on cancel/error.
@@ -3139,7 +3172,7 @@ def join_lobby(userdata):
                 break
 
     # Character select (client only picks for themselves)
-    my_idx, _ = character_select(vs_ai=True)
+    my_idx, _ = character_select(vs_ai=True, unlocked=unlocked)
     if my_idx is None:
         net.close(); return None
 
@@ -3147,10 +3180,10 @@ def join_lobby(userdata):
     net.send({"type": "PICK", "char_idx": my_idx})
     p1_idx  = None
     s_idx   = 0
-    deadline = pygame.time.get_ticks() + 20000
+    deadline = pygame.time.get_ticks() + PICK_TIMEOUT_MS
     while p1_idx is None and pygame.time.get_ticks() < deadline:
         clock.tick(FPS)
-        _draw_waiting(f"Waiting for {net.opp_name} to pick…", "ESC to cancel")
+        _draw_waiting(f"Waiting for {net.opp_name} to pick…", "ESC to cancel", deadline)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 net.close(); pygame.quit(); sys.exit()
@@ -3163,6 +3196,7 @@ def join_lobby(userdata):
                 s_idx  = m.get("stage_idx", 0)
 
     if p1_idx is None:
+        _pick_timed_out(net.opp_name)
         net.close(); return None
 
     # (net, my_char=p2_char, host_char=p1_char, stage)
@@ -3268,7 +3302,7 @@ def secret_menu(unlocked, stats):
         pygame.display.flip()
 
 
-def online_menu(userdata):
+def online_menu(userdata, unlocked=None):
     """
     Top-level online menu.
     Returns ('quickmatch', (lobby, p1, p2, stage, is_host, opp_name))
@@ -3313,19 +3347,19 @@ def online_menu(userdata):
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     if sel == 0:   # QUICK MATCH
                         if _lobby_bg: _lobby_bg.close()
-                        result = matchmaking_screen(userdata)
+                        result = matchmaking_screen(userdata, unlocked)
                         if result:
                             return 'quickmatch', result
                         _lobby_bg = _make_lobby(userdata, timeout=3)
                     elif sel == 1:  # HOST GAME
                         if _lobby_bg: _lobby_bg.close()
-                        result = host_lobby(userdata)
+                        result = host_lobby(userdata, unlocked)
                         if result:
                             return 'host', result
                         _lobby_bg = _make_lobby(userdata, timeout=3)
                     elif sel == 2:  # JOIN GAME
                         if _lobby_bg: _lobby_bg.close()
-                        result = join_lobby(userdata)
+                        result = join_lobby(userdata, unlocked)
                         if result:
                             return 'join', result
                         _lobby_bg = _make_lobby(userdata, timeout=3)
