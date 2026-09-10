@@ -26,6 +26,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             Muskshroom, Cutlass, WormMine, Car, RollingStone)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, fuser_mode, tombstones_minefield
+from fight_chat import ChatBox as _ChatBox, EasterEggs as _EasterEggs
 from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
 
 # ---------------------------------------------------------------------------
@@ -1173,6 +1174,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     winner             = None
     timer              = 90 * FPS
     _remote_actions    = {}      # latest opponent input frame (networked fights)
+    # Typed-in-game easter eggs and match chat are both online-only.
+    _eggs              = _EasterEggs() if net is not None else None
+    _chat              = _ChatBox(net) if net is not None else None
     p1_ever_below_max  = False   # for perfect-win tracking
     powerups     = []
     clones       = []   # list of {'fighter': AIFighter, 'timer': int, 'target': Fighter}
@@ -1380,6 +1384,21 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             if _touch2: _touch2.handle_event(event)
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
+            # Match chat swallows keystrokes while it is open; otherwise the
+            # keys feed the typed easter-egg buffer.
+            if _chat is not None and _chat.handle_event(event):
+                continue
+            if _eggs is not None:
+                _kw = _eggs.handle_event(event)
+                if _kw and not game_over:
+                    if is_host:
+                        _eggs.fire(_kw, p1, p2)      # host types: hits p1
+                    else:
+                        # client types: the host owns the simulation
+                        try:
+                            net.send({"type": "EGG", "kw": _kw})
+                        except Exception:
+                            pass
             if event.type == pygame.KEYDOWN:
                 if game_over:
                     _p1w  = vs_ai and winner is p1
@@ -1536,6 +1555,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 sp.trigger(p2)
                 for cd in clones:
                     sp.trigger(cd['fighter'])
+
+            # Typed easter-egg effects — host simulates, client just renders
+            # what its own copy spawned (same rule as the rest of the sim).
+            if _eggs is not None and is_host:
+                _eggs.update(p1, p2)
 
             # Update hazard zones and apply damage
             for hz in hazards:
@@ -1844,6 +1868,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     _t = _m.get("type")
                     if _t == "INPUT":
                         _remote_actions = _m
+                    elif _t == "EGG" and is_host and not game_over and _eggs:
+                        # client typed a keyword; apply it against their fighter
+                        _eggs.fire(_m.get("kw", ""), p2, p1)
                     elif _t == "STATE" and not is_host:
                         _s2f(p1, _m["p1"]); _s2f(p2, _m["p2"])
                         timer = _m.get("timer", timer)
@@ -3807,6 +3834,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     _jf.angle = 0.0   # /\ landing pose (drawn in costume)
                 else:
                     _jf.angle = 0.0
+        if _eggs is not None:
+            _eggs.draw_entities(screen)
+
         p1_hit = p1.draw(screen)
         p2_hit = p2.draw(screen)
         # WakeUp — hat pops up on kick, revealing a teddy bear underneath
@@ -4051,6 +4081,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
         if not game_over:
             if _touch:  _touch.draw(screen)
             if _touch2: _touch2.draw(screen)
+
+        if _chat is not None:
+            _chat.draw_overlay(screen)
 
         pygame.display.flip()
 
