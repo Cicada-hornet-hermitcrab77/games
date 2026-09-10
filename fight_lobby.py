@@ -21,10 +21,15 @@ import os
 import random
 import threading
 
-# Number of entries in STAGES (fight_data.py). Kept as a plain literal because
+# How many stages online play may roll. This counts the STAGES entries in
+# fight_data.py that are NOT special_mode_only — the seasonal event maps
+# (Giants Among Us, The Casino, Floor is Lava, Chaos Arena, Booked, Rollin'
+# Stones) are excluded from normal matches. Kept as a plain literal because
 # importing fight_data would drag pygame — and a display — onto the server.
-# Bump this when stages are added, or online play never rolls the new ones.
-STAGE_COUNT = 32
+# Bump this when ordinary stages are added, or online never rolls the new ones.
+# The clients map this through fight_game.ONLINE_STAGES, so a wrong value here
+# still lands on a playable non-seasonal stage.
+STAGE_COUNT = 26
 
 _ADMIN_KEY = os.environ.get("FIGHT_ADMIN_KEY", "kevin_dev")
 

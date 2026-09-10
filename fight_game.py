@@ -6223,6 +6223,20 @@ def _s2f(f, s):
 # Online fight loop
 # ---------------------------------------------------------------------------
 
+# Stages online play is allowed to roll. The special_mode_only stages belong
+# to seasonal events (Giants Among Us, The Casino, Floor is Lava, Chaos Arena,
+# Booked, Rollin' Stones) and should never turn up in a normal match. Both
+# machines compute this from the same table, so they always agree on the map.
+ONLINE_STAGES = [i for i, _s in enumerate(STAGES) if not _s.get("special_mode_only")]
+
+
+def _online_stage(stage_idx: int) -> int:
+    """Map whatever the server rolled onto a non-seasonal stage."""
+    if not ONLINE_STAGES:
+        return stage_idx
+    return ONLINE_STAGES[stage_idx % len(ONLINE_STAGES)]
+
+
 def _net_wait_screen(msg, sub, deadline):
     """Small waiting screen with a countdown, used between online rounds."""
     screen.fill(DARK)
@@ -6322,6 +6336,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     hazards, portals, dinos, stampedes and more. Driving the real loop keeps
     the two from drifting apart again as characters and stages are added.
     """
+    stage_idx = _online_stage(stage_idx)
     try:
         while True:
             res = run_fight(p1_char_idx, p2_char_idx, vs_ai=False,
