@@ -1416,6 +1416,12 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                             _ragequit_buf = ""
                         if len(_ragequit_buf) > len(_RAGEQUIT_SEQ) + 5:
                             _ragequit_buf = _ragequit_buf[-len(_RAGEQUIT_SEQ):]
+                    # _p1w is gated on vs_ai, so it is always False in a
+                    # networked fight. Publish the real result separately for
+                    # _record_online_result (W/L and the global leaderboard).
+                    if net is not None:
+                        _LAST_NET_WIN[0] = ("p1" if winner is p1 else
+                                            "p2" if winner is p2 else "draw")
                     _info = (_p1w, p1.char["name"], _stage_name,
                              not p1_ever_below_max, p1.hp <= 10,
                              p2.char["name"], ai_difficulty, p1.void_falls,
@@ -6237,6 +6243,32 @@ def _online_stage(stage_idx: int) -> int:
     return ONLINE_STAGES[stage_idx % len(ONLINE_STAGES)]
 
 
+_LAST_NET_WIN = [None]   # 'p1'/'p2'/'draw' from the last networked round
+
+def _record_online_result(res, net, is_host, userdata):
+    """
+    Record the outcome of one online round: the player's local W/L (shown as
+    "Your record" on the online menu) and, for matchmade fights, the global
+    leaderboard on the relay server. Draws and disconnects count as neither.
+    """
+    outcome, _LAST_NET_WIN[0] = _LAST_NET_WIN[0], None
+    if outcome not in ("p1", "p2"):
+        return
+    i_won = (outcome == "p1") == is_host
+    if userdata is not None:
+        key = "online_wins" if i_won else "online_losses"
+        userdata[key] = userdata.get(key, 0) + 1
+        try:
+            _net.save_userdata(userdata)
+        except Exception:
+            pass
+    if isinstance(net, _RelayNet):
+        try:
+            net._lobby.report_result(i_won)
+        except Exception:
+            pass
+
+
 def _net_wait_screen(msg, sub, deadline):
     """Small waiting screen with a countdown, used between online rounds."""
     screen.fill(DARK)
@@ -6343,6 +6375,7 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                             stage_idx=stage_idx, net=net, is_host=is_host,
                             opp_label=opp_name)
             action = res[0] if isinstance(res, tuple) else res
+            _record_online_result(res, net, is_host, userdata)
 
             if action == 'rematch':
                 # Both sides have to want it, so ask and wait for the answer.

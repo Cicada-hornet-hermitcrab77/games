@@ -2899,9 +2899,10 @@ def matchmaking_screen(userdata, unlocked=None):
     opp_name  = info.get("opp_name", "Opponent")
     opp_code  = info.get("opp_code", "")
 
-    # Optionally save opponent as friend (no nickname prompt — just code)
-    userdata.setdefault("friends", {}).setdefault(opp_code, {"name": opp_name})
-    _net.save_userdata(userdata)
+    # Deliberately NOT adding the opponent as a friend. Fighting a stranger in
+    # quick match used to silently put them in your friends list; use the
+    # friend-request flow (FRIENDS -> A) if you actually want to add them.
+    userdata.setdefault("friends", {})
 
     # Step 4 — Brief "Found!" screen
     found_end = pygame.time.get_ticks() + 1800
@@ -3037,10 +3038,8 @@ def host_lobby(userdata, unlocked=None):
         for m in net.recv_all():
             if m.get("type") == "HELLO":
                 net.opp_name = m.get("username", "Opponent")
-                # Save as friend (use bore internet code if ready, else local)
-                _friend_code = bore_code if bore_code else code_loc
-                userdata.setdefault("friends", {})[_friend_code] = {"name": net.opp_name}
-                _net.save_userdata(userdata)
+                # Not auto-added as a friend — playing someone is not consent
+                # to keep them. Add deliberately from the FRIENDS screen.
                 deadline = 0
                 break
 
@@ -3166,8 +3165,7 @@ def join_lobby(userdata, unlocked=None):
         for m in net.recv_all():
             if m.get("type") == "HELLO":
                 net.opp_name = m.get("username", "Host")
-                userdata.setdefault("friends", {})[code] = {"name": net.opp_name}
-                _net.save_userdata(userdata)
+                # Not auto-added as a friend — see the note in host_lobby().
                 deadline = 0
                 break
 
