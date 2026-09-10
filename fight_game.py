@@ -1386,8 +1386,12 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 pygame.quit(); sys.exit()
             # Match chat swallows keystrokes while it is open; otherwise the
             # keys feed the typed easter-egg buffer.
-            if _chat is not None and _chat.handle_event(event):
-                continue
+            if _chat is not None:
+                _allow_open = not (_eggs is not None
+                                   and event.type == pygame.KEYDOWN
+                                   and _eggs.would_extend("t"))
+                if _chat.handle_event(event, _allow_open):
+                    continue
             if _eggs is not None:
                 _kw = _eggs.handle_event(event)
                 if _kw and not game_over:

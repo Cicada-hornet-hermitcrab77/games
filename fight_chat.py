@@ -54,8 +54,14 @@ class ChatBox:
         self.active = False
         self.text   = ""
 
-    def handle_event(self, event) -> bool:
-        """Returns True if chat consumed the event."""
+    def handle_event(self, event, allow_open=True) -> bool:
+        """
+        Returns True if chat consumed the event.
+
+        `allow_open` is False when the T being pressed is mid-way through an
+        easter-egg keyword ("ho-t-potato", "s-t-rike"), so opening chat does
+        not swallow the rest of the word.
+        """
         if event.type != pygame.KEYDOWN:
             return False
         if self.active:
@@ -70,7 +76,7 @@ class ChatBox:
             elif event.unicode.isprintable():
                 self.text += event.unicode
             return True
-        if event.key == pygame.K_t:
+        if event.key == pygame.K_t and allow_open:
             self.active = True
             return True
         return False
@@ -113,6 +119,20 @@ class EasterEggs:
         self.baseball_cd     = 0
 
     # ── Typing ────────────────────────────────────────────────────────────────
+
+    def would_extend(self, ch) -> bool:
+        """
+        True if `ch` continues a keyword already part-typed. Used so the T in
+        "hotpotato" / "strike" / "wtf" / "kevin=great" types the word instead
+        of opening the chat line. A bare "t" extends nothing (no keyword
+        starts with one), so pressing T on its own still opens chat.
+        """
+        s = (self._buf + ch.lower())
+        for n in range(min(len(s), _MAX_BUF), 1, -1):   # n>1: ignore a lone char
+            tail = s[-n:]
+            if any(k.startswith(tail) for k in KEYWORDS):
+                return True
+        return False
 
     def handle_event(self, event):
         """
