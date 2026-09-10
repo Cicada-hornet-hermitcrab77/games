@@ -2791,7 +2791,11 @@ def friends_screen(userdata):
                         sel = (sel + 1) % len(keys_list)
                     if event.key == pygame.K_d:
                         del friends[keys_list[sel]]
-                        sel = max(0, sel - 1)
+                        # keys_list was built at the top of this frame and the
+                        # draw below still uses it — refresh it now or that
+                        # draw looks up the code we just removed and crashes.
+                        keys_list = list(friends.keys())
+                        sel = min(max(0, sel - 1), max(0, len(keys_list) - 1))
                         msg = "Friend removed."; msg_t = 150; msg_col = RED
                         _net.save_userdata(userdata)
                     if event.key == pygame.K_c:
@@ -2828,7 +2832,8 @@ def friends_screen(userdata):
             screen.blit(em, (WIDTH//2 - em.get_width()//2, HEIGHT//2 - 18))
         else:
             for i, code in enumerate(keys_list):
-                name = friends[code].get("name", "?")
+                # .get(): never let a stale row take the whole screen down
+                name = (friends.get(code) or {}).get("name", "?")
                 col  = YELLOW if i == sel else WHITE
                 row  = font_small.render(
                     f"{'► ' if i == sel else '  '}{name}   [{code}]", True, col)
