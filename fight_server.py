@@ -73,7 +73,14 @@ def _client_thread(sock, addr):
             if not chunk:
                 return
             reader.feed(chunk)
-            for m in reader.messages():
+            # reader.messages() drains the buffer, so anything the client sent
+            # in the same TCP segment as HELLO is already parsed here. Breaking
+            # out on HELLO used to throw those away — a client that fired HELLO
+            # and LEADERBOARD_REQUEST back to back lost the request whenever
+            # the two arrived together, which is why the leaderboard came up
+            # empty at random. Handle the remainder instead of dropping it.
+            batch = reader.messages()
+            for i, m in enumerate(batch):
                 if m.get("type") == "ADMIN_NOTIFY":
                     if lobby.is_admin_key(m.get("key")):
                         note = (m.get("note") or "").strip()
@@ -88,6 +95,10 @@ def _client_thread(sock, addr):
                         return
                     code = c
                     print(f"[+] {name} ({code})  {addr[0]}", flush=True)
+                    for later in batch[i + 1:]:
+                        line = lobby.handle(code, later)
+                        if line:
+                            print(line, flush=True)
                     break
 
         # Main loop (non-blocking)

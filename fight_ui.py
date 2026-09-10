@@ -3371,7 +3371,7 @@ def online_menu(userdata, unlocked=None):
                         friends_screen(userdata)
                         _lobby_bg = _make_lobby(userdata, timeout=3)
                     elif sel == 4:  # LEADERBOARD
-                        leaderboard_screen(userdata)
+                        leaderboard_screen(userdata, _lobby_bg)
                     elif sel == 5:  # SET USERNAME
                         set_username_screen(userdata)
                     elif sel == 6:  # SERVER — point the game at your own host
@@ -3427,36 +3427,47 @@ def online_menu(userdata, unlocked=None):
 # Leaderboard screen
 # ---------------------------------------------------------------------------
 
-def leaderboard_screen(userdata):
-    """Fetch and display the global online win leaderboard from the server."""
+def leaderboard_screen(userdata, lobby=None):
+    """
+    Fetch and display the global online win leaderboard.
+
+    Prefers the caller's existing lobby connection. Opening a second one and
+    registering with the same user code replaced the player's registration on
+    the server, and closing it again dropped them — which is why viewing the
+    leaderboard could knock you offline.
+    """
     import fight_network as _fn
-    lobby = None
     entries = []
     status  = "Connecting..."
+    borrowed = lobby is not None and getattr(lobby, "connected", False)
+    own      = None
 
     try:
-        lobby = _fn.LobbyClient()
-        lobby.connect(_server_host(userdata), timeout=5)
-        lobby.register(userdata.get("user_code", "????????"),
-                       userdata.get("username", "Player"))
+        if not borrowed:
+            own = lobby = _fn.LobbyClient()
+            lobby.connect(_server_host(userdata), timeout=5)
+            lobby.register(userdata.get("user_code", "????????"),
+                           userdata.get("username", "Player"))
+        lobby.leaderboard = []          # drop anything stale from an earlier view
         lobby.request_leaderboard()
-        # Wait up to 3s for the response
+        # Wait for the response. 3 s was tight enough that a slow round trip
+        # showed "no data" on a server that had plenty.
         import time as _time
-        _deadline = _time.time() + 3.0
+        _deadline = _time.time() + 8.0
         while _time.time() < _deadline:
             lobby.poll()
-            if lobby.leaderboard is not None and lobby.leaderboard != []:
+            if lobby.leaderboard:
                 entries = lobby.leaderboard
                 status  = f"Top {len(entries)} players"
                 break
+            _time.sleep(0.02)           # don't spin the CPU while waiting
         else:
-            if not entries:
-                status = "No data yet — play some online matches!"
+            status = "No data yet — play some online matches!"
     except Exception as e:
         status = f"Server offline ({e})"
     finally:
-        if lobby:
-            try: lobby.close()
+        if own is not None:             # only close a connection we opened
+            try: own.close()
             except Exception: pass
 
     my_code = userdata.get("user_code", "")
