@@ -1423,7 +1423,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     if event.key == pygame.K_r:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('rematch', _info)
                     if event.key == pygame.K_c:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('select',  _info)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False
+                        # Online needs to tell "back to fighter select" apart
+                        # from "quit"; offline both mean the same thing.
+                        return ('charselect' if net is not None else 'select', _info)
                     if event.key == pygame.K_ESCAPE:
                         constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('select', _info)
                 else:
@@ -6220,6 +6223,89 @@ def _s2f(f, s):
 # Online fight loop
 # ---------------------------------------------------------------------------
 
+def _net_wait_screen(msg, sub, deadline):
+    """Small waiting screen with a countdown, used between online rounds."""
+    screen.fill(DARK)
+    t = font_medium.render(msg, True, WHITE)
+    screen.blit(t, (WIDTH//2 - t.get_width()//2, HEIGHT//2 - 30))
+    s = font_small.render(sub, True, GRAY)
+    screen.blit(s, (WIDTH//2 - s.get_width()//2, HEIGHT//2 + 16))
+    left = max(0, (deadline - pygame.time.get_ticks()) // 1000)
+    c = font_small.render(f"{left}s", True, (220, 90, 90) if left <= 5 else GRAY)
+    screen.blit(c, (WIDTH//2 - c.get_width()//2, HEIGHT//2 + 44))
+    pygame.display.flip()
+
+
+def _await_agreement(net, kind, opp_name, timeout_ms=30000):
+    """
+    Tell the opponent we want `kind` (REMATCH / CHARSEL) and wait for them to
+    say the same. Returns True when both agree, False on decline, timeout or
+    a dropped connection — the caller then goes back to the menu.
+    """
+    try:
+        net.send({"type": kind})
+    except Exception:
+        return False
+    label    = "rematch" if kind == "REMATCH" else "fighter select"
+    deadline = pygame.time.get_ticks() + timeout_ms
+    while pygame.time.get_ticks() < deadline:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                net.close(); pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                return False
+        try:
+            for m in net.recv_all():
+                if m.get("type") == kind:
+                    return True
+                if m.get("type") == "LEAVE":
+                    return False
+        except Exception:
+            return False
+        if not getattr(net, "connected", True):
+            return False
+        _net_wait_screen(f"Waiting for {opp_name} to accept {label}…",
+                         "ESC to cancel", deadline)
+    return False
+
+
+def _exchange_picks(net, is_host, opp_name, timeout_ms=120000):
+    """
+    Both players pick again and swap choices. Returns (p1_idx, p2_idx) with
+    p1 always the host's fighter, or None if the opponent never picked.
+    """
+    unlocked, _stats = load_save()
+    my_idx, _ = character_select(vs_ai=True, unlocked=unlocked)
+    if my_idx is None:
+        return None
+    try:
+        net.send({"type": "PICK", "char_idx": my_idx})
+    except Exception:
+        return None
+    opp_idx  = None
+    deadline = pygame.time.get_ticks() + timeout_ms
+    while opp_idx is None and pygame.time.get_ticks() < deadline:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                net.close(); pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                return None
+        try:
+            for m in net.recv_all():
+                if m.get("type") == "PICK":
+                    opp_idx = m["char_idx"]
+        except Exception:
+            return None
+        if not getattr(net, "connected", True):
+            return None
+        _net_wait_screen(f"Waiting for {opp_name} to pick…", "ESC to cancel", deadline)
+    if opp_idx is None:
+        return None
+    return (my_idx, opp_idx) if is_host else (opp_idx, my_idx)
+
+
 def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
                      stage_idx, my_name, opp_name, userdata=None):
     """
@@ -6237,9 +6323,28 @@ def run_online_fight(net, is_host, p1_char_idx, p2_char_idx,
     the two from drifting apart again as characters and stages are added.
     """
     try:
-        return run_fight(p1_char_idx, p2_char_idx, vs_ai=False,
-                         stage_idx=stage_idx, net=net, is_host=is_host,
-                         opp_label=opp_name)
+        while True:
+            res = run_fight(p1_char_idx, p2_char_idx, vs_ai=False,
+                            stage_idx=stage_idx, net=net, is_host=is_host,
+                            opp_label=opp_name)
+            action = res[0] if isinstance(res, tuple) else res
+
+            if action == 'rematch':
+                # Both sides have to want it, so ask and wait for the answer.
+                if not _await_agreement(net, "REMATCH", opp_name):
+                    return 'select'
+                continue
+
+            if action == 'charselect':
+                if not _await_agreement(net, "CHARSEL", opp_name):
+                    return 'select'
+                picks = _exchange_picks(net, is_host, opp_name)
+                if picks is None:
+                    return 'select'
+                p1_char_idx, p2_char_idx = picks
+                continue
+
+            return action
     finally:
         try:
             net.close()
