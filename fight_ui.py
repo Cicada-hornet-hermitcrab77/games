@@ -3879,6 +3879,17 @@ def fuser_mode(screen, clock, stats, unlocked):
     slot_a, slot_b = 0, 1   # indices into FUSER_ELEMENTS
     _msg, _msg_col, _msg_t = "", WHITE, 0
 
+    # The shop panel scrolls: more fused characters than fit down the screen
+    SHOP_TOP  = 100              # y of the first row of cards, unscrolled
+    SHOP_BOT  = HEIGHT - 12      # bottom of the visible shop area
+    shop_scroll = 0
+    _drag_from  = None           # (y, scroll) while dragging the panel by touch
+
+    def _shop_max_scroll():
+        rows = (len(FUSER_SHOP_CHARS) + CARDS_PER_ROW - 1) // CARDS_PER_ROW
+        content = rows * (CARD_H + CARD_GAP) - CARD_GAP
+        return max(0, content - (SHOP_BOT - SHOP_TOP))
+
     def _elements():
         return stats.setdefault("fuser_elements", {})
 
@@ -3898,8 +3909,29 @@ def fuser_mode(screen, clock, stats, unlocked):
                 pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 return
+            # Scrolling the shop panel: wheel, arrow keys, page keys
+            if event.type == pygame.MOUSEWHEEL:
+                shop_scroll = max(0, min(_shop_max_scroll(), shop_scroll - event.y * 40))
+            if event.type == pygame.KEYDOWN:
+                _step = {pygame.K_DOWN: 46, pygame.K_UP: -46,
+                         pygame.K_PAGEDOWN: (CARD_H + CARD_GAP) * 2,
+                         pygame.K_PAGEUP: -(CARD_H + CARD_GAP) * 2}.get(event.key)
+                if _step is not None:
+                    shop_scroll = max(0, min(_shop_max_scroll(), shop_scroll + _step))
+                elif event.key == pygame.K_HOME:
+                    shop_scroll = 0
+                elif event.key == pygame.K_END:
+                    shop_scroll = _shop_max_scroll()
+            # Touch/mouse drag anywhere over the shop panel scrolls it
+            if event.type in (pygame.MOUSEMOTION, pygame.FINGERMOTION) and _drag_from is not None:
+                _my2 = int(event.y * HEIGHT) if event.type == pygame.FINGERMOTION else event.pos[1]
+                shop_scroll = max(0, min(_shop_max_scroll(), _drag_from[1] + (_drag_from[0] - _my2)))
+            if event.type in (pygame.MOUSEBUTTONUP, pygame.FINGERUP):
+                _drag_from = None
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
                 mx, my = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
+                if mx >= RP_X and SHOP_TOP - 8 <= my <= SHOP_BOT and _shop_max_scroll() > 0:
+                    _drag_from = (my, shop_scroll)
 
                 if back_rect.collidepoint(mx, my):
                     return
@@ -3952,10 +3984,12 @@ def fuser_mode(screen, clock, stats, unlocked):
                     col_idx = i % CARDS_PER_ROW
                     row_idx = i // CARDS_PER_ROW
                     cx = RP_X + col_idx * (CARD_W + CARD_GAP)
-                    cy = 100 + row_idx * (CARD_H + CARD_GAP)
+                    cy = SHOP_TOP + row_idx * (CARD_H + CARD_GAP) - shop_scroll
                     name = shop_item["name"]
                     owned = name in unlocked
                     btn_rect = pygame.Rect(cx + 10, cy + CARD_H - 24, CARD_W - 20, 18)
+                    if not (SHOP_TOP - 8 <= btn_rect.centery <= SHOP_BOT):
+                        continue   # scrolled out of the panel — not clickable
                     if btn_rect.collidepoint(mx, my) and not owned and coins >= shop_item["cost"]:
                         stats["seasonal_coins"] = coins - shop_item["cost"]
                         plist = list(purchased)
@@ -4024,11 +4058,16 @@ def fuser_mode(screen, clock, stats, unlocked):
             _empty = font_small.render("No fused characters discovered yet!", True, GRAY)
             screen.blit(_empty, (RP_X, 110))
         else:
+            _max_scroll = _shop_max_scroll()
+            shop_scroll = max(0, min(_max_scroll, shop_scroll))
+            screen.set_clip(pygame.Rect(RP_X, SHOP_TOP - 6, WIDTH - RP_X, SHOP_BOT - SHOP_TOP + 6))
             for i, shop_item in enumerate(FUSER_SHOP_CHARS):
                 col_idx = i % CARDS_PER_ROW
                 row_idx = i // CARDS_PER_ROW
                 cx = RP_X + col_idx * (CARD_W + CARD_GAP)
-                cy = 100 + row_idx * (CARD_H + CARD_GAP)
+                cy = SHOP_TOP + row_idx * (CARD_H + CARD_GAP) - shop_scroll
+                if cy > SHOP_BOT or cy + CARD_H < SHOP_TOP - 6:
+                    continue
                 name = shop_item["name"]
                 ch = _char_map.get(name, {})
                 owned = name in unlocked
@@ -4056,6 +4095,18 @@ def fuser_mode(screen, clock, stats, unlocked):
                     pygame.draw.rect(screen, OK_COL if can_buy else (60, 60, 60), btn_rect, border_radius=5)
                     _lbl = font_tiny.render(f"${shop_item['cost']}", True, WHITE)
                 screen.blit(_lbl, (btn_rect.centerx - _lbl.get_width()//2, btn_rect.centery - _lbl.get_height()//2))
+            screen.set_clip(None)
+            # Scrollbar + hint, only while there is more shop below the fold
+            if _max_scroll > 0:
+                _track = pygame.Rect(WIDTH - 8, SHOP_TOP, 4, SHOP_BOT - SHOP_TOP)
+                pygame.draw.rect(screen, (45, 42, 56), _track, border_radius=2)
+                _vis  = SHOP_BOT - SHOP_TOP
+                _knob_h = max(24, int(_vis * _vis / float(_vis + _max_scroll)))
+                _knob_y = SHOP_TOP + int((_vis - _knob_h) * (shop_scroll / float(_max_scroll)))
+                pygame.draw.rect(screen, (150, 100, 200), (WIDTH - 8, _knob_y, 4, _knob_h), border_radius=2)
+                if shop_scroll < _max_scroll:
+                    _more = font_tiny.render("scroll for more ▼", True, (170, 150, 200))
+                    screen.blit(_more, (WIDTH - 12 - _more.get_width(), SHOP_BOT - 12))
 
         pygame.draw.rect(screen, (60, 40, 80), back_rect, border_radius=8)
         pygame.draw.rect(screen, (150, 100, 200), back_rect, 2, border_radius=8)
