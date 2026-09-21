@@ -1584,6 +1584,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             for hz in hazards:
                 hz.update()
                 for fi, fighter in enumerate([p1, p2]):
+                    if hz.htype == "lava" and fighter.char.get("lava_immune"):
+                        continue   # fire-natured fighters bathe in it
                     if not fighter.char.get("immune") and hz.contains(fighter):
                         cd_attr = 'p1_cd' if fi == 0 else 'p2_cd'
                         if getattr(hz, cd_attr) == 0:
@@ -1661,18 +1663,21 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     p2.fire_frames = max(p2.fire_frames, 90)
                     _lava_burn_p2_cd = 45
 
-            # Volcano Core: the molten floor keeps rising — climb or burn
+            # Volcano Core: the molten floor keeps rising — climb or burn.
+            # Fire-natured fighters ("lava_immune") wade through it unharmed.
             if _is_volcore:
                 _volcore_lava_y -= (HEIGHT / 90.0) / FPS
                 if _volcore_p1_cd > 0: _volcore_p1_cd -= 1
                 if _volcore_p2_cd > 0: _volcore_p2_cd -= 1
-                if p1.y >= _volcore_lava_y and _volcore_p1_cd == 0 and not p1.bubble_shield:
+                if (p1.y >= _volcore_lava_y and _volcore_p1_cd == 0 and not p1.bubble_shield
+                        and not p1.char.get("lava_immune")):
                     p1.hp = max(0, p1.hp - 4)
                     p1.flash_timer = max(p1.flash_timer, 6)
                     if p1.fire_frames == 0: p1.fire_tick = 240
                     p1.fire_frames = max(p1.fire_frames, 90)
                     _volcore_p1_cd = 30
-                if p2.y >= _volcore_lava_y and _volcore_p2_cd == 0 and not p2.bubble_shield:
+                if (p2.y >= _volcore_lava_y and _volcore_p2_cd == 0 and not p2.bubble_shield
+                        and not p2.char.get("lava_immune")):
                     p2.hp = max(0, p2.hp - 4)
                     p2.flash_timer = max(p2.flash_timer, 6)
                     if p2.fire_frames == 0: p2.fire_tick = 240
@@ -4493,6 +4498,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             for hz in hazards:
                 hz.update()
                 for _hf in [p for p in players if p.hp > 0] + enemies:
+                    if hz.htype == "lava" and _hf.char.get("lava_immune"):
+                        continue   # fire-natured fighters bathe in it
                     if not _hf.char.get("immune") and hz.contains(_hf) and hz.cds.get(id(_hf), 0) <= 0:
                         hz.cds[id(_hf)] = HazardZone.TICK
                         _hdmg = 8 if hz.htype == "lava" else 6 if hz.htype == "electric" else 5
@@ -4522,7 +4529,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     _vcd = _volcore_cds.get(id(_vf), 0)
                     if _vcd > 0:
                         _volcore_cds[id(_vf)] = _vcd - 1
-                    elif _vf.y >= _volcore_lava_y and not _vf.bubble_shield:
+                    elif (_vf.y >= _volcore_lava_y and not _vf.bubble_shield
+                            and not _vf.char.get("lava_immune")):
                         _vf.hp = max(0, _vf.hp - 4)
                         _vf.flash_timer = max(_vf.flash_timer, 6)
                         if _vf.fire_frames == 0: _vf.fire_tick = 240

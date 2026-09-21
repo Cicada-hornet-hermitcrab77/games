@@ -2241,6 +2241,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if _detail_display.get("burning_mine_punch"):     badges.append(("BURNING MINES",    (255, 120,  30)))
             if _detail_display.get("torrti_ram"):             badges.append(("SHELL RAM",        (150, 120,  95)))
             if _detail_display.get("water_breathing"):        badges.append(("WATER BREATHING",  ( 60, 190, 220)))
+            if _detail_display.get("lava_immune"):            badges.append(("LAVA PROOF",       (255, 130,  30)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)
