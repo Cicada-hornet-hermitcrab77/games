@@ -9,7 +9,7 @@ import constants
 from constants import *
 from fight_data import CHARACTERS, POWERUPS, STAGES, STAGE_MATCHUPS, FUSER_ELEMENTS, FUSER_RECIPES, FUSER_SHOP_CHARS
 from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
-                           draw_win_screen, draw_active_powerups, _get_font)
+                           draw_win_screen, draw_active_powerups, draw_stickman, _get_font)
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt, SlantedConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull, FallingTeddy, HazardZone,
@@ -23,7 +23,8 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             SunBeam, LibertyDove, PumpkinSeed,
                             FruitProj, CoalProj, WildfireBall, SniderBolt,
                             SandSpit, SlimeBomb, TentaMissile, ExplodingTire,
-                            Muskshroom, Cutlass, WormMine, Car, RollingStone)
+                            Muskshroom, Cutlass, WormMine, RockBall, DandiSeed, EeebyLaser,
+                            BurningMine, Car, RollingStone)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, fuser_mode, tombstones_minefield
 from fight_chat import ChatBox as _ChatBox, EasterEggs as _EasterEggs
@@ -946,6 +947,7 @@ def _show_unlocks(new_names):
                 break
             elapsed = (pygame.time.get_ticks() - start) / duration
             alpha   = int(220 * (1.0 - max(0, elapsed - 0.7) / 0.3)) if elapsed > 0.7 else 220
+            alpha   = max(0, min(255, alpha))
             ov = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
             ov.fill((0, 0, 0, alpha))
             screen.blit(ov, (0, 0))
@@ -1220,6 +1222,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     muskshrooms    = []  # active Muskshroom objects (Rook & Moosh)
     cutlasses      = []  # active Cutlass objects (Rook & Moosh)
     worm_mines     = []  # active WormMine objects (Xix!?xy & Zaor@k)
+    rockballs      = []  # active RockBall objects (Happi & Racker)
+    dandi_seeds    = []  # active DandiSeed objects (Dandibell & Eeeby)
+    eeeby_lasers   = []  # active EeebyLaser beams (Dandibell & Eeeby)
+    burning_mines  = []  # active BurningMine objects (Blazex & Torrti)
     sun_beams     = []   # active SunBeam objects (Solara)
     nian_breaths  = []   # active NianBreath cones (Nian)
     liberty_doves      = []   # active LibertyDove companions (Stickman of Liberty)
@@ -2150,6 +2156,76 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         victim.flash_timer = 10
                         cl.alive = False
             cutlasses = [cl for cl in cutlasses if cl.alive]
+
+            # Happi & Racker: rapid-fire rockballs on kick
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_rockball:
+                    shooter.pending_rockball = False
+                    rockballs.append(RockBall(shooter.x + shooter.facing * 30, shooter.y - 55,
+                                              shooter.facing, shooter,
+                                              vy=random.uniform(-1.6, 0.6)))
+            for rb in rockballs:
+                rb.update()
+                if rb.alive:
+                    victim = p2 if rb.owner is p1 else p1
+                    if rb.collides(victim) and not victim.bubble_shield:
+                        victim.take_proj_dmg(RockBall.DMG)
+                        victim.flash_timer = 6
+                        rb.alive = False
+            rockballs = [rb for rb in rockballs if rb.alive]
+
+            # Dandibell & Eeeby: seeds rain over the opponent on punch
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_seed_rain:
+                    shooter.pending_seed_rain = False
+                    for _sxo in (-70, -35, 0, 35, 70):
+                        _sx0 = max(20.0, min(float(WIDTH - 20), victim.x + _sxo))
+                        dandi_seeds.append(DandiSeed(_sx0, shooter))
+            for ds in dandi_seeds:
+                ds.update()
+                if ds.alive:
+                    victim = p2 if ds.owner is p1 else p1
+                    if ds.collides(victim) and not victim.bubble_shield:
+                        victim.take_proj_dmg(DandiSeed.DMG)
+                        victim.flash_timer = 6
+                        ds.alive = False
+            dandi_seeds = [ds for ds in dandi_seeds if ds.alive]
+
+            # Dandibell & Eeeby: Eeeby's ultra laser on kick, aimed at the enemy
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_eeeby_laser:
+                    shooter.pending_eeeby_laser = False
+                    eeeby_lasers.append(EeebyLaser(shooter.x + shooter.facing * 16, shooter.y - 92,
+                                                   victim.x, victim.y - 60, shooter))
+            for el in eeeby_lasers:
+                el.update()
+                if el.alive:
+                    victim = p2 if el.owner is p1 else p1
+                    if el.collides(victim) and not victim.bubble_shield:
+                        victim.take_proj_dmg(EeebyLaser.DMG)
+                        victim.flash_timer = 12
+            eeeby_lasers = [el for el in eeeby_lasers if el.alive]
+
+            # Blazex & Torrti: burning mines scattered across the ground on punch
+            for shooter, victim in [(p1, p2), (p2, p1)]:
+                if shooter.pending_burning_mines:
+                    shooter.pending_burning_mines = False
+                    for _bvx in (1.6, 3.4, 5.2):
+                        burning_mines.append(BurningMine(shooter.x + shooter.facing * 26, shooter.y - 70,
+                                                         shooter, vx=shooter.facing * _bvx))
+            for bm in burning_mines:
+                bm.update()
+                if bm.alive:
+                    victim = p2 if bm.owner is p1 else p1
+                    if bm.collides(victim) and not victim.bubble_shield:
+                        victim.take_proj_dmg(BurningMine.DMG)
+                        victim.flash_timer = 12
+                        if not victim.char.get("immune"):
+                            if victim.fire_frames == 0:
+                                victim.fire_tick = 480
+                            victim.fire_frames = max(victim.fire_frames, BurningMine.FIRE_FRAMES)
+                        bm.alive = False
+            burning_mines = [bm for bm in burning_mines if bm.alive]
 
             # Xix!?xy & Zaor@k: barrage of worm mines on punch
             for shooter, victim in [(p1, p2), (p2, p1)]:
@@ -3623,6 +3699,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             ms.draw(screen)
         for cl in cutlasses:
             cl.draw(screen)
+        for rb in rockballs:
+            rb.draw(screen)
+        for ds in dandi_seeds:
+            ds.draw(screen)
+        for el in eeeby_lasers:
+            el.draw(screen)
+        for bm in burning_mines:
+            bm.draw(screen)
         for wm in worm_mines:
             wm.draw(screen)
         for pu in powerups:
@@ -4226,6 +4310,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     en_cutlasses        = []  # Cutlass (Rook & Moosh, enemy-owned)
     worm_mines          = []  # WormMine (Xix!?xy & Zaor@k, player-owned)
     en_worm_mines       = []  # WormMine (Xix!?xy & Zaor@k, enemy-owned)
+    rockballs           = []  # RockBall (Happi & Racker, player-owned)
+    en_rockballs        = []  # RockBall (Happi & Racker, enemy-owned)
+    dandi_seeds         = []  # DandiSeed (Dandibell & Eeeby, player-owned)
+    en_dandi_seeds      = []  # DandiSeed (Dandibell & Eeeby, enemy-owned)
+    eeeby_lasers        = []  # EeebyLaser (Dandibell & Eeeby, player-owned)
+    en_eeeby_lasers     = []  # EeebyLaser (Dandibell & Eeeby, enemy-owned)
+    burning_mines       = []  # BurningMine (Blazex & Torrti, player-owned)
+    en_burning_mines    = []  # BurningMine (Blazex & Torrti, enemy-owned)
     ultralightning_bolts    = []  # ThunderBolt (Xix!?xy & Zaor@k, player-owned)
     en_ultralightning_bolts = []  # ThunderBolt (Xix!?xy & Zaor@k, enemy-owned)
     en_balls          = []
@@ -4549,6 +4641,25 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     if en.pending_cutlass:
                         en.pending_cutlass = False
                         en_cutlasses.append(Cutlass(en.x, en.y-60, en))
+                    if en.pending_rockball:
+                        en.pending_rockball = False
+                        en_rockballs.append(RockBall(en.x + en.facing*30, en.y-55, en.facing, en,
+                                                     vy=random.uniform(-1.6, 0.6)))
+                    if en.pending_seed_rain:
+                        en.pending_seed_rain = False
+                        _sdtgt = target.x if living else en.x
+                        for _sxo in (-70, -35, 0, 35, 70):
+                            en_dandi_seeds.append(DandiSeed(max(20.0, min(float(WIDTH-20), _sdtgt + _sxo)), en))
+                    if en.pending_burning_mines:
+                        en.pending_burning_mines = False
+                        for _bvx in (1.6, 3.4, 5.2):
+                            en_burning_mines.append(BurningMine(en.x + en.facing*26, en.y-70, en,
+                                                                vx=en.facing * _bvx))
+                    if en.pending_eeeby_laser:
+                        en.pending_eeeby_laser = False
+                        _eltx = target.x if living else en.x + en.facing * 200
+                        _elty = (target.y - 60) if living else en.y - 60
+                        en_eeeby_lasers.append(EeebyLaser(en.x + en.facing*16, en.y-92, _eltx, _elty, en))
                     if en.pending_worm_mines:
                         en.pending_worm_mines = False
                         for _mxo in (-60, -20, 20, 60):
@@ -4663,6 +4774,29 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 if shooter.pending_cutlass:
                     shooter.pending_cutlass = False
                     cutlasses.append(Cutlass(shooter.x, shooter.y-60, shooter))
+                if shooter.pending_rockball:
+                    shooter.pending_rockball = False
+                    rockballs.append(RockBall(shooter.x + shooter.facing*30, shooter.y-55,
+                                              shooter.facing, shooter,
+                                              vy=random.uniform(-1.6, 0.6)))
+                if shooter.pending_seed_rain:
+                    shooter.pending_seed_rain = False
+                    _sdtgt = min(enemies, key=lambda e: abs(e.x - shooter.x)) if enemies else None
+                    _sdx = _sdtgt.x if _sdtgt else shooter.x + shooter.facing * 120
+                    for _sxo in (-70, -35, 0, 35, 70):
+                        dandi_seeds.append(DandiSeed(max(20.0, min(float(WIDTH-20), _sdx + _sxo)), shooter))
+                if shooter.pending_burning_mines:
+                    shooter.pending_burning_mines = False
+                    for _bvx in (1.6, 3.4, 5.2):
+                        burning_mines.append(BurningMine(shooter.x + shooter.facing*26, shooter.y-70,
+                                                         shooter, vx=shooter.facing * _bvx))
+                if shooter.pending_eeeby_laser:
+                    shooter.pending_eeeby_laser = False
+                    _eltgt = min(enemies, key=lambda e: abs(e.x - shooter.x)) if enemies else None
+                    _eltx = _eltgt.x if _eltgt else shooter.x + shooter.facing * 300
+                    _elty = (_eltgt.y - 60) if _eltgt else shooter.y - 60
+                    eeeby_lasers.append(EeebyLaser(shooter.x + shooter.facing*16, shooter.y-92,
+                                                   _eltx, _elty, shooter))
                 if shooter.pending_worm_mines:
                     shooter.pending_worm_mines = False
                     for _mxo in (-60, -20, 20, 60):
@@ -5236,6 +5370,98 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             cl.alive = False
                             break
             en_cutlasses = [cl for cl in en_cutlasses if cl.alive]
+
+            # Happi & Racker: rockballs (survival)
+            for rb in rockballs:
+                rb.update()
+                if rb.alive:
+                    for en in enemies:
+                        if rb.collides(en) and not en.bubble_shield:
+                            en.take_proj_dmg(RockBall.DMG)
+                            en.flash_timer = 6
+                            rb.alive = False
+                            break
+            rockballs = [rb for rb in rockballs if rb.alive]
+            for rb in en_rockballs:
+                rb.update()
+                if rb.alive:
+                    for p in players:
+                        if p.hp > 0 and rb.collides(p) and not p.bubble_shield:
+                            p.take_proj_dmg(RockBall.DMG)
+                            p.flash_timer = 6
+                            rb.alive = False
+                            break
+            en_rockballs = [rb for rb in en_rockballs if rb.alive]
+
+            # Dandibell & Eeeby: raining seeds (survival)
+            for ds in dandi_seeds:
+                ds.update()
+                if ds.alive:
+                    for en in enemies:
+                        if ds.collides(en) and not en.bubble_shield:
+                            en.take_proj_dmg(DandiSeed.DMG)
+                            en.flash_timer = 6
+                            ds.alive = False
+                            break
+            dandi_seeds = [ds for ds in dandi_seeds if ds.alive]
+            for ds in en_dandi_seeds:
+                ds.update()
+                if ds.alive:
+                    for p in players:
+                        if p.hp > 0 and ds.collides(p) and not p.bubble_shield:
+                            p.take_proj_dmg(DandiSeed.DMG)
+                            p.flash_timer = 6
+                            ds.alive = False
+                            break
+            en_dandi_seeds = [ds for ds in en_dandi_seeds if ds.alive]
+
+            # Dandibell & Eeeby: Eeeby's ultra laser (survival)
+            for el in eeeby_lasers:
+                el.update()
+                if el.alive:
+                    for en in enemies:
+                        if el.collides(en) and not en.bubble_shield:
+                            en.take_proj_dmg(EeebyLaser.DMG)
+                            en.flash_timer = 12
+            eeeby_lasers = [el for el in eeeby_lasers if el.alive]
+            for el in en_eeeby_lasers:
+                el.update()
+                if el.alive:
+                    for p in players:
+                        if p.hp > 0 and el.collides(p) and not p.bubble_shield:
+                            p.take_proj_dmg(EeebyLaser.DMG)
+                            p.flash_timer = 12
+            en_eeeby_lasers = [el for el in en_eeeby_lasers if el.alive]
+
+            # Blazex & Torrti: burning mines (survival)
+            for bm in burning_mines:
+                bm.update()
+                if bm.alive:
+                    for en in enemies:
+                        if bm.collides(en) and not en.bubble_shield:
+                            en.take_proj_dmg(BurningMine.DMG)
+                            en.flash_timer = 12
+                            if not en.char.get("immune"):
+                                if en.fire_frames == 0:
+                                    en.fire_tick = 480
+                                en.fire_frames = max(en.fire_frames, BurningMine.FIRE_FRAMES)
+                            bm.alive = False
+                            break
+            burning_mines = [bm for bm in burning_mines if bm.alive]
+            for bm in en_burning_mines:
+                bm.update()
+                if bm.alive:
+                    for p in players:
+                        if p.hp > 0 and bm.collides(p) and not p.bubble_shield:
+                            p.take_proj_dmg(BurningMine.DMG)
+                            p.flash_timer = 12
+                            if not p.char.get("immune"):
+                                if p.fire_frames == 0:
+                                    p.fire_tick = 480
+                                p.fire_frames = max(p.fire_frames, BurningMine.FIRE_FRAMES)
+                            bm.alive = False
+                            break
+            en_burning_mines = [bm for bm in en_burning_mines if bm.alive]
 
             # Xix!?xy & Zaor@k: worm mines (survival)
             for wm in worm_mines:
@@ -5938,6 +6164,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for ms   in en_muskshrooms:    ms.draw(screen)
         for cl   in cutlasses:         cl.draw(screen)
         for cl   in en_cutlasses:      cl.draw(screen)
+        for rb   in rockballs:         rb.draw(screen)
+        for rb   in en_rockballs:      rb.draw(screen)
+        for ds   in dandi_seeds:       ds.draw(screen)
+        for ds   in en_dandi_seeds:    ds.draw(screen)
+        for el   in eeeby_lasers:      el.draw(screen)
+        for el   in en_eeeby_lasers:   el.draw(screen)
+        for bm   in burning_mines:     bm.draw(screen)
+        for bm   in en_burning_mines:  bm.draw(screen)
         for wm   in worm_mines:        wm.draw(screen)
         for wm   in en_worm_mines:     wm.draw(screen)
         for tb   in ultralightning_bolts:    tb.draw(screen)

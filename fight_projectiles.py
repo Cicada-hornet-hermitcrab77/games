@@ -2452,3 +2452,232 @@ class WildfireBall:
 
     def collides(self, fighter):
         return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 32
+
+
+# ---------------------------------------------------------------------------
+# RockBall  (Happi & Racker kick — Racker spits a rapid burst of rocks)
+# ---------------------------------------------------------------------------
+
+class RockBall:
+    SPEED  = 15
+    DMG    = 6
+    RADIUS = 9
+    LIFE   = 65
+
+    def __init__(self, x, y, facing, owner, vy=0.0):
+        self.x = float(x); self.y = float(y)
+        self.vx = self.SPEED * facing
+        self.vy = vy
+        self.owner = owner
+        self.alive = True
+        self.life  = self.LIFE
+        self.spin  = random.uniform(0, math.pi)
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+        self.vy += 0.12           # slight arc as the rock loses speed
+        self.spin += 0.25
+        self.life -= 1
+        if self.life <= 0 or self.x < -40 or self.x > WIDTH + 40:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        r = self.RADIUS
+        # Dust trail
+        for i in range(3):
+            _ta = 90 - i * 30
+            _tsurf = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
+            pygame.draw.circle(_tsurf, (170, 160, 150, _ta), (r, r), max(2, r - i * 2))
+            surface.blit(_tsurf, (cx - int(self.vx * (i + 1) * 0.6) - r, cy - r))
+        # Chunky rock body
+        pts = []
+        for i in range(6):
+            a = self.spin + i * math.pi / 3
+            rr = r * (0.8 if i % 2 else 1.0)
+            pts.append((cx + int(math.cos(a) * rr), cy + int(math.sin(a) * rr)))
+        pygame.draw.polygon(surface, (130, 118, 104), pts)
+        pygame.draw.polygon(surface, (88, 78, 68), pts, 2)
+        pygame.draw.circle(surface, (165, 155, 142), (cx - r // 3, cy - r // 3), max(1, r // 3))
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
+# DandiSeed  (Dandibell & Eeeby punch — a drift of seeds raining down)
+# ---------------------------------------------------------------------------
+
+class DandiSeed:
+    DMG    = 7
+    RADIUS = 9
+    LIFE   = FPS * 5
+
+    def __init__(self, x, owner, y=-20.0):
+        self.x = float(x); self.y = float(y)
+        self.vy = random.uniform(2.2, 3.4)
+        self.sway_t = random.uniform(0, math.pi * 2)
+        self.owner = owner
+        self.alive = True
+        self.life  = self.LIFE
+
+    def update(self):
+        self.sway_t += 0.12
+        self.x += math.sin(self.sway_t) * 1.6
+        self.y += self.vy
+        self.life -= 1
+        if self.life <= 0 or self.y > GROUND_Y - 4:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        r = self.RADIUS
+        # Fluffy pappus
+        for i in range(7):
+            a = math.pi * i / 7 + math.sin(self.sway_t) * 0.25 - math.pi / 2
+            pygame.draw.line(surface, (245, 250, 240), (cx, cy - r),
+                             (cx + int(math.cos(a) * r * 1.2), cy - r + int(math.sin(a) * r * 1.2)), 2)
+        pygame.draw.circle(surface, (255, 255, 250), (cx, cy - r), max(2, r // 3))
+        # Stalk and seed
+        pygame.draw.line(surface, (225, 230, 215), (cx, cy - r), (cx, cy + r // 2), 2)
+        pygame.draw.ellipse(surface, (170, 140, 80), (cx - 3, cy + r // 3, 6, 9))
+        pygame.draw.ellipse(surface, (120, 95, 50), (cx - 3, cy + r // 3, 6, 9), 1)
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x, self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
+# ---------------------------------------------------------------------------
+# EeebyLaser  (Dandibell & Eeeby kick — Eeeby's ultra laser, aimed at the
+# enemy's position when the kick lands)
+# ---------------------------------------------------------------------------
+
+class EeebyLaser:
+    DMG   = 20
+    LIFE  = 20
+    WIDTH_PX = 11
+
+    def __init__(self, x, y, tx, ty, owner):
+        self.x = float(x); self.y = float(y)
+        ang = math.atan2(ty - y, tx - x)
+        # Overshoot well past the target so the beam reads as a full sweep
+        self.ex = float(x + math.cos(ang) * 1400)
+        self.ey = float(y + math.sin(ang) * 1400)
+        self.owner = owner
+        self.alive = True
+        self.life  = self.LIFE
+        self.hit_ids = set()
+
+    def update(self):
+        self.life -= 1
+        if self.life <= 0:
+            self.alive = False
+
+    def draw(self, surface):
+        t = self.LIFE - self.life
+        grow = min(1.0, t / 4.0)
+        fade = min(1.0, self.life / 6.0)
+        ex = int(self.x + (self.ex - self.x) * grow)
+        ey = int(self.y + (self.ey - self.y) * grow)
+        w  = max(2, int(self.WIDTH_PX * fade))
+        glow = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        pygame.draw.line(glow, (120, 255, 180, int(70 * fade)), (int(self.x), int(self.y)), (ex, ey), w * 3)
+        surface.blit(glow, (0, 0))
+        pygame.draw.line(surface, (90, 230, 140), (int(self.x), int(self.y)), (ex, ey), w)
+        pygame.draw.line(surface, (235, 255, 240), (int(self.x), int(self.y)), (ex, ey), max(1, w // 3))
+        pygame.draw.circle(surface, (235, 255, 240), (int(self.x), int(self.y)), max(3, w))
+        for i in range(4):
+            a = math.radians(t * 22 + i * 90)
+            pygame.draw.line(surface, (150, 255, 190), (int(self.x), int(self.y)),
+                             (int(self.x + math.cos(a) * w * 2.2), int(self.y + math.sin(a) * w * 2.2)), 2)
+
+    def collides(self, fighter):
+        if id(fighter) in self.hit_ids:
+            return False
+        fx, fy = fighter.x, fighter.y - 60
+        dx, dy = self.ex - self.x, self.ey - self.y
+        seg = dx * dx + dy * dy
+        if seg <= 0:
+            return False
+        t = max(0.0, min(1.0, ((fx - self.x) * dx + (fy - self.y) * dy) / seg))
+        px, py = self.x + dx * t, self.y + dy * t
+        if math.hypot(fx - px, fy - py) < 34:
+            self.hit_ids.add(id(fighter))
+            return True
+        return False
+
+
+# ---------------------------------------------------------------------------
+# BurningMine  (Blazex & Torrti punch — Blazex lobs burning mines onto the
+# ground; they arm, then detonate on whoever walks into them)
+# ---------------------------------------------------------------------------
+
+class BurningMine:
+    DMG         = 13
+    RADIUS      = 13
+    ARM_TIME    = 24
+    FIRE_FRAMES = 420          # 7 sec burn on detonation
+    LIFE        = FPS * 9
+
+    def __init__(self, x, y, owner, vx=0.0):
+        self.x = float(x); self.y = float(y)
+        self.vx = vx
+        self.vy = -3.0
+        self.owner = owner
+        self.alive = True
+        self.landed = False
+        self.arm = self.ARM_TIME
+        self.life = self.LIFE
+        self._t = 0
+
+    def update(self):
+        self._t += 1
+        if not self.landed:
+            self.vy += 0.45
+            self.x  += self.vx
+            self.y  += self.vy
+            if self.y >= GROUND_Y - 6:
+                self.y = float(GROUND_Y - 6)
+                self.landed = True
+            if self.x < 12 or self.x > WIDTH - 12:
+                self.vx = -self.vx
+        elif self.arm > 0:
+            self.arm -= 1
+        self.life -= 1
+        if self.life <= 0:
+            self.alive = False
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        armed = self.landed and self.arm == 0
+        # Scorched rock shell
+        pygame.draw.circle(surface, (78, 66, 58), (cx, cy), self.RADIUS)
+        pygame.draw.circle(surface, (48, 40, 34), (cx, cy), self.RADIUS, 2)
+        for i in range(4):
+            a = math.radians(i * 90 + 25)
+            pygame.draw.line(surface, (40, 34, 28), (cx, cy),
+                             (cx + int(math.cos(a) * self.RADIUS), cy + int(math.sin(a) * self.RADIUS)), 2)
+        # Ember core — steady while arming, then a hot pulsing glow
+        pulse = abs(math.sin(self._t * (0.36 if armed else 0.12)))
+        core_r = max(2, int(self.RADIUS * (0.45 + 0.2 * pulse)))
+        pygame.draw.circle(surface, (255, int(90 + 110 * pulse), 20), (cx, cy), core_r)
+        pygame.draw.circle(surface, (255, 235, 150), (cx, cy), max(1, core_r // 2))
+        if armed:
+            glow = pygame.Surface((self.RADIUS * 6, self.RADIUS * 6), pygame.SRCALPHA)
+            pygame.draw.circle(glow, (255, 110, 20, int(70 * pulse)),
+                               (self.RADIUS * 3, self.RADIUS * 3), int(self.RADIUS * 2.2))
+            surface.blit(glow, (cx - self.RADIUS * 3, cy - self.RADIUS * 3))
+            # Licking flames
+            for i in range(3):
+                fa = self._t * 0.2 + i * 2.1
+                fh = int(9 + 6 * abs(math.sin(fa)))
+                fx = cx + int(math.cos(fa) * self.RADIUS * 0.6)
+                pygame.draw.polygon(surface, (255, 140, 30),
+                                    [(fx - 3, cy - self.RADIUS // 2), (fx + 3, cy - self.RADIUS // 2),
+                                     (fx, cy - self.RADIUS // 2 - fh)])
+
+    def collides(self, fighter):
+        return (self.landed and self.arm == 0 and fighter.hp > 0
+                and abs(self.x - fighter.x) < 30
+                and abs((fighter.y - 20) - self.y) < 90)

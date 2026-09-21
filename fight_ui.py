@@ -618,6 +618,9 @@ CHEAT_CODES = {
     "shapeshift_blob":      "Bloob & Beatrix",
     "peg_leg_pirate":       "Rook & Moosh",
     "worm_costume":         "Xix!?xy & Zaor@k",
+    "happy_little_rock":    "Happi & Racker",
+    "make_a_wish":          "Dandibell & Eeeby",
+    "slow_and_scorching":   "Blazex & Torrti",
 }
 
 # ---------------------------------------------------------------------------
@@ -1277,6 +1280,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         COLS      = 7
     if unlocked is None:
         unlocked = {ch["name"] for ch in _CHARS}
+    elif not isinstance(unlocked, set):
+        # Callers may hand us a frozenset (Giants Among Us passes its filter);
+        # dev-mode unlocking mutates this set, so work on a real set copy.
+        unlocked = set(unlocked)
     if unlock_hints is None:
         unlock_hints = {}
     if unlock_progress is None:
@@ -2227,6 +2234,13 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if _detail_display.get("cutlass_kick"):           badges.append(("RANDOM CUTLASS",   (150, 110,  60)))
             if _detail_display.get("worm_mine_punch"):        badges.append(("MINE BARRAGE",     ( 90,  70,  40)))
             if _detail_display.get("ultralightning_kick"):    badges.append(("ULTRALIGHTNING",   (230, 210,  40)))
+            if _detail_display.get("wind_mace_punch"):        badges.append(("WIND MACE",        (190, 225, 245)))
+            if _detail_display.get("rockball_kick"):          badges.append(("ROCKBALL BURST",   (140, 125, 110)))
+            if _detail_display.get("seed_rain_punch"):        badges.append(("SEED RAIN",        (225, 240, 200)))
+            if _detail_display.get("eeeby_laser_kick"):       badges.append(("ULTRA LASER",      ( 90, 230, 140)))
+            if _detail_display.get("burning_mine_punch"):     badges.append(("BURNING MINES",    (255, 120,  30)))
+            if _detail_display.get("torrti_ram"):             badges.append(("SHELL RAM",        (150, 120,  95)))
+            if _detail_display.get("water_breathing"):        badges.append(("WATER BREATHING",  ( 60, 190, 220)))
             bx_off = PX + 8
             for btxt, bcol in badges:
                 bs = font_tiny.render(btxt, True, bcol)

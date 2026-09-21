@@ -256,6 +256,16 @@ class Fighter:
         self.pending_nian_breath = False  # Nian: breathe fire while blocking
         self.nian_breath_timer   = 0      # Nian: frames since last breath shot
         self.smoochie_revivals   = 0      # Smoochie: revivals used (max 5)
+        self.pending_burning_mines = False # Blazex & Torrti: scatter burning mines this frame
+        self.ram_frames            = 0     # Blazex & Torrti: frames left in the ram charge
+        self.ram_returning         = False # Blazex & Torrti: heading back to where the charge started
+        self.ram_home_x            = 0.0   # Blazex & Torrti: spot to return to after the ram
+        self.ram_hit               = False # Blazex & Torrti: this charge already connected
+        self.pending_seed_rain     = False # Dandibell & Eeeby: rain seeds this frame
+        self.pending_eeeby_laser   = False # Dandibell & Eeeby: fire Eeeby's laser this frame
+        self.pending_rockball      = False # Happi & Racker: spawn a rockball this frame
+        self.rockball_burst        = 0     # Happi & Racker: rockballs left in the current burst
+        self.rockball_tick         = 0     # Happi & Racker: frames until the next rockball
         self.pending_clover_snake  = False # Clover: spawn snake on kick
         self.pending_golden_snake  = False # Gilded Clover: spawn golden snake on kick
         self.eartha_grow_timer   = 0      # Eartha: frames toward next size increase
@@ -416,8 +426,10 @@ class Fighter:
         else:
             self._frozen_streak = 0
         # Underwater: drown after 10 continuous seconds with your head under
-        # the waterline, until you surface again
-        if constants.STAGE_WATER and (self.y - 95 * self.draw_scale) > constants.WATER_LINE_Y:
+        # the waterline, until you surface again. Aquatic fighters
+        # ("water_breathing") are at home down there and never drown.
+        if (constants.STAGE_WATER and not self.char.get("water_breathing")
+                and (self.y - 95 * self.draw_scale) > constants.WATER_LINE_Y):
             self._underwater_frames += 1
             if self._underwater_frames > FPS * 10:
                 if self._drown_tick > 0:
@@ -429,6 +441,14 @@ class Fighter:
         else:
             self._underwater_frames = 0
             self._drown_tick = 0
+        # Happi & Racker: Racker spits the queued rockballs a few frames apart
+        if self.rockball_burst > 0:
+            if self.rockball_tick > 0:
+                self.rockball_tick -= 1
+            else:
+                self.rockball_burst -= 1
+                self.rockball_tick   = 4
+                self.pending_rockball = True
         if self.shock_frames > 0:
             self.shock_frames -= 1
         if self.bazooka_cooldown > 0:
@@ -926,6 +946,10 @@ class Fighter:
                     self.pending_muskshroom = True
                 if self.char.get("worm_mine_punch"):
                     self.pending_worm_mines = True
+                if self.char.get("seed_rain_punch"):
+                    self.pending_seed_rain = True
+                if self.char.get("burning_mine_punch"):
+                    self.pending_burning_mines = True
                 if self.char.get("bounce_punch"):
                     self.pending_bounce = True
                 if self.char.get("whip_punch") and self.whip_cooldown == 0:
@@ -1017,6 +1041,16 @@ class Fighter:
                     self.pending_exploding_tire = True
                 if self.char.get("cutlass_kick"):
                     self.pending_cutlass = True
+                if self.char.get("rockball_kick"):
+                    self.rockball_burst = 5   # rapid-fire burst
+                    self.rockball_tick  = 0
+                if self.char.get("eeeby_laser_kick"):
+                    self.pending_eeeby_laser = True
+                if self.char.get("torrti_ram") and self.ram_frames == 0:
+                    self.ram_frames    = 26
+                    self.ram_returning = False
+                    self.ram_home_x    = self.x
+                    self.ram_hit       = False
                 if self.char.get("ultralightning_kick"):
                     self.pending_ultralightning = True
                 if self.char.get("jack_tank"):
@@ -1251,9 +1285,52 @@ class Fighter:
                 self.attacking = False
                 self.is_crit = False
 
+        # Blazex & Torrti: the ram overrides normal movement, so it runs last
+        self._tick_ram(other)
+
         # Captured at the END of the frame so movement-trail checks above can
         # compare this frame's (already-moved) x against last frame's x.
         self._prev_x = self.x
+
+    def _tick_ram(self, other):
+        """Blazex & Torrti: Torrti charges the opponent, rams if he reaches
+        them, then trundles back to where he set off from. He is tucked into
+        his shell the whole time, so nothing can touch him."""
+        if self.ram_frames <= 0 or other is None:
+            return
+        RAM_SPEED = 13.0
+        self.dash_frames = max(self.dash_frames, 2)   # melee passes straight through
+        if not self.ram_returning:
+            self.ram_frames -= 1
+            _dir = 1 if other.x > self.x else -1
+            self.facing = _dir
+            self.x = max(30.0, min(float(WIDTH - 30), self.x + _dir * RAM_SPEED))
+            if not self.ram_hit and abs(other.x - self.x) < 62 and other.hp > 0:
+                self.ram_hit = True
+                _dmg = 18
+                if other.blocking:
+                    _dmg = max(1, _dmg // 2)
+                other.hp          = max(0, other.hp - _dmg)
+                other.action      = 'hurt'
+                other.hurt_timer  = 26
+                other.flash_timer = 14
+                other.attacking   = False
+                other.knockback   = _dir * 26
+                self.ram_frames   = 0
+            if self.ram_frames <= 0:
+                self.ram_returning = True
+                self.ram_frames    = 40   # budget for the trip home
+        else:
+            self.ram_frames -= 1
+            _back = self.ram_home_x - self.x
+            self.facing = 1 if _back > 0 else -1
+            if abs(_back) <= RAM_SPEED or self.ram_frames <= 0:
+                self.x             = max(30.0, min(float(WIDTH - 30), self.ram_home_x))
+                self.ram_frames    = 0
+                self.ram_returning = False
+                self.dash_frames   = 0
+            else:
+                self.x = max(30.0, min(float(WIDTH - 30), self.x + (RAM_SPEED if _back > 0 else -RAM_SPEED)))
 
     def _start(self, act, spd):
         self.action = act
@@ -1533,6 +1610,9 @@ class Fighter:
             if other.char.get("phase_dodge") and other.phase_dodge_cd == 0 and dmg > 0:
                 other.phase_dodge_timer = 60    # 1 second invincible
                 other.phase_dodge_cd    = 300   # 5 second cooldown
+            # Happi & Racker: wind mace blasts the enemy the way Happi is facing
+            if self.char.get("wind_mace_punch") and self.action == 'punch':
+                other.knockback = self.facing * 22
             # Typhoon: wind_kick — triple knockback on kick
             if self.char.get("wind_kick") and self.action == 'kick':
                 other.knockback = self.facing * 18
@@ -1568,6 +1648,9 @@ class Fighter:
                     other.squish_frames = 240  # 4 seconds
                 if self.char.get("confuse_kick") and self.action == 'kick':
                     other.confuse_frames = 180  # 3 seconds
+                # Happi & Racker: wind mace freezes on punch
+                if self.char.get("wind_mace_punch") and self.action == 'punch':
+                    other.freeze_frames = max(other.freeze_frames, 120)  # 2 seconds
                 if self.char.get("plague_punch") and self.action == 'punch':
                     if other.fire_frames == 0:    other.fire_tick = 480
                     other.fire_frames    = max(other.fire_frames,    480)
@@ -2232,6 +2315,10 @@ class AIFighter(Fighter):
                         self.pending_muskshroom = True
                     if self.char.get("worm_mine_punch"):
                         self.pending_worm_mines = True
+                    if self.char.get("seed_rain_punch"):
+                        self.pending_seed_rain = True
+                    if self.char.get("burning_mine_punch"):
+                        self.pending_burning_mines = True
                     if self.char.get("bounce_punch"):
                         self.pending_bounce = True
                     if self.char.get("whip_punch") and self.whip_cooldown == 0:
@@ -2312,6 +2399,16 @@ class AIFighter(Fighter):
                         self.pending_exploding_tire = True
                     if self.char.get("cutlass_kick"):
                         self.pending_cutlass = True
+                    if self.char.get("rockball_kick"):
+                        self.rockball_burst = 5   # rapid-fire burst
+                        self.rockball_tick  = 0
+                    if self.char.get("eeeby_laser_kick"):
+                        self.pending_eeeby_laser = True
+                    if self.char.get("torrti_ram") and self.ram_frames == 0:
+                        self.ram_frames    = 26
+                        self.ram_returning = False
+                        self.ram_home_x    = self.x
+                        self.ram_hit       = False
                     if self.char.get("ultralightning_kick"):
                         self.pending_ultralightning = True
             self.ai_attack = None
@@ -2379,6 +2476,9 @@ class AIFighter(Fighter):
         # Underwater: drift up toward the surface whenever the AI isn't moving
         if _submerged and self.hurt_timer == 0 and self.ai_move == 0:
             self.vy = max(self.vy - 0.14, -3.5)
+
+        # Blazex & Torrti: the ram overrides normal movement, so it runs last
+        self._tick_ram(other)
 
         # Captured at the END of the frame — see Fighter.update for why.
         self._prev_x = self.x
