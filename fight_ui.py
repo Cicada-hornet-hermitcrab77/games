@@ -621,6 +621,7 @@ CHEAT_CODES = {
     "happy_little_rock":    "Happi & Racker",
     "make_a_wish":          "Dandibell & Eeeby",
     "slow_and_scorching":   "Blazex & Torrti",
+    "crooked_lantern":      "Broken Jak 0' Lash",
 }
 
 # ---------------------------------------------------------------------------
@@ -2240,6 +2241,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             if _detail_display.get("eeeby_laser_kick"):       badges.append(("ULTRA LASER",      ( 90, 230, 140)))
             if _detail_display.get("burning_mine_punch"):     badges.append(("BURNING MINES",    (255, 120,  30)))
             if _detail_display.get("torrti_ram"):             badges.append(("SHELL RAM",        (150, 120,  95)))
+            if _detail_display.get("broken_jack"):            badges.append(("BUSTED TANK",      (190,  80,  15)))
             if _detail_display.get("water_breathing"):        badges.append(("WATER BREATHING",  ( 60, 190, 220)))
             if _detail_display.get("lava_immune"):            badges.append(("LAVA PROOF",       (255, 130,  30)))
             bx_off = PX + 8

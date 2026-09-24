@@ -13,7 +13,7 @@ from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt, SlantedConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull, FallingTeddy, HazardZone,
-                            JungleSnake, GoldenJungleSnake, GhostSnake, Dino, Stampede, EyeDestroyer, ComputerBug, MousePlatform,
+                            JungleSnake, GoldenJungleSnake, GhostSnake, BatHorde, Dino, Stampede, EyeDestroyer, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall, Whip, HotPotato, BigBomb,
                             FallingPot, RollingCoin, FallingMerlin,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
@@ -1278,6 +1278,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     # into smaller ones when punched/kicked
     _is_rolling_stones = stage_data["name"] == "Rolling Stones"
     rolling_stones = []
+    # The Crooking Glass: the hourglass in the back flips every 10 seconds and
+    # empties a horde of bats across the arena
+    _is_crooking   = stage_data["name"] == "The Crooking Glass"
+    _cg_flip_timer = FPS * 10
+    _cg_flip_anim  = 0      # frames left in the flip animation
+    _cg_flipped    = False  # which way up the glass currently sits
+    _cg_dir        = 1      # side the next horde comes from
+    bat_hordes     = []
     _stone_spawn_timer = FPS * 2
     stage_pencil = None
     stage_eraser = None
@@ -2667,11 +2675,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             # Pumpkins (Headless Horseman)
             for shooter, victim in [(p1, p2), (p2, p1)]:
                 if shooter.pending_pumpkin or shooter.pending_jack_pumpkin:
+                    _jack_dbl = shooter.pending_jack_pumpkin and shooter.char.get("broken_jack")
                     shooter.pending_pumpkin = False
                     shooter.pending_jack_pumpkin = False
-                    pumpkins.append(Pumpkin(
-                        shooter.x + shooter.facing * 24, shooter.y - 80,
-                        shooter.facing, shooter))
+                    # Broken Jak's busted tank coughs out two at a time
+                    for _pk_dy in ((0, -22) if _jack_dbl else (0,)):
+                        pumpkins.append(Pumpkin(
+                            shooter.x + shooter.facing * 24, shooter.y - 80 + _pk_dy,
+                            shooter.facing, shooter))
                 if shooter.pending_deco_bomb:
                     shooter.pending_deco_bomb = False
                     big_bombs.append(BigBomb(
@@ -2679,8 +2690,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         shooter.facing, shooter))
                 if shooter.pending_jack_seed:
                     shooter.pending_jack_seed = False
-                    jack_seeds.append(PumpkinSeed(shooter.x + shooter.facing * 24,
-                                                  shooter.y - 60, shooter.facing, shooter))
+                    for _sd_dy in ((0, -20) if shooter.char.get("broken_jack") else (0,)):
+                        jack_seeds.append(PumpkinSeed(shooter.x + shooter.facing * 24,
+                                                      shooter.y - 60 + _sd_dy, shooter.facing, shooter))
                 if shooter.pending_fruit_attack:
                     fa = shooter.pending_fruit_attack
                     shooter.pending_fruit_attack = None
@@ -3398,6 +3410,24 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 _gs.update(p1, p2)
             ghost_snakes = [_gs for _gs in ghost_snakes if _gs.alive]
 
+            # The Crooking Glass: the hourglass flips, the bats pour out
+            if _is_crooking:
+                if _cg_flip_anim > 0:
+                    _cg_flip_anim -= 1
+                _cg_flip_timer -= 1
+                if _cg_flip_timer <= 0:
+                    _cg_flip_timer = FPS * 10
+                    _cg_flip_anim  = 30
+                    _cg_flipped    = not _cg_flipped
+                    bat_hordes.append(BatHorde(_cg_dir))
+                    _cg_dir       *= -1
+                constants.CROOKING_PHASE   = 1.0 - (_cg_flip_timer / float(FPS * 10))
+                constants.CROOKING_FLIP    = _cg_flip_anim / 30.0
+                constants.CROOKING_FLIPPED = _cg_flipped
+            for _bh in bat_hordes:
+                _bh.update([p1, p2])
+            bat_hordes = [_bh for _bh in bat_hordes if _bh.alive]
+
             # Jungle snakes
             if is_jungle:
                 snake_spawn_timer -= 1
@@ -3886,6 +3916,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             sn.draw(screen)
         for _gs in ghost_snakes:
             _gs.draw(screen)
+        for _bh in bat_hordes:
+            _bh.draw(screen)
         for sk in falling_skulls:
             sk.draw(screen)
         for tb in falling_teddies:
@@ -4253,6 +4285,12 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     is_computer   = stage_data["name"] == "Computer"
     is_underworld = stage_data["name"] == "Underworld"
     _is_graveyard = stage_data["name"] == "Graveyard"
+    _is_crooking   = stage_data["name"] == "The Crooking Glass"
+    _cg_flip_timer = FPS * 10
+    _cg_flip_anim  = 0
+    _cg_flipped    = False
+    _cg_dir        = 1
+    bat_hordes     = []
     # Volcano Core: molten floor rises from the bottom, HEIGHT/90 px/sec
     _is_volcore = stage_data["name"] == "Volcano Core"
     _volcore_lava_y = float(HEIGHT + 30)
@@ -4308,6 +4346,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     yellowstone_geysers = []   # Yellowstone kick geysers
     ice_icicles         = []   # Ice Age Yellowstone kick icicles
     jack_seeds          = []   # PumpkinSeed (Jack O' Slash)
+    en_jack_seeds       = []   # PumpkinSeed (enemy-owned Jack / Broken Jak)
     fruit_projs         = []   # FruitProj (Cornucopia)
     coal_projs          = []   # CoalProj (Saint Nix)
     thunder_bolts       = []   # ThunderBolt (Thunder God / Storm Caller)
@@ -5969,14 +6008,21 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             bb.hit_cd = BouncingBall.HIT_CD; break
             en_bounce_balls = [bb for bb in en_bounce_balls if bb.alive]
 
-            # Jack O' Slash seeds (survival)
-            for p in players:
-                if p.pending_jack_pumpkin:
-                    p.pending_jack_pumpkin = False
-                    pumpkins.append(Pumpkin(p.x + p.facing * 24, p.y - 80, p.facing, p))
-                if p.pending_jack_seed:
-                    p.pending_jack_seed = False
-                    jack_seeds.append(PumpkinSeed(p.x + p.facing * 24, p.y - 60, p.facing, p))
+            # Jack O' Slash / Broken Jak tank fire (survival, both sides —
+            # Broken Jak's busted tank spits two of everything)
+            for _jf in [p for p in players if p.hp > 0] + enemies:
+                _jen = _jf in enemies
+                _jdbl = _jf.char.get("broken_jack")
+                if _jf.pending_jack_pumpkin:
+                    _jf.pending_jack_pumpkin = False
+                    for _jdy in ((0, -22) if _jdbl else (0,)):
+                        (en_pumpkins if _jen else pumpkins).append(
+                            Pumpkin(_jf.x + _jf.facing * 24, _jf.y - 80 + _jdy, _jf.facing, _jf))
+                if _jf.pending_jack_seed:
+                    _jf.pending_jack_seed = False
+                    for _jdy in ((0, -20) if _jdbl else (0,)):
+                        (en_jack_seeds if _jen else jack_seeds).append(
+                            PumpkinSeed(_jf.x + _jf.facing * 24, _jf.y - 60 + _jdy, _jf.facing, _jf))
             for js in jack_seeds:
                 js.update()
                 if js.alive:
@@ -5986,6 +6032,15 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             en.flash_timer = max(en.flash_timer, 8)
                             js.alive = False; break
             jack_seeds = [js for js in jack_seeds if js.alive]
+            for js in en_jack_seeds:
+                js.update()
+                if js.alive:
+                    for p in [_p for _p in players if _p.hp > 0]:
+                        if js.collides(p):
+                            p.take_proj_dmg(PumpkinSeed.DMG)
+                            p.flash_timer = max(p.flash_timer, 8)
+                            js.alive = False; break
+            en_jack_seeds = [js for js in en_jack_seeds if js.alive]
             # Player fruit projectiles + coal + thunder (survival)
             for shooter in players:
                 if shooter.pending_fruit_attack:
@@ -6275,6 +6330,24 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     _gclosest = min(_gtargets, key=lambda t: math.hypot(t.x - _gs.x, (t.y - 60) - _gs.y))
                     _gs.update(_gclosest, _gclosest)
             ghost_snakes = [_gs for _gs in ghost_snakes if _gs.alive]
+
+            # The Crooking Glass: the hourglass flips, the bats pour out
+            if _is_crooking:
+                if _cg_flip_anim > 0:
+                    _cg_flip_anim -= 1
+                _cg_flip_timer -= 1
+                if _cg_flip_timer <= 0:
+                    _cg_flip_timer = FPS * 10
+                    _cg_flip_anim  = 30
+                    _cg_flipped    = not _cg_flipped
+                    bat_hordes.append(BatHorde(_cg_dir))
+                    _cg_dir       *= -1
+                constants.CROOKING_PHASE   = 1.0 - (_cg_flip_timer / float(FPS * 10))
+                constants.CROOKING_FLIP    = _cg_flip_anim / 30.0
+                constants.CROOKING_FLIPPED = _cg_flipped
+            for _bh in bat_hordes:
+                _bh.update([p for p in players if p.hp > 0] + enemies)
+            bat_hordes = [_bh for _bh in bat_hordes if _bh.alive]
 
             # Jungle snakes
             if is_jungle:
@@ -6579,6 +6652,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for pk   in pumpkins:      pk.draw(screen)
         for bb   in big_bombs:     bb.draw(screen)
         for js   in jack_seeds:    js.draw(screen)
+        for js   in en_jack_seeds: js.draw(screen)
         for fp   in fruit_projs:   fp.draw(screen)
         for cp   in coal_projs:    cp.draw(screen)
         for tb   in thunder_bolts: tb.draw(screen)
@@ -6588,6 +6662,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for w    in en_whips:      w.draw(screen)
         for sn   in jungle_snakes: sn.draw(screen)
         for _gs  in ghost_snakes:  _gs.draw(screen)
+        for _bh  in bat_hordes:    _bh.draw(screen)
         for sk   in falling_skulls: sk.draw(screen)
         for tb   in falling_teddies: tb.draw(screen)
         for b    in computer_bugs: b.draw(screen)
@@ -7587,6 +7662,92 @@ def main():
                             _show_unlocks([_cau_reward])
                         else:
                             _save_data(unlocked, stats)
+                if _konami_flag[0]:
+                    stats["konami_unlocked"] = True
+                    _konami_flag[0] = False
+                _session_match_streak[0] += 1
+                stats["marathon_best"] = max(stats.get("marathon_best", 0), _session_match_streak[0])
+                if action == 'rematch':
+                    continue
+                break
+            continue
+
+        # --- The Crooking Glass (Echoes of the Undying event) path ---
+        if mode == 'crooking_glass':
+            _cg_lines = [
+                ("THE CROOKING GLASS",       font_large,  (210, 150, 255), -130),
+                ("The hourglass in the back keeps time.",
+                                             font_small,  (215, 200, 225),  -60),
+                ("Every 10 seconds it crooks over —",
+                                             font_small,  (215, 200, 225),  -40),
+                ("and a horde of bats tears across the arena.",
+                                             font_small,  (215, 200, 225),  -20),
+                ("Only the Halloween dead may fight here.",
+                                             font_small,  (255, 180,  70),   20),
+                ("Every win is a chance at a rare fighter:",
+                                             font_small,  (255, 180,  70),   60),
+                ("1% Jack O' Slash   -   0.1% Broken Jak 0' Lash",
+                                             font_small,  (255, 220, 120),   80),
+                ("Available during Echoes of the Undying only.",
+                                             font_small,  (170, 190, 220),  140),
+                ("press any key to continue", font_tiny,  (110, 110, 110),  190),
+            ]
+            _cg_start = pygame.time.get_ticks()
+            _cg_done  = False
+            while not _cg_done:
+                clock.tick(FPS)
+                for _cgev in pygame.event.get():
+                    if _cgev.type == pygame.QUIT:
+                        pygame.quit(); sys.exit()
+                    if _cgev.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                        _cg_done = True
+                if pygame.time.get_ticks() - _cg_start > 10000:
+                    _cg_done = True
+                _cga = min(255, int((pygame.time.get_ticks() - _cg_start) / 600 * 255))
+                screen.fill((18, 12, 26))
+                for _cgtx, _cgf, _cgc, _cgdy in _cg_lines:
+                    _cgs = _cgf.render(_cgtx, True, _cgc)
+                    _cgs.set_alpha(_cga)
+                    screen.blit(_cgs, (WIDTH // 2 - _cgs.get_width() // 2, HEIGHT // 2 + _cgdy))
+                pygame.display.flip()
+
+            _CG_FILTER = frozenset({
+                "Ghost", "Vampire", "Headless Horseman", "Demon", "Reaper",
+                "Skeleton", "Scarecrow", "Phantom", "Banshee", "Wraith",
+                "Necromancer", "Dementor", "Poltergeist", "Haunter", "Specter",
+                "Revenant", "Shade", "Snider", "Plague Doctor", "Lich",
+                "Graverobber", "Soul Eater", "Ghost Warrior", "Vamp Lord",
+                "Jack O' Slash", "Broken Jak 0' Lash",
+            })
+            p1_idx, p2_idx = character_select(
+                vs_ai=True, unlocked=_CG_FILTER,
+                char_filter=_CG_FILTER,
+                select_title="THE CROOKING GLASS",
+            )
+            if p1_idx is None:
+                continue
+            _cg_stage_idx = next((i for i, st in enumerate(STAGES)
+                                  if st["name"] == "The Crooking Glass"), 0)
+            while True:
+                result = run_fight(p1_idx, p2_idx, vs_ai=True, ai_difficulty='mega_hard',
+                                   stage_idx=_cg_stage_idx)
+                action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
+                p1_won = info[0] if isinstance(info, tuple) else False
+                if p1_won:
+                    stats["crooking_glass_wins"] = stats.get("crooking_glass_wins", 0) + 1
+                    # Flat per-win odds, rarest first: 0.1% then 1%
+                    _cg_roll = random.random()
+                    _cg_reward = None
+                    if _cg_roll < 0.001:
+                        _cg_reward = "Broken Jak 0' Lash"
+                    elif _cg_roll < 0.011:
+                        _cg_reward = "Jack O' Slash"
+                    if _cg_reward and _cg_reward not in unlocked:
+                        unlocked.add(_cg_reward)
+                        _save_data(unlocked, stats)
+                        _show_unlocks([_cg_reward])
+                    else:
+                        _save_data(unlocked, stats)
                 if _konami_flag[0]:
                     stats["konami_unlocked"] = True
                     _konami_flag[0] = False

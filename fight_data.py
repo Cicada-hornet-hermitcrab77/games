@@ -1474,6 +1474,10 @@ CHARACTERS = [
      "punch_dmg": 16, "kick_dmg": 20, "max_hp": 115, "block": 5,
      "desc": "Kick: 10s tank mode — punches shoot pumpkins, kicks shoot seeds",
      "double_jump": False, "shop_only": True, "jack_tank": True},
+    {"name": "Broken Jak 0' Lash", "color": (190,  80,  15), "speed": 6, "jump": -12,
+     "punch_dmg": 15, "kick_dmg": 18, "max_hp": 105, "block": 4,
+     "desc": "Busted tank: double pumpkins and seeds — duck in tank mode to rocket up and squish",
+     "double_jump": False, "shop_only": True, "jack_tank": True, "broken_jack": True},
     {"name": "Cornucopia",     "color": (180, 140,  55), "speed": 4,  "jump": -12,
      "punch_dmg": 14, "kick_dmg": 17, "max_hp": 130, "block": 6,
      "desc": "Turkey warrior: each attack fires a random fruit with unique effects",
@@ -2138,6 +2142,16 @@ STAGES = [
         (150, GROUND_Y-300, 110, 0,   0),
         (600, GROUND_Y-300, 110, 0,   0),
     ], "springs": [(400, -24)], "conveyors": [], "portals": [], "hazards": []},
+    # The Crooking Glass (Echoes of the Undying mode stage). A giant hourglass
+    # looms in the back; every 10 seconds it flips and a horde of bats tears
+    # across the arena.
+    {"name": "The Crooking Glass", "special_mode_only": True, "platforms": [
+        (70,  GROUND_Y-120, 150, 0,   0),
+        (680, GROUND_Y-120, 150, 0,   0),
+        (330, GROUND_Y-215, 140, 0,   0),
+        (140, GROUND_Y-305, 120, 1.0, 90),
+        (610, GROUND_Y-305, 120, 1.0, 90),
+    ], "springs": [], "conveyors": [], "portals": [], "hazards": []},
 ]
 
 # Stage-specific character advantages and disadvantages.

@@ -50,6 +50,12 @@ GRAVITY = 0.55
 STAGE_VOID    = False   # when True the ground floor is removed; falling off = instant death
 STAGE_CEILING = False   # when True the ceiling is lethal; jumping into the top kills you
 STAGE_WATER   = False   # when True the arena is flooded up to WATER_LINE_Y (Underwater stage)
+# The Crooking Glass: the game loop publishes the hourglass state here so
+# draw_bg can render it (0..1 through the 10-second cycle, 0..1 flip progress,
+# and which way up the glass currently sits).
+CROOKING_PHASE   = 0.0
+CROOKING_FLIP    = 0.0
+CROOKING_FLIPPED = False
 WATER_LINE_Y  = HEIGHT * 0.35   # raised from the old HEIGHT/2 — water covers more of the arena
 
 

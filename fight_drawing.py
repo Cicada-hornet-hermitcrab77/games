@@ -1,6 +1,7 @@
 import pygame
 import math
 import random
+import constants
 from constants import *
 from fight_data import STAGES, STAGE_MATCHUPS, POWERUPS
 
@@ -13485,8 +13486,10 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                             (0, 0, hd * 2 + 4, hd * 2 + 4))
         surface.blit(_dsurf, (hx - hd - 2, hy - hd - 2))
 
-    elif char_name in ("Jack O' Slash", "Jack O' Slash|tank"):
+    elif char_name in ("Jack O' Slash", "Jack O' Slash|tank",
+                       "Broken Jak 0' Lash", "Broken Jak 0' Lash|tank"):
         _in_tank = "|tank" in char_name
+        _is_broken = char_name.startswith("Broken Jak")
         if _in_tank:
             # PUMPKIN MECH TANK
             _pc  = (220, 110,  20)
@@ -13734,6 +13737,52 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                       (-int(hd*0.08), 0), (int(hd*0.08), int(hd*0.18)),
                       (int(hd*0.28), 0), (int(hd*0.42), int(hd*0.18))]]
             pygame.draw.lines(surface, (255, 160, 0), False, _mpts, max(1, int(2*s)))
+
+
+        # ── Broken Jak 0' Lash: the same rig, visibly falling apart ────────
+        if _is_broken:
+            _bt3 = pygame.time.get_ticks() / 1000.0
+            _bcx = sx
+            _btop = hy - int(hd * 1.4)
+            _bbot = wy + int(LEG_LEN * s)
+            # Cracks across the pumpkin shell
+            for _cxo, _cyo, _cdx, _cdy in ((-0.5, -0.2, 0.22, 0.3), (0.3, -0.45, -0.2, 0.35),
+                                           (0.1, 0.25, 0.3, -0.2)):
+                _p1b = (_bcx + int(_cxo * hd * 1.4), _btop + int((_cyo + 0.5) * hd * 1.6))
+                _p2b = (_p1b[0] + int(_cdx * hd * 1.4), _p1b[1] + int(_cdy * hd * 1.4))
+                pygame.draw.line(surface, (70, 28, 6), _p1b, _p2b, max(1, int(2 * s)))
+                pygame.draw.line(surface, (40, 16, 4), _p1b,
+                                 ((_p1b[0] + _p2b[0]) // 2, _p2b[1]), max(1, int(s)))
+            # A chunk knocked clean out of the shell
+            pygame.draw.polygon(surface, (46, 22, 10), [
+                (_bcx + int(hd * 0.9), _btop + int(hd * 0.7)),
+                (_bcx + int(hd * 1.5), _btop + int(hd * 0.5)),
+                (_bcx + int(hd * 1.35), _btop + int(hd * 1.25)),
+                (_bcx + int(hd * 0.95), _btop + int(hd * 1.1))])
+            # Loose bolts and a dangling wire
+            for _bi2, (_wxo, _wyo) in enumerate(((-1.1, 0.9), (1.2, 1.35))):
+                _wpx = _bcx + int(_wxo * hd)
+                _wpy = _btop + int(_wyo * hd)
+                pygame.draw.line(surface, (120, 120, 130), (_wpx, _wpy),
+                                 (_wpx + int(math.sin(_bt3 * 4 + _bi2) * 6 * s), _wpy + int(14 * s)),
+                                 max(1, int(2 * s)))
+                pygame.draw.circle(surface, (170, 100, 40),
+                                   (_wpx + int(math.sin(_bt3 * 4 + _bi2) * 6 * s), _wpy + int(14 * s)),
+                                   max(1, int(2.5 * s)))
+            # Sputtering sparks and a puff of smoke — the tank is not well
+            for _si2 in range(3):
+                _sf = (_bt3 * 2.2 + _si2 * 0.37) % 1.0
+                _spx2 = _bcx + int(math.sin(_bt3 * 5 + _si2 * 2) * hd * 0.8)
+                _spy2 = _btop - int(_sf * hd * 0.9)
+                pygame.draw.circle(surface, (255, int(210 - 120 * _sf), 60),
+                                   (_spx2, _spy2), max(1, int(3 * s * (1.0 - _sf))))
+            _smk = pygame.Surface((int(hd * 1.6), int(hd * 1.6)), pygame.SRCALPHA)
+            pygame.draw.circle(_smk, (90, 88, 96, 90), (int(hd * 0.8), int(hd * 0.8)), int(hd * 0.55))
+            surface.blit(_smk, (_bcx - int(hd * 0.2), _btop - int(hd * 1.3)))
+            # Crooked, cracked grin patched over the lantern face
+            if not _in_tank:
+                pygame.draw.line(surface, (60, 26, 6), (hx - int(hd * 0.5), hy - int(hd * 0.1)),
+                                 (hx + int(hd * 0.2), hy + int(hd * 0.35)), max(1, int(2 * s)))
 
     elif char_name == "Cornucopia":
         _FEATHER_COLS = [
@@ -17207,6 +17256,104 @@ def draw_bg(surface, stage_idx=0):
                                (760,GROUND_Y+15,5),(840,GROUND_Y+35,4)]:
             pygame.draw.circle(surface, (80, 72, 64), (_rx, _ry), _rr)
             pygame.draw.circle(surface, (40, 35, 30), (_rx, _ry), _rr, 1)
+
+    elif s == 32:  # The Crooking Glass (Echoes of the Undying)
+        surface.fill((22, 14, 30))
+        _cgt = pygame.time.get_ticks() / 1000.0
+        # Sickly moon and drifting clouds
+        pygame.draw.circle(surface, (226, 214, 170), (WIDTH - 110, 78), 42)
+        pygame.draw.circle(surface, (200, 186, 145), (WIDTH - 96, 68), 12)
+        pygame.draw.circle(surface, (204, 190, 150), (WIDTH - 124, 92), 8)
+        for _ci, (_cx6, _cw6) in enumerate([(60, 220), (360, 300), (700, 200)]):
+            _cdx = int((_cx6 + _cgt * (7 + _ci * 4)) % (WIDTH + 320)) - 160
+            for _ox, _oy, _or in ((0, 0, 26), (34, 6, 20), (-30, 8, 18), (16, -8, 16)):
+                pygame.draw.ellipse(surface, (44, 32, 56),
+                                    (_cdx + _ox, 44 + _oy, _or * 2 + _cw6 // 6, _or))
+        # Dead trees either side
+        for _tx6, _th6 in ((44, 190), (WIDTH - 52, 220)):
+            pygame.draw.line(surface, (30, 22, 20), (_tx6, GROUND_Y), (_tx6, GROUND_Y - _th6), 9)
+            for _bi, (_bdx, _bdy) in enumerate(((-38, -46), (34, -62), (-28, -92), (30, -104))):
+                pygame.draw.line(surface, (30, 22, 20),
+                                 (_tx6, GROUND_Y - _th6 // 2 + _bdy // 3),
+                                 (_tx6 + _bdx, GROUND_Y - _th6 // 2 + _bdy), 4)
+
+        # ── The giant hourglass ────────────────────────────────────────────
+        _phase   = getattr(constants, "CROOKING_PHASE", 0.0)
+        _flip    = getattr(constants, "CROOKING_FLIP", 0.0)
+        _flipped = getattr(constants, "CROOKING_FLIPPED", False)
+        _gw, _gh = 210, 300
+        _hs = pygame.Surface((_gw + 40, _gh + 60), pygame.SRCALPHA)
+        _ox2, _oy2 = 20, 30
+        _midy = _oy2 + _gh // 2
+        # Glass bulbs: two triangles meeting at the waist
+        _top = [(_ox2, _oy2), (_ox2 + _gw, _oy2), (_ox2 + _gw // 2 + 10, _midy),
+                (_ox2 + _gw // 2 - 10, _midy)]
+        _bot = [(_ox2 + _gw // 2 - 10, _midy), (_ox2 + _gw // 2 + 10, _midy),
+                (_ox2 + _gw, _oy2 + _gh), (_ox2, _oy2 + _gh)]
+        for _poly in (_top, _bot):
+            pygame.draw.polygon(_hs, (58, 44, 78, 150), _poly)
+            pygame.draw.polygon(_hs, (150, 130, 190, 210), _poly, 4)
+        # Sand: the upper bulb drains into the lower one over the cycle
+        _drain = max(0.0, min(1.0, _phase))
+        _upper_h = int((_gh // 2 - 14) * (1.0 - _drain))
+        if _upper_h > 4:
+            _uw = int(_gw * (_upper_h / float(_gh // 2)))
+            pygame.draw.polygon(_hs, (226, 178, 96, 225), [
+                (_ox2 + _gw // 2 - _uw // 2, _midy - _upper_h),
+                (_ox2 + _gw // 2 + _uw // 2, _midy - _upper_h),
+                (_ox2 + _gw // 2 + 8, _midy - 2),
+                (_ox2 + _gw // 2 - 8, _midy - 2)])
+        _pile_h = int((_gh // 2 - 20) * _drain)
+        if _pile_h > 3:
+            _pw = int(_gw * 0.92 * (_pile_h / float(_gh // 2)) + 40)
+            pygame.draw.polygon(_hs, (226, 178, 96, 225), [
+                (_ox2 + _gw // 2 - _pw // 2, _oy2 + _gh - 4),
+                (_ox2 + _gw // 2 + _pw // 2, _oy2 + _gh - 4),
+                (_ox2 + _gw // 2 + 10, _oy2 + _gh - 4 - _pile_h),
+                (_ox2 + _gw // 2 - 10, _oy2 + _gh - 4 - _pile_h)])
+        # Falling stream + a few loose grains
+        if 0.02 < _drain < 0.99:
+            pygame.draw.line(_hs, (240, 200, 130, 230),
+                             (_ox2 + _gw // 2, _midy), (_ox2 + _gw // 2, _oy2 + _gh - 6 - _pile_h), 5)
+            for _gi in range(5):
+                _gy2 = _midy + int(((_cgt * 260 + _gi * 37) % max(12, (_gh // 2 - _pile_h))))
+                pygame.draw.circle(_hs, (250, 220, 160, 220),
+                                   (_ox2 + _gw // 2 + int(math.sin(_cgt * 6 + _gi) * 4), _gy2), 2)
+        # Wooden frame: caps and corner posts
+        for _cap_y in (_oy2 - 18, _oy2 + _gh - 2):
+            pygame.draw.rect(_hs, (96, 62, 36, 255), (_ox2 - 18, _cap_y, _gw + 36, 20), border_radius=5)
+            pygame.draw.rect(_hs, (62, 38, 20, 255), (_ox2 - 18, _cap_y, _gw + 36, 20), 3, border_radius=5)
+        for _px6 in (_ox2 - 12, _ox2 + _gw + 4):
+            pygame.draw.rect(_hs, (84, 54, 30, 255), (_px6, _oy2 - 6, 9, _gh + 10), border_radius=3)
+        # Flip animation: spin the whole thing through 180 degrees
+        _angle = 180.0 * _flip + (180.0 if _flipped else 0.0)
+        _rot = pygame.transform.rotate(_hs, _angle)
+        surface.blit(_rot, (WIDTH // 2 - _rot.get_width() // 2,
+                            GROUND_Y - 150 - _rot.get_height() // 2))
+        # Eerie glow at the waist when a flip just happened
+        if _flip > 0.01:
+            _gl = pygame.Surface((300, 300), pygame.SRCALPHA)
+            pygame.draw.circle(_gl, (190, 120, 255, int(90 * _flip)), (150, 150), 150)
+            surface.blit(_gl, (WIDTH // 2 - 150, GROUND_Y - 300))
+
+        # Cobbled graveyard floor
+        pygame.draw.rect(surface, (34, 26, 38), (0, GROUND_Y + 2, WIDTH, HEIGHT - GROUND_Y - 2))
+        pygame.draw.line(surface, (16, 12, 20), (0, GROUND_Y + 2), (WIDTH, GROUND_Y + 2), 3)
+        for _sx6 in range(10, WIDTH, 46):
+            pygame.draw.line(surface, (26, 20, 30), (_sx6, GROUND_Y + 6), (_sx6 + 20, GROUND_Y + 6), 3)
+            pygame.draw.line(surface, (26, 20, 30), (_sx6 + 22, GROUND_Y + 26), (_sx6 + 42, GROUND_Y + 26), 3)
+        # Jack-o'-lanterns flickering along the base
+        for _ji, _jx in enumerate((90, 300, 560, 800)):
+            _jf2 = 0.6 + 0.4 * abs(math.sin(_cgt * 3 + _ji))
+            pygame.draw.circle(surface, (180, 92, 16), (_jx, GROUND_Y - 12), 15)
+            pygame.draw.circle(surface, (120, 58, 8), (_jx, GROUND_Y - 12), 15, 2)
+            pygame.draw.line(surface, (70, 120, 50), (_jx, GROUND_Y - 26), (_jx + 4, GROUND_Y - 33), 3)
+            for _eo2 in (-5, 5):
+                pygame.draw.polygon(surface, (int(255 * _jf2), int(200 * _jf2), 40), [
+                    (_jx + _eo2 - 3, GROUND_Y - 16), (_jx + _eo2 + 3, GROUND_Y - 16),
+                    (_jx + _eo2, GROUND_Y - 11)])
+            pygame.draw.arc(surface, (int(255 * _jf2), int(190 * _jf2), 40),
+                            (_jx - 8, GROUND_Y - 12, 16, 10), math.radians(200), math.radians(340), 2)
 
 
 def draw_health_bars(surface, p1, p2):

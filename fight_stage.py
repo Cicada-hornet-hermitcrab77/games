@@ -1684,3 +1684,97 @@ class GhostSnake:
             pygame.draw.rect(surface, (40, 40, 40), (cx - bw // 2, cy - 26, bw, 4))
             pygame.draw.rect(surface, (150, 240, 200),
                              (cx - bw // 2, cy - 26, int(bw * max(0, self.hp) / self.MAX_HP), 4))
+
+
+# ---------------------------------------------------------------------------
+# BatHorde  (The Crooking Glass — the hourglass flips, the bats pour out)
+# ---------------------------------------------------------------------------
+
+class BatHorde:
+    """A wave of bats that tears across the arena from one side. Each bat
+    flaps along its own sine path; anyone they sweep through takes a hit, with
+    a short per-fighter cooldown so one horde cannot shred a fighter."""
+    DMG      = 6
+    SPEED    = 9.0
+    COUNT    = 14
+    HIT_CD   = 24
+    RADIUS   = 16
+
+    def __init__(self, direction=1):
+        self.dir   = direction               # +1 = flying right, -1 = left
+        self.alive = True
+        self.t     = 0
+        self.cds   = {}                      # id(fighter) -> frames
+        _edge = -60.0 if direction > 0 else float(WIDTH + 60)
+        self.bats = []
+        for i in range(self.COUNT):
+            self.bats.append({
+                'x':     _edge - direction * random.uniform(0, 420),
+                'y':     random.uniform(70, GROUND_Y - 40),
+                'amp':   random.uniform(8, 26),
+                'freq':  random.uniform(0.12, 0.26),
+                'phase': random.uniform(0, math.tau),
+                'spd':   self.SPEED * random.uniform(0.82, 1.25),
+                'size':  random.uniform(0.75, 1.3),
+                'flap':  random.uniform(0, math.tau),
+            })
+
+    def update(self, fighters):
+        self.t += 1
+        for _k in list(self.cds):
+            if self.cds[_k] > 0:
+                self.cds[_k] -= 1
+        for b in self.bats:
+            b['x'] += self.dir * b['spd']
+            b['y'] += math.sin(self.t * b['freq'] + b['phase']) * b['amp'] * 0.16
+            b['y']  = max(50.0, min(float(GROUND_Y - 25), b['y']))
+            b['flap'] += 0.45
+            for f in fighters:
+                if f.hp <= 0 or self.cds.get(id(f), 0) > 0:
+                    continue
+                if (abs(b['x'] - f.x) < self.RADIUS + 22
+                        and abs(b['y'] - (f.y - 60)) < self.RADIUS + 42):
+                    f.take_proj_dmg(self.DMG, flash=False)
+                    f.flash_timer = max(f.flash_timer, 8)
+                    f.knockback   = self.dir * 4
+                    self.cds[id(f)] = self.HIT_CD
+        # Gone once every bat has left the far side
+        if self.dir > 0:
+            self.alive = any(b['x'] < WIDTH + 80 for b in self.bats)
+        else:
+            self.alive = any(b['x'] > -80 for b in self.bats)
+
+    def draw(self, surface):
+        for b in self.bats:
+            bx, by = int(b['x']), int(b['y'])
+            if bx < -40 or bx > WIDTH + 40:
+                continue
+            sc  = b['size']
+            wsp = math.sin(b['flap'])                     # wing beat
+            bw  = int(15 * sc)
+            bh  = int(7 * sc * (0.45 + 0.55 * abs(wsp)))
+            # Wings: two scalloped triangles that rise and fall with the beat
+            for _side in (-1, 1):
+                _tip_y = by - int(bh * 1.6 * wsp)
+                pygame.draw.polygon(surface, (28, 24, 34), [
+                    (bx, by),
+                    (bx + _side * bw, _tip_y),
+                    (bx + _side * int(bw * 0.62), by + int(5 * sc)),
+                ])
+                pygame.draw.polygon(surface, (58, 50, 70), [
+                    (bx, by),
+                    (bx + _side * bw, _tip_y),
+                    (bx + _side * int(bw * 0.62), by + int(5 * sc)),
+                ], 1)
+            # Body and ears
+            pygame.draw.circle(surface, (34, 30, 40), (bx, by), max(2, int(4 * sc)))
+            for _eo in (-2, 2):
+                pygame.draw.polygon(surface, (34, 30, 40), [
+                    (bx + int(_eo * sc), by - int(3 * sc)),
+                    (bx + int(_eo * sc * 1.7), by - int(8 * sc)),
+                    (bx + int(_eo * sc * 2.4), by - int(3 * sc)),
+                ])
+            # Eyes
+            for _eo in (-1, 1):
+                pygame.draw.circle(surface, (255, 190, 60),
+                                   (bx + int(_eo * 2 * sc), by - int(1 * sc)), max(1, int(1.4 * sc)))

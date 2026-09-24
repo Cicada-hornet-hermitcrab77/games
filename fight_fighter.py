@@ -22,6 +22,8 @@ class Fighter:
             char_data["max_hp"]      = random.randint(75, 160)
             char_data["double_jump"] = random.choice([True, False])
             char_data["color"]       = (random.randint(80,255), random.randint(80,255), random.randint(80,255))
+        self.is_ai = False   # AIFighter flips this — abilities that need a
+                             # button an AI never presses can check it
         self.x = float(x)
         self.y = float(GROUND_Y)
         self.vy = 0.0
@@ -279,6 +281,9 @@ class Fighter:
         self.jack_tank_frames    = 0      # Jack O' Slash: frames of pumpkin tank mode remaining
         self.pending_jack_pumpkin = False  # Jack O' Slash tank: fire pumpkin this frame
         self.pending_jack_seed   = False  # Jack O' Slash tank: fire seed this frame
+        self.jack_rocket         = 0      # Broken Jak: frames the tank launch stays armed
+        self.jack_rocket_cd      = 0      # Broken Jak: cooldown between launches
+        self._jack_launched      = False  # Broken Jak: airborne from a launch right now
         self.pending_fruit_attack = None  # Cornucopia: fruit type string to spawn this frame
         self.cornucopia_feather_lit = None  # Cornucopia: which feather is currently lit (0-9)
         self.cornucopia_feather_timer = 0   # Cornucopia: frames feather stays lit
@@ -1129,6 +1134,8 @@ class Fighter:
 
         # Blazex & Torrti: the ram overrides normal movement, so it runs last
         self._tick_ram(other)
+        # Broken Jak 0' Lash: tank launch / slam
+        self._tick_jack_rocket(other)
 
         # Captured at the END of the frame so movement-trail checks above can
         # compare this frame's (already-moved) x against last frame's x.
@@ -1302,6 +1309,40 @@ class Fighter:
             # Teleport behind opponent immediately on kick press
             self.x = max(30.0, min(float(WIDTH - 30), other.x - other.facing * 60))
             self.facing = other.facing
+
+    def _tick_jack_rocket(self, other):
+        """Broken Jak 0' Lash: duck while the busted tank is running and it
+        blasts straight up, then slams back down and squishes whoever is
+        standing there. An AI never ducks, so it launches on its own rhythm."""
+        if not self.char.get("broken_jack"):
+            return
+        if self.jack_rocket_cd > 0:
+            self.jack_rocket_cd -= 1
+        _wants = self.ducking or (self.is_ai and random.random() < 0.02)
+        if (_wants and self.jack_tank_frames > 0 and self.jack_rocket_cd == 0
+                and not self._jack_launched and self.on_ground):
+            self.vy             = -21.0
+            self.on_ground      = False
+            self.jack_rocket    = 120        # give it time to come back down
+            self.jack_rocket_cd = FPS * 4
+            self._jack_launched = True
+            self.flash_timer    = max(self.flash_timer, 10)
+        if self._jack_launched:
+            self.jack_rocket -= 1
+            if self.on_ground or self.jack_rocket <= 0:
+                # Touchdown: flatten anyone underneath
+                _landed = self.on_ground
+                self._jack_launched = False
+                self.jack_rocket    = 0
+                if _landed and other is not None and other.hp > 0 and abs(other.x - self.x) < 80:
+                    other.hp          = max(0, other.hp - 24)
+                    other.action      = 'hurt'
+                    other.hurt_timer  = 30
+                    other.flash_timer = 18
+                    other.attacking   = False
+                    other.knockback   = (1 if other.x > self.x else -1) * 10
+                    if not other.char.get("immune"):
+                        other.squish_frames = max(other.squish_frames, 240)   # 4 seconds flat
 
     def _tick_ram(self, other):
         """Blazex & Torrti: Torrti charges the opponent, rams if he reaches
@@ -2114,6 +2155,7 @@ class AIFighter(Fighter):
 
     def __init__(self, x, char_data, facing, difficulty='medium'):
         super().__init__(x, char_data, facing, controls={})
+        self.is_ai = True
         cfg = self.SETTINGS[difficulty]
         self.decision_delay  = cfg['decision_delay']
         self.aggression      = cfg['aggression']
@@ -2388,6 +2430,8 @@ class AIFighter(Fighter):
 
         # Blazex & Torrti: the ram overrides normal movement, so it runs last
         self._tick_ram(other)
+        # Broken Jak 0' Lash: tank launch / slam
+        self._tick_jack_rocket(other)
 
         # Captured at the END of the frame — see Fighter.update for why.
         self._prev_x = self.x
