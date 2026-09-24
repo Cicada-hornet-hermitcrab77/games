@@ -738,11 +738,13 @@ def mode_select(unlocked=None, stats=None):
     survival_players = 0   # 0=1P survival, 1=2P survival
     preview_t = 0.0
 
-    # 6 cards layout (6th is Fuser, dimmed/locked until Deco & Emoj is owned)
-    card_w, card_h = 140, 240
+    # 7 cards: 6 playable (6th is Fuser, dimmed until Deco & Emoj is owned)
+    # plus a 7th Story Mode teaser that is chained shut and cannot be picked.
+    card_w, card_h = 118, 240
     GAP   = 8
-    START = WIDTH // 2 - (6 * card_w + 5 * GAP) // 2
-    card_xs = [START + i * (card_w + GAP) for i in range(6)]
+    START = WIDTH // 2 - (7 * card_w + 6 * GAP) // 2
+    card_xs = [START + i * (card_w + GAP) for i in range(7)]
+    _story_teaser = [0]   # frames left on the "not yet..." nudge
 
     _type42_buf = ""
     _secret_seq = "all_the_secrets_of_the_world"
@@ -865,7 +867,10 @@ def mode_select(unlocked=None, stats=None):
                     return _mode_confirm()
                 for _ci, _cx in enumerate(card_xs):
                     if pygame.Rect(_cx, 140, card_w, card_h).collidepoint(_mp):
-                        selected = _ci
+                        if _ci == 6:          # Story Mode: chained shut for now
+                            _story_teaser[0] = FPS * 3
+                        else:
+                            selected = _ci
                         break
                 # Difficulty ▲/▼ touch (drawn at list_x, list_y area)
                 if selected == 0 and len(card_xs) > 0:
@@ -1007,16 +1012,25 @@ def mode_select(unlocked=None, stats=None):
             (card_xs[3], "ONLINE",    "internet",    CYAN),
             (card_xs[4], "SHOP",      "seasonal",    (255, 200, 0)),
             (card_xs[5], "FUSER",     "elements",     (200, 140, 255) if _fuser_unlocked else GRAY),
+            (card_xs[6], "STORY",     "mode",         (120, 110, 100)),
         ]
         for ci, (cx, top, sub, col) in enumerate(cards):
             _fuser_locked = (ci == 5 and not _fuser_unlocked)
-            border = WHITE if (ci == selected and not _fuser_locked) else GRAY
-            bg_col = (50, 45, 10) if ci == 4 else ((35, 30, 45) if ci == 5 else (50, 50, 50))
+            border = (90, 82, 70) if ci == 6 else (WHITE if (ci == selected and not _fuser_locked) else GRAY)
+            bg_col = ((50, 45, 10) if ci == 4 else (35, 30, 45) if ci == 5
+                      else (26, 24, 22) if ci == 6 else (50, 50, 50))
             pygame.draw.rect(screen, bg_col, (cx, 140, card_w, card_h), border_radius=12)
             pygame.draw.rect(screen, border,  (cx, 140, card_w, card_h), 3, border_radius=12)
-            lbl = font_medium.render(top, True, col)
+            # Seven cards are narrower than six were — step the title down a
+            # font size when it would spill over its card.
+            _tcol = (150, 140, 125) if ci == 6 else col
+            lbl = font_medium.render(top, True, _tcol)
+            if lbl.get_width() > card_w - 10:
+                lbl = font_small.render(top, True, _tcol)
             screen.blit(lbl, (cx + card_w//2 - lbl.get_width()//2, 150))
             sl = font_small.render(sub, True, GRAY)
+            if sl.get_width() > card_w - 10:
+                sl = font_tiny.render(sub, True, GRAY)
             screen.blit(sl, (cx + card_w//2 - sl.get_width()//2, 190))
             if ci == 4:
                 # Draw coin symbol instead of stickman
@@ -1033,12 +1047,102 @@ def mode_select(unlocked=None, stats=None):
                 if not _fuser_unlocked:
                     _lktxt = font_tiny.render("Requires Deco & Emoj", True, (150, 150, 150))
                     screen.blit(_lktxt, (cx + card_w//2 - _lktxt.get_width()//2, 140 + card_h - 22))
+            elif ci == 6:
+                # ── STORY MODE: chained shut, overgrown, and not opening yet ──
+                _sx0, _sy0 = cx, 140
+                _scx = cx + card_w // 2
+                _st  = pygame.time.get_ticks() / 1000.0
+
+                # Tombstone, centre-back
+                _tw2, _th2 = 54, 74
+                _tsx, _tsy = _scx - _tw2 // 2, _sy0 + 108
+                pygame.draw.rect(screen, (96, 94, 92), (_tsx, _tsy, _tw2, _th2), border_radius=3)
+                pygame.draw.circle(screen, (96, 94, 92), (_scx, _tsy), _tw2 // 2)
+                pygame.draw.rect(screen, (62, 60, 58), (_tsx, _tsy, _tw2, _th2), 2, border_radius=3)
+                pygame.draw.arc(screen, (62, 60, 58), (_tsx, _tsy - _tw2 // 2, _tw2, _tw2),
+                                0, math.pi, 2)
+                _rip = font_tiny.render("R.I.P.", True, (58, 56, 54))
+                screen.blit(_rip, (_scx - _rip.get_width() // 2, _tsy - 4))
+                pygame.draw.line(screen, (58, 56, 54), (_scx - 14, _tsy + 22), (_scx + 14, _tsy + 22), 2)
+                pygame.draw.line(screen, (58, 56, 54), (_scx - 10, _tsy + 34), (_scx + 10, _tsy + 34), 2)
+                # Turned earth at its foot
+                pygame.draw.ellipse(screen, (44, 38, 30), (_tsx - 16, _tsy + _th2 - 8, _tw2 + 32, 16))
+
+                # Rifle leaning across the stone
+                _rbx, _rby = _scx - 40, _sy0 + 196
+                _rtx, _rty = _scx + 34, _sy0 + 104
+                pygame.draw.line(screen, (74, 52, 30), (_rbx, _rby), (_scx - 6, _sy0 + 152), 9)
+                pygame.draw.line(screen, (140, 100, 56), (_rbx, _rby), (_scx - 6, _sy0 + 152), 5)
+                pygame.draw.line(screen, (48, 50, 56), (_scx - 8, _sy0 + 154), (_rtx, _rty), 7)
+                pygame.draw.line(screen, (150, 155, 165), (_scx - 8, _sy0 + 154), (_rtx, _rty), 3)
+                pygame.draw.circle(screen, (40, 42, 46), (_rtx, _rty), 3)
+                pygame.draw.line(screen, (150, 130, 60), (_scx - 12, _sy0 + 158), (_scx + 2, _sy0 + 150), 3)
+
+                # Plague doctor mask, hanging over the stone
+                _mx2, _my2 = _scx - 2, _sy0 + 132
+                pygame.draw.circle(screen, (58, 44, 34), (_mx2, _my2), 17)
+                pygame.draw.circle(screen, (34, 26, 20), (_mx2, _my2), 17, 2)
+                pygame.draw.polygon(screen, (58, 44, 34), [
+                    (_mx2 - 6, _my2 + 4), (_mx2 + 6, _my2 + 4), (_mx2 + 2, _my2 + 30)])
+                pygame.draw.polygon(screen, (34, 26, 20), [
+                    (_mx2 - 6, _my2 + 4), (_mx2 + 6, _my2 + 4), (_mx2 + 2, _my2 + 30)], 2)
+                for _gxo in (-7, 7):
+                    pygame.draw.circle(screen, (206, 200, 180), (_mx2 + _gxo, _my2 - 3), 6)
+                    pygame.draw.circle(screen, (30, 28, 26), (_mx2 + _gxo, _my2 - 3), 6, 2)
+                    pygame.draw.circle(screen, (120, 150, 130), (_mx2 + _gxo, _my2 - 3), 3)
+                pygame.draw.line(screen, (40, 32, 24), (_mx2 - 17, _my2 - 6), (_mx2 - 26, _my2 - 12), 2)
+                pygame.draw.line(screen, (40, 32, 24), (_mx2 + 17, _my2 - 6), (_mx2 + 26, _my2 - 12), 2)
+
+                # Poison ivy creeping over everything
+                for _vi2, (_vx0, _vdir) in enumerate(((_sx0 + 6, 1), (_sx0 + card_w - 6, -1))):
+                    _prev = (_vx0, _sy0 + card_h - 4)
+                    for _seg in range(1, 8):
+                        _vy2 = _sy0 + card_h - 4 - _seg * (card_h // 11)
+                        _vx2 = _vx0 + _vdir * int(math.sin(_seg * 0.9 + _vi2) * 16 + _seg * 3)
+                        pygame.draw.line(screen, (46, 96, 44), _prev, (_vx2, _vy2), 3)
+                        for _lf in (-1, 1):
+                            _lfx = _vx2 + _lf * 9
+                            pygame.draw.ellipse(screen, (58, 124, 52) if _seg % 2 else (72, 148, 62),
+                                                (_lfx - 7, _vy2 - 5, 14, 10))
+                            pygame.draw.ellipse(screen, (30, 70, 28), (_lfx - 7, _vy2 - 5, 14, 10), 1)
+                        _prev = (_vx2, _vy2)
+
+                # Chains crossing the card, with a padlock at the crossing
+                for _c1, _c2 in (((_sx0 + 4, _sy0 + 96), (_sx0 + card_w - 4, _sy0 + card_h - 34)),
+                                 ((_sx0 + card_w - 4, _sy0 + 96), (_sx0 + 4, _sy0 + card_h - 34))):
+                    _clen = math.hypot(_c2[0] - _c1[0], _c2[1] - _c1[1])
+                    _steps = max(2, int(_clen // 13))
+                    for _li2 in range(_steps):
+                        _lt2 = _li2 / _steps
+                        _lcx = int(_c1[0] + (_c2[0] - _c1[0]) * _lt2)
+                        _lcy = int(_c1[1] + (_c2[1] - _c1[1]) * _lt2)
+                        _lr = (7, 5) if _li2 % 2 == 0 else (5, 7)
+                        pygame.draw.ellipse(screen, (168, 168, 176),
+                                            (_lcx - _lr[0], _lcy - _lr[1], _lr[0] * 2, _lr[1] * 2), 3)
+                        pygame.draw.ellipse(screen, (96, 96, 104),
+                                            (_lcx - _lr[0], _lcy - _lr[1], _lr[0] * 2, _lr[1] * 2), 1)
+                _plx, _ply = _scx, _sy0 + card_h - 58
+                pygame.draw.arc(screen, (180, 180, 190), (_plx - 11, _ply - 22, 22, 24),
+                                0, math.pi, 4)
+                pygame.draw.rect(screen, (196, 170, 60), (_plx - 14, _ply - 4, 28, 24), border_radius=4)
+                pygame.draw.rect(screen, (120, 100, 30), (_plx - 14, _ply - 4, 28, 24), 2, border_radius=4)
+                pygame.draw.circle(screen, (110, 92, 28), (_plx, _ply + 7), 4)
+
+                _soon = font_tiny.render("COMING SOON", True,
+                                         (200, 180, 120) if (_st % 1.6) < 0.8 else (120, 108, 80))
+                screen.blit(_soon, (_scx - _soon.get_width() // 2, _sy0 + card_h - 20))
             else:
                 draw_stickman(screen, cx + card_w//2 - 25, 140 + card_h - 30, BLUE, 1, 'walk', preview_t)
                 draw_stickman(screen, cx + card_w//2 + 25, 140 + card_h - 30, RED, -1, 'idle', 0.0)
-            if ci == selected and not _fuser_locked:
+            if ci == selected and ci != 6 and not _fuser_locked:
                 sel_txt = font_tiny.render("ENTER / SPACE to select", True, WHITE)
                 screen.blit(sel_txt, (cx + card_w//2 - sel_txt.get_width()//2, 390))
+
+        # Story Mode teaser nudge
+        if _story_teaser[0] > 0:
+            _story_teaser[0] -= 1
+            _stx = font_small.render("Story Mode is chained shut... for now.", True, (200, 180, 120))
+            screen.blit(_stx, (WIDTH // 2 - _stx.get_width() // 2, 120))
 
         # Difficulty picker (1P mode)
         if selected == 0:
