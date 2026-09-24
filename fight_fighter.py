@@ -936,169 +936,11 @@ class Fighter:
                 self._start('punch', 0.07)
                 self.punch_cooldown = 8 if self.char.get("rapid_fire") else FPS
                 self.is_crit = moving_toward or bool(self.char.get("always_crit"))
-                if self.char.get("summer_wildfire"):
-                    self.pending_wildfire = True
-                if self.char.get("sand_spit_punch"):
-                    self.pending_sand_spit = True
-                if self.char.get("tentamissile_punch"):
-                    self.pending_tentamissile = True
-                if self.char.get("muskshroom_punch"):
-                    self.pending_muskshroom = True
-                if self.char.get("worm_mine_punch"):
-                    self.pending_worm_mines = True
-                if self.char.get("seed_rain_punch"):
-                    self.pending_seed_rain = True
-                if self.char.get("burning_mine_punch"):
-                    self.pending_burning_mines = True
-                if self.char.get("bounce_punch"):
-                    self.pending_bounce = True
-                if self.char.get("whip_punch") and self.whip_cooldown == 0:
-                    self.pending_whip  = True
-                    self.whip_cooldown = FPS * 2   # 2-second cooldown
-                if self.char.get("deco_laser") and self.deco_laser_cooldown == 0:
-                    self.pending_deco_laser  = True
-                    self.deco_laser_cooldown = FPS * 4   # 4-second cooldown
-                    self.deco_laser_flash    = 14        # frames to draw the beam
-                if self.char.get("bee_punch"):
-                    self.pending_bee = True
-                if self.char.get("cycle_attack"):
-                    if self.attack_cycle == 1:
-                        self.pending_whip = True
-                    elif self.attack_cycle == 2:
-                        self.pending_snipe = True
-                    self.attack_cycle = (self.attack_cycle + 1) % 3
-                if self.char.get("thunder_punch"):
-                    self.pending_thunder = True
-                if self.char.get("storm_punch"):
-                    self.pending_storm = True
-                if self.char.get("jack_tank") and self.jack_tank_frames > 0:
-                    self.pending_jack_pumpkin = True
-                if self.char.get("cornucopia_fruits"):
-                    self._cornucopia_fire()
-                if self.char.get("saint_nix_coal"):
-                    self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
-                    self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
+                self._trigger_punch_abilities()
             elif can_atk and keys[ctrl['kick']] and self.kick_cooldown == 0 and not self.char.get("orb_shooter"):
                 self._start('kick', 0.06)
                 self.kick_cooldown = FPS * 2     # 2 seconds
-                if self.char.get("teleport_kick"):
-                    self.x = float(random.randint(80, WIDTH - 80))
-                    self.flash_timer = 12
-                if self.char.get("boomerang_kick") and self.boomerang_timer == 0 and self.boomerang_cooldown == 0:
-                    self.boomerang_timer = 240   # 4 seconds
-                    self.boomerang_angle = 0.0
-                if self.char.get("bbboomerang_kick") and self.bbboomerang_timer == 0 and self.bbboomerang_cooldown == 0:
-                    self.bbboomerang_timer = 300   # 5 seconds
-                    self.bbboomerang_angle = 0.0
-                if self.char.get("shoot_kick"):
-                    self.pending_ball = True
-                if self.char.get("bazooka_kick") and self.bazooka_cooldown == 0:
-                    self.pending_orb      = True
-                    self.bazooka_cooldown = FPS * 5   # 5 second cooldown
-                if self.char.get("bounce_kick"):
-                    self.pending_bounce = True
-                if self.char.get("scroll_kick"):
-                    self.pending_scroll = True
-                if self.char.get("totem_kick"):
-                    self.pending_totem = True
-                if self.char.get("portal_kick"):
-                    self.pending_portal = True
-                if self.char.get("apple_kick"):
-                    self.pending_apple = True
-                if self.char.get("remote_kick"):
-                    self.pending_remote = True
-                if self.char.get("venom_kick"):
-                    self.pending_venom = True
-                if self.char.get("plant_kick"):
-                    self.pending_plant = True
-                if self.char.get("size_kick"):
-                    self._size_state = (self._size_state + 1) % 3
-                    self.draw_scale = (1.0, 2.0, 0.55)[self._size_state]
-                if self.char.get("grapple_kick"):
-                    self.pending_hook = True
-                if self.char.get("pumpkin_kick") and self.pumpkin_cooldown == 0:
-                    self.pending_pumpkin  = True
-                    self.pumpkin_cooldown = FPS * 3   # 3-second cooldown
-                if self.char.get("deco_bomb_kick") and self.deco_bomb_cooldown == 0:
-                    self.pending_deco_bomb  = True
-                    self.deco_bomb_cooldown = FPS * 3   # 3-second cooldown
-                if self.char.get("hammer_slam_kick") and self.hammer_slam_timer == 0:
-                    self.hammer_slam_timer = 14   # slam impact delay before lava erupts
-                if self.char.get("shadow_mark_kick"):
-                    self.umbra_mark_x = self.x
-                if self.char.get("dino_summon_kick"):
-                    self.pending_dino_summon = True
-                if self.char.get("stampede_kick"):
-                    self.pending_stampede = True
-                if self.char.get("eye_kick_screen_destroy") and self.eye_kick_cooldown == 0:
-                    self.pending_eye_kick  = True
-                    self.eye_kick_cooldown = FPS * 15   # 15-second cooldown
-                if self.char.get("sniper_multiply_kick"):
-                    self.pending_snider_bolt = True
-                if self.char.get("slime_bomb_kick"):
-                    self.pending_slime_bomb = True
-                if self.char.get("exploding_tire_kick"):
-                    self.pending_exploding_tire = True
-                if self.char.get("cutlass_kick"):
-                    self.pending_cutlass = True
-                if self.char.get("rockball_kick"):
-                    self.rockball_burst = 5   # rapid-fire burst
-                    self.rockball_tick  = 0
-                if self.char.get("eeeby_laser_kick"):
-                    self.pending_eeeby_laser = True
-                if self.char.get("torrti_ram") and self.ram_frames == 0:
-                    self.ram_frames    = 26
-                    self.ram_returning = False
-                    self.ram_home_x    = self.x
-                    self.ram_hit       = False
-                if self.char.get("ultralightning_kick"):
-                    self.pending_ultralightning = True
-                if self.char.get("jack_tank"):
-                    self.jack_tank_frames = FPS * 10  # activate / refresh tank mode
-                    self.pending_jack_seed = True      # kick also fires a seed
-                if self.char.get("cornucopia_fruits"):
-                    self._cornucopia_fire()
-                if self.char.get("saint_nix_coal"):
-                    self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
-                    self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
-                if self.char.get("ink_kick") and self.ink_clone_cooldown == 0:
-                    self.pending_ink_clone  = True
-                    self.ink_clone_cooldown = FPS * 5  # 5-second cooldown
-                if self.char.get("water_kick"):
-                    self.pending_water_ball = True
-                if self.char.get("creator_kick") and self.creator_cd == 0:
-                    self.pending_creator_platform = True
-                    self.creator_cd = FPS * 3   # 3-second cooldown
-                if self.char.get("bubble_kick"):
-                    self.pending_bubble_shot = True
-                if self.char.get("cobra_orb"):
-                    self.pending_poison_orb = True
-                if self.char.get("giant_bug_kick") and not self.entomologist_bug_used:
-                    self.pending_giant_bug = True
-                if self.char.get("black_hole_kick") and self.black_hole_cooldown == 0:
-                    self.pending_black_hole    = True
-                    self.black_hole_cooldown   = FPS * 20
-                if self.char.get("bug_spawner_kick"):
-                    self.pending_bug_spawner = True
-                if self.char.get("widow_kick"):
-                    self.pending_widow_bugs = True
-                if self.char.get("possess_kick"):
-                    self.pending_possess = True
-                if self.char.get("sniper_shot"):
-                    self.pending_snipe = True
-                    self.kick_cooldown = FPS * 3   # 3-second reload
-                if self.char.get("map_kick"):
-                    self.pending_stage_swap = True
-                if self.char.get("cleave_kick"):
-                    self.kick_cooldown = FPS * 6   # 6-second reload for big cleave
-                if self.char.get("note_kick"):
-                    self.pending_note = True
-                if self.char.get("arcane_orb"):
-                    self.pending_arcane_orb = True
-                if self.char.get("flash_kick"):
-                    # Teleport behind opponent immediately on kick press
-                    self.x = max(30.0, min(float(WIDTH - 30), other.x - other.facing * 60))
-                    self.facing = other.facing
+                self._trigger_kick_abilities(other)
             elif keys[ctrl['jump']]:
                 if self.wall_cling_active:
                     # wall jump: push away from wall and launch upward
@@ -1291,6 +1133,175 @@ class Fighter:
         # Captured at the END of the frame so movement-trail checks above can
         # compare this frame's (already-moved) x against last frame's x.
         self._prev_x = self.x
+
+    def _trigger_punch_abilities(self):
+        """Every ability a landed punch press kicks off. Shared by Fighter and
+        AIFighter so an AI-controlled character uses the exact same abilities a
+        player does — the two used to keep separate, drifting copies of this."""
+        if self.char.get("summer_wildfire"):
+            self.pending_wildfire = True
+        if self.char.get("sand_spit_punch"):
+            self.pending_sand_spit = True
+        if self.char.get("tentamissile_punch"):
+            self.pending_tentamissile = True
+        if self.char.get("muskshroom_punch"):
+            self.pending_muskshroom = True
+        if self.char.get("worm_mine_punch"):
+            self.pending_worm_mines = True
+        if self.char.get("seed_rain_punch"):
+            self.pending_seed_rain = True
+        if self.char.get("burning_mine_punch"):
+            self.pending_burning_mines = True
+        if self.char.get("bounce_punch"):
+            self.pending_bounce = True
+        if self.char.get("whip_punch") and self.whip_cooldown == 0:
+            self.pending_whip  = True
+            self.whip_cooldown = FPS * 2   # 2-second cooldown
+        if self.char.get("deco_laser") and self.deco_laser_cooldown == 0:
+            self.pending_deco_laser  = True
+            self.deco_laser_cooldown = FPS * 4   # 4-second cooldown
+            self.deco_laser_flash    = 14        # frames to draw the beam
+        if self.char.get("bee_punch"):
+            self.pending_bee = True
+        if self.char.get("cycle_attack"):
+            if self.attack_cycle == 1:
+                self.pending_whip = True
+            elif self.attack_cycle == 2:
+                self.pending_snipe = True
+            self.attack_cycle = (self.attack_cycle + 1) % 3
+        if self.char.get("thunder_punch"):
+            self.pending_thunder = True
+        if self.char.get("storm_punch"):
+            self.pending_storm = True
+        if self.char.get("jack_tank") and self.jack_tank_frames > 0:
+            self.pending_jack_pumpkin = True
+        if self.char.get("cornucopia_fruits"):
+            self._cornucopia_fire()
+        if self.char.get("saint_nix_coal"):
+            self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
+            self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
+
+    def _trigger_kick_abilities(self, other=None):
+        """Every ability a kick press kicks off — see _trigger_punch_abilities.
+        `other` is only needed by flash_kick (teleport behind the opponent)."""
+        if self.char.get("teleport_kick"):
+            self.x = float(random.randint(80, WIDTH - 80))
+            self.flash_timer = 12
+        if self.char.get("boomerang_kick") and self.boomerang_timer == 0 and self.boomerang_cooldown == 0:
+            self.boomerang_timer = 240   # 4 seconds
+            self.boomerang_angle = 0.0
+        if self.char.get("bbboomerang_kick") and self.bbboomerang_timer == 0 and self.bbboomerang_cooldown == 0:
+            self.bbboomerang_timer = 300   # 5 seconds
+            self.bbboomerang_angle = 0.0
+        if self.char.get("shoot_kick"):
+            self.pending_ball = True
+        if self.char.get("bazooka_kick") and self.bazooka_cooldown == 0:
+            self.pending_orb      = True
+            self.bazooka_cooldown = FPS * 5   # 5 second cooldown
+        if self.char.get("bounce_kick"):
+            self.pending_bounce = True
+        if self.char.get("scroll_kick"):
+            self.pending_scroll = True
+        if self.char.get("totem_kick"):
+            self.pending_totem = True
+        if self.char.get("portal_kick"):
+            self.pending_portal = True
+        if self.char.get("apple_kick"):
+            self.pending_apple = True
+        if self.char.get("remote_kick"):
+            self.pending_remote = True
+        if self.char.get("venom_kick"):
+            self.pending_venom = True
+        if self.char.get("plant_kick"):
+            self.pending_plant = True
+        if self.char.get("size_kick"):
+            self._size_state = (self._size_state + 1) % 3
+            self.draw_scale = (1.0, 2.0, 0.55)[self._size_state]
+        if self.char.get("grapple_kick"):
+            self.pending_hook = True
+        if self.char.get("pumpkin_kick") and self.pumpkin_cooldown == 0:
+            self.pending_pumpkin  = True
+            self.pumpkin_cooldown = FPS * 3   # 3-second cooldown
+        if self.char.get("deco_bomb_kick") and self.deco_bomb_cooldown == 0:
+            self.pending_deco_bomb  = True
+            self.deco_bomb_cooldown = FPS * 3   # 3-second cooldown
+        if self.char.get("hammer_slam_kick") and self.hammer_slam_timer == 0:
+            self.hammer_slam_timer = 14   # slam impact delay before lava erupts
+        if self.char.get("shadow_mark_kick"):
+            self.umbra_mark_x = self.x
+        if self.char.get("dino_summon_kick"):
+            self.pending_dino_summon = True
+        if self.char.get("stampede_kick"):
+            self.pending_stampede = True
+        if self.char.get("eye_kick_screen_destroy") and self.eye_kick_cooldown == 0:
+            self.pending_eye_kick  = True
+            self.eye_kick_cooldown = FPS * 15   # 15-second cooldown
+        if self.char.get("sniper_multiply_kick"):
+            self.pending_snider_bolt = True
+        if self.char.get("slime_bomb_kick"):
+            self.pending_slime_bomb = True
+        if self.char.get("exploding_tire_kick"):
+            self.pending_exploding_tire = True
+        if self.char.get("cutlass_kick"):
+            self.pending_cutlass = True
+        if self.char.get("rockball_kick"):
+            self.rockball_burst = 5   # rapid-fire burst
+            self.rockball_tick  = 0
+        if self.char.get("eeeby_laser_kick"):
+            self.pending_eeeby_laser = True
+        if self.char.get("torrti_ram") and self.ram_frames == 0:
+            self.ram_frames    = 26
+            self.ram_returning = False
+            self.ram_home_x    = self.x
+            self.ram_hit       = False
+        if self.char.get("ultralightning_kick"):
+            self.pending_ultralightning = True
+        if self.char.get("jack_tank"):
+            self.jack_tank_frames = FPS * 10  # activate / refresh tank mode
+            self.pending_jack_seed = True      # kick also fires a seed
+        if self.char.get("cornucopia_fruits"):
+            self._cornucopia_fire()
+        if self.char.get("saint_nix_coal"):
+            self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
+            self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
+        if self.char.get("ink_kick") and self.ink_clone_cooldown == 0:
+            self.pending_ink_clone  = True
+            self.ink_clone_cooldown = FPS * 5  # 5-second cooldown
+        if self.char.get("water_kick"):
+            self.pending_water_ball = True
+        if self.char.get("creator_kick") and self.creator_cd == 0:
+            self.pending_creator_platform = True
+            self.creator_cd = FPS * 3   # 3-second cooldown
+        if self.char.get("bubble_kick"):
+            self.pending_bubble_shot = True
+        if self.char.get("cobra_orb"):
+            self.pending_poison_orb = True
+        if self.char.get("giant_bug_kick") and not self.entomologist_bug_used:
+            self.pending_giant_bug = True
+        if self.char.get("black_hole_kick") and self.black_hole_cooldown == 0:
+            self.pending_black_hole    = True
+            self.black_hole_cooldown   = FPS * 20
+        if self.char.get("bug_spawner_kick"):
+            self.pending_bug_spawner = True
+        if self.char.get("widow_kick"):
+            self.pending_widow_bugs = True
+        if self.char.get("possess_kick"):
+            self.pending_possess = True
+        if self.char.get("sniper_shot"):
+            self.pending_snipe = True
+            self.kick_cooldown = FPS * 3   # 3-second reload
+        if self.char.get("map_kick"):
+            self.pending_stage_swap = True
+        if self.char.get("cleave_kick"):
+            self.kick_cooldown = FPS * 6   # 6-second reload for big cleave
+        if self.char.get("note_kick"):
+            self.pending_note = True
+        if self.char.get("arcane_orb"):
+            self.pending_arcane_orb = True
+        if self.char.get("flash_kick") and other is not None:
+            # Teleport behind opponent immediately on kick press
+            self.x = max(30.0, min(float(WIDTH - 30), other.x - other.facing * 60))
+            self.facing = other.facing
 
     def _tick_ram(self, other):
         """Blazex & Torrti: Torrti charges the opponent, rams if he reaches
@@ -2305,112 +2316,10 @@ class AIFighter(Fighter):
                 if self.ai_attack == 'punch':
                     self.punch_cooldown = 8 if self.char.get("rapid_fire") else FPS
                     self.is_crit = (self.ai_move == self.facing and random.random() > 0.5) or bool(self.char.get("always_crit"))
-                    if self.char.get("summer_wildfire"):
-                        self.pending_wildfire = True
-                    if self.char.get("sand_spit_punch"):
-                        self.pending_sand_spit = True
-                    if self.char.get("tentamissile_punch"):
-                        self.pending_tentamissile = True
-                    if self.char.get("muskshroom_punch"):
-                        self.pending_muskshroom = True
-                    if self.char.get("worm_mine_punch"):
-                        self.pending_worm_mines = True
-                    if self.char.get("seed_rain_punch"):
-                        self.pending_seed_rain = True
-                    if self.char.get("burning_mine_punch"):
-                        self.pending_burning_mines = True
-                    if self.char.get("bounce_punch"):
-                        self.pending_bounce = True
-                    if self.char.get("whip_punch") and self.whip_cooldown == 0:
-                        self.pending_whip  = True
-                        self.whip_cooldown = FPS * 2
-                    if self.char.get("bee_punch"):
-                        self.pending_bee = True
-                    if self.char.get("cycle_attack"):
-                        if self.attack_cycle == 1:
-                            self.pending_whip = True
-                        elif self.attack_cycle == 2:
-                            self.pending_snipe = True
-                        self.attack_cycle = (self.attack_cycle + 1) % 3
-                    if self.char.get("thunder_punch"):
-                        self.pending_thunder = True
-                    if self.char.get("jack_tank") and self.jack_tank_frames > 0:
-                        self.pending_jack_pumpkin = True
-                    if self.char.get("cornucopia_fruits"):
-                        self._cornucopia_fire()
-                    if self.char.get("saint_nix_coal"):
-                        self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
-                        self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
+                    self._trigger_punch_abilities()
                 else:
                     self.kick_cooldown = FPS * 2
-                    if self.char.get("teleport_kick"):
-                        self.x = float(random.randint(80, WIDTH - 80))
-                        self.flash_timer = 12
-                    if self.char.get("boomerang_kick") and self.boomerang_timer == 0 and self.boomerang_cooldown == 0:
-                        self.boomerang_timer = 240
-                        self.boomerang_angle = 0.0
-                    if self.char.get("shoot_kick"):
-                        self.pending_ball = True
-                    if self.char.get("venom_kick"):
-                        self.pending_venom = True
-                    if self.char.get("bazooka_kick") and self.bazooka_cooldown == 0:
-                        self.pending_orb      = True
-                        self.bazooka_cooldown = FPS * 5
-                    if self.char.get("bounce_kick"):
-                        self.pending_bounce = True
-                    if self.char.get("size_kick"):
-                        self._size_state = (self._size_state + 1) % 3
-                        self.draw_scale = (1.0, 2.0, 0.55)[self._size_state]
-                    if self.char.get("pumpkin_kick") and self.pumpkin_cooldown == 0:
-                        self.pending_pumpkin  = True
-                        self.pumpkin_cooldown = FPS * 3
-                    if self.char.get("ink_kick") and self.ink_clone_cooldown == 0:
-                        self.pending_ink_clone  = True
-                        self.ink_clone_cooldown = FPS * 5
-                    if self.char.get("plant_kick"):
-                        self.pending_plant = True
-                    if self.char.get("sniper_shot"):
-                        self.pending_snipe = True
-                        self.kick_cooldown = FPS * 3
-                    if self.char.get("map_kick"):
-                        self.pending_stage_swap = True
-                    if self.char.get("jack_tank"):
-                        self.jack_tank_frames = FPS * 10
-                        self.pending_jack_seed = True
-                    if self.char.get("cornucopia_fruits"):
-                        self._cornucopia_fire()
-                    if self.char.get("saint_nix_coal"):
-                        self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
-                        self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
-                    if self.char.get("hammer_slam_kick") and self.hammer_slam_timer == 0:
-                        self.hammer_slam_timer = 14
-                    if self.char.get("dino_summon_kick"):
-                        self.pending_dino_summon = True
-                    if self.char.get("stampede_kick"):
-                        self.pending_stampede = True
-                    if self.char.get("eye_kick_screen_destroy") and self.eye_kick_cooldown == 0:
-                        self.pending_eye_kick  = True
-                        self.eye_kick_cooldown = FPS * 15
-                    if self.char.get("sniper_multiply_kick"):
-                        self.pending_snider_bolt = True
-                    if self.char.get("slime_bomb_kick"):
-                        self.pending_slime_bomb = True
-                    if self.char.get("exploding_tire_kick"):
-                        self.pending_exploding_tire = True
-                    if self.char.get("cutlass_kick"):
-                        self.pending_cutlass = True
-                    if self.char.get("rockball_kick"):
-                        self.rockball_burst = 5   # rapid-fire burst
-                        self.rockball_tick  = 0
-                    if self.char.get("eeeby_laser_kick"):
-                        self.pending_eeeby_laser = True
-                    if self.char.get("torrti_ram") and self.ram_frames == 0:
-                        self.ram_frames    = 26
-                        self.ram_returning = False
-                        self.ram_home_x    = self.x
-                        self.ram_hit       = False
-                    if self.char.get("ultralightning_kick"):
-                        self.pending_ultralightning = True
+                    self._trigger_kick_abilities(other)
             self.ai_attack = None
         elif self.ai_move != 0:
             _ai_spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)

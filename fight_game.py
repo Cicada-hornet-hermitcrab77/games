@@ -13,7 +13,7 @@ from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt, SlantedConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull, FallingTeddy, HazardZone,
-                            JungleSnake, GoldenJungleSnake, Dino, Stampede, EyeDestroyer, ComputerBug, MousePlatform,
+                            JungleSnake, GoldenJungleSnake, GhostSnake, Dino, Stampede, EyeDestroyer, ComputerBug, MousePlatform,
                             Projectile, Orb, BouncingBall, Whip, HotPotato, BigBomb,
                             FallingPot, RollingCoin, FallingMerlin,
                             FlyingBaseball, FlyingBat, KitsuneShot, WaterBall, BeeShot, SnipeShot,
@@ -1241,6 +1241,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     is_underworld  = stage_data["name"] == "Underworld"
     jungle_snakes      = []
     snake_spawn_timer  = 180
+    ghost_snakes       = []    # Graveyard: flying spectral snakes
+    ghost_spawn_timer  = 150
     computer_bugs      = []
     bug_spawn_timer    = 150
     falling_skulls     = []
@@ -1977,6 +1979,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         constants.STAGE_CEILING = (stage_data["name"] == "The Nether")
                         constants.STAGE_WATER   = (stage_data["name"] == "Underwater")
                         jungle_snakes.clear()
+                        ghost_snakes.clear()
                         computer_bugs.clear()
                         falling_skulls.clear()
 
@@ -3385,6 +3388,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 _bp['t'] -= 1
             bomb_pops = [bp for bp in bomb_pops if bp['t'] > 0]
 
+            # Graveyard: ghost snakes rise from the graves and fly
+            if _is_graveyard:
+                ghost_spawn_timer -= 1
+                if ghost_spawn_timer <= 0 and len(ghost_snakes) < 3:
+                    ghost_snakes.append(GhostSnake())
+                    ghost_spawn_timer = random.randint(280, 460)
+            for _gs in ghost_snakes:
+                _gs.update(p1, p2)
+            ghost_snakes = [_gs for _gs in ghost_snakes if _gs.alive]
+
             # Jungle snakes
             if is_jungle:
                 snake_spawn_timer -= 1
@@ -3871,6 +3884,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             screen.blit(_bsurf, (int(_bp['x']) - _r - 2, int(_bp['y']) - _r - 2))
         for sn in jungle_snakes:
             sn.draw(screen)
+        for _gs in ghost_snakes:
+            _gs.draw(screen)
         for sk in falling_skulls:
             sk.draw(screen)
         for tb in falling_teddies:
@@ -4097,6 +4112,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                             dmg = (attacker.char["punch_dmg"] if attacker.action == 'punch'
                                    else attacker.char["kick_dmg"])
                             sn.take_damage(dmg)
+            # Fighter attacks banish ghost snakes
+            for attacker, hit_pos in [(p1, p1_hit), (p2, p2_hit)]:
+                if attacker.attacking and hit_pos:
+                    for _gs in ghost_snakes:
+                        if math.hypot(hit_pos[0] - _gs.x, hit_pos[1] - _gs.y) < 44:
+                            dmg = (attacker.char["punch_dmg"] if attacker.action == 'punch'
+                                   else attacker.char["kick_dmg"])
+                            _gs.take_damage(dmg)
             # Fighter attacks hit computer bugs
             if is_computer:
                 for attacker, hit_pos in [(p1, p1_hit), (p2, p2_hit)]:
@@ -4229,6 +4252,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     is_jungle     = stage_data["name"] == "Jungle"
     is_computer   = stage_data["name"] == "Computer"
     is_underworld = stage_data["name"] == "Underworld"
+    _is_graveyard = stage_data["name"] == "Graveyard"
     # Volcano Core: molten floor rises from the bottom, HEIGHT/90 px/sec
     _is_volcore = stage_data["name"] == "Volcano Core"
     _volcore_lava_y = float(HEIGHT + 30)
@@ -4288,6 +4312,20 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     coal_projs          = []   # CoalProj (Saint Nix)
     thunder_bolts       = []   # ThunderBolt (Thunder God / Storm Caller)
     survival_widow_bugs = []  # Black Widow wall bugs
+    # ── Abilities that used to fire only in versus mode ───────────────────
+    # These were set by Fighter/AIFighter but never read anywhere in
+    # run_survival, so the characters that own them did nothing in survival.
+    # One list per side: player-owned objects hunt enemies, enemy-owned hunt
+    # players. Keyed by ability so the pass below stays table-driven.
+    _SV_KINDS = ("water", "venom", "poison_orb", "bubble", "note", "bee",
+                 "snipe", "kitsune", "autofire", "black_hole")
+    sv_proj    = {k: [] for k in _SV_KINDS}   # player-owned
+    en_sv_proj = {k: [] for k in _SV_KINDS}   # enemy-owned
+    sv_mines       = []   # Trap Master mines            (dicts, own 'side')
+    sv_quakes      = []   # Fault Line shockwaves        (dicts, own 'side')
+    sv_bug_spawners = []  # 8-Bit Wasp bug spawners      (dicts, own 'side')
+    sv_giant_bugs  = []   # Entomologist giant bugs      (dicts, own 'side')
+    sv_bugs        = []   # bugs produced by the spawners above
     ink_clones        = []   # Ink Brush clones
     survival_bombs    = []   # Bomb character active bombs
     survival_bomb_pops = []  # explosion rings
@@ -4334,6 +4372,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     en_whips          = []
     powerups          = []
     jungle_snakes     = []
+    ghost_snakes      = []    # Graveyard: flying spectral snakes
+    ghost_spawn_timer = 150
     computer_bugs     = []
     bug_spawn_timer   = 150
     falling_skulls    = []
@@ -4411,6 +4451,100 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     _kirin_buf       = ""
     _kirin_cmd_timer = 0
     _kirin_cmd_type  = ""
+
+    # ── Helpers for the versus-only abilities listed above ─────────────────
+    # These close over `players` / `enemies`, which are rebound every frame —
+    # a closure reads the current binding, so they always see this frame's
+    # lists. One table-driven pass keeps ten projectile types honest instead
+    # of ten hand-copied blocks that can drift out of sync again.
+    _SV_PENDING = (("pending_water_ball", "water"), ("pending_venom", "venom"),
+                   ("pending_poison_orb", "poison_orb"), ("pending_bubble_shot", "bubble"),
+                   ("pending_note", "note"), ("pending_bee", "bee"),
+                   ("pending_snipe", "snipe"), ("pending_kitsune", "kitsune"),
+                   ("pending_autofire", "autofire"), ("pending_black_hole", "black_hole"))
+
+    def _sv_make(kind, f):
+        """Spawn a kind's projectiles for fighter f, as versus mode does."""
+        _fx, _fy = f.x + f.facing * 30, f.y - 60
+        if kind == "water":      return [WaterBall(_fx, _fy, f.facing, f)]
+        if kind == "venom":      return [VenomBean(_fx, _fy, f.facing, f)]
+        if kind == "poison_orb": return [PoisonOrb(_fx, _fy, f.facing, f)]
+        if kind == "bubble":     return [BubbleShot(_fx, _fy, f.facing, f)]
+        if kind == "note":       return [MusicNote(_fx, _fy, f.facing, f)]
+        if kind == "bee":        return [BeeShot(_fx, _fy, f.facing, f, vy=_v) for _v in (-4, -2, 0, 2, 4)]
+        if kind == "snipe":      return [SnipeShot(_fx, f.y - 80, f.facing, f)]
+        if kind == "kitsune":    return [KitsuneShot(f.x, f.y - 70, _i * 40.0, f) for _i in range(9)]
+        if kind == "autofire":   return [FireBall(_fx, _fy, f.facing, f)]
+        if kind == "black_hole": return [BlackHole(_fx, _fy, f.facing, f)]
+        return []
+
+    def _sv_apply_hit(kind, obj, victim):
+        """Each kind's on-hit effect, mirroring run_fight."""
+        if kind == "water":
+            victim.hp = max(0, victim.hp - WaterBall.DMG); victim.flash_timer = 8
+        elif kind == "venom":
+            victim.hp = max(0, victim.hp - VenomBean.DMG); victim.flash_timer = 8
+            if not victim.char.get("immune"):
+                if victim.poison_frames == 0: victim.poison_tick = 180
+                victim.poison_frames = max(victim.poison_frames, 360)
+            obj.hit = True
+        elif kind == "poison_orb":
+            victim.take_proj_dmg(15)
+            victim.poison_frames = max(victim.poison_frames, FPS * 6)
+            victim.poison_tick   = min(victim.poison_tick if victim.poison_tick > 0 else 999, 60)
+            victim.flash_timer   = 15
+        elif kind == "bubble":
+            victim.take_proj_dmg(10); victim.flash_timer = 8
+        elif kind == "note":
+            victim.take_proj_dmg(MusicNote.DMG); victim.flash_timer = 8
+            if not victim.char.get("immune"):
+                victim.hurt_timer = max(victim.hurt_timer, 120)
+        elif kind == "bee":
+            victim.take_proj_dmg(BeeShot.DMG); victim.flash_timer = 6
+        elif kind == "snipe":
+            victim.hp = max(0, victim.hp - SnipeShot.DMG); victim.flash_timer = 10
+        elif kind == "kitsune":
+            victim.hp = max(0, victim.hp - KitsuneShot.DMG); victim.flash_timer = 8
+        elif kind == "autofire":
+            victim.hp = max(0, victim.hp - FireBall.DMG); victim.flash_timer = 8
+            if not victim.char.get("immune"):
+                if victim.fire_frames == 0: victim.fire_tick = 480
+                victim.fire_frames = max(victim.fire_frames, 480)
+        elif kind == "black_hole":
+            victim.hp = 0
+        obj.alive = False
+
+    def _sv_proj_pass(kind, objs, targets):
+        """Update one side's projectiles of one kind and resolve collisions."""
+        for _o in objs:
+            _o.update()
+            if not _o.alive or getattr(_o, "hit", False):
+                continue
+            if kind == "black_hole" and targets:
+                _o.pull_toward(min(targets, key=lambda t: abs(t.x - _o.x)))
+            for _t in targets:
+                if _t.hp <= 0 or not _o.collides(_t):
+                    continue
+                if _t.char.get("mega_unhittable") and random.random() < 0.999:
+                    _t.flash_timer = 4; _o.alive = False
+                elif _t.char.get("armor_proj"):
+                    _o.alive = False
+                elif _t.char.get("deflect_proj"):
+                    # Send it back the way it came; ownership stays put since
+                    # the two sides keep separate lists here.
+                    if hasattr(_o, "vx"): _o.vx = -_o.vx
+                    if hasattr(_o, "vy"): _o.vy = -_o.vy
+                elif _t.bubble_shield:
+                    _t.flash_timer = 6; _o.alive = False
+                else:
+                    _sv_apply_hit(kind, _o, _t)
+                break
+        return [_o for _o in objs if _o.alive]
+
+    def _sv_foes(f):
+        """The fighters f is up against: enemies for a player, players for an enemy."""
+        return ([p for p in players if p.hp > 0] if f in enemies
+                else [e for e in enemies if e.hp > 0])
 
     while True:
         clock.tick(FPS)
@@ -5335,6 +5469,169 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             break
             en_exploding_tires = [et for et in en_exploding_tires if et.alive]
 
+            # ── Versus-only abilities, now live in survival for both sides ─
+            for _svf in [p for p in players if p.hp > 0] + enemies:
+                _svown = en_sv_proj if _svf in enemies else sv_proj
+                _svside = 'en' if _svf in enemies else 'pl'
+                for _attr, _kind in _SV_PENDING:
+                    if getattr(_svf, _attr, False):
+                        setattr(_svf, _attr, False)
+                        _svown[_kind].extend(_sv_make(_kind, _svf))
+                # Joker: random status effect on the nearest opponent
+                if _svf.pending_chaos:
+                    _svf.pending_chaos = False
+                    _foes = _sv_foes(_svf)
+                    if _foes:
+                        _vic = min(_foes, key=lambda t: abs(t.x - _svf.x))
+                        if not _vic.char.get("immune"):
+                            _fx2 = random.choice(['freeze', 'fire', 'shock', 'confuse', 'squish'])
+                            if _fx2 == 'freeze':
+                                _vic.freeze_frames = max(_vic.freeze_frames, 180)
+                            elif _fx2 == 'fire':
+                                if _vic.fire_frames == 0: _vic.fire_tick = 480
+                                _vic.fire_frames = max(_vic.fire_frames, 480)
+                            elif _fx2 == 'shock':
+                                _vic.shock_frames = max(_vic.shock_frames, 240)
+                            elif _fx2 == 'confuse':
+                                _vic.confuse_frames = max(_vic.confuse_frames, 180)
+                            elif _fx2 == 'squish':
+                                _vic.squish_frames = max(_vic.squish_frames, 180)
+                            _vic.flash_timer = 20
+                # Time Lord: freeze the nearest opponent solid
+                if _svf.pending_time_freeze:
+                    _svf.pending_time_freeze = False
+                    _foes = _sv_foes(_svf)
+                    if _foes:
+                        _vic = min(_foes, key=lambda t: abs(t.x - _svf.x))
+                        if not _vic.char.get("immune"):
+                            _vic.freeze_frames = max(_vic.freeze_frames, 240)
+                            _vic.flash_timer   = 20
+                # The Creator: a temporary platform in front of you
+                if _svf.pending_creator_platform:
+                    _svf.pending_creator_platform = False
+                    _cpx = int(_svf.x + _svf.facing * 80) - 60
+                    _cpy = max(60, min(GROUND_Y - 20, int(_svf.y) - 60))
+                    platforms.append(TimedPlatform(_cpx, _cpy, w=120, lifetime=FPS * 5))
+                # Rainbow Man: drop a random powerup
+                if _svf.pending_rainbow_poop:
+                    _svf.pending_rainbow_poop = False
+                    _rpu = Powerup()
+                    _rpu.x = _svf.x + random.choice((-30, 30))
+                    _rpu.y = float(GROUND_Y - 14)
+                    powerups.append(_rpu)
+                # Portal Maker: re-place the portal pair
+                if _svf.pending_portal:
+                    _svf.pending_portal = False
+                    _pnew1 = Portal(_svf.x, _svf.y - 80, _portal_cols_s[0])
+                    _pnew2 = Portal(random.randint(100, WIDTH - 100),
+                                    random.randint(GROUND_Y - 280, GROUND_Y - 60),
+                                    _portal_cols_s[1])
+                    _pnew1.partner = _pnew2
+                    _pnew2.partner = _pnew1
+                    portals_obj_s[:] = [_pnew1, _pnew2]
+                # Trap Master: plant a mine
+                if _svf.pending_mine:
+                    _svf.pending_mine = False
+                    sv_mines.append({'x': float(_svf.x), 'y': float(GROUND_Y),
+                                     'side': _svside, 'life': FPS * 8, 'arm': 25})
+                # Fault Line: ground shockwave
+                if _svf.pending_quake_wave:
+                    _svf.pending_quake_wave = False
+                    sv_quakes.append({'x': _svf.x + _svf.facing * 30, 'y': float(GROUND_Y),
+                                      'vx': _svf.facing * 7, 'life': 90,
+                                      'side': _svside, 'hit_cd': 0})
+                # 8-Bit Wasp: drop a bug spawner
+                if _svf.pending_bug_spawner:
+                    _svf.pending_bug_spawner = False
+                    sv_bug_spawners.append({'x': float(_svf.x), 'side': _svside,
+                                            'life': FPS * 10, 'spawn_cd': FPS * 3})
+                # Entomologist: one giant bug per run
+                if _svf.pending_giant_bug:
+                    _svf.pending_giant_bug = False
+                    if not _svf.entomologist_bug_used:
+                        _svf.entomologist_bug_used = True
+                        sv_giant_bugs.append({'x': float(_svf.x), 'y': float(GROUND_Y),
+                                              'vx': 0.0, 'life': FPS * 8, 'leg_t': 0.0,
+                                              'side': _svside, 'bite_cd': {}})
+                # Not portable to survival: possession needs the versus entity
+                # set and the stage never swaps mid-run here. Clear the flags
+                # so they don't stay latched for the rest of the match.
+                if _svf.pending_possess:
+                    _svf.pending_possess = False
+                if _svf.pending_stage_swap:
+                    _svf.pending_stage_swap = False
+
+            _sv_vs_players = [p for p in players if p.hp > 0]
+            _sv_vs_enemies = [e for e in enemies if e.hp > 0]
+            for _kind in _SV_KINDS:
+                sv_proj[_kind]    = _sv_proj_pass(_kind, sv_proj[_kind],    _sv_vs_enemies)
+                en_sv_proj[_kind] = _sv_proj_pass(_kind, en_sv_proj[_kind], _sv_vs_players)
+
+            # Trap Master mines (survival)
+            for _mn in sv_mines:
+                if _mn['arm'] > 0: _mn['arm'] -= 1
+                _mn['life'] -= 1
+                if _mn['arm'] == 0:
+                    for _vic in (_sv_vs_players if _mn['side'] == 'en' else _sv_vs_enemies):
+                        if abs(_mn['x'] - _vic.x) < 28:
+                            _vic.take_proj_dmg(25)
+                            _vic.flash_timer = 15
+                            _mn['life'] = 0
+                            break
+            sv_mines = [_mn for _mn in sv_mines if _mn['life'] > 0]
+
+            # Fault Line shockwaves (survival)
+            for _qw in sv_quakes:
+                _qw['x'] += _qw['vx']
+                _qw['life'] -= 1
+                if _qw['hit_cd'] > 0:
+                    _qw['hit_cd'] -= 1
+                if _qw['hit_cd'] == 0:
+                    for _vic in (_sv_vs_players if _qw['side'] == 'en' else _sv_vs_enemies):
+                        if abs(_qw['x'] - _vic.x) < 32:
+                            _vic.take_proj_dmg(15)
+                            _vic.flash_timer = 10
+                            _qw['hit_cd'] = 30
+                            break
+            sv_quakes = [_qw for _qw in sv_quakes if _qw['life'] > 0 and 0 <= _qw['x'] <= WIDTH]
+
+            # 8-Bit Wasp bug spawners (survival)
+            for _bsp in sv_bug_spawners:
+                _bsp['life'] -= 1
+                if _bsp['spawn_cd'] > 0:
+                    _bsp['spawn_cd'] -= 1
+                elif _bsp['life'] > 0:
+                    _nb = ComputerBug()
+                    _nb.x = float(_bsp['x'])
+                    sv_bugs.append({'bug': _nb, 'side': _bsp['side']})
+                    _bsp['spawn_cd'] = FPS * 3
+            sv_bug_spawners = [_bsp for _bsp in sv_bug_spawners if _bsp['life'] > 0]
+            for _sb in sv_bugs:
+                _bfoes = _sv_vs_players if _sb['side'] == 'en' else _sv_vs_enemies
+                if _bfoes:
+                    _sb['bug'].update(min(_bfoes, key=lambda t: abs(t.x - _sb['bug'].x)))
+            sv_bugs = [_sb for _sb in sv_bugs if _sb['bug'].alive]
+
+            # Entomologist giant bugs (survival)
+            for _gb in sv_giant_bugs:
+                _gb['life'] -= 1
+                _gb['leg_t'] += 0.2
+                _gfoes = _sv_vs_players if _gb['side'] == 'en' else _sv_vs_enemies
+                if _gfoes:
+                    _gnear = min(_gfoes, key=lambda t: abs(t.x - _gb['x']))
+                    _gb['vx'] = 3.0 if _gnear.x > _gb['x'] else -3.0
+                    _gb['x']  = max(30.0, min(float(WIDTH - 30), _gb['x'] + _gb['vx']))
+                for _vic in _gfoes:
+                    _vid = id(_vic)
+                    _gb['bite_cd'].setdefault(_vid, 0)
+                    if _gb['bite_cd'][_vid] > 0:
+                        _gb['bite_cd'][_vid] -= 1
+                    elif abs(_vic.x - _gb['x']) < 52:
+                        _vic.hp = max(0, _vic.hp - 25)
+                        _vic.flash_timer = 15
+                        _gb['bite_cd'][_vid] = 90
+            sv_giant_bugs = [_gb for _gb in sv_giant_bugs if _gb['life'] > 0]
+
             # Rook & Moosh: muskshrooms (survival)
             for ms in muskshrooms:
                 ms.update()
@@ -5966,6 +6263,19 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             enemies        = [en for en in enemies if en.hp > 0]
             enemies_killed += before - len(enemies)
 
+            # Graveyard: ghost snakes rise from the graves and fly
+            if _is_graveyard:
+                ghost_spawn_timer -= 1
+                if ghost_spawn_timer <= 0 and len(ghost_snakes) < 3:
+                    ghost_snakes.append(GhostSnake())
+                    ghost_spawn_timer = random.randint(280, 460)
+            for _gs in ghost_snakes:
+                _gtargets = [t for t in players + enemies if t.hp > 0]
+                if _gtargets:
+                    _gclosest = min(_gtargets, key=lambda t: math.hypot(t.x - _gs.x, (t.y - 60) - _gs.y))
+                    _gs.update(_gclosest, _gclosest)
+            ghost_snakes = [_gs for _gs in ghost_snakes if _gs.alive]
+
             # Jungle snakes
             if is_jungle:
                 snake_spawn_timer -= 1
@@ -6217,6 +6527,43 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 pygame.draw.polygon(screen, (150, 200, 240),
                                     [(ix - 14, iy), (ix + 14, iy - 3), (ix + 14, iy + 3)], 1)
         for swb  in survival_widow_bugs: swb['bug'].draw(screen)
+        # ── Versus-only abilities, drawn in survival ───────────────────────
+        for _kind in _SV_KINDS:
+            for _o in sv_proj[_kind] + en_sv_proj[_kind]:
+                _o.draw(screen)
+        for _mn in sv_mines:
+            _armed = _mn['arm'] == 0
+            pygame.draw.circle(screen, (200, 60, 20) if _armed else (130, 110, 60),
+                               (int(_mn['x']), GROUND_Y - 7), 9)
+            if _armed and (_mn['life'] // 8) % 2 == 0:
+                pygame.draw.circle(screen, (255, 220, 0), (int(_mn['x']), GROUND_Y - 7), 5)
+        for _qw in sv_quakes:
+            _qt = 1.0 - _qw['life'] / 90
+            _qr = max(6, int(18 - _qt * 8))
+            pygame.draw.ellipse(screen, (180 + int(_qt * 60), int(130 - _qt * 70), 30),
+                                (int(_qw['x']) - _qr, GROUND_Y - _qr // 2, _qr * 2, _qr // 2 + 3))
+        for _bsp in sv_bug_spawners:
+            _bx2, _by2 = int(_bsp['x']), GROUND_Y - 10
+            pygame.draw.rect(screen, (40, 160, 60),  (_bx2 - 14, _by2 - 18, 28, 28), border_radius=4)
+            pygame.draw.rect(screen, (80, 220, 100), (_bx2 - 14, _by2 - 18, 28, 28), 2, border_radius=4)
+            pygame.draw.rect(screen, (40, 40, 40), (_bx2 - 14, _by2 - 24, 28, 4))
+            pygame.draw.rect(screen, (0, 220, 60),
+                             (_bx2 - 14, _by2 - 24, int(28 * _bsp['life'] / (FPS * 10)), 4))
+        for _sb in sv_bugs:
+            _sb['bug'].draw(screen)
+        for _gb in sv_giant_bugs:
+            _gx2, _gy2, _lt2 = int(_gb['x']), GROUND_Y, _gb['leg_t']
+            pygame.draw.ellipse(screen, (0, 180, 40), (_gx2 - 30, _gy2 - 28, 50, 24))
+            pygame.draw.ellipse(screen, (0, 140, 30), (_gx2 - 12, _gy2 - 32, 34, 28))
+            _gf2 = 1 if _gb['vx'] >= 0 else -1
+            pygame.draw.circle(screen, (0, 200, 50),  (_gx2 + _gf2 * 26, _gy2 - 20), 13)
+            pygame.draw.circle(screen, (255, 30, 30), (_gx2 + _gf2 * 31, _gy2 - 25), 5)
+            pygame.draw.circle(screen, (255, 30, 30), (_gx2 + _gf2 * 31, _gy2 - 15), 5)
+            for _gi in range(3):
+                _gw = int(math.sin(_lt2 + _gi * 1.1) * 10)
+                _gly = _gy2 - 20 + _gi * 7
+                pygame.draw.line(screen, (0, 140, 30), (_gx2 - 5, _gly), (_gx2 - 34, _gly + _gw + 14), 2)
+                pygame.draw.line(screen, (0, 140, 30), (_gx2 + 5, _gly), (_gx2 + 34, _gly - _gw + 14), 2)
         for b    in en_balls:      b.draw(screen)
         for o    in orbs:          o.draw(screen)
         for o    in en_orbs:       o.draw(screen)
@@ -6240,6 +6587,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for w    in whips:         w.draw(screen)
         for w    in en_whips:      w.draw(screen)
         for sn   in jungle_snakes: sn.draw(screen)
+        for _gs  in ghost_snakes:  _gs.draw(screen)
         for sk   in falling_skulls: sk.draw(screen)
         for tb   in falling_teddies: tb.draw(screen)
         for b    in computer_bugs: b.draw(screen)
@@ -6381,6 +6729,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             dmg = (attacker.char["punch_dmg"] if attacker.action=='punch'
                                    else attacker.char["kick_dmg"])
                             sn.take_damage(dmg)
+            # Fighter attacks banish ghost snakes
+            for attacker, hit_pos in ([(p1, p1_hit)] + ([(p2, p2_hit)] if two_player else [])):
+                if attacker.attacking and hit_pos:
+                    for _gs in ghost_snakes:
+                        if math.hypot(hit_pos[0]-_gs.x, hit_pos[1]-_gs.y) < 44:
+                            dmg = (attacker.char["punch_dmg"] if attacker.action=='punch'
+                                   else attacker.char["kick_dmg"])
+                            _gs.take_damage(dmg)
             # Fighter attacks on computer bugs
             if is_computer:
                 for attacker, hit_pos in ([(p1, p1_hit)] + ([(p2, p2_hit)] if two_player else [])):

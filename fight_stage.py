@@ -1554,3 +1554,133 @@ class HazardZone:
                         (int(self.x)+i+4, y), (int(self.x)+i+1, y-8), 2)
         elif self.htype == "ice":
             pygame.draw.rect(surface, col2, (int(self.x), y, self.w, 4))
+
+
+# ---------------------------------------------------------------------------
+# GhostSnake  (Graveyard — spectral serpents that fly, not slither)
+# ---------------------------------------------------------------------------
+
+class GhostSnake:
+    """A translucent snake that rises out of a grave and flies. It drifts at
+    any height toward the nearest living fighter, bites on a cooldown, then
+    fades out for a moment before coming back for more. Melee hits banish it."""
+    SPEED         = 2.2
+    MAX_HP        = 14
+    BITE_DMG      = 4
+    BITE_COOLDOWN = 110
+    BITE_RANGE    = 46
+    FADE_FRAMES   = 45     # spectral cooldown after a bite — harmless while faded
+
+    def __init__(self, x=None):
+        self.x       = float(x if x is not None else random.randint(70, WIDTH - 70))
+        self.y       = float(GROUND_Y - 4)     # rises out of the ground
+        self.facing  = 1
+        self.hp      = self.MAX_HP
+        self.alive   = True
+        self.t       = random.randint(0, 120)
+        self.bite_cd = 0
+        self.fade    = 0
+        self.rising  = 90                      # frames of emerging from the grave
+        self.possessed_timer  = 0
+        self.possessed_target = None
+
+    def update(self, p1, p2):
+        if not self.alive:
+            return
+        self.t += 1
+        if self.bite_cd > 0:
+            self.bite_cd -= 1
+        if self.fade > 0:
+            self.fade -= 1
+        if self.possessed_timer > 0:
+            self.possessed_timer -= 1
+
+        if self.rising > 0:
+            self.rising -= 1
+            self.y -= 1.2                      # float up out of the grave
+            return
+
+        if self.possessed_timer > 0 and self.possessed_target is not None:
+            target = self.possessed_target
+        else:
+            d1 = math.hypot(self.x - p1.x, self.y - p1.y) if p1.hp > 0 else 1e9
+            d2 = math.hypot(self.x - p2.x, self.y - p2.y) if p2.hp > 0 else 1e9
+            if d1 > 1e8 and d2 > 1e8:
+                return
+            target = p1 if d1 <= d2 else p2
+
+        spd = self.SPEED * (2.0 if self.possessed_timer > 0 else 1.0)
+        # Flight: chase in both axes, aiming for the target's chest
+        tx, ty = target.x, target.y - 60
+        dx, dy = tx - self.x, ty - self.y
+        self.facing = 1 if dx > 0 else -1
+        dist = math.hypot(dx, dy) or 1.0
+        if dist > self.BITE_RANGE - 6:
+            self.x += (dx / dist) * spd
+            self.y += (dy / dist) * spd
+        # Serpentine bob on top of the chase, and stay inside the arena
+        self.y += math.sin(self.t * 0.09) * 0.7
+        self.x = max(24.0, min(float(WIDTH - 24), self.x))
+        self.y = max(60.0, min(float(GROUND_Y - 10), self.y))
+
+        if dist < self.BITE_RANGE and self.bite_cd == 0 and self.fade == 0 and target.hp > 0:
+            dmg = self.BITE_DMG * (3 if self.possessed_timer > 0 else 1)
+            target.take_proj_dmg(dmg, flash=False)
+            target.flash_timer = max(target.flash_timer, 6)
+            if not target.char.get("immune"):
+                target.freeze_frames = max(target.freeze_frames, 24)   # a chilling bite
+            self.bite_cd = self.BITE_COOLDOWN
+            self.fade    = self.FADE_FRAMES
+
+    def take_damage(self, dmg):
+        self.hp -= dmg
+        if self.hp <= 0:
+            self.alive = False
+
+    def draw(self, surface):
+        if not self.alive:
+            return
+        cx, cy = int(self.x), int(self.y)
+        # Faded right after a bite, and translucent always
+        base_a = 70 if self.fade > 0 else 170
+        if self.rising > 0:
+            base_a = int(base_a * (1.0 - self.rising / 90.0))
+        span = 54
+        surf = pygame.Surface((span * 2 + 40, 90), pygame.SRCALPHA)
+        ox, oy = span + 20, 45
+        # Wispy tail that dissolves toward the end
+        for i in range(9):
+            f  = i / 8.0
+            bx = ox - self.facing * int(f * span)
+            by = oy + int(math.sin(self.t * 0.12 + f * math.pi * 1.6) * 10)
+            r  = max(2, int(9 - f * 7))
+            a  = int(base_a * (1.0 - f * 0.8))
+            col = (170, 225, 210, a) if i % 2 == 0 else (120, 190, 180, a)
+            pygame.draw.circle(surf, col, (bx, by), r)
+        # Head
+        hx = ox + self.facing * 8
+        pygame.draw.circle(surf, (205, 245, 230, base_a), (hx, oy), 10)
+        pygame.draw.circle(surf, (120, 190, 180, base_a), (hx, oy), 10, 2)
+        # Sunken glowing eyes
+        for _eo in (-3, 3):
+            pygame.draw.circle(surf, (255, 240, 120, min(255, base_a + 60)),
+                               (hx + self.facing * 4, oy - 4 + _eo // 2), 3)
+            pygame.draw.circle(surf, (40, 20, 10, min(255, base_a + 60)),
+                               (hx + self.facing * 5, oy - 4 + _eo // 2), 1)
+        # Forked spectral tongue
+        if self.t % 20 < 12:
+            tip = hx + self.facing * 20
+            pygame.draw.line(surf, (200, 255, 240, base_a), (hx + self.facing * 9, oy), (tip - 2, oy - 4), 2)
+            pygame.draw.line(surf, (200, 255, 240, base_a), (hx + self.facing * 9, oy), (tip + 2, oy + 4), 2)
+        # Ectoplasm haze around the whole thing
+        haze = pygame.Surface((span * 2 + 40, 90), pygame.SRCALPHA)
+        pygame.draw.ellipse(haze, (150, 220, 205, base_a // 5),
+                            (ox - span - 6, oy - 22, span + 40, 44))
+        surf.blit(haze, (0, 0))
+        surface.blit(surf, (cx - ox, cy - oy))
+        # HP bar, only once it has been hurt
+        if self.hp < self.MAX_HP:
+            bw = 30
+            pygame.draw.rect(surface, (40, 40, 40), (cx - bw // 2, cy - 26, bw, 4))
+            pygame.draw.rect(surface, (150, 240, 200),
+                             (cx - bw // 2, cy - 26, int(bw * max(0, self.hp) / self.MAX_HP), 4))
