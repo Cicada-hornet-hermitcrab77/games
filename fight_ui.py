@@ -745,6 +745,15 @@ def mode_select(unlocked=None, stats=None):
     START = WIDTH // 2 - (7 * card_w + 6 * GAP) // 2
     card_xs = [START + i * (card_w + GAP) for i in range(7)]
     _story_teaser = [0]   # frames left on the "not yet..." nudge
+    _story_rattle = [0]   # frames left on the chain rattle (decays to still)
+    _story_line   = [0]   # which nudge line this yank picked
+    STORY_RATTLE  = 34    # how long a yank on the chains keeps shaking
+    STORY_LINES   = [
+        "Story Mode is chained shut... for now.",
+        "The lock holds. Whatever is in there stays in there.",
+        "Something rattles back. Best not to answer it.",
+        "Not yet. The ivy has not finished growing.",
+    ]
 
     _type42_buf = ""
     _secret_seq = "all_the_secrets_of_the_world"
@@ -868,7 +877,12 @@ def mode_select(unlocked=None, stats=None):
                 for _ci, _cx in enumerate(card_xs):
                     if pygame.Rect(_cx, 140, card_w, card_h).collidepoint(_mp):
                         if _ci == 6:          # Story Mode: chained shut for now
+                            # A different line each yank — never the same
+                            # one twice in a row
+                            _story_line[0] = random.choice(
+                                [_i for _i in range(len(STORY_LINES)) if _i != _story_line[0]])
                             _story_teaser[0] = FPS * 3
+                            _story_rattle[0] = STORY_RATTLE   # yank the chains
                         else:
                             selected = _ci
                         break
@@ -1107,26 +1121,50 @@ def mode_select(unlocked=None, stats=None):
                             pygame.draw.ellipse(screen, (30, 70, 28), (_lfx - 7, _vy2 - 5, 14, 10), 1)
                         _prev = (_vx2, _vy2)
 
-                # Chains crossing the card, with a padlock at the crossing
-                for _c1, _c2 in (((_sx0 + 4, _sy0 + 96), (_sx0 + card_w - 4, _sy0 + card_h - 34)),
-                                 ((_sx0 + card_w - 4, _sy0 + 96), (_sx0 + 4, _sy0 + card_h - 34))):
+                # Chains crossing the card, with a padlock at the crossing.
+                # A click yanks them: every link jitters on its own phase and
+                # the whole rattle damps back to still over ~half a second,
+                # hardest in the slack middle and pinned at the anchors.
+                _rf   = _story_rattle[0] / float(STORY_RATTLE)   # 1 → 0
+                _ramp = 5.0 * _rf * _rf                          # pixels, eased out
+                _rt   = _st * 47.0                               # fast shake
+                for _ch2, (_c1, _c2) in enumerate(
+                        (((_sx0 + 4, _sy0 + 96), (_sx0 + card_w - 4, _sy0 + card_h - 34)),
+                         ((_sx0 + card_w - 4, _sy0 + 96), (_sx0 + 4, _sy0 + card_h - 34)))):
                     _clen = math.hypot(_c2[0] - _c1[0], _c2[1] - _c1[1])
                     _steps = max(2, int(_clen // 13))
                     for _li2 in range(_steps):
                         _lt2 = _li2 / _steps
                         _lcx = int(_c1[0] + (_c2[0] - _c1[0]) * _lt2)
                         _lcy = int(_c1[1] + (_c2[1] - _c1[1]) * _lt2)
+                        if _ramp > 0.1:
+                            _slack = math.sin(_lt2 * math.pi)     # ends stay anchored
+                            # Neighbouring links share a travelling wave so the
+                            # chain undulates instead of scattering into beads
+                            _lcx += int(math.sin(_rt + _li2 * 0.8 + _ch2 * 2.0) * _ramp * _slack)
+                            _lcy += int(math.cos(_rt + _li2 * 0.8 + _ch2 * 2.0) * _ramp * 0.6 * _slack)
                         _lr = (7, 5) if _li2 % 2 == 0 else (5, 7)
                         pygame.draw.ellipse(screen, (168, 168, 176),
                                             (_lcx - _lr[0], _lcy - _lr[1], _lr[0] * 2, _lr[1] * 2), 3)
                         pygame.draw.ellipse(screen, (96, 96, 104),
                                             (_lcx - _lr[0], _lcy - _lr[1], _lr[0] * 2, _lr[1] * 2), 1)
                 _plx, _ply = _scx, _sy0 + card_h - 58
+                if _ramp > 0.1:
+                    # The padlock swings hardest — it is the loose weight
+                    _plx += int(math.sin(_rt * 0.8) * _ramp * 1.5)
+                    _ply += int(abs(math.sin(_rt * 0.8 + 1.0)) * _ramp)
                 pygame.draw.arc(screen, (180, 180, 190), (_plx - 11, _ply - 22, 22, 24),
                                 0, math.pi, 4)
                 pygame.draw.rect(screen, (196, 170, 60), (_plx - 14, _ply - 4, 28, 24), border_radius=4)
                 pygame.draw.rect(screen, (120, 100, 30), (_plx - 14, _ply - 4, 28, 24), 2, border_radius=4)
                 pygame.draw.circle(screen, (110, 92, 28), (_plx, _ply + 7), 4)
+                # Dust shaken loose off the chains
+                if _ramp > 1.2:
+                    for _dz in range(3):
+                        _dzx = _scx + int(math.sin(_rt * 0.3 + _dz * 2.1) * card_w * 0.3)
+                        _dzy = _sy0 + card_h - 40 + int((1.0 - _rf) * 14) + _dz * 3
+                        pygame.draw.circle(screen, (120, 112, 96), (_dzx, _dzy),
+                                           max(1, int(_ramp * 0.4)))
 
                 _soon = font_tiny.render("COMING SOON", True,
                                          (200, 180, 120) if (_st % 1.6) < 0.8 else (120, 108, 80))
@@ -1138,10 +1176,12 @@ def mode_select(unlocked=None, stats=None):
                 sel_txt = font_tiny.render("ENTER / SPACE to select", True, WHITE)
                 screen.blit(sel_txt, (cx + card_w//2 - sel_txt.get_width()//2, 390))
 
-        # Story Mode teaser nudge
+        # Story Mode teaser nudge (and the chain rattle winding down)
+        if _story_rattle[0] > 0:
+            _story_rattle[0] -= 1
         if _story_teaser[0] > 0:
             _story_teaser[0] -= 1
-            _stx = font_small.render("Story Mode is chained shut... for now.", True, (200, 180, 120))
+            _stx = font_small.render(STORY_LINES[_story_line[0]], True, (200, 180, 120))
             screen.blit(_stx, (WIDTH // 2 - _stx.get_width() // 2, 120))
 
         # Difficulty picker (1P mode)
