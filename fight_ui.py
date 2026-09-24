@@ -1176,13 +1176,75 @@ def mode_select(unlocked=None, stats=None):
                 sel_txt = font_tiny.render("ENTER / SPACE to select", True, WHITE)
                 screen.blit(sel_txt, (cx + card_w//2 - sel_txt.get_width()//2, 390))
 
-        # Story Mode teaser nudge (and the chain rattle winding down)
+        # Story Mode teaser: the chain rattle winds down, and Tombstone —
+        # in his Legacy of Valor conductor cap — is the one who answers.
         if _story_rattle[0] > 0:
             _story_rattle[0] -= 1
         if _story_teaser[0] > 0:
             _story_teaser[0] -= 1
-            _stx = font_small.render(STORY_LINES[_story_line[0]], True, (200, 180, 120))
-            screen.blit(_stx, (WIDTH // 2 - _stx.get_width() // 2, 120))
+            _tbt   = pygame.time.get_ticks() / 1000.0
+            _tb_gx = WIDTH - 62                     # where he stands
+            _tb_gy = HEIGHT - 12
+            _tb_sc = 0.62
+            _tb_top = _tb_gy - 85                   # measured crown of the stone
+            _tb_half = 32                           # measured half-width
+            _talk  = _story_teaser[0] > 8           # still saying his piece
+
+            # ── Speech bubble, wrapped, sitting above and to his left ──────
+            _sp_txt   = STORY_LINES[_story_line[0]]
+            _sp_max   = 300
+            _sp_lines, _cur = [], ""
+            for _w in _sp_txt.split():
+                _try = (_cur + " " + _w).strip()
+                if font_small.size(_try)[0] > _sp_max and _cur:
+                    _sp_lines.append(_cur); _cur = _w
+                else:
+                    _cur = _try
+            if _cur:
+                _sp_lines.append(_cur)
+            _sp_w = max(font_small.size(_l)[0] for _l in _sp_lines) + 22
+            _sp_h = len(_sp_lines) * 22 + 14
+            _sp_x = _tb_gx - 44 - _sp_w
+            _sp_y = max(388, _tb_top - 34 - _sp_h)   # never ride up over the cards
+            pygame.draw.rect(screen, (28, 26, 34), (_sp_x, _sp_y, _sp_w, _sp_h), border_radius=8)
+            pygame.draw.rect(screen, (150, 140, 120), (_sp_x, _sp_y, _sp_w, _sp_h), 2, border_radius=8)
+            pygame.draw.polygon(screen, (28, 26, 34), [
+                (_sp_x + _sp_w - 26, _sp_y + _sp_h - 2),
+                (_sp_x + _sp_w - 6,  _sp_y + _sp_h - 2),
+                (_sp_x + _sp_w + 22, _sp_y + _sp_h + 22)])
+            pygame.draw.line(screen, (150, 140, 120), (_sp_x + _sp_w - 26, _sp_y + _sp_h - 1),
+                             (_sp_x + _sp_w + 22, _sp_y + _sp_h + 22), 2)
+            pygame.draw.line(screen, (150, 140, 120), (_sp_x + _sp_w - 6, _sp_y + _sp_h - 1),
+                             (_sp_x + _sp_w + 22, _sp_y + _sp_h + 22), 2)
+            for _li3, _sl in enumerate(_sp_lines):
+                _ss = font_small.render(_sl, True, (222, 214, 190))
+                screen.blit(_ss, (_sp_x + 11, _sp_y + 8 + _li3 * 22))
+
+            # ── Tombstone himself, nodding while he talks ─────────────────
+            _nod = int(math.sin(_tbt * 9) * 2) if _talk else 0
+            draw_stickman(screen, _tb_gx, _tb_gy + _nod, (155, 150, 140), -1, 'idle', 0.0,
+                          scale=_tb_sc, char_name="Tombstone")
+
+            # ── Train conductor cap, banded LOV (Legacy of Valor) ─────────
+            _cap_w = _tb_half * 2 + 8
+            _cap_x = _tb_gx - _cap_w // 2
+            _cap_b = _tb_top + _nod              # where the band sits on the crown
+            pygame.draw.rect(screen, (30, 34, 58),                    # visor, out to his left
+                             (_cap_x - 20, _cap_b - 3, 30, 7), border_radius=3)
+            pygame.draw.ellipse(screen, (44, 50, 80), (_cap_x - 22, _cap_b - 4, 34, 9))
+            pygame.draw.ellipse(screen, (16, 18, 34), (_cap_x - 22, _cap_b - 4, 34, 9), 1)
+            pygame.draw.rect(screen, (50, 56, 88),                    # crown
+                             (_cap_x + 3, _cap_b - 20, _cap_w - 6, 20), border_radius=5)
+            pygame.draw.rect(screen, (20, 22, 42),
+                             (_cap_x + 3, _cap_b - 20, _cap_w - 6, 20), 2, border_radius=5)
+            pygame.draw.rect(screen, (24, 26, 46),                    # band
+                             (_cap_x, _cap_b - 6, _cap_w, 11), border_radius=3)
+            pygame.draw.rect(screen, (14, 16, 32),
+                             (_cap_x, _cap_b - 6, _cap_w, 11), 1, border_radius=3)
+            pygame.draw.circle(screen, (196, 166, 70), (_cap_x + 6, _cap_b), 2)
+            pygame.draw.circle(screen, (196, 166, 70), (_cap_x + _cap_w - 6, _cap_b), 2)
+            _lov = font_tiny.render("LOV", True, (226, 196, 90))      # Legacy of Valor
+            screen.blit(_lov, (_tb_gx - _lov.get_width() // 2, _cap_b - 5))
 
         # Difficulty picker (1P mode)
         if selected == 0:
