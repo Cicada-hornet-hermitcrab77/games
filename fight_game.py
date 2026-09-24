@@ -4580,6 +4580,12 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 break
         return [_o for _o in objs if _o.alive]
 
+    def _sv_actors():
+        """Everyone who can trigger an ability this frame — living players
+        and every enemy. Survival used to run most abilities for players only,
+        so an enemy with them just stood there."""
+        return [p for p in players if p.hp > 0] + enemies
+
     def _sv_foes(f):
         """The fighters f is up against: enemies for a player, players for an enemy."""
         return ([p for p in players if p.hp > 0] if f in enemies
@@ -4880,12 +4886,12 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             if two_player and p2.hp > 0:
                 p2.update(keys, p1, platforms)
 
-            # Storm Caller + Quaker (survival)
-            for p in players:
+            # Storm Caller + Quaker (survival, both sides)
+            for p in _sv_actors():
                 if p.pending_storm:
                     p.pending_storm = False
                     sx = random.randint(80, WIDTH - 80)
-                    for en in enemies:
+                    for en in _sv_foes(p):
                         if abs(en.x - sx) < 80:
                             en.hp = max(0, en.hp - ThunderBolt.DMG)
                             en.flash_timer = 12
@@ -4893,7 +4899,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                                 en.shock_frames = max(en.shock_frames, 180)
                 if p.quake_pending:
                     p.quake_pending = False
-                    for en in enemies:
+                    for en in _sv_foes(p):
                         if abs(p.x - en.x) < 140:
                             en.hp = max(0, en.hp - 15)
                             en.flash_timer = 10
@@ -5146,17 +5152,17 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             b.alive = False; break
             balls = [b for b in balls if b.alive]
 
-            # Black Widow: wall bugs (survival — player → enemies)
-            for p in players:
+            # Black Widow: wall bugs (survival, both sides)
+            for p in _sv_actors():
                 if p.pending_widow_bugs:
                     p.pending_widow_bugs = False
                     for _wx in (40.0, float(WIDTH - 40)):
                         nb = ComputerBug(); nb.x = _wx
-                        survival_widow_bugs.append({'bug': nb, 'enemies': enemies})
+                        survival_widow_bugs.append({'bug': nb, 'owner': p})
             _prev_swb = len(survival_widow_bugs)
             for swb in survival_widow_bugs:
                 swb['bug'].leg_t += 0.2
-                closest = min(swb['enemies'], key=lambda e: abs(e.x - swb['bug'].x), default=None)
+                closest = min(_sv_foes(swb['owner']), key=lambda e: abs(e.x - swb['bug'].x), default=None)
                 if closest:
                     swb['bug'].vx = ComputerBug.SPEED if closest.x > swb['bug'].x else -ComputerBug.SPEED
                     swb['bug'].x += swb['bug'].vx
@@ -5168,23 +5174,23 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         swb['bug'].bite_timer = ComputerBug.BITE_COOLDOWN
             survival_widow_bugs = [swb for swb in survival_widow_bugs if swb['bug'].alive]
 
-            # Arcanist: arcane orbs (survival — player → enemies)
-            for p in players:
+            # Arcanist: arcane orbs (survival, both sides)
+            for p in _sv_actors():
                 if p.pending_arcane_orb:
                     p.pending_arcane_orb = False
                     arcane_orbs.append(ArcaneOrb(p.x + p.facing * 30, p.y - 60, p.facing, p))
             for ao in arcane_orbs:
                 ao.update()
                 if ao.alive:
-                    for en in enemies:
+                    for en in _sv_foes(ao.owner):
                         if ao.collides(en):
                             en.hp = max(0, en.hp - ArcaneOrb.DMG)
                             en.flash_timer = 8
                             ao.alive = False; break
             arcane_orbs = [ao for ao in arcane_orbs if ao.alive]
 
-            # Stickman of Liberty dove (survival)
-            for p in players:
+            # Stickman of Liberty dove (survival, both sides)
+            for p in _sv_actors():
                 if p.pending_liberty_dove:
                     p.pending_liberty_dove = False
                     liberty_doves.append(LibertyDove(p.x, p.y, p))
@@ -5198,14 +5204,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 lb['vy'] = min(lb['vy'] + 0.9, 22)
                 lb['y'] += lb['vy']
                 if lb['y'] >= GROUND_Y - 4:
-                    for en in enemies:
+                    for en in _sv_foes(lb['owner']):
                         if abs(en.x - lb['x']) < 65:
                             en.take_proj_dmg(15)
                             en.flash_timer = max(en.flash_timer, 14)
                     lb['alive'] = False
             liberty_bombs = [lb for lb in liberty_bombs if lb['alive']]
-            # Yellowstone geysers (survival)
-            for p in players:
+            # Yellowstone geysers (survival, both sides)
+            for p in _sv_actors():
                 if p.pending_yellowstone_geysers:
                     p.pending_yellowstone_geysers = False
                     for i in range(10):
@@ -5219,26 +5225,26 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 if gy['age'] <= 60:
                     new_gy.append(gy)
                     if 22 <= gy['age'] <= 40:
-                        for en in enemies:
+                        for en in _sv_foes(gy['owner']):
                             if id(en) not in gy['hit'] and abs(en.x - gy['x']) < 52:
                                 en.take_proj_dmg(12)
                                 en.flash_timer = max(en.flash_timer, 10)
                                 gy['hit'].add(id(en))
             yellowstone_geysers = new_gy
 
-            # Ice Age Yellowstone icicles (survival)
-            for p in players:
+            # Ice Age Yellowstone icicles (survival, both sides)
+            for p in _sv_actors():
                 if p.pending_ice_yellowstone_kick:
                     p.pending_ice_yellowstone_kick = False
                     for i in range(10):
                         gx = 60 + (WIDTH - 120) * i / 9 + random.uniform(-20, 20)
                         gx = max(60.0, min(float(WIDTH - 60), gx))
                         ice_icicles.append({'kind': 'ground', 'x': gx, 'age': 0,
-                                            'alive': True, 'hit': set()})
+                                            'alive': True, 'hit': set(), 'owner': p})
                     for i in range(10):
                         iy = 100 + (GROUND_Y - 140) * i / 9 + random.uniform(-8, 8)
                         ice_icicles.append({'kind': 'side', 'x': 0.0, 'y': iy, 'vx': 10.0,
-                                            'alive': True, 'hit': set()})
+                                            'alive': True, 'hit': set(), 'owner': p})
             new_ice = []
             for ic in ice_icicles:
                 if ic['kind'] == 'ground':
@@ -5246,7 +5252,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     if ic['age'] <= 50:
                         new_ice.append(ic)
                         if 15 <= ic['age'] <= 32:
-                            for en in enemies:
+                            for en in _sv_foes(ic['owner']):
                                 if id(en) not in ic['hit'] and abs(en.x - ic['x']) < 40:
                                     en.take_proj_dmg(8)
                                     en.flash_timer = max(en.flash_timer, 10)
@@ -5256,7 +5262,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     ic['x'] += ic['vx']
                     if ic['x'] <= WIDTH + 20:
                         new_ice.append(ic)
-                        for en in enemies:
+                        for en in _sv_foes(ic['owner']):
                             if (id(en) not in ic['hit'] and abs(en.x - ic['x']) < 30
                                     and abs((en.y - 60) - ic['y']) < 40):
                                 en.take_proj_dmg(8)
@@ -5282,15 +5288,15 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         en.flash_timer = max(en.flash_timer, 10)
                         p.bookzworm_book_cd = 50
                         break
-            # Solara sun beams (survival — player → enemies)
-            for p in players:
+            # Solara sun beams (survival, both sides)
+            for p in _sv_actors():
                 if p.pending_sun_beam:
                     p.pending_sun_beam = False
                     sun_beams.append(SunBeam(p.x + p.facing * 30, p.y - 60, p.facing, p))
             for sb in sun_beams:
                 sb.update()
                 if sb.alive:
-                    for en in enemies:
+                    for en in _sv_foes(sb.owner):
                         if sb.collides(en):
                             en.take_proj_dmg(SunBeam.DMG)
                             en.shock_frames = max(en.shock_frames, 120)
@@ -5299,14 +5305,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             sb.alive = False; break
             sun_beams = [sb for sb in sun_beams if sb.alive]
 
-            # Nian breath cone (survival — player breath hits enemies only)
-            for p in players:
+            # Nian breath cone (survival, both sides)
+            for p in _sv_actors():
                 if p.pending_nian_breath:
                     p.pending_nian_breath = False
                     nian_breaths.append(NianBreath(p.x + p.facing * 18, p.y - 60, p.facing, p))
             for nb in nian_breaths:
                 nb.update()
-                targets = enemies if nb.owner in players else living
+                targets = _sv_foes(nb.owner)
                 for victim in targets:
                     if victim.hp > 0 and id(victim) not in nb._hit and nb.in_cone(victim):
                         nb._hit.add(id(victim))
@@ -5318,7 +5324,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             nian_breaths = [nb for nb in nian_breaths if nb.alive]
 
             # Clover / Gilded Clover — snake kick spawns a snake (survival)
-            for p in players:
+            for p in _sv_actors():
                 if p.pending_clover_snake:
                     p.pending_clover_snake = False
                     jungle_snakes.append(JungleSnake())
@@ -5327,7 +5333,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     jungle_snakes.append(GoldenJungleSnake())
 
             # WakeUp — kick pops the hat and summons teddy bear rain (survival)
-            for p in players:
+            for p in _sv_actors():
                 if p.pending_teddy_rain:
                     p.pending_teddy_rain = False
                     for _ in range(6):
@@ -5869,8 +5875,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             victim.attacking   = False
             eye_destroyers = [ed for ed in eye_destroyers if ed.alive]
 
-            # Player scrolls → enemies (Scrollmaster survival)
-            for p in players:
+            # Scrolls (Scrollmaster survival, both sides)
+            for p in _sv_actors():
                 if p.pending_scroll:
                     p.pending_scroll = False
                     survival_scrolls.append(Scroll(p.x + p.facing * 30,
@@ -5878,7 +5884,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             for sc in survival_scrolls:
                 sc.update()
                 if sc.alive and sc.hit_cd == 0:
-                    for en in enemies:
+                    for en in _sv_foes(sc.owner):
                         if sc.collides(en):
                             en.hp = max(0, en.hp - Scroll.DMG)
                             en.flash_timer = 8
@@ -5886,17 +5892,20 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             break
             survival_scrolls = [sc for sc in survival_scrolls if sc.alive]
 
-            # Player totems → enemies (Great Totem Spirit survival)
-            for p in players:
+            # Totems (Great Totem Spirit survival, both sides)
+            for p in _sv_actors():
                 if p.pending_totem:
                     p.pending_totem = False
-                    tgt = min(enemies, key=lambda e: abs(e.x - p.x)) if enemies else p
+                    _tfoes = _sv_foes(p)
+                    tgt = min(_tfoes, key=lambda e: abs(e.x - p.x)) if _tfoes else p
                     for dx in (-160, -80, 0, 80, 160):
-                        survival_totems.append(TotemPole(tgt.x + dx))
+                        _tp = TotemPole(tgt.x + dx)
+                        _tp._sv_owner = p      # TotemPole has no owner of its own
+                        survival_totems.append(_tp)
             for t in survival_totems:
                 t.update()
                 if t.hit_cd == 0:
-                    for en in enemies:
+                    for en in _sv_foes(getattr(t, '_sv_owner', None)):
                         if t.collides(en):
                             en.hp = max(0, en.hp - TotemPole.DMG)
                             en.flash_timer = 8
@@ -5904,50 +5913,55 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             break
             survival_totems = [t for t in survival_totems if t.alive]
 
-            # Player remotes → enemies (Rage Quitter survival)
-            for p in players:
+            # Remotes (Rage Quitter survival, both sides)
+            for p in _sv_actors():
                 if p.pending_remote:
                     p.pending_remote = False
-                    survival_remotes.append(RemoteController(p.x + p.facing * 30,
-                                                             p.y - 60, p.facing))
+                    _rc = RemoteController(p.x + p.facing * 30, p.y - 60, p.facing)
+                    _rc._sv_owner = p          # RemoteController has no owner field
+                    survival_remotes.append(_rc)
             for r in survival_remotes:
                 r.update()
                 if not r.hit:
-                    for en in enemies:
+                    for en in _sv_foes(getattr(r, '_sv_owner', None)):
                         if r.collides(en):
                             en.hp = max(0, en.hp - RemoteController.DMG)
                             en.flash_timer = 20
                             r.hit = True; r.alive = False; break
             survival_remotes = [r for r in survival_remotes if r.alive]
 
-            # Player apples → enemies (Gravity survival)
-            for p in players:
+            # Apples (Gravity survival, both sides)
+            for p in _sv_actors():
                 if p.pending_apple:
                     p.pending_apple = False
-                    tgt = min(enemies, key=lambda e: abs(e.x - p.x)) if enemies else p
+                    _afoes = _sv_foes(p)
+                    tgt = min(_afoes, key=lambda e: abs(e.x - p.x)) if _afoes else p
                     for i in range(20):
-                        survival_apples.append(Apple(tgt.x + random.randint(-200, 200)))
+                        _ap = Apple(tgt.x + random.randint(-200, 200))
+                        _ap._sv_owner = p      # Apple has no owner field
+                        survival_apples.append(_ap)
             for ap in survival_apples:
                 ap.update()
                 if ap.hit_cd == 0:
-                    for en in enemies:
+                    for en in _sv_foes(getattr(ap, '_sv_owner', None)):
                         if ap.collides(en):
                             en.hp = max(0, en.hp - Apple.DMG)
                             en.flash_timer = 6
                             ap.hit_cd = Apple.HIT_CD; break
             survival_apples = [ap for ap in survival_apples if ap.alive]
 
-            # Player plant spikes → enemies (Druid survival)
-            for p in players:
+            # Plant spikes (Druid survival, both sides)
+            for p in _sv_actors():
                 if p.pending_plant:
                     p.pending_plant = False
-                    tgt = min(enemies, key=lambda e: abs(e.x - p.x)) if enemies else None
+                    _pfoes = _sv_foes(p)
+                    tgt = min(_pfoes, key=lambda e: abs(e.x - p.x)) if _pfoes else None
                     if tgt:
                         survival_plants.append(PlantSpike(tgt.x, p))
             for ps in survival_plants:
                 ps.update()
                 if ps.alive:
-                    for en in enemies:
+                    for en in _sv_foes(ps.owner):
                         if ps.collides(en):
                             en.hp = max(0, en.hp - PlantSpike.DMG)
                             en.flash_timer = 10
@@ -6041,8 +6055,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                             p.flash_timer = max(p.flash_timer, 8)
                             js.alive = False; break
             en_jack_seeds = [js for js in en_jack_seeds if js.alive]
-            # Player fruit projectiles + coal + thunder (survival)
-            for shooter in players:
+            # Fruit projectiles + coal + thunder (survival, both sides)
+            for shooter in _sv_actors():
                 if shooter.pending_fruit_attack:
                     fa = shooter.pending_fruit_attack
                     shooter.pending_fruit_attack = None
@@ -6063,12 +6077,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         fruit_projs.append(FruitProj(_fx, _fy, shooter.facing, shooter, fa[0]))
                 if shooter.pending_thunder:
                     shooter.pending_thunder = False
-                    tgt_x = min(enemies, key=lambda e: abs(e.x - shooter.x)).x if enemies else random.randint(80, WIDTH-80)
+                    _thfoes = _sv_foes(shooter)
+                    tgt_x = (min(_thfoes, key=lambda e: abs(e.x - shooter.x)).x
+                             if _thfoes else random.randint(80, WIDTH-80))
                     thunder_bolts.append(ThunderBolt(tgt_x, shooter))
             for fp in fruit_projs:
                 fp.update()
                 if fp.alive:
-                    for en in enemies:
+                    for en in _sv_foes(fp.owner):
                         if fp.collides(en):
                             _apply_fruit_hit(en, fp)
                             fp.alive = False; break
@@ -7717,10 +7733,15 @@ def main():
                 "Necromancer", "Dementor", "Poltergeist", "Haunter", "Specter",
                 "Revenant", "Shade", "Snider", "Plague Doctor", "Lich",
                 "Graverobber", "Soul Eater", "Ghost Warrior", "Vamp Lord",
-                "Jack O' Slash", "Broken Jak 0' Lash",
+                "Jack O' Slash",
             })
+            # Jack is the prize, not a starting pick: his card shows in the
+            # grid (with Broken Jak in his variant box) but stays locked until
+            # a win actually rolls it.
+            _CG_REWARDS  = {"Jack O' Slash", "Broken Jak 0' Lash"}
+            _cg_playable = frozenset((_CG_FILTER - _CG_REWARDS) | (_CG_FILTER & set(unlocked)))
             p1_idx, p2_idx = character_select(
-                vs_ai=True, unlocked=_CG_FILTER,
+                vs_ai=True, unlocked=_cg_playable,
                 char_filter=_CG_FILTER,
                 select_title="THE CROOKING GLASS",
             )

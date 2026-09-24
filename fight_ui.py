@@ -1254,6 +1254,17 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _yellowstone_variant_indices.append(_yvi2)
                 break
 
+    # Build Jack O' Slash variant lookup (Original + Broken Jak, excluded
+    # from the main grid — Broken Jak lives inside Jack's box)
+    _jack_variant_names   = ["Jack O' Slash", "Broken Jak 0' Lash"]
+    _jack_variant_labels  = ["Original", "Broken"]
+    _jack_variant_indices = []
+    for _jvn in _jack_variant_names:
+        for _jvi2, _jvc2 in enumerate(CHARACTERS):
+            if _jvc2["name"] == _jvn:
+                _jack_variant_indices.append(_jvi2)
+                break
+
     # Build Tombstone variant lookup (Original + 4 Minefield prize costumes,
     # excluded from main grid)
     _tombstone_variant_names   = ["Tombstone", "Booma", "Testa di Testy", "Boxy", "Supa"]
@@ -1275,7 +1286,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         COLS      = min(4, max(1, len(_CHARS)))
     else:
         _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS)
-                     if not c.get("eartha_variant") and not c.get("clover_variant") and not c.get("solara_variant") and not c.get("nghs_variant") and not c.get("bookzworm_variant") and not c.get("yellowstone_variant") and not c.get("tombstone_variant")]
+                     if not c.get("eartha_variant") and not c.get("clover_variant") and not c.get("solara_variant") and not c.get("nghs_variant") and not c.get("bookzworm_variant") and not c.get("yellowstone_variant") and not c.get("tombstone_variant") and not c.get("jack_variant")]
         _CHARS    = [c for _, c in _cf_pairs]
         _orig_idx = [i for i, _ in _cf_pairs]
         COLS      = 7
@@ -1335,6 +1346,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
     p2_yv = 0
     p1_tv = 0   # tombstone variant index (0 = Original Tombstone)
     p2_tv = 0
+    p1_jv = 0   # jack variant index (0 = Original Jack O' Slash)
+    p2_jv = 0
 
     def clip_scroll(idx):
         nonlocal scroll_top
@@ -1448,6 +1461,18 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 p1_yv = _vti
                             elif not vs_ai and not p2_ready:
                                 p2_yv = _vti
+                elif _td_ch["name"] == "Jack O' Slash" and _jack_variant_indices:
+                    _vp_ty = PY + PH - 132
+                    _vp_tbw = (PW - 20) // len(_jack_variant_indices)
+                    for _vti in range(len(_jack_variant_indices)):
+                        _vtx = PX + 10 + _vti * _vp_tbw
+                        if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if _dev_mode[0]:
+                                unlocked.add(CHARACTERS[_jack_variant_indices[_vti]]["name"])
+                            if not p1_ready:
+                                p1_jv = _vti
+                            elif not vs_ai and not p2_ready:
+                                p2_jv = _vti
                 elif _td_ch["name"] == "Tombstone" and _tombstone_variant_indices:
                     _vp_ty = PY + PH - 132
                     _vp_tbw = (PW - 20) // len(_tombstone_variant_indices)
@@ -1494,6 +1519,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 _vtnt = CHARACTERS[_tombstone_variant_indices[p1_tv]]["name"]
                                 if _vtnt not in unlocked:
                                     _ev_ok_t = False
+                            if _CHARS[p1_idx]["name"] == "Jack O' Slash" and _jack_variant_indices:
+                                _vjnt = CHARACTERS[_jack_variant_indices[p1_jv]]["name"]
+                                if _vjnt not in unlocked:
+                                    _ev_ok_t = False
                             if _ev_ok_t:
                                 p1_ready = True
                                 if vs_ai:
@@ -1529,6 +1558,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             if _CHARS[p2_idx]["name"] == "Tombstone" and _tombstone_variant_indices:
                                 _vtnt2 = CHARACTERS[_tombstone_variant_indices[p2_tv]]["name"]
                                 if _vtnt2 not in unlocked:
+                                    _ev_ok_t2 = False
+                            if _CHARS[p2_idx]["name"] == "Jack O' Slash" and _jack_variant_indices:
+                                _vjnt2 = CHARACTERS[_jack_variant_indices[p2_jv]]["name"]
+                                if _vjnt2 not in unlocked:
                                     _ev_ok_t2 = False
                             if _ev_ok_t2:
                                 p2_ready = True
@@ -1576,6 +1609,11 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             p1_tv = (p1_tv + 1) % len(_tombstone_variant_indices)
                         elif event.key == pygame.K_q:
                             p1_tv = (p1_tv - 1) % len(_tombstone_variant_indices)
+                    if _CHARS[p1_idx]["name"] == "Jack O' Slash" and _jack_variant_indices:
+                        if event.key == pygame.K_e:
+                            p1_jv = (p1_jv + 1) % len(_jack_variant_indices)
+                        elif event.key == pygame.K_q:
+                            p1_jv = (p1_jv - 1) % len(_jack_variant_indices)
                     if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_f):
                         if _CHARS[p1_idx]["name"] not in unlocked:
                             pass  # locked — do nothing
@@ -1608,6 +1646,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             if _CHARS[p1_idx]["name"] == "Tombstone" and _tombstone_variant_indices:
                                 _vtn = CHARACTERS[_tombstone_variant_indices[p1_tv]]["name"]
                                 if _vtn not in unlocked:
+                                    _ev_ok = False
+                            if _CHARS[p1_idx]["name"] == "Jack O' Slash" and _jack_variant_indices:
+                                _vjn = CHARACTERS[_jack_variant_indices[p1_jv]]["name"]
+                                if _vjn not in unlocked:
                                     _ev_ok = False
                             if _ev_ok:
                                 p1_ready = True
@@ -1655,6 +1697,11 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             p2_tv = (p2_tv + 1) % len(_tombstone_variant_indices)
                         elif event.key == pygame.K_j:
                             p2_tv = (p2_tv - 1) % len(_tombstone_variant_indices)
+                    if _CHARS[p2_idx]["name"] == "Jack O' Slash" and _jack_variant_indices:
+                        if event.key == pygame.K_l:
+                            p2_jv = (p2_jv + 1) % len(_jack_variant_indices)
+                        elif event.key == pygame.K_j:
+                            p2_jv = (p2_jv - 1) % len(_jack_variant_indices)
                     if event.key in (pygame.K_RETURN, pygame.K_k):
                         if _CHARS[p2_idx]["name"] in unlocked:
                             _ev_ok2 = True
@@ -1685,6 +1732,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             if _CHARS[p2_idx]["name"] == "Tombstone" and _tombstone_variant_indices:
                                 _vtn2 = CHARACTERS[_tombstone_variant_indices[p2_tv]]["name"]
                                 if _vtn2 not in unlocked:
+                                    _ev_ok2 = False
+                            if _CHARS[p2_idx]["name"] == "Jack O' Slash" and _jack_variant_indices:
+                                _vjn2 = CHARACTERS[_jack_variant_indices[p2_jv]]["name"]
+                                if _vjn2 not in unlocked:
                                     _ev_ok2 = False
                             if _ev_ok2:
                                 p2_ready = True
@@ -1720,6 +1771,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _r1 = _tombstone_variant_indices[p1_tv]
             if not vs_ai and _CHARS[p2_idx]["name"] == "Tombstone" and _tombstone_variant_indices:
                 _r2 = _tombstone_variant_indices[p2_tv]
+            if _CHARS[p1_idx]["name"] == "Jack O' Slash" and _jack_variant_indices:
+                _r1 = _jack_variant_indices[p1_jv]
+            if not vs_ai and _CHARS[p2_idx]["name"] == "Jack O' Slash" and _jack_variant_indices:
+                _r2 = _jack_variant_indices[p2_jv]
             return _r1, _r2
 
         # Whose detail to show: the active picker
@@ -1732,6 +1787,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         _active_nv = p2_nv if (p1_ready and not p2_ready) else p1_nv
         _active_bv = p2_bv if (p1_ready and not p2_ready) else p1_bv
         _active_yv = p2_yv if (p1_ready and not p2_ready) else p1_yv
+        _active_jv = p2_jv if (p1_ready and not p2_ready) else p1_jv
         _active_tv = p2_tv if (p1_ready and not p2_ready) else p1_tv
         _detail_display = detail_ch
         if detail_ch["name"] == "Eartha" and detail_ch["name"] in unlocked and _eartha_variant_indices:
@@ -1748,6 +1804,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             _detail_display = CHARACTERS[_yellowstone_variant_indices[_active_yv]]
         if detail_ch["name"] == "Tombstone" and detail_ch["name"] in unlocked and _tombstone_variant_indices:
             _detail_display = CHARACTERS[_tombstone_variant_indices[_active_tv]]
+        if detail_ch["name"] == "Jack O' Slash" and detail_ch["name"] in unlocked and _jack_variant_indices:
+            _detail_display = CHARACTERS[_jack_variant_indices[_active_jv]]
 
         # ── Background ──────────────────────────────────────────────────────
         screen.fill((18, 18, 28))
@@ -2379,6 +2437,27 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _vtc8  = (90, 90, 90) if _vlk8 else (WHITE if _vsel8 else _vc8)
                 _vtxt8 = font_tiny.render(("?" + _vlb8[0]) if _vlk8 else _vlb8, True, _vtc8)
                 screen.blit(_vtxt8, (_vx8 + _vp_bw//2 - _vtxt8.get_width()//2, _vp_y + 8))
+
+        # Jack O' Slash variant picker (Broken Jak lives in Jack's box)
+        if detail_ch["name"] == "Jack O' Slash" and detail_ch["name"] in unlocked and _jack_variant_indices:
+            _vp_y   = PY + PH - 132
+            _vp_lbl = font_tiny.render("VARIANT  (Q/E  or  J/L)", True, (160, 160, 185))
+            screen.blit(_vp_lbl, (PX + PW//2 - _vp_lbl.get_width()//2, _vp_y - 16))
+            _vp_bw = (PW - 20) // len(_jack_variant_indices)
+            for _vi9, _vlb9 in enumerate(_jack_variant_labels):
+                _vx9   = PX + 10 + _vi9 * _vp_bw
+                _vc9   = CHARACTERS[_jack_variant_indices[_vi9]]["color"]
+                _vn9   = CHARACTERS[_jack_variant_indices[_vi9]]["name"]
+                _vlk9  = _vn9 not in unlocked
+                _vsel9 = (_vi9 == _active_jv)
+                _vbg9  = tuple(max(8, c // 5) for c in _vc9)
+                pygame.draw.rect(screen, _vbg9, (_vx9+1, _vp_y+1, _vp_bw-2, 28), border_radius=4)
+                _vbrd9 = _vc9 if _vsel9 else tuple(c // 2 for c in _vc9)
+                pygame.draw.rect(screen, _vbrd9, (_vx9+1, _vp_y+1, _vp_bw-2, 28),
+                                 2 if _vsel9 else 1, border_radius=4)
+                _vtc9  = (90, 90, 90) if _vlk9 else (WHITE if _vsel9 else _vc9)
+                _vtxt9 = font_tiny.render(("?" + _vlb9[0]) if _vlk9 else _vlb9, True, _vtc9)
+                screen.blit(_vtxt9, (_vx9 + _vp_bw//2 - _vtxt9.get_width()//2, _vp_y + 8))
 
         # Tombstone variant picker
         if detail_ch["name"] == "Tombstone" and detail_ch["name"] in unlocked and _tombstone_variant_indices:
