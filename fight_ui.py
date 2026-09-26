@@ -744,16 +744,46 @@ def mode_select(unlocked=None, stats=None):
     GAP   = 8
     START = WIDTH // 2 - (7 * card_w + 6 * GAP) // 2
     card_xs = [START + i * (card_w + GAP) for i in range(7)]
-    _story_teaser = [0]   # frames left on the "not yet..." nudge
+    _story_teaser = [0]   # frames left showing the nudge
     _story_rattle = [0]   # frames left on the chain rattle (decays to still)
-    _story_line   = [0]   # which nudge line this yank picked
+    _story_slide  = [0]   # 0..STORY_SLIDE — how far Tombstone has risen
+    _story_pokes  = [0]   # how many times the chains have been yanked
+    _story_said   = [[]]  # the lines he is saying right now
+    _story_anger  = [0]   # 0 calm .. 3 furious — grows with the poke count
+    _story_cool   = [0]   # frames until he forgets you were ever bothering him
+    STORY_COOL    = FPS * 60   # leave him alone a minute and he calms down
     STORY_RATTLE  = 34    # how long a yank on the chains keeps shaking
-    STORY_LINES   = [
-        "Story Mode is chained shut... for now.",
-        "The lock holds. Whatever is in there stays in there.",
-        "Something rattles back. Best not to answer it.",
-        "Not yet. The ivy has not finished growing.",
+    STORY_SLIDE   = 14    # frames he takes to rise into (and drop out of) view
+    # Keep pulling on him and he says more, and says it angrier: one line
+    # while he is patient, up to four once he is furious.
+    STORY_TIERS   = [
+        [   # calm — every third poke moves him up a tier
+            "Story Mode is chained shut... for now.",
+            "The lock holds. Whatever is in there stays in there.",
+            "Not yet. The ivy has not finished growing.",
+        ],
+        [   # irritated
+            "Something rattles back in there. Best not to answer it.",
+            "You will pull that chain clean off its hinge.",
+            "The rails are not laid. I cannot punch a ticket for nothing.",
+        ],
+        [   # angry
+            "Friend. I am a gravestone. I have all day. Do you?",
+            "Try the other six. They open. This one does not.",
+            "Every yank of that chain puts it back another day.",
+            "You are wearing the paint off that padlock.",
+        ],
+        [   # furious
+            "ENOUGH.",
+            "The chain stays. The lock stays. I STAY.",
+            "I have been dead a good while and you are still the most tiring part of it.",
+            "GO AND PLAY SOMETHING ELSE.",
+        ],
     ]
+    STORY_ANGER_COL = [(222, 214, 190), (240, 206, 140), (250, 168, 110), (255, 120, 100)]
+    # One line for whoever refuses to give up.
+    STORY_SECRET  = "...Fine. ONE thing: the train leaves when the last stone falls. Now shoo."
+    STORY_SECRET_AT = 12
 
     _type42_buf = ""
     _secret_seq = "all_the_secrets_of_the_world"
@@ -877,12 +907,22 @@ def mode_select(unlocked=None, stats=None):
                 for _ci, _cx in enumerate(card_xs):
                     if pygame.Rect(_cx, 140, card_w, card_h).collidepoint(_mp):
                         if _ci == 6:          # Story Mode: chained shut for now
-                            # A different line each yank — never the same
-                            # one twice in a row
-                            _story_line[0] = random.choice(
-                                [_i for _i in range(len(STORY_LINES)) if _i != _story_line[0]])
-                            _story_teaser[0] = FPS * 3
-                            _story_rattle[0] = STORY_RATTLE   # yank the chains
+                            # Escalate: every third yank moves him up a
+                            # tier, and each tier means one more line out of
+                            # an angrier pool.
+                            _story_pokes[0] += 1
+                            _story_cool[0]   = STORY_COOL   # he remembers, for a minute
+                            _story_anger[0] = min(len(STORY_TIERS) - 1,
+                                                  (_story_pokes[0] - 1) // 3)
+                            _pool = STORY_TIERS[_story_anger[0]]
+                            _say  = min(len(_pool), 1 + _story_anger[0])
+                            _picked = random.sample(_pool, _say)
+                            _story_said[0] = [_l for _l in _pool if _l in _picked]
+                            if _story_pokes[0] == STORY_SECRET_AT:
+                                _story_said[0] = [STORY_SECRET]
+                            # Angrier means longer on screen and a harder yank
+                            _story_teaser[0] = FPS * 3 + _story_anger[0] * FPS
+                            _story_rattle[0] = STORY_RATTLE + _story_anger[0] * 10
                         else:
                             selected = _ci
                         break
@@ -1180,50 +1220,100 @@ def mode_select(unlocked=None, stats=None):
         # in his Legacy of Valor conductor cap — is the one who answers.
         if _story_rattle[0] > 0:
             _story_rattle[0] -= 1
+        # A minute without a yank and he settles back to patient
+        if _story_cool[0] > 0:
+            _story_cool[0] -= 1
+            if _story_cool[0] == 0:
+                _story_pokes[0] = 0
+                _story_anger[0] = 0
         if _story_teaser[0] > 0:
             _story_teaser[0] -= 1
+        # Rise while he has something to say, sink once he has said it
+        if _story_teaser[0] > STORY_SLIDE:
+            _story_slide[0] = min(STORY_SLIDE, _story_slide[0] + 1)
+        else:
+            _story_slide[0] = max(0, _story_slide[0] - 1)
+        if _story_slide[0] > 0:
+            _vis   = _story_slide[0] / float(STORY_SLIDE)
+            _vis   = 1.0 - (1.0 - _vis) ** 2          # ease out
+            _rise  = int((1.0 - _vis) * 150)          # pixels still below frame
             _tbt   = pygame.time.get_ticks() / 1000.0
             _tb_gx = WIDTH - 62                     # where he stands
-            _tb_gy = HEIGHT - 12
+            _tb_gy = HEIGHT - 12 + _rise
             _tb_sc = 0.62
             _tb_top = _tb_gy - 85                   # measured crown of the stone
             _tb_half = 32                           # measured half-width
             _talk  = _story_teaser[0] > 8           # still saying his piece
+            _anger = _story_anger[0]
+            _acol  = STORY_ANGER_COL[_anger]
+            # The angrier he is, the more he trembles
+            _shake = 0
+            if _talk and _anger:
+                _shake = int(math.sin(_tbt * (22 + _anger * 9)) * _anger * 0.9)
 
-            # ── Speech bubble, wrapped, sitting above and to his left ──────
-            _sp_txt   = STORY_LINES[_story_line[0]]
-            _sp_max   = 300
-            _sp_lines, _cur = [], ""
-            for _w in _sp_txt.split():
-                _try = (_cur + " " + _w).strip()
-                if font_small.size(_try)[0] > _sp_max and _cur:
-                    _sp_lines.append(_cur); _cur = _w
-                else:
-                    _cur = _try
-            if _cur:
-                _sp_lines.append(_cur)
-            _sp_w = max(font_small.size(_l)[0] for _l in _sp_lines) + 22
-            _sp_h = len(_sp_lines) * 22 + 14
-            _sp_x = _tb_gx - 44 - _sp_w
-            _sp_y = max(388, _tb_top - 34 - _sp_h)   # never ride up over the cards
-            pygame.draw.rect(screen, (28, 26, 34), (_sp_x, _sp_y, _sp_w, _sp_h), border_radius=8)
-            pygame.draw.rect(screen, (150, 140, 120), (_sp_x, _sp_y, _sp_w, _sp_h), 2, border_radius=8)
-            pygame.draw.polygon(screen, (28, 26, 34), [
+            # ── Speech bubble: every line he is saying, wrapped ────────────
+            def _wrap(_font, _width):
+                _out = []
+                for _para in (_story_said[0] or STORY_TIERS[0][:1]):
+                    _cur = ""
+                    for _w in _para.split():
+                        _try = (_cur + " " + _w).strip()
+                        if _font.size(_try)[0] > _width and _cur:
+                            _out.append(_cur); _cur = _w
+                        else:
+                            _cur = _try
+                    if _cur:
+                        _out.append(_cur)
+                return _out
+            _sp_max   = 340
+            _sp_font  = font_small
+            _sp_lh    = 22
+            _sp_lines = _wrap(_sp_font, _sp_max)
+            if len(_sp_lines) > 3:            # a proper rant — tighten it up
+                _sp_font, _sp_lh = font_tiny, 16
+                _sp_lines = _wrap(_sp_font, _sp_max)
+            _sp_w = max(_sp_font.size(_l)[0] for _l in _sp_lines) + 22
+            _sp_h = len(_sp_lines) * _sp_lh + 14
+            _sp_x = _tb_gx - 44 - _sp_w + _shake
+            _sp_y = max(386, _tb_top - 30 - _sp_h) + _shake   # stay under the cards
+            _sp_bg  = [(28, 26, 34), (34, 26, 30), (42, 26, 28), (52, 24, 26)][_anger]
+            _sp_brd = [(150, 140, 120), (186, 150, 110), (214, 136, 92), (236, 104, 86)][_anger]
+            pygame.draw.rect(screen, _sp_bg, (_sp_x, _sp_y, _sp_w, _sp_h), border_radius=8)
+            pygame.draw.rect(screen, _sp_brd, (_sp_x, _sp_y, _sp_w, _sp_h), 2 + (_anger > 1),
+                             border_radius=8)
+            pygame.draw.polygon(screen, _sp_bg, [
                 (_sp_x + _sp_w - 26, _sp_y + _sp_h - 2),
                 (_sp_x + _sp_w - 6,  _sp_y + _sp_h - 2),
                 (_sp_x + _sp_w + 22, _sp_y + _sp_h + 22)])
-            pygame.draw.line(screen, (150, 140, 120), (_sp_x + _sp_w - 26, _sp_y + _sp_h - 1),
+            pygame.draw.line(screen, _sp_brd, (_sp_x + _sp_w - 26, _sp_y + _sp_h - 1),
                              (_sp_x + _sp_w + 22, _sp_y + _sp_h + 22), 2)
-            pygame.draw.line(screen, (150, 140, 120), (_sp_x + _sp_w - 6, _sp_y + _sp_h - 1),
+            pygame.draw.line(screen, _sp_brd, (_sp_x + _sp_w - 6, _sp_y + _sp_h - 1),
                              (_sp_x + _sp_w + 22, _sp_y + _sp_h + 22), 2)
             for _li3, _sl in enumerate(_sp_lines):
-                _ss = font_small.render(_sl, True, (222, 214, 190))
-                screen.blit(_ss, (_sp_x + 11, _sp_y + 8 + _li3 * 22))
+                _ss = _sp_font.render(_sl, True, _acol)
+                screen.blit(_ss, (_sp_x + 11, _sp_y + 8 + _li3 * _sp_lh))
 
             # ── Tombstone himself, nodding while he talks ─────────────────
             _nod = int(math.sin(_tbt * 9) * 2) if _talk else 0
-            draw_stickman(screen, _tb_gx, _tb_gy + _nod, (155, 150, 140), -1, 'idle', 0.0,
+            draw_stickman(screen, _tb_gx + _shake, _tb_gy + _nod, (155, 150, 140), -1, 'idle', 0.0,
                           scale=_tb_sc, char_name="Tombstone")
+            # Eyes go hot once he is properly annoyed
+            if _anger >= 2 and _talk:
+                _eye_y = _tb_top + _nod + int(16 * _tb_sc)
+                _glow  = pygame.Surface((26, 16), pygame.SRCALPHA)
+                for _exo in (7, 17):
+                    pygame.draw.circle(_glow, (255, 70, 40, 90 + 50 * (_anger - 2)), (_exo, 8), 6)
+                    pygame.draw.circle(_glow, (255, 190, 120, 220), (_exo, 8), 2)
+                screen.blit(_glow, (_tb_gx + _shake - 13, _eye_y - 8))
+            # Furious: steam off the top of the stone
+            if _anger >= 3 and _talk:
+                for _pi2 in range(3):
+                    _pf2 = (_tbt * 1.7 + _pi2 * 0.33) % 1.0
+                    _psf = pygame.Surface((18, 18), pygame.SRCALPHA)
+                    pygame.draw.circle(_psf, (210, 200, 205, int(150 * (1 - _pf2))),
+                                       (9, 9), max(2, int(3 + _pf2 * 5)))
+                    screen.blit(_psf, (_tb_gx + _shake - 30 + _pi2 * 22,
+                                       _tb_top + _nod - 26 - int(_pf2 * 30)))
 
             # ── Train conductor cap, banded LOV (Legacy of Valor) ─────────
             _cap_w = _tb_half * 2 + 8
