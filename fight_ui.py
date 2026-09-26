@@ -9,7 +9,7 @@ import constants
 import fight_network as _net
 from constants import *
 from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS, FUSER_ELEMENTS, FUSER_RECIPES, FUSER_SHOP_CHARS
-from fight_drawing import draw_bg, draw_stickman
+from fight_drawing import draw_bg, draw_stickman, draw_jawke_legacy
 from fight_seasonal import (SEASONAL_EVENTS, SEASONAL_SHOP_CHARS, get_active_event, draw_seasonal_decos,
                             is_solar_eclipse_today, is_lunar_eclipse_today)
 
@@ -753,8 +753,11 @@ def mode_select(unlocked=None, stats=None):
     _story_cool   = [0]   # frames until he forgets you were ever bothering him
     _story_leaving = [False]  # saying his last words before he goes
     _story_gone   = [False]   # pushed too far — he is not coming back
+    _jawke_run    = [0]       # frames left of Jawke cartwheeling past
     STORY_COOL    = FPS * 60   # leave him alone a minute and he calms down
     STORY_GIVEUP_AT = 16       # yanks before he gives up on you entirely
+    STORY_JAWKE_AT  = 18       # and two yanks later, something else turns up
+    JAWKE_FRAMES    = 105      # how long his spin across the screen takes
     STORY_GIVEUP  = [
         "Right. That is me finished.",
         "The chain stays. I am going back in the ground.",
@@ -915,6 +918,10 @@ def mode_select(unlocked=None, stats=None):
                 for _ci, _cx in enumerate(card_xs):
                     if pygame.Rect(_cx, 140, card_w, card_h).collidepoint(_mp):
                         if _ci == 6:          # Story Mode: chained shut for now
+                            _story_pokes[0] += 1
+                            if _story_pokes[0] == STORY_JAWKE_AT:
+                                # Nobody asked for this.
+                                _jawke_run[0] = JAWKE_FRAMES
                             if _story_gone[0]:
                                 # He has had enough of you. The chains still
                                 # move; nobody comes.
@@ -923,7 +930,6 @@ def mode_select(unlocked=None, stats=None):
                             # Escalate: every third yank moves him up a
                             # tier, and each tier means one more line out of
                             # an angrier pool.
-                            _story_pokes[0] += 1
                             _story_cool[0]   = STORY_COOL   # he remembers, for a minute
                             _story_anger[0] = min(len(STORY_TIERS) - 1,
                                                   (_story_pokes[0] - 1) // 3)
@@ -1234,6 +1240,29 @@ def mode_select(unlocked=None, stats=None):
             if ci == selected and ci != 6 and not _fuser_locked:
                 sel_txt = font_tiny.render("ENTER / SPACE to select", True, WHITE)
                 screen.blit(sel_txt, (cx + card_w//2 - sel_txt.get_width()//2, 390))
+
+        # Yank eighteen times and Jawke — in his legacy costume, top hat and
+        # all — cartwheels across the screen from right to left. No reason.
+        if _jawke_run[0] > 0:
+            _jawke_run[0] -= 1
+            _jp   = 1.0 - _jawke_run[0] / float(JAWKE_FRAMES)   # 0 → 1
+            _jx   = int(WIDTH + 120 - _jp * (WIDTH + 240))
+            _jy   = int(HEIGHT * 0.52 - math.sin(_jp * math.pi) * 90)
+            _jang = -_jp * 720.0                                # two full spins
+            _jsurf = pygame.Surface((340, 340), pygame.SRCALPHA)
+            draw_jawke_legacy(_jsurf, 170, 170, 0.78)
+            _jrot = pygame.transform.rotate(_jsurf, _jang)
+            # Motion streaks trailing the spin
+            for _ji2 in range(4):
+                _jt = _jp + (_ji2 + 1) * 0.022
+                if _jt > 1.0:
+                    continue
+                _jsx = int(WIDTH + 120 - _jt * (WIDTH + 240))
+                _jsy = int(HEIGHT * 0.52 - math.sin(_jt * math.pi) * 90)
+                _jline = pygame.Surface((70, 6), pygame.SRCALPHA)
+                _jline.fill((255, 210, 250, 70 - _ji2 * 15))
+                screen.blit(_jline, (_jsx + 40, _jsy - 3 + _ji2 * 9))
+            screen.blit(_jrot, (_jx - _jrot.get_width() // 2, _jy - _jrot.get_height() // 2))
 
         # Story Mode teaser: the chain rattle winds down, and Tombstone —
         # in his Legacy of Valor conductor cap — is the one who answers.
