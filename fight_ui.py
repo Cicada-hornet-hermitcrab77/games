@@ -1260,7 +1260,7 @@ def mode_select(unlocked=None, stats=None):
                 _jsx = int(WIDTH + 120 - _jt * (WIDTH + 240))
                 _jsy = int(HEIGHT * 0.52 - math.sin(_jt * math.pi) * 90)
                 _jline = pygame.Surface((70, 6), pygame.SRCALPHA)
-                _jline.fill((255, 210, 250, 70 - _ji2 * 15))
+                _jline.fill((235, 235, 235, 70 - _ji2 * 15))
                 screen.blit(_jline, (_jsx + 40, _jsy - 3 + _ji2 * 9))
             screen.blit(_jrot, (_jx - _jrot.get_width() // 2, _jy - _jrot.get_height() // 2))
 

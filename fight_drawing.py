@@ -17444,10 +17444,11 @@ def draw_jawke_legacy(surface, cx, cy, scale=1.0):
     def I(v):
         return max(1, int(v * s))
 
-    _skin = (250, 226, 214)
-    _body = (255, 200, 245)
-    _line = (58, 46, 58)
-    _hat  = (46, 42, 52)
+    # Straight black and white, like the pencil sketch he came from
+    _skin = (242, 242, 242)
+    _body = (226, 226, 226)
+    _line = (22, 22, 22)
+    _hat  = (28, 28, 28)
 
     # ── Body: a big round belly ───────────────────────────────────────────
     pygame.draw.ellipse(surface, _body, (P(-46, -28)[0] - cx + cx, P(-46, -28)[1], I(92), I(86)))
@@ -17460,18 +17461,18 @@ def draw_jawke_legacy(surface, cx, cy, scale=1.0):
             pygame.draw.ellipse(surface, _body, (P(_lx - 11, 64)[0], P(_lx - 11, 64)[1], I(20), I(18)))
             pygame.draw.ellipse(surface, _line, (P(_lx - 11, 64)[0], P(_lx - 11, 64)[1], I(20), I(18)), I(2))
             pygame.draw.line(surface, _line, P(_lx - 8, 70), P(_lx + 5, 74), I(2))
-        pygame.draw.ellipse(surface, (238, 232, 226),
+        pygame.draw.ellipse(surface, (250, 250, 250),
                             (P(_lx - 22, 92)[0], P(_lx - 22, 92)[1], I(36), I(18)))
         pygame.draw.ellipse(surface, _line, (P(_lx - 22, 92)[0], P(_lx - 22, 92)[1], I(36), I(18)), I(2))
         pygame.draw.line(surface, _line, P(_lx - 16, 99), P(_lx + 8, 99), I(2))
 
     # ── Arms: a pan in one hand, a striped ball in the other ──────────────
     pygame.draw.line(surface, _line, P(-40, -6), P(-74, 30), I(3))
-    pygame.draw.ellipse(surface, (140, 126, 120), (P(-96, 26)[0], P(-96, 26)[1], I(30), I(24)))
+    pygame.draw.ellipse(surface, (150, 150, 150), (P(-96, 26)[0], P(-96, 26)[1], I(30), I(24)))
     pygame.draw.ellipse(surface, _line, (P(-96, 26)[0], P(-96, 26)[1], I(30), I(24)), I(2))
     pygame.draw.line(surface, _line, P(-74, 32), P(-66, 28), I(3))
     pygame.draw.line(surface, _line, P(40, -6), P(70, 26), I(3))
-    pygame.draw.circle(surface, (226, 214, 232), P(78, 38), I(19))
+    pygame.draw.circle(surface, (238, 238, 238), P(78, 38), I(19))
     pygame.draw.circle(surface, _line, P(78, 38), I(19), I(2))
     for _hi in range(-2, 3):                        # hatching on the ball
         pygame.draw.line(surface, _line, P(66 + _hi * 6, 26), P(78 + _hi * 6, 50), I(1))
@@ -17493,7 +17494,7 @@ def draw_jawke_legacy(surface, cx, cy, scale=1.0):
         pygame.draw.ellipse(surface, _line, (P(_ex - 10, -80)[0], P(_ex - 10, -80)[1], I(20), I(22)), I(2))
         pygame.draw.circle(surface, _line, P(_ex, -70), I(4))
     _mouth = [P(-25, -54), P(25, -54), P(19, -34), P(-19, -34)]
-    pygame.draw.polygon(surface, (118, 70, 78), _mouth)
+    pygame.draw.polygon(surface, (58, 58, 58), _mouth)
     pygame.draw.polygon(surface, _line, _mouth, I(3))
     for _tx in (-13, 2):                            # the two big front teeth
         pygame.draw.rect(surface, (255, 255, 255), (P(_tx, -54)[0], P(_tx, -54)[1], I(12), I(15)))
@@ -17502,7 +17503,7 @@ def draw_jawke_legacy(surface, cx, cy, scale=1.0):
     # ── Striped top hat ───────────────────────────────────────────────────
     pygame.draw.ellipse(surface, _hat, (P(-40, -104)[0], P(-40, -104)[1], I(80), I(16)))
     pygame.draw.rect(surface, _hat, (P(-24, -150)[0], P(-24, -150)[1], I(48), I(48)))
-    pygame.draw.rect(surface, (30, 28, 36), (P(-24, -150)[0], P(-24, -150)[1], I(48), I(48)), I(2))
+    pygame.draw.rect(surface, (10, 10, 10), (P(-24, -150)[0], P(-24, -150)[1], I(48), I(48)), I(2))
     for _sx2 in range(-18, 19, 9):                  # the sketch's vertical stripes
-        pygame.draw.line(surface, (108, 102, 120), P(_sx2, -148), P(_sx2, -106), I(2))
-    pygame.draw.ellipse(surface, (30, 28, 36), (P(-40, -104)[0], P(-40, -104)[1], I(80), I(16)), I(2))
+        pygame.draw.line(surface, (170, 170, 170), P(_sx2, -148), P(_sx2, -106), I(2))
+    pygame.draw.ellipse(surface, (10, 10, 10), (P(-40, -104)[0], P(-40, -104)[1], I(80), I(16)), I(2))
