@@ -12795,7 +12795,8 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                                max(4, int(6*s)), max(1, int(s)))
 
         # ── /\ landing pose: arms raised (9.0 – 9.5 s) ──────────────────────
-        if 9.0 <= _ap < 9.5:
+        _raising = 9.0 <= _ap < 9.5
+        if _raising:
             _raise = min(1.0, (_ap - 9.0) / 0.15)  # quick raise
             _drop  = max(0.0, 1.0 - (_ap - 9.25) / 0.25) if _ap > 9.25 else 1.0
             _raisefrac = _raise * _drop
@@ -12809,8 +12810,11 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         _front_hx = rhx if facing > 0 else lhx
         _is_punching = (_front_hx - sx) * facing > int(al * 0.4)
 
-        for _hpt, _spt in [((lhx, lhy), (sx - int(10*s), sy + int(10*s))),
-                             ((rhx, rhy), (sx + int(10*s), sy + int(10*s)))]:
+        # Skipped while the landing pose has his arms up, or he ends up
+        # waving two pairs of arms at once.
+        for _hpt, _spt in ([] if _raising else
+                           [((lhx, lhy), (sx - int(10*s), sy + int(10*s))),
+                            ((rhx, rhy), (sx + int(10*s), sy + int(10*s)))]):
             _adx = int(_hpt[0]) - _spt[0]
             _ady = int(_hpt[1]) - _spt[1]
             _ext = 2.4
