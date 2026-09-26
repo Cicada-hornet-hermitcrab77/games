@@ -918,11 +918,12 @@ def mode_select(unlocked=None, stats=None):
                             _dev_date_err = False
                 elif stats.get("dev_mode_unlocked") and _dev_exit_rect.collidepoint(_mp):
                     _dev_mode[0] = True
-                if _confirm_rect.collidepoint(_mp) and not (selected == 5 and not _fuser_unlocked):
+                if (_confirm_rect.collidepoint(_mp) and not _feast[0]
+                        and not (selected == 5 and not _fuser_unlocked)):
                     if _home_lobby: _home_lobby.close()
                     return _mode_confirm()
                 for _ci, _cx in enumerate(card_xs):
-                    if _ci in _eaten:
+                    if _ci in _eaten or _feast[0]:
                         continue          # Jawke ate that one
                     if pygame.Rect(_cx, 140, card_w, card_h).collidepoint(_mp):
                         if _ci == 6:          # Story Mode: chained shut for now
@@ -1065,17 +1066,17 @@ def mode_select(unlocked=None, stats=None):
                 if event.key == pygame.K_t:
                     touch_p1_enabled[0] = not touch_p1_enabled[0]
                     touch_p2_enabled[0] = touch_p1_enabled[0]
-                if event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                if event.key in (pygame.K_RETURN, pygame.K_SPACE) and not _feast[0]:
                     if not (selected == 5 and not _fuser_unlocked):
                         if _home_lobby: _home_lobby.close()
                         return _mode_confirm()
-                if event.key == pygame.K_e and _ev_mode:
+                if event.key == pygame.K_e and _ev_mode and not _feast[0]:
                     if _home_lobby: _home_lobby.close()
                     return _ev_mode
 
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN) and _ev_btn_rect:
                 _mp2 = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
-                if _ev_btn_rect.collidepoint(_mp2):
+                if _ev_btn_rect.collidepoint(_mp2) and not _feast[0]:
                     if _home_lobby: _home_lobby.close()
                     return _ev_mode
 
