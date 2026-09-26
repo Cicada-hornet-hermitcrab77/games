@@ -751,7 +751,15 @@ def mode_select(unlocked=None, stats=None):
     _story_said   = [[]]  # the lines he is saying right now
     _story_anger  = [0]   # 0 calm .. 3 furious — grows with the poke count
     _story_cool   = [0]   # frames until he forgets you were ever bothering him
+    _story_leaving = [False]  # saying his last words before he goes
+    _story_gone   = [False]   # pushed too far — he is not coming back
     STORY_COOL    = FPS * 60   # leave him alone a minute and he calms down
+    STORY_GIVEUP_AT = 16       # yanks before he gives up on you entirely
+    STORY_GIVEUP  = [
+        "Right. That is me finished.",
+        "The chain stays. I am going back in the ground.",
+        "The train will call when it calls. It will not be calling for you.",
+    ]
     STORY_RATTLE  = 34    # how long a yank on the chains keeps shaking
     STORY_SLIDE   = 14    # frames he takes to rise into (and drop out of) view
     # Keep pulling on him and he says more, and says it angrier: one line
@@ -907,6 +915,11 @@ def mode_select(unlocked=None, stats=None):
                 for _ci, _cx in enumerate(card_xs):
                     if pygame.Rect(_cx, 140, card_w, card_h).collidepoint(_mp):
                         if _ci == 6:          # Story Mode: chained shut for now
+                            if _story_gone[0]:
+                                # He has had enough of you. The chains still
+                                # move; nobody comes.
+                                _story_rattle[0] = STORY_RATTLE
+                                break
                             # Escalate: every third yank moves him up a
                             # tier, and each tier means one more line out of
                             # an angrier pool.
@@ -920,8 +933,14 @@ def mode_select(unlocked=None, stats=None):
                             _story_said[0] = [_l for _l in _pool if _l in _picked]
                             if _story_pokes[0] == STORY_SECRET_AT:
                                 _story_said[0] = [STORY_SECRET]
+                            if _story_pokes[0] >= STORY_GIVEUP_AT:
+                                # Last words, then he walks out for good
+                                _story_said[0] = list(STORY_GIVEUP)
+                                _story_leaving[0] = True
                             # Angrier means longer on screen and a harder yank
                             _story_teaser[0] = FPS * 3 + _story_anger[0] * FPS
+                            if _story_leaving[0]:
+                                _story_teaser[0] = FPS * 5
                             _story_rattle[0] = STORY_RATTLE + _story_anger[0] * 10
                         else:
                             selected = _ci
@@ -1220,7 +1239,8 @@ def mode_select(unlocked=None, stats=None):
         # in his Legacy of Valor conductor cap — is the one who answers.
         if _story_rattle[0] > 0:
             _story_rattle[0] -= 1
-        # A minute without a yank and he settles back to patient
+        # A minute without a yank and he settles back to patient — but if he
+        # has walked out, calming down does not bring him back.
         if _story_cool[0] > 0:
             _story_cool[0] -= 1
             if _story_cool[0] == 0:
@@ -1233,6 +1253,9 @@ def mode_select(unlocked=None, stats=None):
             _story_slide[0] = min(STORY_SLIDE, _story_slide[0] + 1)
         else:
             _story_slide[0] = max(0, _story_slide[0] - 1)
+            if _story_leaving[0] and _story_slide[0] == 0:
+                _story_leaving[0] = False
+                _story_gone[0]    = True
         if _story_slide[0] > 0:
             _vis   = _story_slide[0] / float(STORY_SLIDE)
             _vis   = 1.0 - (1.0 - _vis) ** 2          # ease out
