@@ -754,10 +754,16 @@ def mode_select(unlocked=None, stats=None):
     _story_leaving = [False]  # saying his last words before he goes
     _story_gone   = [False]   # pushed too far — he is not coming back
     _jawke_run    = [0]       # frames left of Jawke cartwheeling past
+    _feast        = [0]       # frames left of the card-eating finale
+    _eaten        = set()     # card indices Jawke has swallowed
+    _crumbs       = []        # [x, y, vx, vy, life] left behind by each bite
     STORY_COOL    = FPS * 60   # leave him alone a minute and he calms down
     STORY_GIVEUP_AT = 16       # yanks before he gives up on you entirely
-    STORY_JAWKE_AT  = 18       # and two yanks later, something else turns up
+    STORY_JAWKE_AT  = (18, 24, 28, 35)   # yanks where he cartwheels past
+    STORY_FEAST_AT  = 40       # the yank where he stops cartwheeling and eats
     JAWKE_FRAMES    = 105      # how long his spin across the screen takes
+    FEAST_TRAVEL    = 165      # frames to work along the card row
+    FEAST_HOLD      = FPS * 5  # empty menu sits for five seconds, then resets
     STORY_GIVEUP  = [
         "Right. That is me finished.",
         "The chain stays. I am going back in the ground.",
@@ -916,15 +922,25 @@ def mode_select(unlocked=None, stats=None):
                     if _home_lobby: _home_lobby.close()
                     return _mode_confirm()
                 for _ci, _cx in enumerate(card_xs):
+                    if _ci in _eaten:
+                        continue          # Jawke ate that one
                     if pygame.Rect(_cx, 140, card_w, card_h).collidepoint(_mp):
                         if _ci == 6:          # Story Mode: chained shut for now
                             _story_pokes[0] += 1
-                            if _story_pokes[0] == STORY_JAWKE_AT:
+                            if _story_pokes[0] in STORY_JAWKE_AT:
                                 # Nobody asked for this.
                                 _jawke_run[0] = JAWKE_FRAMES
-                            if _story_gone[0]:
-                                # He has had enough of you. The chains still
-                                # move; nobody comes.
+                            if _story_pokes[0] == STORY_FEAST_AT and not _feast[0]:
+                                # He is done cartwheeling. He is hungry.
+                                _feast[0] = FEAST_TRAVEL + FEAST_HOLD
+                                _jawke_run[0] = 0
+                                _story_teaser[0] = 0
+                            if _story_gone[0] or _story_leaving[0]:
+                                # He has had enough of you, or he is already
+                                # walking out — either way the chains still
+                                # move and nobody answers. (Without the
+                                # _leaving half, spam-clicking through his
+                                # farewell would drag him back mid-exit.)
                                 _story_rattle[0] = STORY_RATTLE
                                 break
                             # Escalate: every third yank moves him up a
@@ -1094,6 +1110,8 @@ def mode_select(unlocked=None, stats=None):
             (card_xs[6], "STORY",     "mode",         (120, 110, 100)),
         ]
         for ci, (cx, top, sub, col) in enumerate(cards):
+            if ci in _eaten:
+                continue                  # swallowed whole
             _fuser_locked = (ci == 5 and not _fuser_unlocked)
             border = (90, 82, 70) if ci == 6 else (WHITE if (ci == selected and not _fuser_locked) else GRAY)
             bg_col = ((50, 45, 10) if ci == 4 else (35, 30, 45) if ci == 5
@@ -1240,6 +1258,60 @@ def mode_select(unlocked=None, stats=None):
             if ci == selected and ci != 6 and not _fuser_locked:
                 sel_txt = font_tiny.render("ENTER / SPACE to select", True, WHITE)
                 screen.blit(sel_txt, (cx + card_w//2 - sel_txt.get_width()//2, 390))
+
+        # ── The fortieth yank: Jawke eats the menu ────────────────────────
+        # He works along the card row from right to left, swallowing each mode
+        # whole, then the empty home screen sits for five seconds and resets.
+        if _feast[0] > 0:
+            _feast[0] -= 1
+            _fe = FEAST_TRAVEL + FEAST_HOLD - _feast[0]      # frames elapsed
+            if _fe <= FEAST_TRAVEL:
+                _fp  = _fe / float(FEAST_TRAVEL)
+                _fx  = int(WIDTH + 110 - _fp * (WIDTH + 220))
+                _fy  = 140 + card_h // 2 + int(math.sin(_fe * 0.22) * 10)
+                # Swallow any card his mouth has reached
+                for _ci2, _cx2 in enumerate(card_xs):
+                    if _ci2 in _eaten:
+                        continue
+                    if _fx <= _cx2 + card_w // 2:
+                        _eaten.add(_ci2)
+                        for _cr in range(14):
+                            _crumbs.append([_cx2 + random.randint(0, card_w),
+                                            140 + random.randint(0, card_h),
+                                            random.uniform(-2.2, 2.2),
+                                            random.uniform(-5.0, -1.0), 42])
+                _chomp = 1.0 + 0.12 * math.sin(_fe * 0.5)     # jaw working
+                _jsurf2 = pygame.Surface((360, 400), pygame.SRCALPHA)
+                draw_jawke_legacy(_jsurf2, 180, 200, 0.95 * _chomp)
+                screen.blit(_jsurf2, (_fx - 180, _fy - 200))
+            elif _feast[0] == 0:
+                # Five seconds of nothing, then the home screen comes back
+                _eaten.clear()
+                _crumbs.clear()
+                _story_pokes[0]  = 0
+                _story_anger[0]  = 0
+                _story_cool[0]   = 0
+                _story_gone[0]   = False
+                _story_leaving[0] = False
+                _story_said[0]   = []
+                _story_teaser[0] = 0
+                _story_slide[0]  = 0
+                _story_rattle[0] = 0
+                _jawke_run[0]    = 0
+                selected         = 0
+            else:
+                _hold = (FEAST_TRAVEL + FEAST_HOLD - _feast[0] - FEAST_TRAVEL)
+                if _hold > FEAST_HOLD - 26:                   # white flash on the way back
+                    _fl = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+                    _fl.fill((255, 255, 255, int(200 * (_hold - (FEAST_HOLD - 26)) / 26.0)))
+                    screen.blit(_fl, (0, 0))
+        # Crumbs from each bite
+        for _cb in _crumbs:
+            _cb[0] += _cb[2]; _cb[1] += _cb[3]; _cb[3] += 0.45; _cb[4] -= 1
+            if _cb[4] > 0:
+                pygame.draw.rect(screen, (210, 210, 210),
+                                 (int(_cb[0]), int(_cb[1]), 3, 3))
+        _crumbs[:] = [_cb for _cb in _crumbs if _cb[4] > 0]
 
         # Yank eighteen times and Jawke — in his legacy costume, top hat and
         # all — cartwheels across the screen from right to left. No reason.
