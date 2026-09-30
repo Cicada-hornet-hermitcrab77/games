@@ -754,6 +754,9 @@ def mode_select(unlocked=None, stats=None):
     _story_leaving = [False]  # saying his last words before he goes
     _story_gone   = [False]   # pushed too far — he is not coming back
     _jawke_run    = [0]       # frames left of Jawke cartwheeling past
+    _story_dmg    = [0]       # yanks past his walk-out — the card wears down
+    _gone_links   = []        # (chain, link) pairs that have dropped off
+    _fallen       = []        # [x, y, vx, vy, spin, life] links clattering away
     _feast        = [0]       # frames left of the card-eating finale
     _eaten        = set()     # card indices Jawke has swallowed
     _crumbs       = []        # [x, y, vx, vy, life] left behind by each bite
@@ -799,6 +802,12 @@ def mode_select(unlocked=None, stats=None):
     ]
     STORY_ANGER_COL = [(222, 214, 190), (240, 206, 140), (250, 168, 110), (255, 120, 100)]
     # One line for whoever refuses to give up.
+    # He climbs back out with the menu — otherwise the feast would be the
+    # last anyone ever saw of him, since the rebuild wipes his grudge too.
+    STORY_RETURN  = [
+        "...He ate the menu.",
+        "I am not cleaning that up. Where were we.",
+    ]
     STORY_SECRET  = "...Fine. ONE thing: the train leaves when the last stone falls. Now shoo."
     STORY_SECRET_AT = 12
 
@@ -936,6 +945,10 @@ def mode_select(unlocked=None, stats=None):
                                 _feast[0] = FEAST_TRAVEL + FEAST_HOLD
                                 _jawke_run[0] = 0
                                 _story_teaser[0] = 0
+                            if _story_pokes[0] > STORY_GIVEUP_AT:
+                                # He is not talking any more, so the card
+                                # itself carries the progress from here.
+                                _story_dmg[0] += 1
                             if _story_gone[0] or _story_leaving[0]:
                                 # He has had enough of you, or he is already
                                 # walking out — either way the chains still
@@ -1191,18 +1204,28 @@ def mode_select(unlocked=None, stats=None):
                 pygame.draw.line(screen, (40, 32, 24), (_mx2 - 17, _my2 - 6), (_mx2 - 26, _my2 - 12), 2)
                 pygame.draw.line(screen, (40, 32, 24), (_mx2 + 17, _my2 - 6), (_mx2 + 26, _my2 - 12), 2)
 
-                # Poison ivy creeping over everything
+                # Poison ivy creeping over everything — it wilts as the card
+                # takes yank after yank, browning, drooping and shedding.
+                _wear = min(1.0, _story_dmg[0] / float(STORY_FEAST_AT - STORY_GIVEUP_AT - 1))
                 for _vi2, (_vx0, _vdir) in enumerate(((_sx0 + 6, 1), (_sx0 + card_w - 6, -1))):
                     _prev = (_vx0, _sy0 + card_h - 4)
                     for _seg in range(1, 8):
-                        _vy2 = _sy0 + card_h - 4 - _seg * (card_h // 11)
+                        _vy2 = (_sy0 + card_h - 4 - _seg * (card_h // 11)
+                                + int(_wear * _seg * 2.2))          # the vine sags
                         _vx2 = _vx0 + _vdir * int(math.sin(_seg * 0.9 + _vi2) * 16 + _seg * 3)
-                        pygame.draw.line(screen, (46, 96, 44), _prev, (_vx2, _vy2), 3)
+                        _vcol = (int(46 + 46 * _wear), int(96 - 44 * _wear), int(44 - 16 * _wear))
+                        pygame.draw.line(screen, _vcol, _prev, (_vx2, _vy2), 3)
                         for _lf in (-1, 1):
+                            if (_seg * 2 + (_lf > 0)) < _wear * 13:
+                                continue                             # this leaf has dropped
                             _lfx = _vx2 + _lf * 9
-                            pygame.draw.ellipse(screen, (58, 124, 52) if _seg % 2 else (72, 148, 62),
-                                                (_lfx - 7, _vy2 - 5, 14, 10))
-                            pygame.draw.ellipse(screen, (30, 70, 28), (_lfx - 7, _vy2 - 5, 14, 10), 1)
+                            _base = (58, 124, 52) if _seg % 2 else (72, 148, 62)
+                            _leaf = (int(_base[0] + (150 - _base[0]) * _wear),
+                                     int(_base[1] + (110 - _base[1]) * _wear),
+                                     int(_base[2] + (50 - _base[2]) * _wear))
+                            _lh2 = int(10 - 3 * _wear)               # leaves curl up
+                            pygame.draw.ellipse(screen, _leaf, (_lfx - 7, _vy2 - 5, 14, _lh2))
+                            pygame.draw.ellipse(screen, (30, 70, 28), (_lfx - 7, _vy2 - 5, 14, _lh2), 1)
                         _prev = (_vx2, _vy2)
 
                 # Chains crossing the card, with a padlock at the crossing.
@@ -1218,6 +1241,8 @@ def mode_select(unlocked=None, stats=None):
                     _clen = math.hypot(_c2[0] - _c1[0], _c2[1] - _c1[1])
                     _steps = max(2, int(_clen // 13))
                     for _li2 in range(_steps):
+                        if (_ch2, _li2) in _gone_links:
+                            continue                     # that link is on the floor
                         _lt2 = _li2 / _steps
                         _lcx = int(_c1[0] + (_c2[0] - _c1[0]) * _lt2)
                         _lcy = int(_c1[1] + (_c2[1] - _c1[1]) * _lt2)
@@ -1232,6 +1257,22 @@ def mode_select(unlocked=None, stats=None):
                                             (_lcx - _lr[0], _lcy - _lr[1], _lr[0] * 2, _lr[1] * 2), 3)
                         pygame.draw.ellipse(screen, (96, 96, 104),
                                             (_lcx - _lr[0], _lcy - _lr[1], _lr[0] * 2, _lr[1] * 2), 1)
+                # One more link shakes loose for every yank he no longer answers
+                if len(_gone_links) < _story_dmg[0]:
+                    _left = [(_c3, _l3) for _c3 in (0, 1) for _l3 in range(_steps)
+                             if (_c3, _l3) not in _gone_links]
+                    if _left:
+                        _drop = random.choice(_left)
+                        _gone_links.append(_drop)
+                        _dc1 = ((_sx0 + 4, _sy0 + 96) if _drop[0] == 0
+                                else (_sx0 + card_w - 4, _sy0 + 96))
+                        _dc2 = ((_sx0 + card_w - 4, _sy0 + card_h - 34) if _drop[0] == 0
+                                else (_sx0 + 4, _sy0 + card_h - 34))
+                        _dt = _drop[1] / _steps
+                        _fallen.append([_dc1[0] + (_dc2[0] - _dc1[0]) * _dt,
+                                        _dc1[1] + (_dc2[1] - _dc1[1]) * _dt,
+                                        random.uniform(-1.6, 1.6), -1.5,
+                                        random.uniform(-0.3, 0.3), 70])
                 _plx, _ply = _scx, _sy0 + card_h - 58
                 if _ramp > 0.1:
                     # The padlock swings hardest — it is the loose weight
@@ -1242,6 +1283,12 @@ def mode_select(unlocked=None, stats=None):
                 pygame.draw.rect(screen, (196, 170, 60), (_plx - 14, _ply - 4, 28, 24), border_radius=4)
                 pygame.draw.rect(screen, (120, 100, 30), (_plx - 14, _ply - 4, 28, 24), 2, border_radius=4)
                 pygame.draw.circle(screen, (110, 92, 28), (_plx, _ply + 7), 4)
+                for _ck in range(int(_wear * 7)):        # hairline cracks spread
+                    _cka = 0.7 + _ck * 1.13
+                    _ckl = 5 + (_ck % 3) * 4
+                    pygame.draw.line(screen, (96, 78, 20),
+                                     (_plx + int(math.cos(_cka) * 3), _ply + 6 + int(math.sin(_cka) * 3)),
+                                     (_plx + int(math.cos(_cka) * _ckl), _ply + 6 + int(math.sin(_cka) * _ckl)), 1)
                 # Dust shaken loose off the chains
                 if _ramp > 1.2:
                     for _dz in range(3):
@@ -1252,6 +1299,7 @@ def mode_select(unlocked=None, stats=None):
 
                 _soon = font_tiny.render("COMING SOON", True,
                                          (200, 180, 120) if (_st % 1.6) < 0.8 else (120, 108, 80))
+                _soon.set_alpha(int(255 * (1.0 - 0.85 * _wear)))    # the promise fades
                 screen.blit(_soon, (_scx - _soon.get_width() // 2, _sy0 + card_h - 20))
             else:
                 draw_stickman(screen, cx + card_w//2 - 25, 140 + card_h - 30, BLUE, 1, 'walk', preview_t)
@@ -1289,13 +1337,16 @@ def mode_select(unlocked=None, stats=None):
                 # Five seconds of nothing, then the home screen comes back
                 _eaten.clear()
                 _crumbs.clear()
+                _story_dmg[0] = 0
+                _gone_links.clear()
+                _fallen.clear()
                 _story_pokes[0]  = 0
                 _story_anger[0]  = 0
                 _story_cool[0]   = 0
                 _story_gone[0]   = False
                 _story_leaving[0] = False
-                _story_said[0]   = []
-                _story_teaser[0] = 0
+                _story_said[0]   = list(STORY_RETURN)   # he comes back to look
+                _story_teaser[0] = FPS * 4
                 _story_slide[0]  = 0
                 _story_rattle[0] = 0
                 _jawke_run[0]    = 0
@@ -1306,6 +1357,19 @@ def mode_select(unlocked=None, stats=None):
                     _fl = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
                     _fl.fill((255, 255, 255, int(200 * (_hold - (FEAST_HOLD - 26)) / 26.0)))
                     screen.blit(_fl, (0, 0))
+        # Links that have shaken loose, tumbling off the card
+        for _fl2 in _fallen:
+            _fl2[0] += _fl2[2]; _fl2[1] += _fl2[3]; _fl2[3] += 0.55
+            _fl2[4] += 0.25; _fl2[5] -= 1
+            if _fl2[5] > 0:
+                _fa = max(0, min(255, _fl2[5] * 5))
+                _fs2 = pygame.Surface((16, 12), pygame.SRCALPHA)
+                pygame.draw.ellipse(_fs2, (168, 168, 176, _fa), (0, 0, 14, 10), 3)
+                _fs2 = pygame.transform.rotate(_fs2, math.degrees(_fl2[4]))
+                screen.blit(_fs2, (int(_fl2[0]) - _fs2.get_width() // 2,
+                                   int(_fl2[1]) - _fs2.get_height() // 2))
+        _fallen[:] = [_f2 for _f2 in _fallen if _f2[5] > 0]
+
         # Crumbs from each bite
         for _cb in _crumbs:
             _cb[0] += _cb[2]; _cb[1] += _cb[3]; _cb[3] += 0.45; _cb[4] -= 1
@@ -1348,6 +1412,8 @@ def mode_select(unlocked=None, stats=None):
             if _story_cool[0] == 0:
                 _story_pokes[0] = 0
                 _story_anger[0] = 0
+                _story_dmg[0]   = 0
+                _gone_links.clear()
         if _story_teaser[0] > 0:
             _story_teaser[0] -= 1
         # Rise while he has something to say, sink once he has said it
