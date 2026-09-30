@@ -3100,13 +3100,21 @@ def server_settings_screen(userdata):
     result = _text_input_screen(
         f"Server IP  (blank = {_net.DEFAULT_SERVER_IP}):", cur, max_len=48)
     if result is not None:
-        userdata["server_ip"] = result.strip()
+        _entered = result.strip()
+        if _entered.isdigit():
+            # That is a port, not a host. Saving it would leave the game
+            # trying to resolve a machine called "7779" and stuck offline.
+            _entered = ""
+        userdata["server_ip"] = _entered
         _net.save_userdata(userdata)
 
 
 def _server_host(userdata):
-    """The fight_server to talk to: the player's override, else the default."""
-    return (userdata.get("server_ip") or "").strip() or _net.DEFAULT_SERVER_IP
+    """The fight_server to talk to: the player's override, else the default.
+    A digits-only override is a port somebody typed into the host box — ignore
+    it, or the game sits offline forever trying to resolve it as a hostname."""
+    _ip = (userdata.get("server_ip") or "").strip()
+    return _net.DEFAULT_SERVER_IP if (not _ip or _ip.isdigit()) else _ip
 
 
 def _make_lobby(userdata, timeout=6):
