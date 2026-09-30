@@ -3094,27 +3094,14 @@ def set_username_screen(userdata):
         _net.save_userdata(userdata)
 
 
-def server_settings_screen(userdata):
-    """Let the player type in the fight_server IP (blank = the default server)."""
-    cur = userdata.get("server_ip", "")
-    result = _text_input_screen(
-        f"Server IP  (blank = {_net.DEFAULT_SERVER_IP}):", cur, max_len=48)
-    if result is not None:
-        _entered = result.strip()
-        if _entered.isdigit():
-            # That is a port, not a host. Saving it would leave the game
-            # trying to resolve a machine called "7779" and stuck offline.
-            _entered = ""
-        userdata["server_ip"] = _entered
-        _net.save_userdata(userdata)
-
-
 def _server_host(userdata):
-    """The fight_server to talk to: the player's override, else the default.
-    A digits-only override is a port somebody typed into the host box — ignore
-    it, or the game sits offline forever trying to resolve it as a hostname."""
-    _ip = (userdata.get("server_ip") or "").strip()
-    return _net.DEFAULT_SERVER_IP if (not _ip or _ip.isdigit()) else _ip
+    """The one fight_server everybody plays on.
+
+    There used to be a Server IP box here. It only ever did harm: a typo, or
+    a port typed into it, left the game trying to resolve a host that does
+    not exist and reporting the server offline forever, with no clue why.
+    Any override left in an old save is ignored."""
+    return _net.DEFAULT_SERVER_IP
 
 
 def _make_lobby(userdata, timeout=6):
@@ -3905,7 +3892,7 @@ def online_menu(userdata, unlocked=None):
          or None on cancel.
     """
     opts = ["QUICK MATCH", "HOST GAME", "JOIN GAME", "FRIENDS", "LEADERBOARD",
-            "SET USERNAME", "SERVER"]
+            "SET USERNAME"]
     sel  = 0
     _update_banner = []   # server update announcements to show
 
@@ -3965,10 +3952,9 @@ def online_menu(userdata, unlocked=None):
                         leaderboard_screen(userdata, _lobby_bg)
                     elif sel == 5:  # SET USERNAME
                         set_username_screen(userdata)
-                    elif sel == 6:  # SERVER — point the game at your own host
-                        if _lobby_bg: _lobby_bg.close()
-                        server_settings_screen(userdata)
-                        _lobby_bg = _make_lobby(userdata, timeout=3)
+                    # There is no server picker: everyone plays on the one
+                    # server, so nobody can strand themselves on a host that
+                    # does not exist.
 
         screen.fill(DARK)
         title = font_large.render("ONLINE PLAY", True, CYAN)
