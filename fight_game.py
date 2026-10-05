@@ -29,6 +29,7 @@ import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, fuser_mode, tombstones_minefield
 from fight_chat import ChatBox as _ChatBox, EasterEggs as _EasterEggs
 import fight_achievements as _ach
+import fight_fighter as _fighter_mod
 from fight_ui import achievement_popup as _ach_popup
 from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
 
@@ -7227,6 +7228,9 @@ def main():
         if _heal_pickup_flag[0]:
             stats["heal_picked"] = True
             _heal_pickup_flag[0] = False
+        if _fighter_mod.PROJ_BLOCKS[0] > 0:
+            stats["proj_blocked"] = True
+            _fighter_mod.PROJ_BLOCKS[0] = 0
         _award_achievements(unlocked, stats)
         mode = mode_select(unlocked, stats)
         _award_achievements(unlocked, stats)

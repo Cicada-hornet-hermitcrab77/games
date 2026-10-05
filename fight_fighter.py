@@ -11,6 +11,11 @@ from fight_stage import ConveyorBelt, SlantedConveyorBelt
 # Fighter
 # ---------------------------------------------------------------------------
 
+# Counts projectiles stopped by a raised block this session. The AI never
+# blocks, so in practice this only ever counts the player.
+PROJ_BLOCKS = [0]
+
+
 class Fighter:
     def __init__(self, x, char_data, facing, controls):
         if char_data.get("random_stats"):
@@ -1869,6 +1874,13 @@ class Fighter:
             return
         if self.char.get("tombstone_reflect") or (self.char.get("mega_unhittable") and random.random() < 0.999):
             return
+        if self.blocking and dmg > 0:
+            # A raised guard turns a projectile aside. It used to do nothing at
+            # all against anything thrown, which made blocking useless against
+            # half the roster.
+            dmg = max(1, dmg // 2)
+            PROJ_BLOCKS[0] += 1
+            self.flash_timer = max(self.flash_timer, 6)
         self.hp = max(0, self.hp - dmg)
         if flash:
             self.flash_timer = max(self.flash_timer, 8)

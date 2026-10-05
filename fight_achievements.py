@@ -302,6 +302,36 @@ def _badge_eye_i(surf, cx, cy, r):
     pygame.draw.circle(surf, (10, 8, 14), (ex, ey), max(1, int(r * 0.08)))
 
 
+def _badge_matrix(surf, cx, cy, r):
+    """A stickman bent over backwards while a shot streaks past his nose."""
+    import math as _m
+    t = pygame.time.get_ticks() / 1000.0
+    man = (220, 240, 225)
+    w = max(1, r // 9)
+    hipx, hipy = cx - int(r * 0.1), cy + int(r * 0.42)
+    chestx, chesty = cx + int(r * 0.22), cy + int(r * 0.02)
+    headx, heady = cx + int(r * 0.52), cy - int(r * 0.2)
+    pygame.draw.line(surf, man, (hipx, hipy), (chestx, chesty), w)      # leaning torso
+    pygame.draw.circle(surf, man, (headx, heady), max(2, int(r * 0.17)))
+    pygame.draw.line(surf, man, (chestx, chesty),
+                     (chestx - int(r * 0.42), chesty - int(r * 0.3)), w)
+    pygame.draw.line(surf, man, (chestx, chesty),
+                     (chestx - int(r * 0.1), chesty + int(r * 0.46)), w)
+    pygame.draw.line(surf, man, (hipx, hipy), (hipx - int(r * 0.3), cy + int(r * 0.85)), w)
+    pygame.draw.line(surf, man, (hipx, hipy), (hipx + int(r * 0.26), cy + int(r * 0.86)), w)
+    # the shot going over him, with a trail
+    bx = cx - int(r * 0.9) + int(((t * 1.6) % 1.0) * r * 1.8)
+    by = cy - int(r * 0.52)
+    for i in range(4):
+        pygame.draw.circle(surf, (120, 255, 150),
+                           (bx - i * int(r * 0.16), by), max(1, int(r * (0.13 - i * 0.03))))
+    # falling green code
+    for i in range(3):
+        _cx2 = cx - int(r * 0.78) + i * int(r * 0.7)
+        _cy2 = cy - r + int(((t * 0.8 + i * 0.3) % 1.0) * r * 2)
+        pygame.draw.line(surf, (60, 200, 90), (_cx2, _cy2), (_cx2, _cy2 + int(r * 0.2)), 1)
+
+
 BADGES = {
     "crown":    _badge_crown,
     "lhat":     _badge_lhat,
@@ -316,6 +346,7 @@ BADGES = {
     "heal":     _badge_heal,
     "cipher":   _badge_cipher,
     "eye_i":    _badge_eye_i,
+    "matrix":   _badge_matrix,
 }
 
 
@@ -455,6 +486,14 @@ ACHIEVEMENTS = [
         "reward": 10,
         "badge": "eye_i",
         "check": lambda s, u, d: s.get("best_session_win_streak", 0) >= 15,
+    },
+    {
+        "id": "still_in_the_matrix",
+        "name": "Do we still live in the matrix?",
+        "desc": "Block a projectile",
+        "reward": 10,
+        "badge": "matrix",
+        "check": lambda s, u, d: bool(s.get("proj_blocked")),
     },
     {
         "id": "double_o_element",
