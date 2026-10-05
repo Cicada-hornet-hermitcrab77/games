@@ -446,6 +446,117 @@ def _badge_eye(surf, cx, cy, r):
         surf.blit(_gs, (cx - w + int(r * 0.18), cy - h - int(r * 0.12)))
 
 
+def _badge_nutshell(surf, cx, cy, r):
+    """A walnut cracked open with a tiny fighter standing inside it."""
+    shell, dark = (176, 128, 72), (116, 80, 42)
+    pygame.draw.ellipse(surf, shell, (cx - r, cy - int(r * 0.2), r * 2, int(r * 1.1)))
+    pygame.draw.ellipse(surf, dark, (cx - r, cy - int(r * 0.2), r * 2, int(r * 1.1)),
+                        max(1, r // 12))
+    for i in range(4):                                    # shell grain
+        pygame.draw.arc(surf, dark, (cx - r + i * int(r * 0.2), cy - int(r * 0.12),
+                                     int(r * 1.2), int(r * 0.9)),
+                        math.radians(200), math.radians(340), 1)
+    pygame.draw.ellipse(surf, (206, 158, 96), (cx - r, cy - int(r * 0.72), r * 2, int(r * 0.6)))
+    pygame.draw.ellipse(surf, dark, (cx - r, cy - int(r * 0.72), r * 2, int(r * 0.6)),
+                        max(1, r // 12))                  # the lifted lid
+    w = max(1, r // 12)
+    hx, hy = cx, cy - int(r * 0.02)
+    pygame.draw.circle(surf, (245, 245, 250), (hx, hy - int(r * 0.2)), max(2, int(r * 0.13)))
+    pygame.draw.line(surf, (245, 245, 250), (hx, hy - int(r * 0.08)), (hx, hy + int(r * 0.3)), w)
+    pygame.draw.line(surf, (245, 245, 250), (hx, hy + int(r * 0.04)),
+                     (hx - int(r * 0.26), hy - int(r * 0.08)), w)
+    pygame.draw.line(surf, (245, 245, 250), (hx, hy + int(r * 0.04)),
+                     (hx + int(r * 0.26), hy - int(r * 0.08)), w)
+
+
+def _badge_speed_demon(surf, cx, cy, r):
+    """A horned head tearing along inside its own slipstream."""
+    t = pygame.time.get_ticks() / 1000.0
+    for i in range(4):                                    # speed lines
+        _y = cy - int(r * 0.5) + i * int(r * 0.34)
+        _len = int(r * (0.7 + 0.25 * math.sin(t * 7 + i)))
+        pygame.draw.line(surf, (150, 210, 255),
+                         (cx - r, _y), (cx - r + _len, _y), max(1, r // 10))
+    head = (206, 70, 70)
+    pygame.draw.circle(surf, head, (cx + int(r * 0.22), cy), int(r * 0.52))
+    for sx in (-1, 1):                                    # horns
+        pygame.draw.polygon(surf, (240, 160, 120), [
+            (cx + int(r * 0.22) + sx * int(r * 0.3), cy - int(r * 0.36)),
+            (cx + int(r * 0.22) + sx * int(r * 0.52), cy - int(r * 0.86)),
+            (cx + int(r * 0.22) + sx * int(r * 0.46), cy - int(r * 0.3))])
+    for sx in (-1, 1):                                    # eyes
+        pygame.draw.circle(surf, (255, 232, 120),
+                           (cx + int(r * 0.22) + sx * int(r * 0.2), cy - int(r * 0.06)),
+                           max(1, int(r * 0.11)))
+    pygame.draw.arc(surf, (40, 20, 20),
+                    (cx - int(r * 0.06), cy + int(r * 0.1), int(r * 0.56), int(r * 0.4)),
+                    math.radians(200), math.radians(340), max(1, r // 12))
+
+
+def _badge_fire_mole(surf, cx, cy, r):
+    """Fire in the hole: a mole coming up out of a burning burrow."""
+    t = pygame.time.get_ticks() / 1000.0
+    ground = cy + int(r * 0.44)
+    pygame.draw.ellipse(surf, (104, 74, 48), (cx - r, ground - int(r * 0.2),
+                                              r * 2, int(r * 0.6)))        # mound
+    pygame.draw.ellipse(surf, (34, 24, 18), (cx - int(r * 0.52), ground - int(r * 0.18),
+                                             int(r * 1.04), int(r * 0.4)))  # hole
+    for i in range(6):                                    # flames out of the hole
+        a = -math.pi / 2 + (i - 2.5) * 0.3
+        h = r * (0.5 + 0.25 * abs(math.sin(t * 6 + i)))
+        pygame.draw.polygon(surf, (255, 150, 40) if i % 2 else (236, 94, 24), [
+            (cx - int(r * 0.4) + i * int(r * 0.16), ground - int(r * 0.04)),
+            (cx - int(r * 0.24) + i * int(r * 0.16), ground - int(r * 0.04)),
+            (cx + int(math.cos(a) * h * 0.5), ground - int(r * 0.1) - int(h))])
+    mole = (86, 66, 86)
+    pygame.draw.ellipse(surf, mole, (cx - int(r * 0.34), ground - int(r * 0.62),
+                                     int(r * 0.68), int(r * 0.56)))
+    pygame.draw.circle(surf, (226, 150, 160), (cx, ground - int(r * 0.4)), max(1, int(r * 0.1)))
+    for sx in (-1, 1):
+        pygame.draw.circle(surf, (24, 20, 24),
+                           (cx + sx * int(r * 0.14), ground - int(r * 0.5)), max(1, int(r * 0.05)))
+        pygame.draw.ellipse(surf, (200, 180, 200),                       # digging claws
+                            (cx + sx * int(r * 0.34) - int(r * 0.1), ground - int(r * 0.3),
+                             int(r * 0.2), int(r * 0.16)))
+
+
+def _badge_map(surf, cx, cy, r):
+    """An old map with a route across it and a figure walking the route."""
+    paper, edge = (226, 206, 160), (164, 140, 96)
+    pygame.draw.polygon(surf, paper, [
+        (cx - r, cy - int(r * 0.66)), (cx + r, cy - int(r * 0.78)),
+        (cx + r, cy + int(r * 0.74)), (cx - r, cy + int(r * 0.62))])
+    pygame.draw.polygon(surf, edge, [
+        (cx - r, cy - int(r * 0.66)), (cx + r, cy - int(r * 0.78)),
+        (cx + r, cy + int(r * 0.74)), (cx - r, cy + int(r * 0.62))], max(1, r // 14))
+    for fx in (-0.34, 0.3):                               # fold creases
+        pygame.draw.line(surf, edge, (cx + int(r * fx), cy - int(r * 0.72)),
+                         (cx + int(r * fx), cy + int(r * 0.68)), 1)
+    # a dashed route wandering across
+    pts = [(-0.78, 0.4), (-0.4, 0.1), (-0.05, 0.28), (0.3, -0.12), (0.72, -0.34)]
+    for i in range(len(pts) - 1):
+        x1 = cx + int(r * pts[i][0]);     y1 = cy + int(r * pts[i][1])
+        x2 = cx + int(r * pts[i + 1][0]); y2 = cy + int(r * pts[i + 1][1])
+        pygame.draw.line(surf, (190, 70, 60), (x1, y1), (x2, y2), max(1, r // 16))
+    pygame.draw.line(surf, (190, 70, 60),                 # the X at the end
+                     (cx + int(r * 0.64), cy - int(r * 0.44)),
+                     (cx + int(r * 0.8), cy - int(r * 0.24)), max(1, r // 14))
+    pygame.draw.line(surf, (190, 70, 60),
+                     (cx + int(r * 0.8), cy - int(r * 0.44)),
+                     (cx + int(r * 0.64), cy - int(r * 0.24)), max(1, r // 14))
+    # the walker, standing on the map
+    w = max(1, r // 12)
+    hx, hy = cx - int(r * 0.1), cy - int(r * 0.1)
+    pygame.draw.circle(surf, (60, 70, 110), (hx, hy - int(r * 0.22)), max(2, int(r * 0.13)))
+    pygame.draw.line(surf, (60, 70, 110), (hx, hy - int(r * 0.1)), (hx, hy + int(r * 0.16)), w)
+    pygame.draw.line(surf, (60, 70, 110), (hx, hy + int(r * 0.16)),
+                     (hx - int(r * 0.16), hy + int(r * 0.42)), w)
+    pygame.draw.line(surf, (60, 70, 110), (hx, hy + int(r * 0.16)),
+                     (hx + int(r * 0.16), hy + int(r * 0.42)), w)
+    pygame.draw.line(surf, (60, 70, 110), (hx, hy + int(r * 0.02)),
+                     (hx + int(r * 0.22), hy - int(r * 0.14)), w)
+
+
 BADGES = {
     "crown":    _badge_crown,
     "lhat":     _badge_lhat,
@@ -465,6 +576,10 @@ BADGES = {
     "blast_jump":  _badge_blast_jump,
     "velcroraptor": _badge_velcroraptor,
     "eye":          _badge_eye,
+    "nutshell":     _badge_nutshell,
+    "speed_demon":  _badge_speed_demon,
+    "fire_mole":    _badge_fire_mole,
+    "map":          _badge_map,
 }
 
 
@@ -504,6 +619,16 @@ def note_leaderboard(stats, entries, my_code):
         stats.setdefault("top_since", time.time())
     else:
         stats.pop("top_since", None)
+
+
+def _all_stages_played(stats):
+    """Every stage the player can actually pick — mode-only arenas excepted."""
+    try:
+        from fight_data import STAGES
+    except Exception:
+        return False
+    want = {st["name"] for st in STAGES if not st.get("special_mode_only")}
+    return want and want <= set(stats.get("stages_played", []))
 
 
 def _daily_streak(stats):
@@ -644,6 +769,44 @@ ACHIEVEMENTS = [
         "reward": 30,
         "badge": "eye",
         "check": lambda s, u, d: any(v >= 2 for v in (s.get("win_combos") or {}).values()),
+    },
+    {
+        "id": "in_a_nutshell",
+        "name": "In a nutshell",
+        "desc": "Win a match in under 20 seconds",
+        "reward": 0,
+        "element": ("rock", 2),
+        "badge": "nutshell",
+        "check": lambda s, u, d: (s.get("fastest_win_seconds") is not None
+                                  and s["fastest_win_seconds"] < 20),
+    },
+    {
+        "id": "speed_demon",
+        "name": "Speed demon",
+        "desc": "Win a match in under 10 seconds",
+        "reward": 0,
+        "element": ("air", 3),
+        "badge": "speed_demon",
+        "check": lambda s, u, d: (s.get("fastest_win_seconds") is not None
+                                  and s["fastest_win_seconds"] < 10),
+    },
+    {
+        "id": "fire_in_the_mole",
+        "name": "Fire in the mole",
+        "desc": "Win a match in under 5 seconds",
+        "reward": 0,
+        "element": ("fire", 4),
+        "badge": "fire_mole",
+        "check": lambda s, u, d: (s.get("fastest_win_seconds") is not None
+                                  and s["fastest_win_seconds"] < 5),
+    },
+    {
+        "id": "map_the_flap",
+        "name": "Map the flap",
+        "desc": "Play every stage at least once",
+        "reward": 10,
+        "badge": "map",
+        "check": lambda s, u, d: _all_stages_played(s),
     },
     {
         "id": "double_o_element",

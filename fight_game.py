@@ -56,6 +56,7 @@ _heal_pickup_flag     = [False]  # True when p1 picks up Heal or MegaHeal
 _session_win_streak   = [0]      # wins in a row without returning to the menu
 _survival_seconds     = [0]      # how long the last survival run lasted
 _bazooka_dodge_flag   = [False]  # True when p1 slips just outside a blast
+_last_win_seconds     = [None]   # how long p1's last winning fight took
 _p1_proj_blocked      = [0]       # projectiles p1 blocked this fight
 _symbol_char_flag     = [False]   # True when <|-\||>+() typed on Computer stage
 _death_defyer_flag    = [False]   # True when death_does_not_exist typed on Graveyard as Reaper
@@ -3586,6 +3587,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     _nick_of_time_flag[0] = True
                 game_over = True
                 winner = p1 if p1.hp >= p2.hp else p2
+                if winner is p1:
+                    # The clock runs down from 90s, so what is missing is how
+                    # long the fight actually took.
+                    _last_win_seconds[0] = max(0, (90 * FPS - timer)) // FPS
 
             # Spawn powerups
             spawn_timer -= 1
@@ -7356,6 +7361,11 @@ def main():
                 stats["survival_best_kills"] = max(stats.get("survival_best_kills", 0), kills)
                 stats["survival_best_seconds"] = max(stats.get("survival_best_seconds", 0),
                                                      _survival_seconds[0])
+                _sname = STAGES[s_idx]["name"] if 0 <= s_idx < len(STAGES) else None
+                if _sname:
+                    _played = stats.setdefault("stages_played", [])
+                    if _sname not in _played:
+                        _played.append(_sname)
                 _survival_seconds[0] = 0
                 # Track daily date and 3:33pm for survival too
                 _today = dev_today().isoformat()
@@ -8059,6 +8069,11 @@ def main():
             p1_won, p1_char, stage, is_perfect, is_clutch, p2_char, ai_diff, p1_void_falls = info[:8]
             p1_hp_rem   = info[8] if len(info) > 8 else 0
             p1_half_hp  = info[9] if len(info) > 9 else False
+            if p1_won and _last_win_seconds[0] is not None:
+                _best = stats.get("fastest_win_seconds")
+                if _best is None or _last_win_seconds[0] < _best:
+                    stats["fastest_win_seconds"] = _last_win_seconds[0]
+            _last_win_seconds[0] = None
             if vs_ai:
                 update_stats(stats, p1_won, p1_char, stage, is_perfect, is_clutch, p2_char, ai_diff, p1_void_falls, p1_hp_rem, p1_half_hp)
             # Deja vu: the same fighter, the same opponent and the same stage
@@ -8072,6 +8087,10 @@ def main():
                 if p1_won:
                     stats["wins_2p"] = stats.get("wins_2p", 0) + 1
                 stats["void_deaths"] = stats.get("void_deaths", 0) + p1_void_falls
+            if stage:
+                _played = stats.setdefault("stages_played", [])
+                if stage not in _played:
+                    _played.append(stage)
             # Track daily date and 3:33pm even outside vs-AI fights
             today = dev_today().isoformat()
             dates = stats.get("daily_play_dates", [])
