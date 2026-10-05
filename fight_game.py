@@ -54,6 +54,7 @@ _p1_powerup_kill_flag = [False]  # True if a damaging powerup killed p1 this fig
 _poison_pickup_flag   = [False]  # True when p1 picks up Poison or Killer
 _heal_pickup_flag     = [False]  # True when p1 picks up Heal or MegaHeal
 _session_win_streak   = [0]      # wins in a row without returning to the menu
+_survival_seconds     = [0]      # how long the last survival run lasted
 _p1_proj_blocked      = [0]       # projectiles p1 blocked this fight
 _symbol_char_flag     = [False]   # True when <|-\||>+() typed on Computer stage
 _death_defyer_flag    = [False]   # True when death_does_not_exist typed on Graveyard as Reaper
@@ -4709,6 +4710,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 survival_timer += 1
                 enemy_spawn_timer = max(0, enemy_spawn_timer - 1)
             survival_timer += 1
+            _survival_seconds[0] = survival_timer // FPS
             max_en, diff = wave_info()
 
             # Platforms & springs
@@ -7344,6 +7346,9 @@ def main():
                 stats["survival_kills"] += kills
                 stats["survival_runs"] = stats.get("survival_runs", 0) + 1
                 stats["survival_best_kills"] = max(stats.get("survival_best_kills", 0), kills)
+                stats["survival_best_seconds"] = max(stats.get("survival_best_seconds", 0),
+                                                     _survival_seconds[0])
+                _survival_seconds[0] = 0
                 # Track daily date and 3:33pm for survival too
                 _today = dev_today().isoformat()
                 _dates = stats.get("daily_play_dates", [])

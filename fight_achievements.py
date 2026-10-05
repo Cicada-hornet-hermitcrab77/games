@@ -332,6 +332,27 @@ def _badge_matrix(surf, cx, cy, r):
         pygame.draw.line(surf, (60, 200, 90), (_cx2, _cy2), (_cx2, _cy2 + int(r * 0.2)), 1)
 
 
+def _badge_outnumbered(surf, cx, cy, r):
+    """One stickman holding off three."""
+    def _man(x, y, h, col, lean=0):
+        w = max(1, r // 11)
+        hr = max(2, int(h * 0.19))
+        pygame.draw.circle(surf, col, (x + lean, y - h), hr)
+        pygame.draw.line(surf, col, (x + lean, y - h + hr), (x, y - int(h * 0.38)), w)
+        pygame.draw.line(surf, col, (x, y - int(h * 0.38)), (x - int(h * 0.2), y), w)
+        pygame.draw.line(surf, col, (x, y - int(h * 0.38)), (x + int(h * 0.2), y), w)
+        pygame.draw.line(surf, col, (x + lean // 2, y - int(h * 0.66)),
+                         (x - int(h * 0.3), y - int(h * 0.74)), w)
+        pygame.draw.line(surf, col, (x + lean // 2, y - int(h * 0.66)),
+                         (x + int(h * 0.3), y - int(h * 0.74)), w)
+    base = cy + int(r * 0.74)
+    for i, dx in enumerate((0.26, 0.62, 0.95)):           # the three closing in
+        _man(cx + int(r * dx), base, int(r * (1.0 - i * 0.06)), (226, 86, 86), lean=-2)
+    _man(cx - int(r * 0.62), base, int(r * 1.05), (120, 190, 250), lean=2)
+    pygame.draw.line(surf, (70, 70, 84), (cx - r, base + 2), (cx + r, base + 2),
+                     max(1, r // 14))
+
+
 BADGES = {
     "crown":    _badge_crown,
     "lhat":     _badge_lhat,
@@ -347,6 +368,7 @@ BADGES = {
     "cipher":   _badge_cipher,
     "eye_i":    _badge_eye_i,
     "matrix":   _badge_matrix,
+    "outnumbered": _badge_outnumbered,
 }
 
 
@@ -494,6 +516,14 @@ ACHIEVEMENTS = [
         "reward": 10,
         "badge": "matrix",
         "check": lambda s, u, d: bool(s.get("proj_blocked")),
+    },
+    {
+        "id": "survive_the_vibe",
+        "name": "Survive the vibe",
+        "desc": "Last more than 2 minutes in survival",
+        "reward": 10,
+        "badge": "outnumbered",
+        "check": lambda s, u, d: s.get("survival_best_seconds", 0) > 120,
     },
     {
         "id": "double_o_element",
