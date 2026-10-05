@@ -379,6 +379,51 @@ def _badge_blast_jump(surf, cx, cy, r):
     pygame.draw.line(surf, man, (hx, hy + int(r * 0.3)), (hx + int(r * 0.16), hy - int(r * 0.2)), w)
 
 
+def _badge_velcroraptor(surf, cx, cy, r):
+    """A raptor stitched out of velcro: loops on the body, hooks down the back."""
+    import math as _m
+    hide, dark = (196, 162, 96), (130, 100, 54)
+    base = cy + int(r * 0.66)
+    # tail, body, neck, head
+    pygame.draw.polygon(surf, hide, [
+        (cx - int(r * 0.98), base - int(r * 0.06)),
+        (cx - int(r * 0.3), base - int(r * 0.46)),
+        (cx + int(r * 0.2), base - int(r * 0.5)),
+        (cx + int(r * 0.26), base - int(r * 0.08))])
+    pygame.draw.ellipse(surf, hide, (cx - int(r * 0.42), base - int(r * 0.72),
+                                     int(r * 0.86), int(r * 0.66)))
+    pygame.draw.polygon(surf, hide, [
+        (cx + int(r * 0.1), base - int(r * 0.66)),
+        (cx + int(r * 0.42), base - int(r * 1.04)),
+        (cx + int(r * 0.6), base - int(r * 0.86)),
+        (cx + int(r * 0.3), base - int(r * 0.52))])
+    pygame.draw.ellipse(surf, hide, (cx + int(r * 0.36), base - int(r * 1.12),
+                                     int(r * 0.62), int(r * 0.34)))
+    pygame.draw.circle(surf, (40, 34, 28), (cx + int(r * 0.58), base - int(r * 1.0)),
+                       max(1, r // 12))
+    for i in range(4):                                    # teeth
+        pygame.draw.polygon(surf, (250, 250, 245), [
+            (cx + int(r * (0.48 + i * 0.1)), base - int(r * 0.86)),
+            (cx + int(r * (0.53 + i * 0.1)), base - int(r * 0.86)),
+            (cx + int(r * (0.5 + i * 0.1)), base - int(r * 0.76))])
+    # legs with the big claw
+    for dx in (-0.1, 0.16):
+        pygame.draw.line(surf, dark, (cx + int(r * dx), base - int(r * 0.2)),
+                         (cx + int(r * dx) - int(r * 0.08), base), max(2, r // 9))
+        pygame.draw.line(surf, dark, (cx + int(r * dx) - int(r * 0.08), base),
+                         (cx + int(r * dx) + int(r * 0.2), base), max(2, r // 11))
+    # velcro: loops across the body, hooks along the spine
+    for i in range(6):
+        lx = cx - int(r * 0.36) + i * int(r * 0.14)
+        pygame.draw.circle(surf, dark, (lx, base - int(r * 0.42)), max(1, r // 13), 1)
+    for i in range(5):
+        hx = cx - int(r * 0.3) + i * int(r * 0.13)
+        hy = base - int(r * 0.74) - int(_m.sin(i) * r * 0.04)
+        pygame.draw.line(surf, dark, (hx, hy), (hx + int(r * 0.06), hy - int(r * 0.12)), 1)
+        pygame.draw.line(surf, dark, (hx + int(r * 0.06), hy - int(r * 0.12)),
+                         (hx + int(r * 0.13), hy - int(r * 0.06)), 1)
+
+
 BADGES = {
     "crown":    _badge_crown,
     "lhat":     _badge_lhat,
@@ -396,6 +441,7 @@ BADGES = {
     "matrix":   _badge_matrix,
     "outnumbered": _badge_outnumbered,
     "blast_jump":  _badge_blast_jump,
+    "velcroraptor": _badge_velcroraptor,
 }
 
 
@@ -559,6 +605,14 @@ ACHIEVEMENTS = [
         "reward": 20,
         "badge": "blast_jump",
         "check": lambda s, u, d: bool(s.get("bazooka_dodged")),
+    },
+    {
+        "id": "velcroraptor",
+        "name": "Velcroraptor",
+        "desc": "Win 10 matches",
+        "reward": 10,
+        "badge": "velcroraptor",
+        "check": lambda s, u, d: s.get("wins_total", 0) >= 10,
     },
     {
         "id": "double_o_element",
