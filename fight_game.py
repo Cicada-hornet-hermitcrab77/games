@@ -7248,6 +7248,14 @@ def main():
             _bazooka_dodge_flag[0] = False
         _award_achievements(unlocked, stats)
         mode = mode_select(unlocked, stats)
+        _mode_tag = {"1p": "1p", "2p": "2p", "survival_1p": "survival",
+                     "survival_2p": "survival", "online": "online",
+                     "seasonal_shop": "shop", "fuser": "fuser"}.get(
+            mode[0] if isinstance(mode, tuple) else mode)
+        if _mode_tag:
+            _tried = stats.setdefault("modes_played", [])
+            if _mode_tag not in _tried:
+                _tried.append(_mode_tag)
         _award_achievements(unlocked, stats)
         # Reaching the main menu means the marathon streak (I: play 30 matches
         # in a row without stopping) has been broken — reset it here.

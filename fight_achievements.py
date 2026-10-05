@@ -557,6 +557,167 @@ def _badge_map(surf, cx, cy, r):
                      (hx + int(r * 0.22), hy - int(r * 0.14)), w)
 
 
+def _badge_unscratched(surf, cx, cy, r):
+    """A shield without a mark on it, catching the light."""
+    t = pygame.time.get_ticks() / 1000.0
+    body = [(cx, cy - int(r * 0.92)), (cx + int(r * 0.76), cy - int(r * 0.54)),
+            (cx + int(r * 0.66), cy + int(r * 0.42)), (cx, cy + int(r * 0.94)),
+            (cx - int(r * 0.66), cy + int(r * 0.42)), (cx - int(r * 0.76), cy - int(r * 0.54))]
+    pygame.draw.polygon(surf, (120, 186, 236), body)
+    pygame.draw.polygon(surf, (236, 248, 255), body, max(2, r // 10))
+    pygame.draw.polygon(surf, (196, 228, 250), [
+        (cx, cy - int(r * 0.7)), (cx + int(r * 0.46), cy - int(r * 0.4)),
+        (cx, cy + int(r * 0.1))])
+    gleam = (t * 1.4) % 2.4                               # a shine sweeping over
+    if gleam < 0.8:
+        gx = cx - int(r * 0.7) + int(gleam / 0.8 * r * 1.4)
+        pygame.draw.line(surf, (255, 255, 255), (gx, cy - int(r * 0.7)),
+                         (gx - int(r * 0.2), cy + int(r * 0.6)), max(1, r // 9))
+
+
+def _badge_last_leg(surf, cx, cy, r):
+    """One sliver of health left, and still standing."""
+    t = pygame.time.get_ticks() / 1000.0
+    bw, bh = int(r * 1.6), int(r * 0.3)
+    bx, by = cx - bw // 2, cy + int(r * 0.42)
+    pygame.draw.rect(surf, (54, 48, 54), (bx, by, bw, bh), border_radius=max(1, r // 10))
+    _pulse = 0.6 + 0.4 * abs(math.sin(t * 5))
+    pygame.draw.rect(surf, (int(220 * _pulse) + 30, 40, 44),
+                     (bx + 2, by + 2, max(3, int(bw * 0.09)), bh - 4),
+                     border_radius=max(1, r // 12))
+    pygame.draw.rect(surf, (210, 210, 220), (bx, by, bw, bh), max(1, r // 14),
+                     border_radius=max(1, r // 10))
+    man, w = (236, 236, 244), max(1, r // 10)             # down on one knee
+    hx, hy = cx - int(r * 0.16), cy - int(r * 0.5)
+    pygame.draw.circle(surf, man, (hx, hy), max(2, int(r * 0.17)))
+    pygame.draw.line(surf, man, (hx, hy + int(r * 0.16)), (hx + int(r * 0.1), cy + int(r * 0.1)), w)
+    pygame.draw.line(surf, man, (hx + int(r * 0.1), cy + int(r * 0.1)),
+                     (hx - int(r * 0.3), cy + int(r * 0.3)), w)
+    pygame.draw.line(surf, man, (hx + int(r * 0.1), cy + int(r * 0.1)),
+                     (hx + int(r * 0.44), cy + int(r * 0.3)), w)
+    pygame.draw.line(surf, man, (hx + int(r * 0.04), cy - int(r * 0.2)),
+                     (hx - int(r * 0.36), cy - int(r * 0.34)), w)
+
+
+def _badge_mega_mind(surf, cx, cy, r):
+    """The hardest opponent in the game, beaten: a crowned machine head."""
+    t = pygame.time.get_ticks() / 1000.0
+    pygame.draw.rect(surf, (92, 100, 120), (cx - int(r * 0.6), cy - int(r * 0.34),
+                                            int(r * 1.2), int(r * 1.0)),
+                     border_radius=max(2, r // 6))
+    pygame.draw.rect(surf, (40, 46, 60), (cx - int(r * 0.6), cy - int(r * 0.34),
+                                          int(r * 1.2), int(r * 1.0)),
+                     max(1, r // 12), border_radius=max(2, r // 6))
+    for sx in (-1, 1):
+        pygame.draw.rect(surf, (255, 90 + int(60 * abs(math.sin(t * 3))), 60),
+                         (cx + sx * int(r * 0.34) - int(r * 0.14), cy - int(r * 0.08),
+                          int(r * 0.28), int(r * 0.16)))
+    for i in range(4):
+        pygame.draw.line(surf, (30, 34, 44),
+                         (cx - int(r * 0.3) + i * int(r * 0.2), cy + int(r * 0.34)),
+                         (cx - int(r * 0.3) + i * int(r * 0.2), cy + int(r * 0.56)),
+                         max(1, r // 14))
+    pygame.draw.polygon(surf, (255, 206, 70), [                   # crown on top
+        (cx - int(r * 0.52), cy - int(r * 0.36)), (cx - int(r * 0.52), cy - int(r * 0.76)),
+        (cx - int(r * 0.2), cy - int(r * 0.52)), (cx, cy - int(r * 0.92)),
+        (cx + int(r * 0.2), cy - int(r * 0.52)), (cx + int(r * 0.52), cy - int(r * 0.76)),
+        (cx + int(r * 0.52), cy - int(r * 0.36))])
+
+
+def _badge_tally(surf, cx, cy, r):
+    """A hundred kills, kept in five-bar gates on the wall."""
+    chalk = (236, 238, 242)
+    w = max(1, r // 12)
+    for row in range(2):
+        for grp in range(3):
+            gx = cx - int(r * 0.78) + grp * int(r * 0.58)
+            gy = cy - int(r * 0.34) + row * int(r * 0.62)
+            for i in range(4):
+                pygame.draw.line(surf, chalk, (gx + i * int(r * 0.1), gy),
+                                 (gx + i * int(r * 0.1), gy + int(r * 0.4)), w)
+            pygame.draw.line(surf, (236, 120, 110), (gx - int(r * 0.06), gy + int(r * 0.4)),
+                             (gx + int(r * 0.38), gy), w)
+    pygame.draw.circle(surf, (236, 238, 242), (cx + int(r * 0.62), cy + int(r * 0.66)),
+                       max(2, int(r * 0.2)))
+    for sx in (-1, 1):
+        pygame.draw.circle(surf, (30, 30, 38),
+                           (cx + int(r * 0.62) + sx * int(r * 0.08), cy + int(r * 0.62)),
+                           max(1, int(r * 0.06)))
+
+
+def _badge_online_fist(surf, cx, cy, r):
+    """A fist over a globe: a win against somebody real."""
+    pygame.draw.circle(surf, (56, 128, 186), (cx, cy + int(r * 0.12)), int(r * 0.76))
+    pygame.draw.circle(surf, (190, 226, 246), (cx, cy + int(r * 0.12)), int(r * 0.76),
+                       max(1, r // 14))
+    for i in (-0.4, 0.0, 0.4):                            # latitudes
+        _h = int(r * 0.76 * math.cos(i * 1.6))
+        pygame.draw.ellipse(surf, (130, 190, 226),
+                            (cx - _h, cy + int(r * 0.12) + int(i * r * 0.7) - int(r * 0.08),
+                             _h * 2, int(r * 0.16)), 1)
+    pygame.draw.ellipse(surf, (130, 190, 226),
+                        (cx - int(r * 0.3), cy - int(r * 0.64), int(r * 0.6), int(r * 1.52)), 1)
+    pygame.draw.circle(surf, (240, 212, 180), (cx + int(r * 0.34), cy - int(r * 0.42)),
+                       int(r * 0.32))
+    pygame.draw.circle(surf, (170, 130, 96), (cx + int(r * 0.34), cy - int(r * 0.42)),
+                       int(r * 0.32), max(1, r // 16))
+    for i in range(3):
+        pygame.draw.line(surf, (170, 130, 96),
+                         (cx + int(r * 0.16), cy - int(r * 0.54) + i * int(r * 0.12)),
+                         (cx + int(r * 0.5), cy - int(r * 0.54) + i * int(r * 0.12)), 1)
+
+
+def _badge_elements_ring(surf, cx, cy, r):
+    """All six elements held at once, turning in a ring."""
+    t = pygame.time.get_ticks() / 1000.0
+    cols = ((60, 130, 220), (120, 100, 80), (70, 160, 70),
+            (210, 230, 240), (230, 210, 40), (230, 90, 30))
+    for i, col in enumerate(cols):
+        a = t * 0.6 + i * (math.tau / 6)
+        ox = cx + int(math.cos(a) * r * 0.62)
+        oy = cy + int(math.sin(a) * r * 0.62)
+        pygame.draw.circle(surf, col, (ox, oy), max(2, int(r * 0.22)))
+        pygame.draw.circle(surf, (250, 250, 255), (ox - int(r * 0.07), oy - int(r * 0.08)),
+                           max(1, int(r * 0.07)))
+    pygame.draw.circle(surf, (245, 240, 255), (cx, cy), max(2, int(r * 0.16)))
+
+
+def _badge_roster(surf, cx, cy, r):
+    """A deck of fighters, fanned out."""
+    for i, dx in enumerate((-0.5, -0.17, 0.16)):
+        x = cx + int(r * dx)
+        col = ((86, 150, 240), (226, 96, 96), (150, 220, 140))[i]
+        pygame.draw.rect(surf, (36, 36, 48), (x - int(r * 0.26), cy - int(r * 0.6),
+                                              int(r * 0.52), int(r * 1.2)),
+                         border_radius=max(1, r // 10))
+        pygame.draw.rect(surf, col, (x - int(r * 0.26), cy - int(r * 0.6),
+                                     int(r * 0.52), int(r * 1.2)),
+                         max(1, r // 16), border_radius=max(1, r // 10))
+        pygame.draw.circle(surf, col, (x, cy - int(r * 0.26)), max(2, int(r * 0.13)))
+        pygame.draw.line(surf, col, (x, cy - int(r * 0.14)), (x, cy + int(r * 0.2)),
+                         max(1, r // 16))
+        pygame.draw.line(surf, col, (x, cy + int(r * 0.2)),
+                         (x - int(r * 0.14), cy + int(r * 0.46)), max(1, r // 16))
+        pygame.draw.line(surf, col, (x, cy + int(r * 0.2)),
+                         (x + int(r * 0.14), cy + int(r * 0.46)), max(1, r // 16))
+    _f = pygame.font.SysFont("Arial", max(9, int(r * 0.44)), bold=True)
+    _t2 = _f.render("100", True, (255, 206, 70))
+    surf.blit(_t2, (cx + int(r * 0.3), cy + int(r * 0.2)))
+
+
+def _badge_modes(surf, cx, cy, r):
+    """A wheel of every way to play."""
+    t = pygame.time.get_ticks() / 1000.0
+    cols = ((90, 150, 240), (240, 150, 60), (110, 210, 120),
+            (80, 220, 220), (255, 206, 70), (200, 140, 255))
+    for i, col in enumerate(cols):
+        a0 = t * 0.4 + i * (math.tau / 6)
+        pygame.draw.arc(surf, col, (cx - r + 2, cy - r + 2, r * 2 - 4, r * 2 - 4),
+                        a0, a0 + 0.78, max(2, r // 6))
+    pygame.draw.circle(surf, (238, 238, 246), (cx, cy), max(2, int(r * 0.22)))
+    pygame.draw.circle(surf, (40, 40, 52), (cx, cy), max(1, int(r * 0.1)))
+
+
 BADGES = {
     "crown":    _badge_crown,
     "lhat":     _badge_lhat,
@@ -580,6 +741,14 @@ BADGES = {
     "speed_demon":  _badge_speed_demon,
     "fire_mole":    _badge_fire_mole,
     "map":          _badge_map,
+    "unscratched":  _badge_unscratched,
+    "last_leg":     _badge_last_leg,
+    "mega_mind":    _badge_mega_mind,
+    "tally":        _badge_tally,
+    "online_fist":  _badge_online_fist,
+    "elements":     _badge_elements_ring,
+    "roster":       _badge_roster,
+    "modes":        _badge_modes,
 }
 
 
@@ -629,6 +798,19 @@ def _all_stages_played(stats):
         return False
     want = {st["name"] for st in STAGES if not st.get("special_mode_only")}
     return want and want <= set(stats.get("stages_played", []))
+
+
+ALL_MODES = ("1p", "2p", "survival", "online", "shop", "fuser")
+
+
+def _has_all_elements(stats):
+    """Every element in the bag at once, not one at a time."""
+    try:
+        from fight_data import FUSER_ELEMENTS
+    except Exception:
+        return False
+    bag = stats.get("fuser_elements") or {}
+    return all(bag.get(name, 0) > 0 for name, _c, _col in FUSER_ELEMENTS)
 
 
 def _daily_streak(stats):
@@ -807,6 +989,70 @@ ACHIEVEMENTS = [
         "reward": 10,
         "badge": "map",
         "check": lambda s, u, d: _all_stages_played(s),
+    },
+    {
+        "id": "not_a_scratch",
+        "name": "Not a scratch",
+        "desc": "Win a match without taking a hit",
+        "reward": 15,
+        "badge": "unscratched",
+        "check": lambda s, u, d: s.get("perfect_wins", 0) >= 1,
+    },
+    {
+        "id": "last_leg",
+        "name": "Last leg",
+        "desc": "Win a match on your last sliver of health",
+        "reward": 15,
+        "badge": "last_leg",
+        "check": lambda s, u, d: s.get("clutch_wins", 0) >= 1,
+    },
+    {
+        "id": "mega_mind",
+        "name": "Mega mind",
+        "desc": "Beat the mega hard CPU",
+        "reward": 20,
+        "badge": "mega_mind",
+        "check": lambda s, u, d: s.get("wins_mega_hard", 0) >= 1,
+    },
+    {
+        "id": "hundred_club",
+        "name": "Hundred club",
+        "desc": "Put down 100 enemies in survival",
+        "reward": 20,
+        "badge": "tally",
+        "check": lambda s, u, d: s.get("survival_kills", 0) >= 100,
+    },
+    {
+        "id": "net_profit",
+        "name": "Net profit",
+        "desc": "Win a match against a real person online",
+        "reward": 15,
+        "badge": "online_fist",
+        "check": lambda s, u, d: s.get("online_wins", 0) >= 1,
+    },
+    {
+        "id": "elementary",
+        "name": "Elementary",
+        "desc": "Hold all six elements at once",
+        "reward": 25,
+        "badge": "elements",
+        "check": lambda s, u, d: _has_all_elements(s),
+    },
+    {
+        "id": "full_house",
+        "name": "Full house",
+        "desc": "Own 100 fighters",
+        "reward": 25,
+        "badge": "roster",
+        "check": lambda s, u, d: len(u or ()) >= 100,
+    },
+    {
+        "id": "something_for_everyone",
+        "name": "Something for everyone",
+        "desc": "Try every mode in the game",
+        "reward": 15,
+        "badge": "modes",
+        "check": lambda s, u, d: set(ALL_MODES) <= set(s.get("modes_played", [])),
     },
     {
         "id": "double_o_element",
