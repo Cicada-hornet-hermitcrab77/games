@@ -7,6 +7,7 @@ import threading
 import datetime
 import constants
 import fight_network as _net
+import fight_achievements as _ach
 from constants import *
 from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS, FUSER_ELEMENTS, FUSER_RECIPES, FUSER_SHOP_CHARS
 from fight_drawing import draw_bg, draw_stickman, draw_jawke_legacy
@@ -994,6 +995,8 @@ def mode_select(unlocked=None, stats=None):
                         if pygame.Rect(_lx2, 405 + _oi * 30, 120, 26).collidepoint(_mp):
                             survival_players = _oi
                 # Touch device toggles
+                if pygame.Rect(WIDTH - 186, HEIGHT - 88, 178, 26).collidepoint(_mp):
+                    achievements_screen(stats, _net.load_userdata())
                 _tr2 = pygame.Rect(8 + 62, HEIGHT - 54, 74, 22)
                 if _tr2.collidepoint(_mp):
                     touch_p1_enabled[0] = not touch_p1_enabled[0]
@@ -1079,6 +1082,8 @@ def mode_select(unlocked=None, stats=None):
                 if event.key == pygame.K_t:
                     touch_p1_enabled[0] = not touch_p1_enabled[0]
                     touch_p2_enabled[0] = touch_p1_enabled[0]
+                if event.key == pygame.K_v:
+                    achievements_screen(stats, _net.load_userdata())
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE) and not _feast[0]:
                     if not (selected == 5 and not _fuser_unlocked):
                         if _home_lobby: _home_lobby.close()
@@ -1400,6 +1405,16 @@ def mode_select(unlocked=None, stats=None):
                 _jline.fill((235, 235, 235, 70 - _ji2 * 15))
                 screen.blit(_jline, (_jsx + 40, _jsy - 3 + _ji2 * 9))
             screen.blit(_jrot, (_jx - _jrot.get_width() // 2, _jy - _jrot.get_height() // 2))
+
+        # Achievements button
+        _ac_have = len(_ach.earned(stats))
+        _ac_rect = pygame.Rect(WIDTH - 186, HEIGHT - 88, 178, 26)
+        pygame.draw.rect(screen, (40, 34, 16), _ac_rect, border_radius=6)
+        pygame.draw.rect(screen, (255, 206, 70), _ac_rect, 2, border_radius=6)
+        _ach.draw_badge(screen, "crown", _ac_rect.x + 16, _ac_rect.centery, 9)
+        _ac_lbl = font_tiny.render(f"ACHIEVEMENTS {_ac_have}/{len(_ach.ACHIEVEMENTS)}  (V)",
+                                   True, (255, 224, 150))
+        screen.blit(_ac_lbl, (_ac_rect.x + 32, _ac_rect.centery - _ac_lbl.get_height() // 2))
 
         # Story Mode teaser: the chain rattle winds down, and Tombstone —
         # in his Legacy of Valor conductor cap — is the one who answers.
@@ -3167,6 +3182,113 @@ def _text_input_screen(prompt, default="", max_len=20,
         pygame.display.flip()
 
 
+def achievements_screen(stats, userdata=None):
+    """The badge wall: everything you have earned, and everything you have not."""
+    _ach.check_achievements(stats, (), userdata)
+    have = _ach.earned(stats)
+    sel_scroll = 0
+    COLS, CW, CH = 3, 280, 104
+    while True:
+        clock.tick(FPS)
+        rows = (len(_ach.ACHIEVEMENTS) + COLS - 1) // COLS
+        max_scroll = max(0, rows * CH - (HEIGHT - 150))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_ESCAPE, pygame.K_BACKSPACE):
+                    return
+                if event.key in (pygame.K_DOWN, pygame.K_s):
+                    sel_scroll = min(max_scroll, sel_scroll + 40)
+                if event.key in (pygame.K_UP, pygame.K_w):
+                    sel_scroll = max(0, sel_scroll - 40)
+            if event.type == pygame.MOUSEWHEEL:
+                sel_scroll = max(0, min(max_scroll, sel_scroll - event.y * 40))
+            if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                _mp = ((int(event.x * WIDTH), int(event.y * HEIGHT))
+                       if event.type == pygame.FINGERDOWN else event.pos)
+                if pygame.Rect(WIDTH // 2 - 70, HEIGHT - 46, 140, 34).collidepoint(_mp):
+                    return
+
+        screen.fill((16, 16, 24))
+        draw_seasonal_decos(screen)
+        _t = font_large.render("ACHIEVEMENTS", True, (255, 206, 70))
+        screen.blit(_t, (WIDTH // 2 - _t.get_width() // 2, 16))
+        _c = font_small.render(f"{len(have)} of {len(_ach.ACHIEVEMENTS)}   ·   "
+                               f"{stats.get('seasonal_coins', 0)} coins", True, WHITE)
+        screen.blit(_c, (WIDTH // 2 - _c.get_width() // 2, 64))
+
+        screen.set_clip(pygame.Rect(0, 96, WIDTH, HEIGHT - 150))
+        gx0 = WIDTH // 2 - (COLS * CW) // 2
+        for i, a in enumerate(_ach.ACHIEVEMENTS):
+            gx = gx0 + (i % COLS) * CW
+            gy = 104 + (i // COLS) * CH - sel_scroll
+            got = a["id"] in have
+            pygame.draw.rect(screen, (34, 32, 44) if got else (24, 24, 30),
+                             (gx + 6, gy, CW - 12, CH - 10), border_radius=8)
+            pygame.draw.rect(screen, (255, 206, 70) if got else (60, 60, 72),
+                             (gx + 6, gy, CW - 12, CH - 10), 2, border_radius=8)
+            _ach.draw_badge(screen, a["badge"], gx + 44, gy + (CH - 10) // 2, 28, locked=not got)
+            _nm = font_small.render(a["name"], True, WHITE if got else (120, 120, 134))
+            screen.blit(_nm, (gx + 84, gy + 16))
+            _ds = font_tiny.render(a["desc"], True, (200, 200, 210) if got else (96, 96, 110))
+            screen.blit(_ds, (gx + 84, gy + 42))
+            _rwt = _ach.reward_text(a)
+            if _rwt:
+                _rw = font_tiny.render(_rwt, True,
+                                       (255, 206, 70) if got else (110, 96, 50))
+                screen.blit(_rw, (gx + 84, gy + 62))
+        screen.set_clip(None)
+
+        if max_scroll > 0:
+            _h = font_tiny.render("scroll for more", True, (120, 120, 134))
+            screen.blit(_h, (WIDTH - _h.get_width() - 12, HEIGHT - 60))
+        _b = pygame.Rect(WIDTH // 2 - 70, HEIGHT - 46, 140, 34)
+        pygame.draw.rect(screen, (50, 40, 20), _b, border_radius=8)
+        pygame.draw.rect(screen, (255, 206, 70), _b, 2, border_radius=8)
+        _bt = font_small.render("BACK (ESC)", True, WHITE)
+        screen.blit(_bt, (_b.centerx - _bt.get_width() // 2, _b.centery - _bt.get_height() // 2))
+        pygame.display.flip()
+
+
+def achievement_popup(entries):
+    """Show each freshly earned badge for a moment."""
+    for a in entries:
+        start = pygame.time.get_ticks()
+        while pygame.time.get_ticks() - start < 2600:
+            clock.tick(FPS)
+            skip = False
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit(); sys.exit()
+                if event.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                    skip = True
+            if skip:
+                break
+            _e = (pygame.time.get_ticks() - start) / 2600.0
+            _rise = int(60 * max(0.0, 1.0 - _e * 6)) - int(60 * max(0.0, (_e - 0.85) * 6))
+            ov = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            ov.fill((0, 0, 0, 150))
+            screen.blit(ov, (0, 0))
+            _cy = HEIGHT // 2 + _rise
+            pygame.draw.rect(screen, (28, 26, 36), (WIDTH // 2 - 210, _cy - 70, 420, 140),
+                             border_radius=12)
+            pygame.draw.rect(screen, (255, 206, 70), (WIDTH // 2 - 210, _cy - 70, 420, 140),
+                             3, border_radius=12)
+            _h = font_small.render("ACHIEVEMENT UNLOCKED", True, (255, 206, 70))
+            screen.blit(_h, (WIDTH // 2 - _h.get_width() // 2, _cy - 58))
+            _ach.draw_badge(screen, a["badge"], WIDTH // 2 - 140, _cy + 12, 38)
+            _n = font_medium.render(a["name"], True, WHITE)
+            screen.blit(_n, (WIDTH // 2 - 90, _cy - 22))
+            _d = font_tiny.render(a["desc"], True, (205, 205, 215))
+            screen.blit(_d, (WIDTH // 2 - 90, _cy + 16))
+            _rtxt = _ach.reward_text(a)
+            if _rtxt:
+                _r = font_small.render(_rtxt, True, (255, 206, 70))
+                screen.blit(_r, (WIDTH // 2 - 90, _cy + 38))
+            pygame.display.flip()
+
+
 def set_username_screen(userdata):
     name = _text_input_screen("Enter your username:", userdata.get("username", "Player"), max_len=16)
     if name:
@@ -3970,7 +4092,7 @@ def secret_menu(unlocked, stats):
         pygame.display.flip()
 
 
-def online_menu(userdata, unlocked=None):
+def online_menu(userdata, unlocked=None, stats=None):
     """
     Top-level online menu.
     Returns ('quickmatch', (lobby, p1, p2, stage, is_host, opp_name))
@@ -4036,7 +4158,7 @@ def online_menu(userdata, unlocked=None):
                         friends_screen(userdata)
                         _lobby_bg = _make_lobby(userdata, timeout=3)
                     elif sel == 4:  # LEADERBOARD
-                        leaderboard_screen(userdata, _lobby_bg)
+                        leaderboard_screen(userdata, _lobby_bg, stats)
                     elif sel == 5:  # SET USERNAME
                         set_username_screen(userdata)
                     # There is no server picker: everyone plays on the one
@@ -4091,7 +4213,7 @@ def online_menu(userdata, unlocked=None):
 # Leaderboard screen
 # ---------------------------------------------------------------------------
 
-def leaderboard_screen(userdata, lobby=None):
+def leaderboard_screen(userdata, lobby=None, stats=None):
     """
     Fetch and display the global online win leaderboard.
 
@@ -4123,6 +4245,8 @@ def leaderboard_screen(userdata, lobby=None):
             if lobby.leaderboard:
                 entries = lobby.leaderboard
                 status  = f"Top {len(entries)} players"
+                _ach.note_leaderboard(stats, entries, userdata.get("user_code", "")) \
+                    if stats is not None else None
                 break
             _time.sleep(0.02)           # don't spin the CPU while waiting
         else:
@@ -4621,6 +4745,7 @@ def fuser_mode(screen, clock, stats, unlocked):
                         _recipe = FUSER_RECIPES.get(_recipe_key)
                         _fused_ok = _recipe is not None and random.random() >= _recipe.get("fail_chance", 0.0)
                         if _fused_ok:
+                            stats["fuses_done"] = stats.get("fuses_done", 0) + 1
                             _result = _recipe["name"]
                             if _result not in unlocked:
                                 unlocked.add(_result)

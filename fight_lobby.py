@@ -62,8 +62,11 @@ def _save_wins():
 
 
 def wins_snapshot():
+    # The player's own code rides along so a client can tell which row is
+    # theirs — by name alone it cannot, and two players may share a name.
     with _lock:
-        return sorted(_wins.values(), key=lambda x: -x.get("wins", 0))
+        rows = [dict(v, code=k) for k, v in _wins.items()]
+    return sorted(rows, key=lambda x: -x.get("wins", 0))
 
 
 def client_count():

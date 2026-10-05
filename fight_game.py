@@ -28,6 +28,8 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, fuser_mode, tombstones_minefield
 from fight_chat import ChatBox as _ChatBox, EasterEggs as _EasterEggs
+import fight_achievements as _ach
+from fight_ui import achievement_popup as _ach_popup
 from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
 
 # ---------------------------------------------------------------------------
@@ -48,6 +50,9 @@ _computer_bug_kills_flag = [0]   # count of ComputerBugs killed this fight
 _p1_non_crit_flag = [False]      # True if p1 landed any non-crit punch this fight
 _p1_opp_hit_flag  = [False]      # True if opponent ever successfully hit p1 this fight
 _p1_powerup_kill_flag = [False]  # True if a damaging powerup killed p1 this fight
+_poison_pickup_flag   = [False]  # True when p1 picks up Poison or Killer
+_heal_pickup_flag     = [False]  # True when p1 picks up Heal or MegaHeal
+_session_win_streak   = [0]      # wins in a row without returning to the menu
 _p1_proj_blocked      = [0]       # projectiles p1 blocked this fight
 _symbol_char_flag     = [False]   # True when <|-\||>+() typed on Computer stage
 _death_defyer_flag    = [False]   # True when death_does_not_exist typed on Graveyard as Reaper
@@ -633,6 +638,20 @@ def load_save():
                 s.add(_ch["name"])
         return s, _default_stats()
 
+def _award_achievements(unlocked, stats):
+    """Hand out anything newly earned and show it. Safe to call anywhere."""
+    try:
+        _new = _ach.check_achievements(stats, unlocked, _net.load_userdata())
+    except Exception:
+        return
+    if _new:
+        _save_data(unlocked, stats)
+        try:
+            _ach_popup(_new)
+        except Exception:
+            pass
+
+
 def _save_data(unlocked, stats):
     with open(_UNLOCK_FILE, 'w') as f:
         json.dump({"unlocked": sorted(unlocked), "stats": stats}, f)
@@ -904,6 +923,10 @@ def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=N
             stats["lucky_win"] = True
         stats["current_streak"] += 1
         stats["best_streak"] = max(stats["best_streak"], stats["current_streak"])
+        # Wins in a row inside one sitting — the menu resets this, a loss too
+        _session_win_streak[0] += 1
+        stats["best_session_win_streak"] = max(stats.get("best_session_win_streak", 0),
+                                               _session_win_streak[0])
         if ai_difficulty in ('hard', 'super_hard', 'super_super_hard', 'mega_hard'):
             stats["wins_hard_ai"] = stats.get("wins_hard_ai", 0) + 1
         if ai_difficulty in ('super_hard', 'super_super_hard', 'mega_hard'):
@@ -924,6 +947,7 @@ def update_stats(stats, p1_won, p1_char, stage, p1_full_hp, p1_low_hp, p2_char=N
             stats["unique_wins_chars"] = uwc
     else:
         stats["current_streak"] = 0
+        _session_win_streak[0] = 0
         stats["losses"] = stats.get("losses", 0) + 1
 
 def _show_unlocks(new_names):
@@ -3607,6 +3631,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                             clones.append({'fighter': cf, 'timer': 30 * FPS, 'target': _clone_foe})
                         else:
                             _pu_target.apply_powerup(pu.spec)
+                            if _pu_target is p1 and pu.spec.get('name') in ('Poison', 'Killer'):
+                                _poison_pickup_flag[0] = True
+                            if _pu_target is p1 and pu.spec.get('name') in ('Heal', 'MegaHeal'):
+                                _heal_pickup_flag[0] = True
                             if (_pu_target is p1
                                     and pu.spec['type'] == 'heal'
                                     and pu.spec.get('amount', 0) < 0
@@ -7191,10 +7219,21 @@ def main():
              for name, cond in UNLOCK_CONDITIONS.items()}
 
     while True:
+        # Anything earned since the last visit is handed out on the way in, so
+        # a badge never waits for the next match to show up.
+        if _poison_pickup_flag[0]:
+            stats["poison_picked"] = True
+            _poison_pickup_flag[0] = False
+        if _heal_pickup_flag[0]:
+            stats["heal_picked"] = True
+            _heal_pickup_flag[0] = False
+        _award_achievements(unlocked, stats)
         mode = mode_select(unlocked, stats)
+        _award_achievements(unlocked, stats)
         # Reaching the main menu means the marathon streak (I: play 30 matches
         # in a row without stopping) has been broken — reset it here.
         _session_match_streak[0] = 0
+        _session_win_streak[0]   = 0
         if _type42_typed[0]:
             stats["type42_done"] = True
             _type42_typed[0] = False
@@ -7265,7 +7304,7 @@ def main():
             userdata = _net.load_userdata()
             # Pass the real unlock set: online used to show the whole roster
             # as playable, so locked characters were free in online matches.
-            result   = online_menu(userdata, unlocked)
+            result   = online_menu(userdata, unlocked, stats)
             if result is None:
                 continue
             role, info = result
