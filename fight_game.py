@@ -8052,6 +8052,7 @@ def main():
             continue
 
         s_idx = stage_select()
+        _fresh_match = True      # False once this is a rematch of the same fight
         while True:
             result = run_fight(p1_idx, p2_idx, vs_ai=vs_ai, ai_difficulty=difficulty, stage_idx=s_idx)
             action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
@@ -8060,6 +8061,13 @@ def main():
             p1_half_hp  = info[9] if len(info) > 9 else False
             if vs_ai:
                 update_stats(stats, p1_won, p1_char, stage, is_perfect, is_clutch, p2_char, ai_diff, p1_void_falls, p1_hp_rem, p1_half_hp)
+            # Deja vu: the same fighter, the same opponent and the same stage
+            # won twice — but only fights you set up yourself count, so a
+            # string of rematches is one win however many times you press it.
+            if p1_won and _fresh_match and p1_char and p2_char and stage:
+                _combos = stats.setdefault("win_combos", {})
+                _ckey = f"{p1_char}|{p2_char}|{stage}"
+                _combos[_ckey] = _combos.get(_ckey, 0) + 1
             else:
                 if p1_won:
                     stats["wins_2p"] = stats.get("wins_2p", 0) + 1
@@ -8141,6 +8149,7 @@ def main():
             _session_match_streak[0] += 1
             stats["marathon_best"] = max(stats.get("marathon_best", 0), _session_match_streak[0])
             if action == 'rematch':
+                _fresh_match = False
                 continue
             break
 

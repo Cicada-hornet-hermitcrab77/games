@@ -424,6 +424,28 @@ def _badge_velcroraptor(surf, cx, cy, r):
                          (hx + int(r * 0.13), hy - int(r * 0.06)), 1)
 
 
+def _badge_eye(surf, cx, cy, r):
+    """An eye, looking around and blinking — you have seen this before."""
+    import math as _m
+    t = pygame.time.get_ticks() / 1000.0
+    blink = (t % 3.4) > 3.25                              # a slow blink
+    w = int(r * 0.98)
+    h = int(r * (0.1 if blink else 0.58))
+    pygame.draw.ellipse(surf, (244, 246, 250), (cx - w, cy - h, w * 2, h * 2))
+    pygame.draw.ellipse(surf, (40, 44, 60), (cx - w, cy - h, w * 2, h * 2), max(1, r // 12))
+    if not blink:
+        px = cx + int(_m.sin(t * 0.9) * r * 0.34)         # the gaze wanders
+        pygame.draw.circle(surf, (86, 150, 210), (px, cy), int(r * 0.34))
+        pygame.draw.circle(surf, (24, 28, 40), (px, cy), int(r * 0.17))
+        pygame.draw.circle(surf, (250, 252, 255), (px - int(r * 0.12), cy - int(r * 0.12)),
+                           max(1, int(r * 0.08)))
+        # a second, ghosted outline — the same eye, a moment ago
+        _gs = pygame.Surface((r * 3, r * 2), pygame.SRCALPHA)
+        pygame.draw.ellipse(_gs, (150, 200, 255, 70),
+                            (0, 0, int(w * 1.9), int(h * 1.9)), max(1, r // 14))
+        surf.blit(_gs, (cx - w + int(r * 0.18), cy - h - int(r * 0.12)))
+
+
 BADGES = {
     "crown":    _badge_crown,
     "lhat":     _badge_lhat,
@@ -442,6 +464,7 @@ BADGES = {
     "outnumbered": _badge_outnumbered,
     "blast_jump":  _badge_blast_jump,
     "velcroraptor": _badge_velcroraptor,
+    "eye":          _badge_eye,
 }
 
 
@@ -613,6 +636,14 @@ ACHIEVEMENTS = [
         "reward": 10,
         "badge": "velcroraptor",
         "check": lambda s, u, d: s.get("wins_total", 0) >= 10,
+    },
+    {
+        "id": "deja_vu",
+        "name": "Deja vu",
+        "desc": "Win the same fighter vs opponent on the same stage twice",
+        "reward": 30,
+        "badge": "eye",
+        "check": lambda s, u, d: any(v >= 2 for v in (s.get("win_combos") or {}).values()),
     },
     {
         "id": "double_o_element",
