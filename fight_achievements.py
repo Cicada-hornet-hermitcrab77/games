@@ -353,6 +353,32 @@ def _badge_outnumbered(surf, cx, cy, r):
                      max(1, r // 14))
 
 
+def _badge_blast_jump(surf, cx, cy, r):
+    """A stickman in mid-air over a blast that just missed him."""
+    import math as _m
+    t = pygame.time.get_ticks() / 1000.0
+    base = cy + int(r * 0.78)
+    puff = 0.85 + 0.15 * _m.sin(t * 6)
+    for rad, col in ((0.62, (255, 236, 150)), (0.46, (255, 170, 50)), (0.3, (255, 96, 30))):
+        pygame.draw.circle(surf, col, (cx + int(r * 0.3), base - int(r * 0.1)),
+                           max(2, int(r * rad * puff)))
+    for i in range(7):                                    # debris flying out
+        a = -_m.pi + i * (_m.pi / 6)
+        d = r * (0.7 + 0.2 * _m.sin(t * 5 + i))
+        pygame.draw.circle(surf, (250, 210, 120),
+                           (cx + int(r * 0.3 + _m.cos(a) * d),
+                            base - int(r * 0.1) + int(_m.sin(a) * d * 0.5)),
+                           max(1, r // 14))
+    man, w = (235, 245, 255), max(1, r // 10)
+    hx, hy = cx - int(r * 0.42), cy - int(r * 0.52)       # tucked up, legs high
+    pygame.draw.circle(surf, man, (hx, hy), max(2, int(r * 0.17)))
+    pygame.draw.line(surf, man, (hx, hy + int(r * 0.17)), (hx + int(r * 0.2), cy), w)
+    pygame.draw.line(surf, man, (hx + int(r * 0.2), cy), (hx + int(r * 0.5), cy - int(r * 0.14)), w)
+    pygame.draw.line(surf, man, (hx + int(r * 0.2), cy), (hx + int(r * 0.44), cy + int(r * 0.2)), w)
+    pygame.draw.line(surf, man, (hx, hy + int(r * 0.3)), (hx - int(r * 0.34), hy + int(r * 0.1)), w)
+    pygame.draw.line(surf, man, (hx, hy + int(r * 0.3)), (hx + int(r * 0.16), hy - int(r * 0.2)), w)
+
+
 BADGES = {
     "crown":    _badge_crown,
     "lhat":     _badge_lhat,
@@ -369,6 +395,7 @@ BADGES = {
     "eye_i":    _badge_eye_i,
     "matrix":   _badge_matrix,
     "outnumbered": _badge_outnumbered,
+    "blast_jump":  _badge_blast_jump,
 }
 
 
@@ -524,6 +551,14 @@ ACHIEVEMENTS = [
         "reward": 10,
         "badge": "outnumbered",
         "check": lambda s, u, d: s.get("survival_best_seconds", 0) > 120,
+    },
+    {
+        "id": "rpg_settles_ties",
+        "name": "Use RPG to settle ties",
+        "desc": "Slip out of a bazooka blast by a hair",
+        "reward": 20,
+        "badge": "blast_jump",
+        "check": lambda s, u, d: bool(s.get("bazooka_dodged")),
     },
     {
         "id": "double_o_element",

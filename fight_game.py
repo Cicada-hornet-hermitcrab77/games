@@ -55,6 +55,7 @@ _poison_pickup_flag   = [False]  # True when p1 picks up Poison or Killer
 _heal_pickup_flag     = [False]  # True when p1 picks up Heal or MegaHeal
 _session_win_streak   = [0]      # wins in a row without returning to the menu
 _survival_seconds     = [0]      # how long the last survival run lasted
+_bazooka_dodge_flag   = [False]  # True when p1 slips just outside a blast
 _p1_proj_blocked      = [0]       # projectiles p1 blocked this fight
 _symbol_char_flag     = [False]   # True when <|-\||>+() typed on Computer stage
 _death_defyer_flag    = [False]   # True when death_does_not_exist typed on Graveyard as Reaper
@@ -2313,10 +2314,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                 if o.exploding and not o.damaged:
                     o.damaged = True
                     victim = p2 if o.owner is p1 else p1
-                    if math.hypot(o.x - victim.x, o.y - (victim.y - 60)) < o.EXPLODE_RADIUS:
+                    _blast = math.hypot(o.x - victim.x, o.y - (victim.y - 60))
+                    if _blast < o.EXPLODE_RADIUS:
                         if not victim.bubble_shield:
                             victim.take_proj_dmg(o.EXPLODE_DMG)
                         victim.flash_timer = 14
+                    elif victim is p1 and _blast < o.EXPLODE_RADIUS + 14:
+                        # Out of the blast by a hair — that is the dodge
+                        _bazooka_dodge_flag[0] = True
             orbs = [o for o in orbs if o.alive]
 
             # Spawn charged orbs from Orb Shooter
@@ -7233,6 +7238,9 @@ def main():
         if _fighter_mod.PROJ_BLOCKS[0] > 0:
             stats["proj_blocked"] = True
             _fighter_mod.PROJ_BLOCKS[0] = 0
+        if _bazooka_dodge_flag[0]:
+            stats["bazooka_dodged"] = True
+            _bazooka_dodge_flag[0] = False
         _award_achievements(unlocked, stats)
         mode = mode_select(unlocked, stats)
         _award_achievements(unlocked, stats)
