@@ -278,10 +278,10 @@ UNLOCK_CONDITIONS = {
     "Unhittable":         ("projectiles_blocked",   None,          500,  "Block 500 projectiles"),
     "Sniper":             ("win_hard_ai",            None,            9,  "Win 9 matches vs Hard AI"),
     "Mega-Unhittable":    ("projectiles_blocked",   None,       100000,  "Block 100000 projectiles"),
-    "Map Man":            ("map_man_unlocked",       None,            1,  "???",                                  True),
-    "<|-\\||>+()":         ("symbol_char_typed",     None,            1,  "???",                                  True),
-    "Death Defyer":        ("death_defyer_typed",    None,            1,  "???",                                  True),
-    "Friday the 13th":     ("friday13_typed",        None,            1,  "???",                                  True),
+    "Map Man":            ("map_man_unlocked",       None,            1,  "Be the final map master",                                  True),
+    "<|-\\||>+()":         ("symbol_char_typed",     None,            1,  "Type the symbol: crypto",                                  True),
+    "Death Defyer":        ("death_defyer_typed",    None,            1,  "upper cut the death master",                                  True),
+    "Friday the 13th":     ("friday13_typed",        None,            1,  "unlucky or lucky? you dec13de",                                  True),
     # ── 11 new characters ───────────────────────────────────────────────────
     "Bard":                ("win_on_stage",   "Circus",          3,  "Win 3 matches on Circus"),
     "Butcher":             ("win_with",       "Gargoyle",        1,  "Win 1 match as Gargoyle"),
@@ -400,7 +400,7 @@ UNLOCK_CONDITIONS = {
     "Chaos Lord":          ("win_with",       "Jester",          5,  "Win 5 matches as Jester"),
     # ── new secret characters ────────────────────────────────────────────────
     "Overload":            ("wins_total",     None,            100,  "Power beyond all limits",         True),
-    "Glitch":              ("matches_played", None,            150,  "???",                             True),
+    "Glitch":              ("matches_played", None,            150,  "fhahahiaghh",                             True),
     "Nick of Time":        ("nick_of_time_win", None,            1,  "A win against the clock",         True),
     "Buffer":              ("wins_total",      None,            25, "Win 25 matches"),
     "Cursed":              ("losses",          None,           15,  "Lose 15 matches"),
@@ -505,7 +505,7 @@ UNLOCK_CONDITIONS = {
     "Nun-Gimel-Hei-Shin":  ("seasonal_purchased", "Nun-Gimel-Hei-Shin",  1, "Buy in Seasonal Shop (Aura of Menorah)"),
     "Saint Nix":           ("seasonal_purchased", "Saint Nix",           1, "Buy in Seasonal Shop (Yuletide Gatherings)"),
     # ── new secret characters ────────────────────────────────────────────────
-    "I":             ("marathon_streak",  None,            30,  "Keep playing, don't stop",           True),
+    "I":             ("marathon_streak",  None,            30,  "Keep playing, don't turn your eyes back",           True),
     "Crytrap":       ("crytrap_unlock",   None,             1,  "Some things are better left frozen", True),
     "Snider":        ("snider_unlock",    None,             1,  "Distance is the best defense",       True),
 }
@@ -1176,6 +1176,7 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     winner             = None
     timer              = 90 * FPS
     _remote_actions    = {}      # latest opponent input frame (networked fights)
+    _net_hp            = None    # the HP the host last published (networked)
     # Typed-in-game easter eggs and match chat are both online-only.
     _eggs              = _EasterEggs() if net is not None else None
     _chat              = _ChatBox(net) if net is not None else None
@@ -1907,6 +1908,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         _eggs.fire(_m.get("kw", ""), p2, p1)
                     elif _t == "STATE" and not is_host:
                         _s2f(p1, _m["p1"]); _s2f(p2, _m["p2"])
+                        for _pl, _px in zip(platforms, _m.get("plats", ())):
+                            _pl.x = _px
+                        # The host decides health. The client's own simulation
+                        # disagrees constantly — projectiles it spawned itself,
+                        # its own block and crit rolls — and letting those land
+                        # locally made HP drop and snap back every frame, which
+                        # read as both fighters healing on a loop.
+                        _net_hp = (p1.hp, p2.hp)
                         timer = _m.get("timer", timer)
                         _w = _m.get("winner")
                         if _w:
@@ -1917,8 +1926,14 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                                 P2_CTRL if is_host else P1_CTRL,
                                 P1_CTRL)
                 if is_host:
+                    # Platform positions ride along with the state. Both
+                    # machines used to step their own moving platforms, so the
+                    # two drifted apart — and since fighter position comes from
+                    # the host, you ended up stood on a platform the client had
+                    # drawn somewhere else, unable to land on the one you saw.
                     net.send({"type": "STATE", "timer": timer,
                               "p1": _f2s(p1), "p2": _f2s(p2),
+                              "plats": [round(_pl.x, 1) for _pl in platforms],
                               "winner": ("p1" if winner is p1 else
                                          "p2" if winner is p2 else
                                          "draw" if game_over else None)})
@@ -3672,6 +3687,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         _cf2.flash_timer = max(_cf2.flash_timer, 6)
                         _cc["hit"].add(id(_cf2))
             casino_coins = [c for c in casino_coins if c["y"] < GROUND_Y + 30]
+
+        if net is not None and not is_host and _net_hp is not None:
+            p1.hp, p2.hp = _net_hp      # only the host's numbers ever show
 
         draw_bg(screen, stage_idx)
         if _is_volcore:

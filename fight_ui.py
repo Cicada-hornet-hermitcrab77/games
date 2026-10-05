@@ -3488,10 +3488,17 @@ def matchmaking_screen(userdata, unlocked=None):
     userdata.setdefault("friends", {})
 
     # Step 4 — Brief "Found!" screen
+    # An opponent who picks immediately does so while this screen is up, and
+    # polling here used to drop their PICK on the floor — after which step 6
+    # waited for a message that had already arrived and timed out with
+    # "they never picked". Keep it instead.
+    _early_pick = None
     found_end = pygame.time.get_ticks() + 1800
     while pygame.time.get_ticks() < found_end:
         clock.tick(FPS)
-        lobby.poll()
+        for _m in lobby.poll():
+            if isinstance(_m, dict) and _m.get("type") == "PICK":
+                _early_pick = _m["char_idx"]
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 lobby.close(); pygame.quit(); sys.exit()
@@ -3512,7 +3519,7 @@ def matchmaking_screen(userdata, unlocked=None):
 
     # Step 6 — Exchange character picks via relay
     lobby.relay({"type": "PICK", "char_idx": my_idx})
-    opp_idx  = None
+    opp_idx  = _early_pick          # they may have picked while we were reading
     deadline = pygame.time.get_ticks() + PICK_TIMEOUT_MS
     while opp_idx is None and pygame.time.get_ticks() < deadline:
         clock.tick(FPS)
