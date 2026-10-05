@@ -1438,6 +1438,11 @@ CHARACTERS = [
      "double_jump": False, "shop_only": True, "tombstone_reflect": True},
     # Tombstone's Minefield "Minebomb version" prize costumes — same stats
     # and reflect ability as Tombstone, purely a different look.
+    {"name": "Legacy Tombstone", "color": (155, 150, 140), "speed": 3,  "jump":  -9,
+     "punch_dmg": 22, "kick_dmg": 28, "max_hp": 110, "block": 5,
+     "desc": "All damage dealt to it is reflected back — in the Legacy of Valor cap",
+     "double_jump": False, "shop_only": True, "tombstone_reflect": True,
+     "tombstone_variant": True, "legacy_costume": True},
     {"name": "Booma",          "color": (35,  35,  40), "speed": 3,  "jump":  -9,
      "punch_dmg": 22, "kick_dmg": 28, "max_hp": 110, "block": 5,
      "desc": "A bomb buried in the ground, wired to blow",
@@ -1575,6 +1580,11 @@ CHARACTERS = [
      "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100, "block": 4,
      "desc": "Stretches arms on punch — deals 75% of enemy max HP",
      "double_jump": False, "jawke_punch": True},
+    {"name": "Legacy Jawke", "color": (226, 226, 226), "speed": 4, "jump": -13,
+     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 100, "block": 4,
+     "desc": "Stretches arms on punch — deals 75% of enemy max HP. The old sketch.",
+     "double_jump": False, "jawke_punch": True, "shop_only": True,
+     "jawke_variant": True, "legacy_costume": True},
     {"name": "WakeUp", "color": (120, 140, 220), "speed": 5, "jump": -13,
      "punch_dmg": 9, "kick_dmg": 9, "max_hp": 100, "block": 4,
      "desc": "Kick pops his hat off — teddy bears rain from the sky",

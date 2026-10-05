@@ -12602,7 +12602,7 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                                    (_sqx + int(_sqr * 0.3), _sqy - int(_sqr * 1.45)),
                                    max(1, int(_sqr * 0.2)))
 
-    elif char_name == "Tombstone":
+    elif char_name in ("Tombstone", "Legacy Tombstone"):
         # Stone colours
         _stone  = (158, 153, 143)
         _shadow = (105, 100,  90)
@@ -12634,6 +12634,34 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         _cw    = int(hd * 0.5)                     # crossbar half-width
         pygame.draw.line(surface, _shadow, (_cx, _cv), (_cx, _cb), max(2, int(3*s)))
         pygame.draw.line(surface, _shadow, (_cx - _cw, _ch), (_cx + _cw, _ch), max(2, int(3*s)))
+        # Legacy costume: the Legacy of Valor conductor cap, worn low
+        if char_name == "Legacy Tombstone":
+            _cap_w = int(_tw * 1.45)                # narrower than the stone
+            _cap_x = sx - _cap_w // 2
+            _cap_b = _top + int(hd * 0.30)          # perched on the arch
+            pygame.draw.rect(surface, (30, 34, 58),  # visor, out front
+                             (_cap_x - int(20*s), _cap_b - int(3*s), int(30*s), int(7*s)),
+                             border_radius=max(1, int(3*s)))
+            pygame.draw.ellipse(surface, (44, 50, 80),
+                                (_cap_x - int(22*s), _cap_b - int(4*s), int(34*s), int(9*s)))
+            pygame.draw.ellipse(surface, (16, 18, 34),
+                                (_cap_x - int(22*s), _cap_b - int(4*s), int(34*s), int(9*s)), max(1, int(s)))
+            pygame.draw.rect(surface, (50, 56, 88),  # crown
+                             (_cap_x + int(3*s), _cap_b - int(20*s), _cap_w - int(6*s), int(20*s)),
+                             border_radius=max(2, int(5*s)))
+            pygame.draw.rect(surface, (20, 22, 42),
+                             (_cap_x + int(3*s), _cap_b - int(20*s), _cap_w - int(6*s), int(20*s)),
+                             max(1, int(2*s)), border_radius=max(2, int(5*s)))
+            pygame.draw.rect(surface, (24, 26, 46),  # band
+                             (_cap_x, _cap_b - int(6*s), _cap_w, int(11*s)),
+                             border_radius=max(1, int(3*s)))
+            pygame.draw.circle(surface, (196, 166, 70), (_cap_x + int(6*s), _cap_b), max(1, int(2*s)))
+            pygame.draw.circle(surface, (196, 166, 70),
+                               (_cap_x + _cap_w - int(6*s), _cap_b), max(1, int(2*s)))
+            _lovf = _get_font(max(8, int(11 * s)))
+            _lovs = _lovf.render("LOV", True, (226, 196, 90))
+            surface.blit(_lovs, (sx - _lovs.get_width() // 2, _cap_b - int(5*s)))
+
         # Glowing eyes in the arch
         _ey  = hy - int(hd * 0.15)
         _er  = max(3, int(hd * 0.3))
@@ -16293,6 +16321,22 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
         if action == 'kick':
             return (int(_hx0 + facing * 18*s), _hy0)
         return (int(_cx9 + facing * (_shw + 10*s)), _flat_y + int(_shh*0.4))
+
+    # ── Legacy Jawke: the old pencil-sketch costume, played straight ────────
+    if char_name == "Legacy Jawke":
+        if action == 'dead':
+            return None
+        _lj_s  = s * 0.62                      # the sketch is drawn much larger
+        _lj_cy = int(y) - int(108 * _lj_s)     # feet on the ground line
+        _lj_cx = int(x)
+        if action == 'punch':
+            _lj_cx += int(facing * 10 * s)
+        draw_jawke_legacy(surface, _lj_cx, _lj_cy, _lj_s)
+        if action == 'punch':
+            return (int(_lj_cx + facing * 86 * _lj_s), _lj_cy + int(30 * _lj_s))
+        if action == 'kick':
+            return (int(_lj_cx + facing * int(action_t * 90 * s)), int(y) - int(20 * s))
+        return (int(_lj_cx + facing * 70 * _lj_s), _lj_cy + int(30 * _lj_s))
 
     ln(waist, lk); ln(lk, lf)
     ln(waist, rk); ln(rk, rf)
