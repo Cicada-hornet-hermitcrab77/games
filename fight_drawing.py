@@ -3,7 +3,7 @@ import math
 import random
 import constants
 from constants import *
-from fight_data import STAGES, STAGE_MATCHUPS, POWERUPS
+from fight_data import STAGES, STAGE_MATCHUPS, POWERUPS, COSTUME_BASE, COSTUME_EMBLEM
 
 _font_cache = {}  # size → Font, avoids recreating fonts every frame
 
@@ -14405,9 +14405,76 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
         surface.blit(_shadow_surf, (int(waist[0]) - 40, _ground_y - 78))
 
 
+def _draw_emblem(surface, kind, cx, cy, r, col):
+    """The small mark that tells one seasonal costume from another."""
+    if kind == "heart":
+        pygame.draw.polygon(surface, col, [
+            (cx, cy + r), (cx - r, cy - int(r * 0.2)), (cx - int(r * 0.5), cy - r),
+            (cx, cy - int(r * 0.4)), (cx + int(r * 0.5), cy - r), (cx + r, cy - int(r * 0.2))])
+    elif kind == "star":
+        pts = []
+        for i in range(10):
+            _rr = r if i % 2 == 0 else r * 0.45
+            _a  = -math.pi / 2 + i * math.pi / 5
+            pts.append((cx + int(math.cos(_a) * _rr), cy + int(math.sin(_a) * _rr)))
+        pygame.draw.polygon(surface, col, pts)
+    elif kind == "clover":
+        for _a in (0, math.pi / 2, math.pi, 3 * math.pi / 2):
+            pygame.draw.circle(surface, col,
+                               (cx + int(math.cos(_a) * r * 0.5), cy + int(math.sin(_a) * r * 0.5)),
+                               max(1, int(r * 0.5)))
+    elif kind == "egg":
+        pygame.draw.ellipse(surface, col, (cx - int(r * 0.7), cy - r, int(r * 1.4), int(r * 2)))
+        pygame.draw.line(surface, (255, 255, 255), (cx - int(r * 0.6), cy),
+                         (cx + int(r * 0.6), cy), max(1, int(r * 0.3)))
+    elif kind == "koi":
+        pygame.draw.ellipse(surface, col, (cx - r, cy - int(r * 0.5), int(r * 1.5), r))
+        pygame.draw.polygon(surface, col, [(cx + int(r * 0.4), cy),
+                                           (cx + r, cy - int(r * 0.6)),
+                                           (cx + r, cy + int(r * 0.6))])
+    elif kind == "sun":
+        pygame.draw.circle(surface, col, (cx, cy), max(1, int(r * 0.6)))
+        for i in range(8):
+            _a = i * math.pi / 4
+            pygame.draw.line(surface, col, (cx + int(math.cos(_a) * r * 0.7),
+                                            cy + int(math.sin(_a) * r * 0.7)),
+                             (cx + int(math.cos(_a) * r * 1.2),
+                              cy + int(math.sin(_a) * r * 1.2)), max(1, int(r * 0.3)))
+    elif kind == "snow":
+        for i in range(3):
+            _a = i * math.pi / 3
+            pygame.draw.line(surface, col, (cx - int(math.cos(_a) * r), cy - int(math.sin(_a) * r)),
+                             (cx + int(math.cos(_a) * r), cy + int(math.sin(_a) * r)),
+                             max(1, int(r * 0.3)))
+    elif kind == "flame":
+        pygame.draw.polygon(surface, col, [
+            (cx, cy - r), (cx + int(r * 0.7), cy + int(r * 0.3)),
+            (cx, cy + r), (cx - int(r * 0.7), cy + int(r * 0.3))])
+    elif kind == "leaf":
+        pygame.draw.ellipse(surface, col, (cx - r, cy - int(r * 0.6), int(r * 2), int(r * 1.2)))
+        pygame.draw.line(surface, (40, 60, 30), (cx - r, cy), (cx + r, cy), max(1, int(r * 0.2)))
+    elif kind == "book":
+        pygame.draw.rect(surface, col, (cx - r, cy - int(r * 0.7), int(r * 2), int(r * 1.4)))
+        pygame.draw.line(surface, (250, 250, 245), (cx, cy - int(r * 0.7)),
+                         (cx, cy + int(r * 0.7)), max(1, int(r * 0.25)))
+    elif kind == "cat":
+        pygame.draw.circle(surface, col, (cx, cy + int(r * 0.2)), max(1, int(r * 0.75)))
+        for _sx in (-1, 1):
+            pygame.draw.polygon(surface, col, [
+                (cx + _sx * int(r * 0.7), cy - int(r * 0.2)),
+                (cx + _sx * int(r * 0.8), cy - int(r * 1.1)),
+                (cx + _sx * int(r * 0.1), cy - int(r * 0.5))])
+
+
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color
     s = scale
+    # Seasonal costumes borrow their base fighter's whole look and only change
+    # the colour they are drawn in, plus a small emblem over the head.
+    _costume_emblem = None
+    if char_name in COSTUME_BASE:
+        _costume_emblem = COSTUME_EMBLEM.get(char_name)
+        char_name = COSTUME_BASE[char_name]
 
     hd = int(HEAD_R   * s)
     bl = int(BODY_LEN * s)
@@ -16348,6 +16415,11 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
 
     if char_name:
         draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing, s, col)
+
+    if _costume_emblem:
+        _draw_emblem(surface, _costume_emblem,
+                     int(head_c[0] + facing * hd * 1.1), int(head_c[1] - hd * 1.1),
+                     max(3, int(hd * 0.42)), col)
 
     if action == 'punch':
         return (int(ra[0] + facing * 10 * s), int(ra[1]))

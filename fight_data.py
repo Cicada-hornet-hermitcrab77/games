@@ -2196,3 +2196,69 @@ STAGE_MATCHUPS = {
     "Conveyor World":  {"adv": "Whirlpool",   "dis": "Sniper"},
 }
 
+
+
+# ---------------------------------------------------------------------------
+# Seasonal costumes
+#
+# One per seasonal event, earned by owning every character in that event's
+# shop. A costume is purely cosmetic: it keeps its base fighter's stats and
+# abilities exactly, and only changes the colour it is drawn in plus a small
+# emblem over the head. They live inside their base fighter's box in character
+# select rather than as separate cards.
+#
+# Adding one is a row here — the character entry, the variant box, the
+# drawing and the achievement all key off this table.
+# ---------------------------------------------------------------------------
+
+COSTUMES = [
+    {"name": "Koi-lue",        "base": "Red Herring", "event": "New Dynasties",
+     "color": (214,  78,  58), "emblem": "koi"},
+    {"name": "Cupidity",       "base": "Angel",       "event": "Hearts and Harmonies",
+     "color": (250, 150, 180), "emblem": "heart"},
+    {"name": "Shamrocker",     "base": "Lucky",       "event": "Emerald Echoes",
+     "color": ( 60, 170,  80), "emblem": "clover"},
+    {"name": "Easta egg",      "base": "Eggshell",    "event": "April Rain",
+     "color": (168, 214, 236), "emblem": "egg"},
+    {"name": "Terracotta",     "base": "Golem",       "event": "Bound to the Ground",
+     "color": (186, 106,  66), "emblem": "leaf"},
+    {"name": "Last post",      "base": "Reaper",      "event": "Legacy of Valor",
+     "color": ( 96, 104, 128), "emblem": "star"},
+    {"name": "Fruit chop",     "base": "Ninja",       "event": "Summer Solstice",
+     "color": (240, 170,  60), "emblem": "sun"},
+    {"name": "Rockets red glare", "base": "Bazooka Man", "event": "Red White and Boom",
+     "color": (210,  64,  70), "emblem": "star"},
+    {"name": "Plot twist",     "base": "Shapeshifter", "event": "Novel Beginnings",
+     "color": (142, 120, 200), "emblem": "book"},
+    {"name": "Old faithful",   "base": "Lava Man",    "event": "Project Yellowstone",
+     "color": (226, 128,  54), "emblem": "flame"},
+    {"name": "Scaredy cat",    "base": "Copycat",     "event": "Echoes of the Undying",
+     "color": ( 86,  70, 110), "emblem": "cat"},
+    {"name": "Food coma",      "base": "Sumo",        "event": "Feasterween",
+     "color": (196, 150,  92), "emblem": "leaf"},
+    {"name": "Latke than never", "base": "Magician",  "event": "Aura of Menorah",
+     "color": ( 80, 110, 200), "emblem": "flame"},
+    {"name": "Rodoff the red nosed thing", "base": "Wendigo", "event": "Yuletide Gatherings",
+     "color": (212,  86,  86), "emblem": "snow"},
+]
+
+COSTUME_BASE   = {c["name"]: c["base"] for c in COSTUMES}
+COSTUME_EMBLEM = {c["name"]: c["emblem"] for c in COSTUMES}
+COSTUMES_FOR   = {}
+for _c in COSTUMES:
+    COSTUMES_FOR.setdefault(_c["base"], []).append(_c["name"])
+
+# Build the character entries: the base fighter's kit, a new name and colour.
+_by_name = {c["name"]: c for c in CHARACTERS}
+for _c in COSTUMES:
+    _base = _by_name.get(_c["base"])
+    if _base is None:
+        continue
+    _entry = dict(_base)
+    _entry["name"]  = _c["name"]
+    _entry["color"] = _c["color"]
+    _entry["desc"]  = f"{_c['event']} costume — {_c['base']}'s kit, new coat"
+    _entry["costume_of"]      = _c["base"]
+    _entry["costume_variant"] = True
+    _entry["shop_only"]       = True
+    CHARACTERS.append(_entry)

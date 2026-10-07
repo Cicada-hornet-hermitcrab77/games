@@ -1767,6 +1767,20 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _jack_variant_indices.append(_jvi2)
                 break
 
+    # Seasonal costumes: one generic family per base fighter, built from the
+    # COSTUMES table rather than hand-wired like the older variant families.
+    _cos_fam = {}          # base name -> [base index, costume indices…]
+    for _ci0, _cc0 in enumerate(CHARACTERS):
+        _cb0 = _cc0.get("costume_of")
+        if _cb0:
+            _cos_fam.setdefault(_cb0, []).append(_ci0)
+    for _cb0 in list(_cos_fam):
+        _bi0 = next((i for i, c in enumerate(CHARACTERS) if c["name"] == _cb0), None)
+        if _bi0 is None:
+            _cos_fam.pop(_cb0)
+        else:
+            _cos_fam[_cb0] = [_bi0] + _cos_fam[_cb0]
+
     # Build Jawke variant lookup (Original + the old pencil-sketch costume,
     # excluded from the main grid — it lives inside Jawke's box)
     _jawke_variant_names   = ["Jawke", "Legacy Jawke"]
@@ -1801,7 +1815,7 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         COLS      = min(4, max(1, len(_CHARS)))
     else:
         _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS)
-                     if not c.get("eartha_variant") and not c.get("clover_variant") and not c.get("solara_variant") and not c.get("nghs_variant") and not c.get("bookzworm_variant") and not c.get("yellowstone_variant") and not c.get("tombstone_variant") and not c.get("jack_variant") and not c.get("jawke_variant")]
+                     if not c.get("eartha_variant") and not c.get("clover_variant") and not c.get("solara_variant") and not c.get("nghs_variant") and not c.get("bookzworm_variant") and not c.get("yellowstone_variant") and not c.get("tombstone_variant") and not c.get("jack_variant") and not c.get("jawke_variant") and not c.get("costume_variant")]
         _CHARS    = [c for _, c in _cf_pairs]
         _orig_idx = [i for i, _ in _cf_pairs]
         COLS      = 7
@@ -1865,6 +1879,8 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
     p2_jv = 0
     p1_wv = 0   # jawke variant index (0 = Original Jawke)
     p2_wv = 0
+    p1_cos = {}  # base name -> which costume that player has picked (0 = none)
+    p2_cos = {}
 
     def clip_scroll(idx):
         nonlocal scroll_top
@@ -1978,6 +1994,19 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 p1_yv = _vti
                             elif not vs_ai and not p2_ready:
                                 p2_yv = _vti
+                elif _td_ch["name"] in _cos_fam:
+                    _fam = _cos_fam[_td_ch["name"]]
+                    _vp_ty = PY + PH - 132
+                    _vp_tbw = (PW - 20) // len(_fam)
+                    for _vti in range(len(_fam)):
+                        _vtx = PX + 10 + _vti * _vp_tbw
+                        if pygame.Rect(_vtx+1, _vp_ty+1, _vp_tbw-2, 28).collidepoint(_tp):
+                            if _dev_mode[0]:
+                                unlocked.add(CHARACTERS[_fam[_vti]]["name"])
+                            if not p1_ready:
+                                p1_cos[_td_ch["name"]] = _vti
+                            elif not vs_ai and not p2_ready:
+                                p2_cos[_td_ch["name"]] = _vti
                 elif _td_ch["name"] == "Jawke" and _jawke_variant_indices:
                     _vp_ty = PY + PH - 132
                     _vp_tbw = (PW - 20) // len(_jawke_variant_indices)
@@ -2056,6 +2085,9 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 _vwnt = CHARACTERS[_jawke_variant_indices[p1_wv]]["name"]
                                 if _vwnt not in unlocked:
                                     _ev_ok_t = False
+                            _cfam = _cos_fam.get(_CHARS[p1_idx]["name"])
+                            if _cfam and CHARACTERS[_cfam[p1_cos.get(_CHARS[p1_idx]["name"], 0)]]["name"] not in unlocked:
+                                _ev_ok_t = False
                             if _ev_ok_t:
                                 p1_ready = True
                                 if vs_ai:
@@ -2100,6 +2132,9 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 _vwnt2 = CHARACTERS[_jawke_variant_indices[p2_wv]]["name"]
                                 if _vwnt2 not in unlocked:
                                     _ev_ok_t2 = False
+                            _cfam2 = _cos_fam.get(_CHARS[p2_idx]["name"])
+                            if _cfam2 and CHARACTERS[_cfam2[p2_cos.get(_CHARS[p2_idx]["name"], 0)]]["name"] not in unlocked:
+                                _ev_ok_t2 = False
                             if _ev_ok_t2:
                                 p2_ready = True
             if event.type == pygame.KEYDOWN:
@@ -2156,6 +2191,13 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             p1_wv = (p1_wv + 1) % len(_jawke_variant_indices)
                         elif event.key == pygame.K_q:
                             p1_wv = (p1_wv - 1) % len(_jawke_variant_indices)
+                    _cfam = _cos_fam.get(_CHARS[p1_idx]["name"])
+                    if _cfam:
+                        _cn = _CHARS[p1_idx]["name"]
+                        if event.key == pygame.K_e:
+                            p1_cos[_cn] = (p1_cos.get(_cn, 0) + 1) % len(_cfam)
+                        elif event.key == pygame.K_q:
+                            p1_cos[_cn] = (p1_cos.get(_cn, 0) - 1) % len(_cfam)
                     if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_f):
                         if _CHARS[p1_idx]["name"] not in unlocked:
                             pass  # locked — do nothing
@@ -2197,6 +2239,9 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 _vwn = CHARACTERS[_jawke_variant_indices[p1_wv]]["name"]
                                 if _vwn not in unlocked:
                                     _ev_ok = False
+                            _cfam = _cos_fam.get(_CHARS[p1_idx]["name"])
+                            if _cfam and CHARACTERS[_cfam[p1_cos.get(_CHARS[p1_idx]["name"], 0)]]["name"] not in unlocked:
+                                _ev_ok = False
                             if _ev_ok:
                                 p1_ready = True
                                 if vs_ai:
@@ -2253,6 +2298,13 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             p2_wv = (p2_wv + 1) % len(_jawke_variant_indices)
                         elif event.key == pygame.K_j:
                             p2_wv = (p2_wv - 1) % len(_jawke_variant_indices)
+                    _cfam2 = _cos_fam.get(_CHARS[p2_idx]["name"])
+                    if _cfam2:
+                        _cn2 = _CHARS[p2_idx]["name"]
+                        if event.key == pygame.K_l:
+                            p2_cos[_cn2] = (p2_cos.get(_cn2, 0) + 1) % len(_cfam2)
+                        elif event.key == pygame.K_j:
+                            p2_cos[_cn2] = (p2_cos.get(_cn2, 0) - 1) % len(_cfam2)
                     if event.key in (pygame.K_RETURN, pygame.K_k):
                         if _CHARS[p2_idx]["name"] in unlocked:
                             _ev_ok2 = True
@@ -2292,6 +2344,9 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                                 _vwn2 = CHARACTERS[_jawke_variant_indices[p2_wv]]["name"]
                                 if _vwn2 not in unlocked:
                                     _ev_ok2 = False
+                            _cfam2 = _cos_fam.get(_CHARS[p2_idx]["name"])
+                            if _cfam2 and CHARACTERS[_cfam2[p2_cos.get(_CHARS[p2_idx]["name"], 0)]]["name"] not in unlocked:
+                                _ev_ok2 = False
                             if _ev_ok2:
                                 p2_ready = True
 
@@ -2330,6 +2385,12 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _r1 = _jack_variant_indices[p1_jv]
             if not vs_ai and _CHARS[p2_idx]["name"] == "Jack O' Slash" and _jack_variant_indices:
                 _r2 = _jack_variant_indices[p2_jv]
+            _cfam = _cos_fam.get(_CHARS[p1_idx]["name"])
+            if _cfam:
+                _r1 = _cfam[p1_cos.get(_CHARS[p1_idx]["name"], 0)]
+            _cfam2 = _cos_fam.get(_CHARS[p2_idx]["name"]) if not vs_ai else None
+            if _cfam2:
+                _r2 = _cfam2[p2_cos.get(_CHARS[p2_idx]["name"], 0)]
             if _CHARS[p1_idx]["name"] == "Jawke" and _jawke_variant_indices:
                 _r1 = _jawke_variant_indices[p1_wv]
             if not vs_ai and _CHARS[p2_idx]["name"] == "Jawke" and _jawke_variant_indices:
@@ -2368,6 +2429,11 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
             _detail_display = CHARACTERS[_jack_variant_indices[_active_jv]]
         if detail_ch["name"] == "Jawke" and detail_ch["name"] in unlocked and _jawke_variant_indices:
             _detail_display = CHARACTERS[_jawke_variant_indices[_active_wv]]
+        _cos_here = _cos_fam.get(detail_ch["name"])
+        _active_cos = ((p2_cos if (p1_ready and not p2_ready) else p1_cos)
+                       .get(detail_ch["name"], 0)) if _cos_here else 0
+        if _cos_here and detail_ch["name"] in unlocked:
+            _detail_display = CHARACTERS[_cos_here[_active_cos]]
 
         # ── Background ──────────────────────────────────────────────────────
         screen.fill((18, 18, 28))
@@ -2999,6 +3065,28 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                 _vtc8  = (90, 90, 90) if _vlk8 else (WHITE if _vsel8 else _vc8)
                 _vtxt8 = font_tiny.render(("?" + _vlb8[0]) if _vlk8 else _vlb8, True, _vtc8)
                 screen.blit(_vtxt8, (_vx8 + _vp_bw//2 - _vtxt8.get_width()//2, _vp_y + 8))
+
+        # Seasonal costume picker — same box, one tab per costume
+        if _cos_here and detail_ch["name"] in unlocked:
+            _vp_y   = PY + PH - 132
+            _vp_lbl = font_tiny.render("COSTUME  (Q/E  or  J/L)", True, (160, 160, 185))
+            screen.blit(_vp_lbl, (PX + PW//2 - _vp_lbl.get_width()//2, _vp_y - 16))
+            _vp_bw = (PW - 20) // len(_cos_here)
+            for _vi11, _idx11 in enumerate(_cos_here):
+                _vx11  = PX + 10 + _vi11 * _vp_bw
+                _vc11  = CHARACTERS[_idx11]["color"]
+                _vn11  = CHARACTERS[_idx11]["name"]
+                _vlk11 = _vn11 not in unlocked
+                _vsel11 = (_vi11 == _active_cos)
+                pygame.draw.rect(screen, tuple(max(8, c // 5) for c in _vc11),
+                                 (_vx11+1, _vp_y+1, _vp_bw-2, 28), border_radius=4)
+                pygame.draw.rect(screen, _vc11 if _vsel11 else tuple(c // 2 for c in _vc11),
+                                 (_vx11+1, _vp_y+1, _vp_bw-2, 28), 2 if _vsel11 else 1,
+                                 border_radius=4)
+                _lbl11 = "Original" if _vi11 == 0 else _vn11
+                _vtc11 = (90, 90, 90) if _vlk11 else (WHITE if _vsel11 else _vc11)
+                _vtxt11 = font_tiny.render(("?" if _vlk11 else _lbl11)[:14], True, _vtc11)
+                screen.blit(_vtxt11, (_vx11 + _vp_bw//2 - _vtxt11.get_width()//2, _vp_y + 8))
 
         # Jawke variant picker (the legacy costume lives in Jawke's box)
         if detail_ch["name"] == "Jawke" and detail_ch["name"] in unlocked and _jawke_variant_indices:

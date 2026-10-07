@@ -781,6 +781,34 @@ def _badge_serpentoduko(surf, cx, cy, r):
                      (cx - int(r * 0.4), cy - int(r * 0.4)), 1)   # tongue, pointing at a square
 
 
+def _badge_costume(surf, cx, cy, r, col=(200, 200, 210), emblem=None):
+    """A costume on a hanger, in that costume's colours, with its emblem."""
+    pygame.draw.line(surf, (190, 190, 200), (cx, cy - int(r * 0.9)),
+                     (cx, cy - int(r * 0.55)), max(1, r // 12))
+    pygame.draw.circle(surf, (190, 190, 200), (cx, cy - int(r * 0.92)),
+                       max(2, int(r * 0.14)), max(1, r // 14))
+    pygame.draw.line(surf, (190, 190, 200), (cx - int(r * 0.66), cy - int(r * 0.4)),
+                     (cx, cy - int(r * 0.6)), max(1, r // 12))
+    pygame.draw.line(surf, (190, 190, 200), (cx + int(r * 0.66), cy - int(r * 0.4)),
+                     (cx, cy - int(r * 0.6)), max(1, r // 12))
+    pygame.draw.polygon(surf, col, [
+        (cx - int(r * 0.66), cy - int(r * 0.4)), (cx + int(r * 0.66), cy - int(r * 0.4)),
+        (cx + int(r * 0.5), cy - int(r * 0.1)), (cx + int(r * 0.58), cy + int(r * 0.86)),
+        (cx - int(r * 0.58), cy + int(r * 0.86)), (cx - int(r * 0.5), cy - int(r * 0.1))])
+    pygame.draw.polygon(surf, tuple(max(0, c - 60) for c in col), [
+        (cx - int(r * 0.66), cy - int(r * 0.4)), (cx + int(r * 0.66), cy - int(r * 0.4)),
+        (cx + int(r * 0.5), cy - int(r * 0.1)), (cx + int(r * 0.58), cy + int(r * 0.86)),
+        (cx - int(r * 0.58), cy + int(r * 0.86)), (cx - int(r * 0.5), cy - int(r * 0.1))],
+        max(1, r // 14))
+    if emblem:
+        try:
+            from fight_drawing import _draw_emblem
+            _draw_emblem(surf, emblem, cx, cy + int(r * 0.3), max(2, int(r * 0.3)),
+                         tuple(min(255, c + 70) for c in col))
+        except Exception:
+            pass
+
+
 BADGES = {
     "crown":    _badge_crown,
     "lhat":     _badge_lhat,
@@ -1182,10 +1210,56 @@ def reward_text(a):
     if a.get("element"):
         _n, _q = a["element"]
         bits.append(f"+{_q} {_n}")
+    if a.get("unlock"):
+        bits.append("costume")
     if a.get("elements"):
         bits.append("+" + " +".join(f"{_q} {_n}" for _n, _q in a["elements"])
                     if len(a["elements"]) <= 2 else "+every element")
     return "   ".join(bits)
+
+
+# ── Seasonal costume achievements ────────────────────────────────────────
+# One per event: own every character in that event's shop and the costume is
+# yours. All fourteen share this shape, so they are generated from the costume
+# table rather than written out one at a time.
+def _event_roster(event_name):
+    try:
+        from fight_seasonal import SEASONAL_SHOP_CHARS
+    except Exception:
+        return set()
+    return {c["name"] for c in SEASONAL_SHOP_CHARS if c["event"] == event_name}
+
+
+def _owns_event(event_name):
+    def _check(s, u, d, _ev=event_name):
+        want = _event_roster(_ev)
+        return bool(want) and want <= set(u or ())
+    return _check
+
+
+def _costume_badge(col, emblem):
+    def _draw(surf, cx, cy, r, _c=col, _e=emblem):
+        _badge_costume(surf, cx, cy, r, _c, _e)
+    return _draw
+
+
+try:
+    from fight_data import COSTUMES as _COSTUMES
+except Exception:
+    _COSTUMES = []
+
+for _cos in _COSTUMES:
+    _bid = "costume_" + "".join(ch.lower() if ch.isalnum() else "_" for ch in _cos["name"])
+    BADGES[_bid] = _costume_badge(_cos["color"], _cos["emblem"])
+    ACHIEVEMENTS.append({
+        "id": _bid,
+        "name": _cos["name"],
+        "desc": f"Own every {_cos['event']} shop character",
+        "reward": 0,
+        "unlock": _cos["name"],
+        "badge": _bid,
+        "check": _owns_event(_cos["event"]),
+    })
 
 
 BY_ID = {a["id"]: a for a in ACHIEVEMENTS}
@@ -1215,6 +1289,9 @@ def check_achievements(stats, unlocked=(), userdata=None):
         newly.append(a)
         if a["reward"]:
             stats["seasonal_coins"] = max(0, stats.get("seasonal_coins", 0) + a["reward"])
+        _unlock = a.get("unlock")
+        if _unlock is not None and hasattr(unlocked, "add"):
+            unlocked.add(_unlock)
         _els = a.get("elements") or ([a["element"]] if a.get("element") else [])
         if _els:
             _bag = stats.setdefault("fuser_elements", {})
