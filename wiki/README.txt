@@ -1,9 +1,13 @@
 HOW TO ADD A PAGE TO THE STICKMAN FIGHT WIKI
 ============================================
 
-Write a plain text file, save it in this folder with a .txt name, and start
-the game. Your page is in the wiki. That is the whole process — no code, no
-permission, nothing else to edit.
+The quick way: open the wiki in the game and press F2. Type a title, pick a
+section, write the page, press F2 again to save. It lands in this folder as
+one of the files described below, and you can go on editing it either way.
+
+The other way: write a plain text file, save it in this folder with a .txt
+name, and start the game. Your page is in the wiki. No code, no permission,
+nothing else to edit.
 
 A page looks like this:
 

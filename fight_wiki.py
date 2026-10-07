@@ -11,6 +11,9 @@ written.
 THE WRITTEN HALF is for pages a person writes — history, tactics, lore, jokes.
 There are two ways to add one, and neither touches any other file:
 
+  0. Press F2 inside the wiki and write it there. It is saved as a file in
+     wiki/, exactly as if it had been typed by hand.
+
   1. Append a dict to PAGES, near the bottom of this file:
 
          {"section": "lore",
@@ -180,33 +183,69 @@ _FUSER_BY_NAME    = {c["name"]: c for c in FUSER_SHOP_CHARS}
 _COSTUME_BY_NAME  = {c["name"]: c for c in COSTUMES}
 
 
-def how_to_get(name, conditions, default_set):
+_VARIANT_OWNERS = (("jack_variant", "Jack O' Slash"), ("jawke_variant", "Jawke"),
+                   ("tombstone_variant", "Tombstone"), ("clover_variant", "Clover"),
+                   ("eartha_variant", "Eartha"), ("solara_variant", "Solara"),
+                   ("nghs_variant", "Nun-Gimel-Hei-Shin"),
+                   ("bookzworm_variant", "Bookzworm"),
+                   ("yellowstone_variant", "Yellowstone"))
+
+SECRET_LINE = "??? — a secret. Nothing written down."
+
+
+def ways_to_get(name, conditions, default_set, ch=None):
+    """Every route to a fighter, not just the first one that fits.
+
+    Plenty of them have two: Angel is in the Hearts and Harmonies shop AND
+    comes free for winning on Sky Island. Returns a list of (text, secret)
+    pairs — a secret route is one the game itself hides behind "???" on the
+    character select, and this keeps that promise.
+    """
+    ways = []
     if name in default_set:
-        return "Yours from the first match — one of the four you start with"
+        ways.append(("Yours from the first match — one of the four you start with", False))
     if name in _COSTUME_BY_NAME:
         c = _COSTUME_BY_NAME[name]
-        return f"Achievement: own every {c['event']} shop character"
+        ways.append((f"Achievement: own every {c['event']} shop character", False))
     if name in _SEASONAL_BY_NAME:
         c = _SEASONAL_BY_NAME[name]
-        return f"Seasonal Shop during {c['event']} — {c['cost']} coins"
+        ways.append((f"Seasonal Shop during {c['event']} — {c['cost']} coins", False))
     if name in _FUSER_BY_NAME:
-        return f"The Fuser — {_FUSER_BY_NAME[name]['cost']} coins, plus the elements"
-    if name in conditions:
-        return conditions[name][3]
-    base = next((CHARACTERS[i].get("costume_of") for i, c in enumerate(CHARACTERS)
-                 if c["name"] == name), None)
-    if base:
-        return f"Comes with {base} — pick it in his box"
-    for key, owner in (("jack_variant", "Jack O' Slash"), ("jawke_variant", "Jawke"),
-                       ("tombstone_variant", "Tombstone"), ("clover_variant", "Clover"),
-                       ("eartha_variant", "Eartha"), ("solara_variant", "Solara"),
-                       ("nghs_variant", "Nun-Gimel-Hei-Shin"),
-                       ("bookzworm_variant", "Bookzworm"),
-                       ("yellowstone_variant", "Yellowstone")):
-        ch = next((c for c in CHARACTERS if c["name"] == name), None)
-        if ch and ch.get(key):
-            return f"A variant of {owner} — pick it in his box"
-    return "Nobody has written this one down yet"
+        ways.append((f"The Fuser — {_FUSER_BY_NAME[name]['cost']} coins, plus the elements",
+                     False))
+    cond = conditions.get(name)
+    if cond:
+        text, secret = cond[3], bool(len(cond) > 4 and cond[4])
+        # Some conditions only restate the shop, which is already listed
+        if not (text.startswith("Buy in Seasonal Shop") and name in _SEASONAL_BY_NAME):
+            ways.append((text, secret))
+    ch = ch or next((c for c in CHARACTERS if c["name"] == name), None)
+    if ch:
+        if ch.get("costume_of") and not ways:
+            ways.append((f"Comes with {ch['costume_of']} — pick it in his box", False))
+        for key, owner in _VARIANT_OWNERS:
+            if ch.get(key):
+                ways.append((f"A variant of {owner} — pick it in his box", False))
+                break
+    if not ways:
+        ways.append(("Nobody has written this one down yet", False))
+    return ways
+
+
+def is_hidden(name, unlocked, conditions):
+    """True when the wiki should not even name this fighter yet.
+
+    Only for fighters whose single route is a secret one. Lucky is flagged
+    secret but also sits in a shop window with his name on it, so he is not
+    hidden — his secret route is.
+    """
+    if name in unlocked:
+        return False
+    cond = conditions.get(name)
+    if not (cond and len(cond) > 4 and cond[4]):
+        return False
+    return not (name in _SEASONAL_BY_NAME or name in _FUSER_BY_NAME
+                or name in _COSTUME_BY_NAME)
 
 
 # ── Generated pages ─────────────────────────────────────────────────────────
@@ -215,6 +254,19 @@ def _character_pages(unlocked):
     out = []
     for ch in CHARACTERS:
         name = ch["name"]
+        if is_hidden(name, unlocked, conditions):
+            # The game shows these as "???" on the character select. So do we.
+            out.append({
+                "section": "characters", "title": "???",
+                "subtitle": "a secret", "color": (90, 90, 108),
+                "art": None, "tags": ["secret"], "owned": False,
+                "secret": True,
+                "body": [SECRET_LINE,
+                         "Somebody found this one. They did not write down how.",
+                         ("h", "When you find it"),
+                         "This page fills itself in the moment the fighter is yours."],
+            })
+            continue
         abil = abilities_of(ch)
         tags = []
         if ch.get("costume_variant"):
@@ -236,8 +288,19 @@ def _character_pages(unlocked):
         if abil:
             body.append(("h", "Abilities"))
             body += [("b", a) for a in abil]
+        ways = ways_to_get(name, conditions, default_set, ch)
         body.append(("h", "How to get"))
-        body.append(how_to_get(name, conditions, default_set))
+        if len(ways) > 1:
+            body.append("Either way works:")
+            for text, secret in ways:
+                body.append(("b", SECRET_LINE if (secret and name not in unlocked) else text))
+        else:
+            text, secret = ways[0]
+            body.append(SECRET_LINE if (secret and name not in unlocked) else text)
+        if ch.get("costume_of"):
+            body.append(("h", "Where to find him"))
+            body.append(f"In {ch['costume_of']}'s own box on the character select — "
+                        f"Q/E for player one, J/L for player two.")
         liked = [s for s, m in STAGE_MATCHUPS.items() if m.get("adv") == name]
         hated = [s for s, m in STAGE_MATCHUPS.items() if m.get("dis") == name]
         if liked or hated:
@@ -561,15 +624,22 @@ PAGES = [
          "the game's own tables every time you open the wiki, so they cannot go "
          "stale — a fighter added to the game is a page added here.",
          ("h", "Adding a page"),
-         "Pages like this one are written by people. Drop a plain text file "
-         "into the wiki/ folder next to the game and it appears here the next "
-         "time the game starts. No programming involved — wiki/README.txt has "
-         "the format, which is about six lines long.",
+         "Pages like this one are written by people, and you can write one "
+         "without leaving the game: press F2 in here, or the WRITE button at "
+         "the bottom. Give it a title, pick a section, type. F3 edits a page "
+         "somebody wrote, and DELETE throws it away.",
+         "What it saves is an ordinary text file in the wiki/ folder next to "
+         "the game, so a page written here opens in any text editor, and a "
+         "file dropped into that folder shows up here the next time the game "
+         "starts. wiki/README.txt has the format, which is about six lines "
+         "long.",
          ("h", "What is worth writing"),
          ("b", "Tactics. The generated pages know the numbers, not what to do "
                "with them."),
          ("b", "History. Why a fighter exists, who asked for him."),
-         ("b", "Secrets you are willing to give away."),
+         ("b", "Secrets you are willing to give away. The generated pages "
+               "will not — a fighter the game hides behind \"???\" is hidden "
+               "here too, until you have found him."),
      ]},
 ]
 
@@ -619,7 +689,8 @@ def _parse_page(text, fallback_title):
                 col = tuple(max(0, min(255, p)) for p in parts)
         except ValueError:
             pass
-    return {"section": (head.get("section") or "lore").lower().strip(),
+    return {"raw": text,
+            "section": (head.get("section") or "lore").lower().strip(),
             "title": head.get("title") or fallback_title,
             "subtitle": head.get("subtitle", ""), "color": col,
             "art": None, "contributed": True,
@@ -639,10 +710,84 @@ def folder_pages():
             continue
         try:
             with open(os.path.join(WIKI_DIR, fn), encoding="utf-8") as fh:
-                out.append(_parse_page(fh.read(), os.path.splitext(fn)[0]))
+                    _pg = _parse_page(fh.read(), os.path.splitext(fn)[0])
+            _pg["file"] = fn
+            out.append(_pg)
         except Exception:
             continue          # a bad page must never keep the wiki shut
     return out
+
+
+# ── Writing pages from inside the game ──────────────────────────────────────
+def _slug(title):
+    out = "".join(c.lower() if c.isalnum() else "-" for c in title).strip("-")
+    while "--" in out:
+        out = out.replace("--", "-")
+    return out[:48] or "page"
+
+
+def compose(section, title, subtitle, body_text):
+    """The text of a page file, exactly as a person would have typed it."""
+    head = [f"section: {section}", f"title: {title}"]
+    if subtitle.strip():
+        head.append(f"subtitle: {subtitle.strip()}")
+    return "\n".join(head) + "\n\n" + body_text.rstrip() + "\n"
+
+
+def save_page(section, title, subtitle, body_text, filename=None):
+    """Write a page into wiki/. Returns its filename, or None if it failed.
+
+    Pages written in game are ordinary files in the same folder people drop
+    theirs into — nothing about them is special, and they can be opened in a
+    text editor afterwards.
+    """
+    try:
+        os.makedirs(WIKI_DIR, exist_ok=True)
+        if not filename:
+            base = _slug(title)
+            filename = base + ".txt"
+            _i = 2
+            while os.path.exists(os.path.join(WIKI_DIR, filename)):
+                filename = f"{base}-{_i}.txt"
+                _i += 1
+        with open(os.path.join(WIKI_DIR, filename), "w", encoding="utf-8") as fh:
+            fh.write(compose(section, title, subtitle, body_text))
+        return filename
+    except Exception:
+        return None
+
+
+def delete_page(filename):
+    try:
+        os.remove(os.path.join(WIKI_DIR, filename))
+        return True
+    except Exception:
+        return False
+
+
+def body_source(page):
+    """The body of a written page, back as editable text."""
+    if page.get("raw"):
+        lines = page["raw"].replace("\r\n", "\n").split("\n")
+        i = 0
+        while i < len(lines) and re.match(
+                r"^(section|title|subtitle|color|tags)\s*:", lines[i].strip(), re.I):
+            i += 1
+        while i < len(lines) and not lines[i].strip():
+            i += 1
+        return "\n".join(lines[i:]).rstrip()
+    out = []
+    for item in page.get("body", []):
+        if isinstance(item, str):
+            out.append(item)
+        elif item[0] == "h":
+            out.append("## " + item[1])
+        elif item[0] == "b":
+            out.append("- " + item[1])
+        elif item[0] == "kv":
+            out.append(f"{item[1]} = {item[2]}")
+        out.append("")
+    return "\n".join(out).rstrip()
 
 
 # ── Putting it together ─────────────────────────────────────────────────────
