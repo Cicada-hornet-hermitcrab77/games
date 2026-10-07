@@ -1,0 +1,26 @@
+section: basics
+title: The first four
+subtitle: an example page, written by hand
+tags: example, tactics
+
+Everyone starts with Brawler, Boxer, Ninja and Phantom, and most people
+never think about them again. They are worth a second look, because almost
+every early unlock asks you to win matches, and these are the four you have
+to win them with.
+
+## What each one is for
+- Brawler takes a beating. Use him while you are still learning to block.
+- Boxer punches fastest. Short reach, so you have to walk in.
+- Ninja double jumps. The platforms on most maps belong to him.
+- Phantom is the awkward one. Good when you already know what you are doing.
+
+## A rough order to unlock in
+Win two matches with anyone and Ares turns up. Three more and Zephyr does.
+Nothing early asks for a particular fighter, so use whichever of the four
+you win most with, and come back for the fussy unlocks later.
+
+Matches to first unlock = 2
+Fighters you start with = 4
+
+This page is an example of the wiki/ folder. Delete it, rewrite it, or copy
+its shape for a page of your own — see README.txt in the same folder.

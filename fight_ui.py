@@ -8,9 +8,10 @@ import datetime
 import constants
 import fight_network as _net
 import fight_achievements as _ach
+import fight_wiki as _wiki
 from constants import *
 from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS, FUSER_ELEMENTS, FUSER_RECIPES, FUSER_SHOP_CHARS
-from fight_drawing import draw_bg, draw_stickman, draw_jawke_legacy
+from fight_drawing import draw_bg, draw_stickman, draw_jawke_legacy, _draw_emblem
 from fight_seasonal import (SEASONAL_EVENTS, SEASONAL_SHOP_CHARS, get_active_event, draw_seasonal_decos,
                             is_solar_eclipse_today, is_lunar_eclipse_today)
 
@@ -997,6 +998,8 @@ def mode_select(unlocked=None, stats=None):
                 # Touch device toggles
                 if pygame.Rect(WIDTH - 186, HEIGHT - 88, 178, 26).collidepoint(_mp):
                     achievements_screen(stats, _net.load_userdata())
+                if pygame.Rect(WIDTH - 186, HEIGHT - 118, 178, 26).collidepoint(_mp):
+                    wiki_screen(unlocked, stats)
                 _tr2 = pygame.Rect(8 + 62, HEIGHT - 54, 74, 22)
                 if _tr2.collidepoint(_mp):
                     touch_p1_enabled[0] = not touch_p1_enabled[0]
@@ -1084,6 +1087,8 @@ def mode_select(unlocked=None, stats=None):
                     touch_p2_enabled[0] = touch_p1_enabled[0]
                 if event.key == pygame.K_v:
                     achievements_screen(stats, _net.load_userdata())
+                if event.key == pygame.K_b:
+                    wiki_screen(unlocked, stats)
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE) and not _feast[0]:
                     if not (selected == 5 and not _fuser_unlocked):
                         if _home_lobby: _home_lobby.close()
@@ -1405,6 +1410,17 @@ def mode_select(unlocked=None, stats=None):
                 _jline.fill((235, 235, 235, 70 - _ji2 * 15))
                 screen.blit(_jline, (_jsx + 40, _jsy - 3 + _ji2 * 9))
             screen.blit(_jrot, (_jx - _jrot.get_width() // 2, _jy - _jrot.get_height() // 2))
+
+        # Wiki button, over the achievements one
+        _wk_rect = pygame.Rect(WIDTH - 186, HEIGHT - 118, 178, 26)
+        pygame.draw.rect(screen, (18, 26, 40), _wk_rect, border_radius=6)
+        pygame.draw.rect(screen, (120, 190, 255), _wk_rect, 2, border_radius=6)
+        pygame.draw.rect(screen, (120, 190, 255),
+                         (_wk_rect.x + 10, _wk_rect.centery - 7, 13, 14), 1)
+        pygame.draw.line(screen, (120, 190, 255), (_wk_rect.x + 16, _wk_rect.centery - 7),
+                         (_wk_rect.x + 16, _wk_rect.centery + 6), 1)
+        _wk_lbl = font_tiny.render("WIKI  ·  the whole game  (B)", True, (190, 220, 255))
+        screen.blit(_wk_lbl, (_wk_rect.x + 30, _wk_rect.centery - _wk_lbl.get_height() // 2))
 
         # Achievements button
         _ac_have = len(_ach.earned(stats))
@@ -3267,6 +3283,379 @@ def _text_input_screen(prompt, default="", max_len=20,
             hint_txt += f"   {hint_label}"
         hint = font_tiny.render(hint_txt, True, GRAY)
         screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT//3 + 90))
+        pygame.display.flip()
+
+
+_wiki_stage_thumbs = {}
+
+
+def _wiki_wrap(text, font, width):
+    """Break a paragraph into lines that fit."""
+    out = []
+    for chunk in str(text).split("\n"):
+        words, cur = chunk.split(), ""
+        for w in words:
+            t = (cur + " " + w).strip()
+            if font.size(t)[0] <= width or not cur:
+                cur = t
+            else:
+                out.append(cur); cur = w
+        out.append(cur)
+    return out
+
+
+def _wiki_stage_thumb(idx, w, h):
+    """A small picture of a map, drawn once and kept."""
+    key = (idx, w, h)
+    if key not in _wiki_stage_thumbs:
+        full = pygame.Surface((WIDTH, HEIGHT))
+        try:
+            draw_bg(full, idx)
+        except Exception:
+            full.fill((30, 34, 44))
+        _wiki_stage_thumbs[key] = pygame.transform.smoothscale(full, (w, h))
+    return _wiki_stage_thumbs[key]
+
+
+def _wiki_draw_art(art, rect, col):
+    """Whatever picture a page carries, inside rect."""
+    if not art:
+        return False
+    kind = art[0]
+    if kind == "fighter":
+        _nm = art[1]
+        _ch = next((c for c in CHARACTERS if c["name"] == _nm), None)
+        if not _ch:
+            return False
+        pygame.draw.rect(screen, (18, 18, 26), rect, border_radius=6)
+        pygame.draw.rect(screen, tuple(c // 3 for c in col), rect, 1, border_radius=6)
+        _old = screen.get_clip()
+        screen.set_clip(rect)
+        try:
+            draw_stickman(screen, rect.centerx, rect.bottom - 10, _ch["color"], 1,
+                          "idle", 0.3, scale=min(1.0, rect.height / 150.0),
+                          char_name=_nm)
+        except Exception:
+            pass
+        screen.set_clip(_old)
+        return True
+    if kind == "stage":
+        _th = _wiki_stage_thumb(art[1], rect.width, rect.height)
+        screen.blit(_th, rect.topleft)
+        pygame.draw.rect(screen, tuple(c // 2 for c in col), rect, 1, border_radius=4)
+        return True
+    if kind == "badge":
+        pygame.draw.rect(screen, (18, 18, 26), rect, border_radius=6)
+        pygame.draw.rect(screen, tuple(c // 3 for c in col), rect, 1, border_radius=6)
+        try:
+            _ach.draw_badge(screen, art[1], rect.centerx, rect.centery,
+                            min(rect.width, rect.height) // 2 - 6)
+        except Exception:
+            pass
+        return True
+    if kind == "emblem":
+        pygame.draw.rect(screen, (18, 18, 26), rect, border_radius=6)
+        pygame.draw.rect(screen, tuple(c // 3 for c in col), rect, 1, border_radius=6)
+        try:
+            _draw_emblem(screen, art[1], rect.centerx, rect.centery,
+                         min(rect.width, rect.height) // 3, art[2])
+        except Exception:
+            pass
+        return True
+    if kind == "swatch":
+        pygame.draw.rect(screen, art[1], rect.inflate(-10, -10), border_radius=8)
+        pygame.draw.rect(screen, WHITE, rect.inflate(-10, -10), 2, border_radius=8)
+        return True
+    return False
+
+
+def wiki_screen(unlocked=(), stats=None):
+    """The in-game wiki: everything the game knows, plus whatever people wrote.
+
+    Most of it is generated from the game's own tables when this opens, so it
+    is never out of date. Pages dropped into the wiki/ folder are read in
+    alongside — see wiki/README.txt.
+    """
+    data = _wiki.build(unlocked, stats)
+    sections = [s for s in _wiki.SECTIONS if data.get(s["id"])]
+    if not sections:
+        return
+    sec_i, item_i = 0, 0
+    list_scroll, art_scroll = 0, 0
+    query = ""
+
+    TABW, LISTX, LISTW = 132, 150, 228
+    ARTX  = LISTX + LISTW + 8
+    ARTW  = WIDTH - ARTX - 8
+    TOP, BOT = 74, HEIGHT - 44
+    ROWH = 24
+
+    def _filtered():
+        pages = data[sections[sec_i]["id"]]
+        if not query:
+            return pages
+        q = query.lower()
+        by_name = [p for p in pages if q in p["title"].lower()]
+        return by_name or [p for p in pages if q in p["search"]]
+
+    while True:
+        clock.tick(FPS)
+        items = _filtered()
+        if item_i >= len(items):
+            item_i = max(0, len(items) - 1)
+        page = items[item_i] if items else None
+        rows_shown = (BOT - TOP - 4) // ROWH
+        list_max = max(0, len(items) * ROWH - (BOT - TOP - 4))
+
+        # ── Lay the article out, so we know how tall it is ──────────────
+        lines = []        # (kind, payload…)
+        _artw = 130 if (page and page.get("art")) else 0
+        if page:
+            lines.append(("title", page["title"]))
+            if page.get("subtitle"):
+                lines.append(("sub", page["subtitle"]))
+            if page.get("tags") or page.get("contributed"):
+                lines.append(("tags", list(page.get("tags", [])) +
+                              (["written by a player"] if page.get("contributed") else [])))
+            lines.append(("gap", 6))
+            for item in page.get("body", []):
+                if isinstance(item, str):
+                    if not item.strip():
+                        continue
+                    for ln in _wiki_wrap(item, font_small, ARTW - 24 - _artw):
+                        lines.append(("p", ln))
+                    lines.append(("gap", 6))
+                elif item[0] == "h":
+                    lines.append(("gap", 6))
+                    lines.append(("head", item[1]))
+                elif item[0] == "b":
+                    _wrapped = _wiki_wrap(item[1], font_small, ARTW - 44 - _artw)
+                    for _wi, ln in enumerate(_wrapped):
+                        lines.append(("bullet" if _wi == 0 else "bullet2", ln))
+                elif item[0] == "kv":
+                    lines.append(("kv", item[1], item[2]))
+                elif item[0] == "bar":
+                    lines.append(("bar", item[1], item[2], item[3]))
+        _lh = {"title": 30, "sub": 18, "tags": 20, "gap": 0, "p": 19, "head": 24,
+               "bullet": 19, "bullet2": 19, "kv": 19, "bar": 20}
+        art_h = sum(l[1] if l[0] == "gap" else _lh[l[0]] for l in lines)
+        _has_art = bool(page and page.get("art"))
+        if _has_art:
+            art_h += 120
+        art_max = max(0, art_h - (BOT - TOP - 10))
+        art_scroll = max(0, min(art_scroll, art_max))
+
+        # ── Input ──────────────────────────────────────────────────────
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.MOUSEWHEEL:
+                _mx, _my = pygame.mouse.get_pos()
+                if _mx >= ARTX:
+                    art_scroll = max(0, min(art_max, art_scroll - event.y * 40))
+                else:
+                    list_scroll = max(0, min(list_max, list_scroll - event.y * 40))
+            if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                _mp = ((int(event.x * WIDTH), int(event.y * HEIGHT))
+                       if event.type == pygame.FINGERDOWN else event.pos)
+                if pygame.Rect(WIDTH - 94, HEIGHT - 38, 86, 30).collidepoint(_mp):
+                    return
+                for _si, _s in enumerate(sections):
+                    if pygame.Rect(8, TOP + _si * 34, TABW, 30).collidepoint(_mp):
+                        if _si != sec_i:
+                            sec_i, item_i, list_scroll, art_scroll = _si, 0, 0, 0
+                if LISTX <= _mp[0] <= LISTX + LISTW and TOP <= _mp[1] <= BOT:
+                    _row = (_mp[1] - TOP - 4 + list_scroll) // ROWH
+                    if 0 <= _row < len(items):
+                        item_i, art_scroll = _row, 0
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    if query:
+                        query, item_i, list_scroll = "", 0, 0
+                    else:
+                        return
+                elif event.key == pygame.K_BACKSPACE:
+                    query, item_i, list_scroll = query[:-1], 0, 0
+                elif event.key in (pygame.K_DOWN, pygame.K_TAB):
+                    item_i = min(len(items) - 1, item_i + 1) if items else 0
+                    art_scroll = 0
+                elif event.key == pygame.K_UP:
+                    item_i = max(0, item_i - 1); art_scroll = 0
+                elif event.key == pygame.K_LEFT:
+                    sec_i = (sec_i - 1) % len(sections)
+                    item_i = list_scroll = art_scroll = 0
+                elif event.key == pygame.K_RIGHT:
+                    sec_i = (sec_i + 1) % len(sections)
+                    item_i = list_scroll = art_scroll = 0
+                elif event.key == pygame.K_PAGEDOWN:
+                    art_scroll = min(art_max, art_scroll + 160)
+                elif event.key == pygame.K_PAGEUP:
+                    art_scroll = max(0, art_scroll - 160)
+                elif getattr(event, "unicode", "") and event.unicode.isprintable():
+                    query += event.unicode
+                    item_i, list_scroll = 0, 0
+
+        # Keep the selected row on screen
+        _sel_y = item_i * ROWH
+        if _sel_y < list_scroll:
+            list_scroll = _sel_y
+        elif _sel_y + ROWH > list_scroll + rows_shown * ROWH:
+            list_scroll = _sel_y + ROWH - rows_shown * ROWH
+        list_scroll = max(0, min(list_max, list_scroll))
+
+        # ── Draw ───────────────────────────────────────────────────────
+        screen.fill((14, 14, 20))
+        _t = font_medium.render("STICKMAN FIGHT WIKI", True, (235, 238, 250))
+        screen.blit(_t, (12, 14))
+        _n = font_tiny.render(f"{sum(len(v) for v in data.values())} pages", True, (120, 122, 140))
+        screen.blit(_n, (16 + _t.get_width(), 28))
+
+        # Search box
+        _sb = pygame.Rect(WIDTH - 268, 14, 260, 26)
+        pygame.draw.rect(screen, (24, 24, 34), _sb, border_radius=6)
+        pygame.draw.rect(screen, (70, 72, 92) if not query else (120, 190, 255),
+                         _sb, 1, border_radius=6)
+        _q = font_small.render(query if query else "type to search this section",
+                               True, WHITE if query else (96, 98, 118))
+        screen.blit(_q, (_sb.x + 8, _sb.centery - _q.get_height() // 2))
+
+        # Section tabs
+        for _si, _s in enumerate(sections):
+            _r = pygame.Rect(8, TOP + _si * 34, TABW, 30)
+            _on = (_si == sec_i)
+            pygame.draw.rect(screen, (34, 36, 50) if _on else (22, 22, 30), _r, border_radius=6)
+            pygame.draw.rect(screen, _s["color"] if _on else (52, 54, 68), _r,
+                             2 if _on else 1, border_radius=6)
+            _lb = font_small.render(_s["title"], True, _s["color"] if _on else (150, 152, 168))
+            screen.blit(_lb, (_r.x + 10, _r.centery - _lb.get_height() // 2))
+            _ct = font_tiny.render(str(len(data[_s["id"]])), True, (110, 112, 130))
+            screen.blit(_ct, (_r.right - _ct.get_width() - 8, _r.centery - 5))
+        _hint = font_tiny.render("left / right", True, (90, 92, 110))
+        screen.blit(_hint, (8 + TABW // 2 - _hint.get_width() // 2,
+                            TOP + len(sections) * 34 + 4))
+
+        # Page list
+        _lr = pygame.Rect(LISTX, TOP, LISTW, BOT - TOP)
+        pygame.draw.rect(screen, (19, 19, 27), _lr, border_radius=6)
+        screen.set_clip(_lr.inflate(-2, -2))
+        for _i, _p in enumerate(items):
+            _y = TOP + 4 + _i * ROWH - list_scroll
+            if _y < TOP - ROWH or _y > BOT:
+                continue
+            _on = (_i == item_i)
+            if _on:
+                pygame.draw.rect(screen, (36, 38, 52),
+                                 (LISTX + 2, _y, LISTW - 4, ROWH - 2), border_radius=4)
+            _col = WHITE if _on else (168, 170, 186)
+            _nm = font_small.render(_p["title"], True, _col)
+            screen.blit(_nm, (LISTX + 10, _y + 2))
+            if _p.get("owned"):
+                pygame.draw.circle(screen, (110, 220, 130),
+                                   (LISTX + LISTW - 12, _y + ROWH // 2 - 1), 3)
+            elif _p.get("owned") is False:
+                pygame.draw.circle(screen, (70, 72, 88),
+                                   (LISTX + LISTW - 12, _y + ROWH // 2 - 1), 3, 1)
+        screen.set_clip(None)
+        pygame.draw.rect(screen, (52, 54, 68), _lr, 1, border_radius=6)
+        if not items:
+            _e = font_small.render("nothing matches", True, (110, 112, 130))
+            screen.blit(_e, (LISTX + LISTW // 2 - _e.get_width() // 2, TOP + 14))
+        if list_max > 0:
+            _bh = max(20, int((BOT - TOP) * (BOT - TOP) / float(len(items) * ROWH)))
+            _by = TOP + int((BOT - TOP - _bh) * (list_scroll / float(list_max)))
+            pygame.draw.rect(screen, (70, 72, 92), (LISTX + LISTW - 4, _by, 3, _bh),
+                             border_radius=2)
+
+        # The page itself
+        _ar = pygame.Rect(ARTX, TOP, ARTW, BOT - TOP)
+        pygame.draw.rect(screen, (20, 20, 28), _ar, border_radius=6)
+        screen.set_clip(_ar.inflate(-2, -2))
+        _y = TOP + 8 - art_scroll
+        if page:
+            _pc = page.get("color", (225, 228, 240))
+            if _has_art:
+                _art_r = pygame.Rect(ARTX + ARTW - 116, _y, 104, 108)
+                if not _wiki_draw_art(page["art"], _art_r, _pc):
+                    _has_art = False
+            _tw = ARTW - (142 if _has_art else 24)
+            for _ln in lines:
+                _k = _ln[0]
+                if _k == "gap":
+                    _y += _ln[1]; continue
+                if _y > BOT:
+                    break
+                if _y + _lh[_k] >= TOP:
+                    if _k == "title":
+                        _s2 = font_medium.render(page["title"], True, _pc)
+                        screen.blit(_s2, (ARTX + 12, _y))
+                    elif _k == "sub":
+                        _sub = _ln[1]
+                        while _sub and font_small.size(_sub)[0] > _tw:
+                            _sub = _sub[:-2]
+                        if _sub != _ln[1]:
+                            _sub += "…"
+                        _s2 = font_small.render(_sub, True, (140, 142, 160))
+                        screen.blit(_s2, (ARTX + 12, _y))
+                    elif _k == "tags":
+                        _tx = ARTX + 12
+                        for _tg in _ln[1]:
+                            _s2 = font_tiny.render(_tg, True, (190, 192, 210))
+                            pygame.draw.rect(screen, (40, 42, 56),
+                                             (_tx, _y, _s2.get_width() + 12, 15),
+                                             border_radius=7)
+                            screen.blit(_s2, (_tx + 6, _y + 2))
+                            _tx += _s2.get_width() + 18
+                    elif _k == "head":
+                        _s2 = font_small.render(_ln[1], True, _pc)
+                        screen.blit(_s2, (ARTX + 12, _y + 4))
+                        pygame.draw.line(screen, tuple(c // 3 for c in _pc),
+                                         (ARTX + 12, _y + 22),
+                                         (ARTX + 12 + _tw, _y + 22), 1)
+                    elif _k == "p":
+                        _s2 = font_small.render(_ln[1], True, (205, 207, 220))
+                        screen.blit(_s2, (ARTX + 12, _y))
+                    elif _k in ("bullet", "bullet2"):
+                        if _k == "bullet":
+                            pygame.draw.circle(screen, _pc, (ARTX + 18, _y + 9), 2)
+                        _s2 = font_small.render(_ln[1], True, (205, 207, 220))
+                        screen.blit(_s2, (ARTX + 30, _y))
+                    elif _k == "kv":
+                        _s2 = font_small.render(str(_ln[1]), True, (150, 152, 170))
+                        screen.blit(_s2, (ARTX + 12, _y))
+                        _s3 = font_small.render(str(_ln[2]), True, (225, 227, 240))
+                        screen.blit(_s3, (ARTX + 12 + min(170, _tw // 2), _y))
+                    elif _k == "bar":
+                        _s2 = font_small.render(_ln[1], True, (150, 152, 170))
+                        screen.blit(_s2, (ARTX + 12, _y))
+                        _bx, _bw = ARTX + 12 + 76, max(40, min(200, _tw - 130))
+                        pygame.draw.rect(screen, (34, 36, 48), (_bx, _y + 5, _bw, 9),
+                                         border_radius=4)
+                        _fr = max(0.0, min(1.0, _ln[2] / float(_ln[3] or 1)))
+                        pygame.draw.rect(screen, _pc, (_bx, _y + 5, int(_bw * _fr), 9),
+                                         border_radius=4)
+                        _vt = _ln[2]
+                        _vt = (str(int(_vt)) if float(_vt) == int(_vt)
+                               else f"{float(_vt):.2f}".rstrip("0"))
+                        _s3 = font_tiny.render(_vt, True, (205, 207, 220))
+                        screen.blit(_s3, (_bx + _bw + 8, _y + 3))
+                _y += _lh[_k]
+        screen.set_clip(None)
+        pygame.draw.rect(screen, (52, 54, 68), _ar, 1, border_radius=6)
+        if art_max > 0:
+            _bh = max(20, int((BOT - TOP) * (BOT - TOP) / float(art_h or 1)))
+            _by = TOP + int((BOT - TOP - _bh) * (art_scroll / float(art_max)))
+            pygame.draw.rect(screen, (70, 72, 92), (ARTX + ARTW - 5, _by, 3, _bh),
+                             border_radius=2)
+
+        _bb = pygame.Rect(WIDTH - 94, HEIGHT - 38, 86, 30)
+        pygame.draw.rect(screen, (34, 34, 46), _bb, border_radius=6)
+        pygame.draw.rect(screen, (120, 190, 255), _bb, 2, border_radius=6)
+        _bt = font_small.render("BACK", True, WHITE)
+        screen.blit(_bt, (_bb.centerx - _bt.get_width() // 2,
+                          _bb.centery - _bt.get_height() // 2))
+        _ft2 = font_tiny.render("up/down pick a page   ·   page up/down scroll it   ·   "
+                                "esc clears the search, then leaves", True, (96, 98, 116))
+        screen.blit(_ft2, (12, HEIGHT - 30))
         pygame.display.flip()
 
 
