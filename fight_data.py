@@ -2213,7 +2213,7 @@ STAGE_MATCHUPS = {
 
 COSTUMES = [
     {"name": "Koi-lue",        "base": "Red Herring", "event": "New Dynasties",
-     "color": (214,  78,  58), "emblem": "koi"},
+     "color": (232, 184,  66), "emblem": "koi"},
     {"name": "Cupidity",       "base": "Angel",       "event": "Hearts and Harmonies",
      "color": (250, 150, 180), "emblem": "heart"},
     {"name": "Shamrocker",     "base": "Lucky",       "event": "Emerald Echoes",

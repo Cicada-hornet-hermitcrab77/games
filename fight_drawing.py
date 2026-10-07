@@ -13059,8 +13059,11 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
 
     elif char_name == "Red Herring":
         # Fish tail below waist (replaces legs visually — drawn as fin)
-        _ft_col  = (220, 55, 55)
-        _ft_dark = (160, 30, 30)
+        # The fin takes the fighter's own colour, so a costume (Koi-lue's gold)
+        # recolours it too. For Red Herring himself this is the same red it
+        # always was — his colour IS (220, 55, 55).
+        _ft_col  = col
+        _ft_dark = tuple(max(0, c - 60) for c in col)
         # Fish tail extends behind the character (-facing direction)
         _tb = -facing  # tail direction (opposite of facing)
         _tail_root_x = wx + _tb * int(8*s)
@@ -14466,13 +14469,302 @@ def _draw_emblem(surface, kind, cx, cy, r, col):
                 (cx + _sx * int(r * 0.1), cy - int(r * 0.5))])
 
 
+def draw_costume_extras(surface, costume, head_c, hd, shoulder, waist, lh, rh,
+                        facing, s, col, t=0.0):
+    """The bits that make a seasonal costume its own thing.
+
+    A costume keeps its base fighter's whole silhouette and kit — this is the
+    dressing on top: Scaredy cat's orange eyes and the pumpkin on his shoulder,
+    Rodoff's glowing nose, Cupidity's heart arrow. Anything not handled here
+    falls back to the little emblem over the head.
+    """
+    hx, hy = int(head_c[0]), int(head_c[1])
+    f  = facing
+    sx, sy = int(shoulder[0]), int(shoulder[1])
+    wx, wy = int(waist[0]), int(waist[1])
+    fx, fy = (int(rh[0]), int(rh[1])) if f > 0 else (int(lh[0]), int(lh[1]))
+    r  = max(2, int(hd))
+    lw = max(1, int(s * 2))
+    dark = tuple(max(0, c - 70) for c in col)
+
+    if costume == "Koi-lue":
+        # Carp barbels, gold scales, and the one red spot every koi has
+        for _sgn in (-1, 1):
+            pygame.draw.lines(surface, (236, 214, 150), False, [
+                (hx + f * int(r * 0.6), hy + int(r * 0.3)),
+                (hx + f * int(r * 1.3), hy + _sgn * int(r * 0.2) + int(r * 0.5)),
+                (hx + f * int(r * 1.7), hy + _sgn * int(r * 0.9) + int(r * 0.6))], lw)
+        for _i in range(3):
+            pygame.draw.arc(surface, (255, 236, 170),
+                            (hx - r + int(r * 0.2 * _i), hy - int(r * 0.6) + int(r * 0.4 * _i),
+                             int(r * 1.3), int(r * 0.9)), 3.6, 5.9, lw)
+        pygame.draw.circle(surface, (214, 60, 48), (hx - f * int(r * 0.4), hy - int(r * 0.55)),
+                           max(2, int(r * 0.32)))
+
+    elif costume == "Cupidity":
+        # Heart halo, heart on the chest, heart-tipped arrow in the lead hand
+        _hc = (255, 120, 170)
+        _hy = hy - int(r * 2.1)
+        _draw_emblem(surface, "heart", hx, _hy, max(3, int(r * 0.75)), _hc)
+        _draw_emblem(surface, "heart", hx, _hy, max(2, int(r * 0.42)), (255, 200, 220))
+        pygame.draw.circle(surface, _hc, (sx, sy + int(r * 0.5)), max(2, int(r * 0.3)))
+        pygame.draw.line(surface, (190, 160, 120), (fx - f * int(r * 1.2), fy + int(r * 0.6)),
+                         (fx + f * int(r * 1.4), fy - int(r * 0.6)), lw)
+        pygame.draw.polygon(surface, _hc, [
+            (fx + f * int(r * 1.4), fy - int(r * 0.6)),
+            (fx + f * int(r * 0.9), fy - int(r * 1.1)),
+            (fx + f * int(r * 1.3), fy - int(r * 1.4)),
+            (fx + f * int(r * 1.8), fy - int(r * 1.0)),
+            (fx + f * int(r * 2.1), fy - int(r * 1.3)),
+            (fx + f * int(r * 2.1), fy - int(r * 0.5))])
+
+    elif costume == "Shamrocker":
+        # Shades, a clover pin, and the guitar slung across his back
+        pygame.draw.rect(surface, (20, 20, 24),
+                         (hx - int(r * 0.9), hy - int(r * 0.35), int(r * 1.8), int(r * 0.5)))
+        pygame.draw.line(surface, (20, 20, 24), (hx - r, hy - int(r * 0.3)),
+                         (hx + r, hy - int(r * 0.3)), lw)
+        # Guitar slung across the back: body on the hip, neck up past the shoulder
+        _gx, _gy = wx - f * int(r * 0.9), wy - int(r * 0.3)
+        _nx2, _ny2 = sx - f * int(r * 1.3), sy - int(r * 1.6)
+        pygame.draw.line(surface, (120, 90, 50), (_gx, _gy), (_nx2, _ny2), max(2, int(s * 3)))
+        pygame.draw.ellipse(surface, (190, 60, 50),
+                            (_gx - int(r * 0.7), _gy - int(r * 0.6), int(r * 1.4), int(r * 1.5)))
+        pygame.draw.circle(surface, (40, 30, 30), (_gx, _gy + int(r * 0.1)), max(1, int(r * 0.26)))
+        pygame.draw.line(surface, (230, 225, 200), (_nx2, _ny2),
+                         (_nx2 - f * int(r * 0.2), _ny2 - int(r * 0.4)), max(1, int(s * 2)))
+        pygame.draw.line(surface, (210, 190, 120), (sx - f * int(r * 0.7), sy),
+                         (_gx + int(r * 0.2), _gy - int(r * 0.4)), max(1, int(s)))
+        for _a in (0, math.pi / 2, math.pi, 3 * math.pi / 2):
+            pygame.draw.circle(surface, (70, 190, 90),
+                               (sx + f * int(r * 0.5) + int(math.cos(_a) * r * 0.25),
+                                sy + int(r * 0.5) + int(math.sin(_a) * r * 0.25)),
+                               max(1, int(r * 0.26)))
+
+    elif costume == "Easta egg":
+        # Painted bands and dots around the shell, and a pair of ears
+        for _i, _bc in enumerate(((240, 160, 190), (250, 225, 130), (150, 220, 190))):
+            _by = hy - int(r * 0.6) + int(r * 0.6 * _i)
+            pygame.draw.lines(surface, _bc, False,
+                              [(hx - r + int(r * 0.4 * _j), _by + (int(r * 0.22) if _j % 2 else 0))
+                               for _j in range(6)], max(1, int(s * 2)))
+        for _sgn in (-1, 1):
+            pygame.draw.ellipse(surface, (250, 240, 235),
+                                (hx + _sgn * int(r * 0.5) - int(r * 0.22), hy - int(r * 2.4),
+                                 max(2, int(r * 0.45)), max(3, int(r * 1.4))))
+
+    elif costume == "Terracotta":
+        # Clay warrior: topknot helmet, armour plates, a hairline crack
+        pygame.draw.arc(surface, (150, 80, 50),
+                        (hx - r, hy - int(r * 1.5), int(r * 2), int(r * 2)), 0.2, 2.94,
+                        max(2, int(s * 3)))
+        pygame.draw.circle(surface, (150, 80, 50), (hx, hy - int(r * 1.5)), max(2, int(r * 0.35)))
+        for _i in range(2):
+            pygame.draw.rect(surface, (150, 80, 50),
+                             (sx - int(r * 0.7), sy + int(r * 0.4) + _i * int(r * 0.6),
+                              int(r * 1.4), max(2, int(r * 0.4))), max(1, int(s)))
+        pygame.draw.lines(surface, (120, 60, 40), False,
+                          [(hx + int(r * 0.3), hy - int(r * 0.4)), (hx + int(r * 0.6), hy),
+                           (hx + int(r * 0.3), hy + int(r * 0.5))], max(1, int(s)))
+
+    elif costume == "Last post":
+        # Service cap, a poppy over the heart, the bugle raised to play
+        pygame.draw.rect(surface, (58, 66, 54),
+                         (hx - r, hy - int(r * 1.5), int(r * 2), max(2, int(r * 0.7))))
+        pygame.draw.rect(surface, (34, 40, 32),
+                         (hx - int(r * 0.2) + f * int(r * 0.4), hy - int(r * 0.9),
+                          int(r * 1.3), max(2, int(r * 0.3))))
+        pygame.draw.circle(surface, (190, 40, 45), (sx - f * int(r * 0.5), sy + int(r * 0.5)),
+                           max(2, int(r * 0.33)))
+        pygame.draw.circle(surface, (30, 24, 24), (sx - f * int(r * 0.5), sy + int(r * 0.5)),
+                           max(1, int(r * 0.12)))
+        pygame.draw.line(surface, (214, 178, 90), (fx, fy),
+                         (hx + f * int(r * 0.9), hy + int(r * 0.4)), lw)
+        pygame.draw.polygon(surface, (214, 178, 90), [
+            (fx, fy - int(r * 0.4)), (fx + f * int(r * 0.9), fy - int(r * 0.9)),
+            (fx + f * int(r * 0.9), fy + int(r * 0.3)), (fx, fy + int(r * 0.4))])
+
+    elif costume == "Fruit chop":
+        # Melon-rind headband and the fruit still coming apart behind him
+        pygame.draw.arc(surface, (70, 170, 80),
+                        (hx - int(r * 1.2), hy - int(r * 1.3), int(r * 2.4), int(r * 1.6)),
+                        0.0, math.pi, max(2, int(s * 3)))
+        pygame.draw.arc(surface, (230, 70, 90),
+                        (hx - int(r * 1.0), hy - int(r * 1.1), int(r * 2.0), int(r * 1.3)),
+                        0.0, math.pi, max(1, int(s * 2)))
+        for _i, (_dx, _dy, _fc) in enumerate((( -2.0, -1.6, (250, 190, 60)),
+                                              (-2.6, -0.4, (230, 80, 90)),
+                                              (-1.7,  0.6, (150, 210, 90)))):
+            pygame.draw.circle(surface, _fc,
+                               (hx - f * int(r * -_dx), hy + int(r * _dy)), max(2, int(r * 0.34)))
+        # The shirt is a watermelon slice: rind at the shoulders, flesh and pips
+        # filling the torso down to the waist
+        _tw2 = int(r * 0.9)
+        _th2 = max(4, wy - sy)
+        _rind = pygame.Rect(sx - _tw2, sy - int(_th2 * 0.15), _tw2 * 2, int(_th2 * 1.2))
+        pygame.draw.ellipse(surface, (42, 110, 52), _rind)
+        pygame.draw.ellipse(surface, (150, 210, 110), _rind.inflate(-int(r * 0.4), -int(r * 0.4)))
+        pygame.draw.ellipse(surface, (226, 62, 78), _rind.inflate(-int(r * 0.8), -int(r * 0.8)))
+        for _px2, _py2 in ((-0.55, 0.15), (0.55, 0.15), (0.0, 0.45), (-0.3, 0.72), (0.3, 0.72)):
+            pygame.draw.ellipse(surface, (26, 20, 20),
+                                (sx + int(_px2 * _tw2) - max(1, int(r * 0.11)),
+                                 sy + int(_py2 * _th2),
+                                 max(2, int(r * 0.22)), max(3, int(r * 0.32))))
+
+    elif costume == "Rockets red glare":
+        # Star bandana and two live fireworks strapped on his back
+        pygame.draw.rect(surface, (40, 60, 150),
+                         (hx - r, hy - int(r * 0.9), int(r * 2), max(2, int(r * 0.6))))
+        _draw_emblem(surface, "star", hx + f * int(r * 0.4), hy - int(r * 0.6),
+                     max(2, int(r * 0.3)), (250, 250, 250))
+        for _sgn in (-1, 1):
+            _rx = wx - f * int(r * 0.9) + _sgn * int(r * 0.35)
+            pygame.draw.rect(surface, (220, 230, 240),
+                             (_rx - max(1, int(r * 0.17)), sy - int(r * 0.2),
+                              max(2, int(r * 0.34)), int(r * 1.8)))
+            pygame.draw.polygon(surface, (210, 60, 60), [
+                (_rx, sy - int(r * 0.9)), (_rx - int(r * 0.3), sy - int(r * 0.2)),
+                (_rx + int(r * 0.3), sy - int(r * 0.2))])
+            for _k in range(3):
+                _a = -1.2 + _k * 0.9 + t * 3.0
+                pygame.draw.circle(surface, (255, 210, 90),
+                                   (_rx + int(math.cos(_a) * r * 0.9),
+                                    sy + int(r * 1.8) + int(math.sin(_a) * r * 0.5)),
+                                   max(1, int(r * 0.15)))
+
+    elif costume == "Plot twist":
+        # Quill behind the ear, an open book, and the twist hanging over him
+        pygame.draw.line(surface, (240, 240, 230), (hx - f * int(r * 0.9), hy - int(r * 0.4)),
+                         (hx - f * int(r * 1.7), hy - int(r * 1.8)), lw)
+        for _sgn in (-1, 1):
+            pygame.draw.polygon(surface, (245, 243, 232), [
+                (fx, fy - int(r * 0.5)),
+                (fx + _sgn * int(r * 1.1), fy - int(r * 0.8)),
+                (fx + _sgn * int(r * 1.1), fy + int(r * 0.3)),
+                (fx, fy + int(r * 0.2))])
+        pygame.draw.line(surface, (120, 100, 170), (fx, fy - int(r * 0.5)),
+                         (fx, fy + int(r * 0.2)), max(1, int(s)))
+        _q = _get_font(max(8, int(r * 1.6))).render("?", True, (220, 200, 255))
+        surface.blit(_q, (hx - _q.get_width() // 2 + f * int(r * 0.6), hy - int(r * 2.6)))
+
+    elif costume == "Old faithful":
+        # The geyser goes off over his head, right on schedule
+        _h = int(r * (1.8 + 0.7 * math.sin(t * 2.2)))
+        _pl2 = pygame.Surface((int(r * 3.2), _h + int(r * 2.4)), pygame.SRCALPHA)
+        _pw2 = _pl2.get_width()
+        pygame.draw.polygon(_pl2, (240, 245, 250, 150), [
+            (_pw2 // 2 - int(r * 0.22), _pl2.get_height()),
+            (_pw2 // 2 + int(r * 0.22), _pl2.get_height()),
+            (_pw2 // 2 + int(r * 0.7), int(r * 0.8)),
+            (_pw2 // 2 - int(r * 0.7), int(r * 0.8))])
+        for _i in range(4):
+            _a = t * 1.6 + _i * 1.57
+            pygame.draw.circle(_pl2, (225, 235, 245, 120),
+                               (_pw2 // 2 + int(math.cos(_a) * r * 0.8),
+                                int(r * 0.8) + int(math.sin(_a) * r * 0.5)),
+                               max(2, int(r * 0.38)))
+        surface.blit(_pl2, (hx - _pw2 // 2, hy - r - _h - int(r * 1.2)))
+
+    elif costume == "Scaredy cat":
+        # Orange eyes that glow, a tiny pumpkin riding his shoulder, bottle tail
+        def _cat_eyes(_cx3, _cy3, _rr3, _sp3):
+            for _sgn in (-1, 1):
+                _ex = _cx3 + _sgn * int(_rr3 * _sp3)
+                pygame.draw.circle(surface, (120, 60, 10), (_ex, _cy3), max(2, int(_rr3 * 0.34)))
+                pygame.draw.circle(surface, (255, 150, 30), (_ex, _cy3), max(1, int(_rr3 * 0.25)))
+                pygame.draw.line(surface, (20, 14, 20), (_ex, _cy3 - int(_rr3 * 0.26)),
+                                 (_ex, _cy3 + int(_rr3 * 0.26)), max(1, int(s)))
+        _cat_eyes(hx + f * int(r * 0.25), hy - int(r * 0.15), r, 0.42)
+        # Copycat turns into a cat for 1.6s out of every 6 — the eyes follow him
+        _cyc3 = t % 6.0
+        if _cyc3 < 1.6:
+            # Match the cat's own grow/shrink so the eyes sit in its face
+            _csc3 = min(min(1.0, _cyc3 / 0.25),
+                        min(1.0, (1.6 - _cyc3) / 0.25) if _cyc3 > 1.35 else 1.0)
+            if _csc3 > 0.3:
+                _cbx3, _cby3 = (sx + wx) // 2, (sy + wy) // 2
+                _cr3 = r * 1.15 * _csc3
+                _cat_eyes(int(_cbx3 + f * _cr3 * 1.1), int(_cby3 - _cr3 * 0.95),
+                          max(2, int(_cr3 * 0.5)), 0.56)
+        _px, _py = wx - f * int(r * 1.5), wy - int(r * 0.1)
+        pygame.draw.circle(surface, (236, 130, 30), (_px, _py), max(2, int(r * 0.52)))
+        pygame.draw.circle(surface, (196, 96, 20), (_px - int(r * 0.26), _py), max(1, int(r * 0.3)))
+        pygame.draw.circle(surface, (196, 96, 20), (_px + int(r * 0.26), _py), max(1, int(r * 0.3)))
+        pygame.draw.line(surface, (70, 140, 60), (_px, _py - int(r * 0.5)),
+                         (_px, _py - int(r * 0.9)), max(1, int(s * 2)))
+        pygame.draw.polygon(surface, (30, 20, 16), [
+            (_px - int(r * 0.2), _py - int(r * 0.1)), (_px, _py + int(r * 0.2)),
+            (_px + int(r * 0.2), _py - int(r * 0.1))])
+
+    elif costume == "Food coma":
+        # Bib, drumstick, and the nap that follows
+        pygame.draw.polygon(surface, (245, 240, 230), [
+            (sx - int(r * 0.9), sy), (sx + int(r * 0.9), sy),
+            (sx + int(r * 0.6), sy + int(r * 1.5)), (sx - int(r * 0.6), sy + int(r * 1.5))])
+        pygame.draw.line(surface, (190, 170, 120), (fx, fy),
+                         (fx + f * int(r * 1.1), fy - int(r * 0.8)), max(2, int(s * 3)))
+        pygame.draw.circle(surface, (180, 120, 70), (fx + f * int(r * 1.3), fy - int(r * 1.0)),
+                           max(2, int(r * 0.5)))
+        for _i in range(3):
+            _z = _get_font(max(7, int(r * (0.7 + 0.25 * _i)))).render("z", True, (220, 220, 240))
+            surface.blit(_z, (hx + f * int(r * (0.8 + 0.35 * _i)),
+                              hy - int(r * (1.2 + 0.45 * _i)) - int(math.sin(t * 2 + _i) * r * 0.2)))
+
+    elif costume == "Latke than never":
+        # A candle burning on top, a dreidel spinning over the open hand
+        pygame.draw.rect(surface, (240, 238, 225),
+                         (hx - max(1, int(r * 0.18)), hy - int(r * 2.1),
+                          max(2, int(r * 0.36)), int(r * 1.1)))
+        pygame.draw.polygon(surface, (255, 190, 60), [
+            (hx, hy - int(r * 2.8)), (hx + int(r * 0.3), hy - int(r * 2.1)),
+            (hx, hy - int(r * 1.9)), (hx - int(r * 0.3), hy - int(r * 2.1))])
+        _dx2, _dy2 = fx + f * int(r * 0.9), fy - int(r * 1.5)
+        _sq = max(2, int(r * 0.5))
+        _lean = int(math.sin(t * 6.0) * r * 0.18)
+        pygame.draw.polygon(surface, (90, 130, 215), [
+            (_dx2 - _sq + _lean, _dy2 - _sq), (_dx2 + _sq + _lean, _dy2 - _sq),
+            (_dx2 + _sq, _dy2 + _sq), (_dx2 - _sq, _dy2 + _sq)])
+        pygame.draw.polygon(surface, (70, 100, 180), [
+            (_dx2 - _sq, _dy2 + _sq), (_dx2 + _sq, _dy2 + _sq), (_dx2, _dy2 + int(_sq * 2))])
+        pygame.draw.line(surface, (230, 225, 200), (_dx2 + _lean, _dy2 - _sq),
+                         (_dx2 + _lean, _dy2 - int(_sq * 1.8)), max(1, int(s)))
+
+    elif costume == "Rodoff the red nosed thing":
+        # The nose, and the harness nobody asked him to wear
+        _nx, _ny = hx + f * int(r * 0.95), hy + int(r * 0.15)
+        _gr = max(3, int(r * 0.9))
+        _glow = pygame.Surface((_gr * 2, _gr * 2), pygame.SRCALPHA)
+        pygame.draw.circle(_glow, (255, 80, 60, 70), (_gr, _gr), _gr)
+        pygame.draw.circle(_glow, (255, 140, 100, 90), (_gr, _gr), int(_gr * 0.6))
+        surface.blit(_glow, (_nx - _gr, _ny - _gr))
+        pygame.draw.circle(surface, (255, 60, 50), (_nx, _ny), max(2, int(r * 0.42)))
+        pygame.draw.circle(surface, (255, 190, 180), (_nx - int(r * 0.12), _ny - int(r * 0.14)),
+                           max(1, int(r * 0.16)))
+        pygame.draw.arc(surface, (160, 50, 40),
+                        (sx - int(r * 0.9), sy - int(r * 0.2), int(r * 1.8), int(r * 1.0)),
+                        3.34, 6.08, max(1, int(s * 2)))
+        pygame.draw.circle(surface, (230, 200, 90), (sx, sy + int(r * 0.6)), max(2, int(r * 0.28)))
+        # Wendigo brings his own antlers — these just hang baubles on them
+        for _sgn in (-1, 1):
+            pygame.draw.circle(surface, (220, 70, 80),
+                               (hx + _sgn * int(r * 0.8), hy - int(r * 1.5)), max(1, int(r * 0.22)))
+            pygame.draw.circle(surface, (240, 210, 110),
+                               (hx + _sgn * int(r * 1.3), hy - int(r * 1.1)), max(1, int(r * 0.17)))
+
+    else:
+        return False
+    return True
+
+
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
     col = WHITE if flash else color
     s = scale
-    # Seasonal costumes borrow their base fighter's whole look and only change
-    # the colour they are drawn in, plus a small emblem over the head.
+    # Seasonal costumes borrow their base fighter's whole look and kit; the
+    # colour changes, and draw_costume_extras dresses the rest.
     _costume_emblem = None
+    _costume_name   = ""
     if char_name in COSTUME_BASE:
+        _costume_name   = char_name
         _costume_emblem = COSTUME_EMBLEM.get(char_name)
         char_name = COSTUME_BASE[char_name]
 
@@ -16416,10 +16708,14 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
     if char_name:
         draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing, s, col)
 
-    if _costume_emblem:
-        _draw_emblem(surface, _costume_emblem,
-                     int(head_c[0] + facing * hd * 1.1), int(head_c[1] - hd * 1.1),
-                     max(3, int(hd * 0.42)), col)
+    if _costume_name:
+        _dressed = draw_costume_extras(surface, _costume_name, head_c, hd, shoulder, waist,
+                                       lh, rh, facing, s, col,
+                                       pygame.time.get_ticks() / 1000.0)
+        if not _dressed and _costume_emblem:
+            _draw_emblem(surface, _costume_emblem,
+                         int(head_c[0] + facing * hd * 1.1), int(head_c[1] - hd * 1.1),
+                         max(3, int(hd * 0.42)), col)
 
     if action == 'punch':
         return (int(ra[0] + facing * 10 * s), int(ra[1]))
