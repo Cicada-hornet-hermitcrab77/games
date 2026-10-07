@@ -718,6 +718,69 @@ def _badge_modes(surf, cx, cy, r):
     pygame.draw.circle(surf, (40, 40, 52), (cx, cy), max(1, int(r * 0.1)))
 
 
+def _badge_lottery(surf, cx, cy, r):
+    """A scratch card with every number come up."""
+    t = pygame.time.get_ticks() / 1000.0
+    paper, ink = (248, 242, 224), (60, 56, 70)
+    pygame.draw.rect(surf, paper, (cx - r, cy - int(r * 0.66), r * 2, int(r * 1.32)),
+                     border_radius=max(1, r // 10))
+    pygame.draw.rect(surf, ink, (cx - r, cy - int(r * 0.66), r * 2, int(r * 1.32)),
+                     max(1, r // 14), border_radius=max(1, r // 10))
+    for i in range(7):                                    # the perforated edge
+        pygame.draw.circle(surf, (24, 24, 32),
+                           (cx - r, cy - int(r * 0.6) + i * int(r * 0.2)), max(1, r // 16))
+    _f = pygame.font.SysFont("Arial", max(7, int(r * 0.3)), bold=True)
+    _tt = _f.render("LUCKY", True, (196, 60, 70))
+    surf.blit(_tt, (cx - _tt.get_width() // 2, cy - int(r * 0.58)))
+    cols = ((60, 130, 220), (120, 100, 80), (70, 160, 70),
+            (210, 230, 240), (230, 210, 40), (230, 90, 30))
+    for i, col in enumerate(cols):                        # six scratched panels
+        px = cx - int(r * 0.74) + (i % 3) * int(r * 0.74)
+        py = cy - int(r * 0.1) + (i // 3) * int(r * 0.44)
+        pygame.draw.rect(surf, col, (px - int(r * 0.26), py - int(r * 0.16),
+                                     int(r * 0.52), int(r * 0.34)),
+                         border_radius=max(1, r // 16))
+        pygame.draw.rect(surf, ink, (px - int(r * 0.26), py - int(r * 0.16),
+                                     int(r * 0.52), int(r * 0.34)),
+                         1, border_radius=max(1, r // 16))
+    for i in range(4):                                    # winning sparkle
+        a = t * 2 + i * (math.tau / 4)
+        _sx = cx + int(math.cos(a) * r * 0.9)
+        _sy = cy + int(math.sin(a) * r * 0.78)
+        pygame.draw.line(surf, (255, 230, 120), (_sx - 2, _sy), (_sx + 2, _sy), 1)
+        pygame.draw.line(surf, (255, 230, 120), (_sx, _sy - 2), (_sx, _sy + 2), 1)
+
+
+def _badge_serpentoduko(surf, cx, cy, r):
+    """A snake curled over a sudoku grid, filling it in."""
+    grid, line = (242, 242, 236), (70, 70, 86)
+    g = int(r * 1.1)
+    gx, gy = cx - g // 2 + int(r * 0.1), cy - int(r * 0.1)
+    pygame.draw.rect(surf, grid, (gx, gy, g, g))
+    for i in range(1, 3):
+        pygame.draw.line(surf, line, (gx + i * g // 3, gy), (gx + i * g // 3, gy + g), 1)
+        pygame.draw.line(surf, line, (gx, gy + i * g // 3), (gx + g, gy + i * g // 3), 1)
+    pygame.draw.rect(surf, line, (gx, gy, g, g), max(1, r // 16))
+    _f = pygame.font.SysFont("Arial", max(6, int(r * 0.26)), bold=True)
+    for (ci, cj, ch) in ((0, 0, "5"), (1, 1, "3"), (2, 2, "7"), (2, 0, "1"), (0, 2, "9")):
+        _t2 = _f.render(ch, True, (60, 90, 150))
+        surf.blit(_t2, (gx + ci * g // 3 + g // 6 - _t2.get_width() // 2,
+                        gy + cj * g // 3 + g // 6 - _t2.get_height() // 2))
+    body, belly = (70, 170, 80), (160, 220, 140)
+    pts = [(cx - int(r * 0.92), cy + int(r * 0.58)), (cx - int(r * 0.48), cy + int(r * 0.96)),
+           (cx + int(r * 0.24), cy + int(r * 0.88)), (cx + int(r * 0.78), cy + int(r * 0.98))]
+    for i in range(len(pts) - 1):
+        pygame.draw.line(surf, body, pts[i], pts[i + 1], max(3, r // 5))
+    pygame.draw.circle(surf, body, (cx - int(r * 0.86), cy - int(r * 0.52)), max(3, int(r * 0.26)))
+    pygame.draw.circle(surf, belly, (cx - int(r * 0.92), cy - int(r * 0.58)), max(1, int(r * 0.1)))
+    pygame.draw.line(surf, body, (cx - int(r * 0.86), cy - int(r * 0.3)),
+                     (cx - int(r * 0.92), cy + int(r * 0.44)), max(2, r // 7))
+    pygame.draw.circle(surf, (20, 20, 24), (cx - int(r * 0.78), cy - int(r * 0.58)),
+                       max(1, int(r * 0.06)))
+    pygame.draw.line(surf, (210, 60, 60), (cx - int(r * 0.62), cy - int(r * 0.46)),
+                     (cx - int(r * 0.4), cy - int(r * 0.4)), 1)   # tongue, pointing at a square
+
+
 BADGES = {
     "crown":    _badge_crown,
     "lhat":     _badge_lhat,
@@ -749,6 +812,8 @@ BADGES = {
     "elements":     _badge_elements_ring,
     "roster":       _badge_roster,
     "modes":        _badge_modes,
+    "lottery":      _badge_lottery,
+    "serpentoduko": _badge_serpentoduko,
 }
 
 
@@ -801,6 +866,24 @@ def _all_stages_played(stats):
 
 
 ALL_MODES = ("1p", "2p", "survival", "online", "shop", "fuser")
+
+
+def _all_fused(stats):
+    """Every fuser recipe landed, with no failure anywhere in the run."""
+    try:
+        from fight_data import FUSER_RECIPES
+    except Exception:
+        return False
+    want = {r["name"] for r in FUSER_RECIPES.values()}
+    return bool(want) and want <= set(stats.get("fuse_run", []))
+
+
+def _all_elements_reward():
+    try:
+        from fight_data import FUSER_ELEMENTS
+        return [(name, 1) for name, _c, _col in FUSER_ELEMENTS]
+    except Exception:
+        return []
 
 
 def _has_all_elements(stats):
@@ -1055,6 +1138,23 @@ ACHIEVEMENTS = [
         "check": lambda s, u, d: set(ALL_MODES) <= set(s.get("modes_played", [])),
     },
     {
+        "id": "fuse_the_lottery_ticket",
+        "name": "Fuse the lottery ticket",
+        "desc": "Fuse every character in a row with no failed fuse",
+        "reward": 0,
+        "elements": _all_elements_reward(),
+        "badge": "lottery",
+        "check": lambda s, u, d: _all_fused(s),
+    },
+    {
+        "id": "serpentoduko",
+        "name": "Serpentoduko",
+        "desc": "Type serpentoduko as a snake without being hit",
+        "reward": 10,
+        "badge": "serpentoduko",
+        "check": lambda s, u, d: bool(s.get("serpentoduko")),
+    },
+    {
         "id": "double_o_element",
         "name": "Double O Element",
         "desc": "Fuse your first character",
@@ -1082,6 +1182,9 @@ def reward_text(a):
     if a.get("element"):
         _n, _q = a["element"]
         bits.append(f"+{_q} {_n}")
+    if a.get("elements"):
+        bits.append("+" + " +".join(f"{_q} {_n}" for _n, _q in a["elements"])
+                    if len(a["elements"]) <= 2 else "+every element")
     return "   ".join(bits)
 
 
@@ -1112,11 +1215,11 @@ def check_achievements(stats, unlocked=(), userdata=None):
         newly.append(a)
         if a["reward"]:
             stats["seasonal_coins"] = max(0, stats.get("seasonal_coins", 0) + a["reward"])
-        _el = a.get("element")
-        if _el:
-            _name, _qty = _el
+        _els = a.get("elements") or ([a["element"]] if a.get("element") else [])
+        if _els:
             _bag = stats.setdefault("fuser_elements", {})
-            _bag[_name] = _bag.get(_name, 0) + _qty
+            for _name, _qty in _els:
+                _bag[_name] = _bag.get(_name, 0) + _qty
     if newly:
         stats["achievements"] = [a["id"] for a in ACHIEVEMENTS if a["id"] in have]
     return newly

@@ -57,6 +57,7 @@ _session_win_streak   = [0]      # wins in a row without returning to the menu
 _survival_seconds     = [0]      # how long the last survival run lasted
 _bazooka_dodge_flag   = [False]  # True when p1 slips just outside a blast
 _last_win_seconds     = [None]   # how long p1's last winning fight took
+_serpentoduko_flag    = [False]  # typed serpentoduko as an untouched snake
 _p1_proj_blocked      = [0]       # projectiles p1 blocked this fight
 _symbol_char_flag     = [False]   # True when <|-\||>+() typed on Computer stage
 _death_defyer_flag    = [False]   # True when death_does_not_exist typed on Graveyard as Reaper
@@ -1387,6 +1388,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     _clue_idx   = 0
     _clue_popup = 0   # frames left to show "Huzzah!" popup
 
+    # Serpentoduko: typed while playing a snake and still untouched
+    _SERP_SEQ   = "serpentoduko"
+    _serp_buf   = ""
+
     # Kirin Adler: type HEAL/HALT/DELETE for secret command abilities
     _kirin_buf       = ""   # rolling keystroke buffer
     _kirin_cmd_timer = 0    # frames left to show command visual
@@ -1564,6 +1569,16 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                             _death_buf = ""
                         if len(_death_buf) > len(_DEATH_SEQ) + 5:
                             _death_buf = _death_buf[-len(_DEATH_SEQ):]
+                    # Serpentoduko: type it as a snake, before anything lands on you
+                    if hasattr(event, 'unicode') and event.unicode:
+                        _serp_buf += event.unicode.lower()
+                        if _SERP_SEQ in _serp_buf:
+                            _serp_buf = ""
+                            if ((p1.char.get("snake") or "Snake" in p1.char["name"])
+                                    and p1.hp >= p1.max_hp):
+                                _serpentoduko_flag[0] = True
+                        if len(_serp_buf) > len(_SERP_SEQ) + 5:
+                            _serp_buf = _serp_buf[-len(_SERP_SEQ):]
                     # Friday the 13th: type "13" on an actual Friday the 13th
                     if hasattr(event, 'unicode') and event.unicode:
                         _f13_buf += event.unicode
@@ -7246,6 +7261,9 @@ def main():
         if _bazooka_dodge_flag[0]:
             stats["bazooka_dodged"] = True
             _bazooka_dodge_flag[0] = False
+        if _serpentoduko_flag[0]:
+            stats["serpentoduko"] = True
+            _serpentoduko_flag[0] = False
         _award_achievements(unlocked, stats)
         mode = mode_select(unlocked, stats)
         _mode_tag = {"1p": "1p", "2p": "2p", "survival_1p": "survival",

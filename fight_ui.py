@@ -4747,10 +4747,16 @@ def fuser_mode(screen, clock, stats, unlocked):
                         if _fused_ok:
                             stats["fuses_done"] = stats.get("fuses_done", 0) + 1
                             _result = _recipe["name"]
+                            # Unbroken run of successful fuses — one failure
+                            # anywhere wipes it, which is the whole point
+                            _run = stats.setdefault("fuse_run", [])
+                            if _result not in _run:
+                                _run.append(_result)
                             if _result not in unlocked:
                                 unlocked.add(_result)
                             _msg, _msg_col, _msg_t = f"Fusion succeeded — {_result}!", OK_COL, FPS * 4
                         else:
+                            stats["fuse_run"] = []     # the run is over
                             _refund = random.choice([_name_a, _name_b])
                             elements[_refund] = elements.get(_refund, 0) + 1
                             _msg, _msg_col, _msg_t = f"Fusion failed... got back 1 {_refund}.", BAD_COL, FPS * 4
