@@ -9,6 +9,11 @@ The other way: write a plain text file, save it in this folder with a .txt
 name, and start the game. Your page is in the wiki. No code, no permission,
 nothing else to edit.
 
+You can also write on a page that already exists, including one the game
+generates itself. Open it in the wiki and press F3: what you type goes at
+the bottom of that page under "Notes", and is saved here as a file whose
+header is a single "attach:" line.
+
 A page looks like this:
 
     section: lore
@@ -44,6 +49,27 @@ Then the body. Four kinds of line:
     ## Heading          a heading.
     - bullet            a bullet point.
     Key = Value         a two-column row, good for numbers.
+
+Writing on a page the game generates
+------------------------------------
+
+Instead of section/title, use one attach line naming the page:
+
+    attach: characters/Brawler
+
+    He walks straight into you. Let him.
+
+    ## What works
+    - block early, kick late
+
+The body works exactly as above. It appears under "Notes" at the bottom of
+Brawler's page rather than as a page of its own. The part before the slash
+is the section, the part after is the page title, spelled as it appears in
+the wiki. Name a page that does not exist and it simply becomes a page of
+its own instead — nothing is lost.
+
+In game this is just F3 on whatever page you are reading, and the file is
+named for you.
 
 That is everything.
 

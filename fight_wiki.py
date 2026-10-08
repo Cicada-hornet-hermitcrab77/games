@@ -12,7 +12,9 @@ THE WRITTEN HALF is for pages a person writes — history, tactics, lore, jokes.
 There are two ways to add one, and neither touches any other file:
 
   0. Press F2 inside the wiki and write it there. It is saved as a file in
-     wiki/, exactly as if it had been typed by hand.
+     wiki/, exactly as if it had been typed by hand. F3 writes onto the page
+     you are already reading — even a generated one. Those notes are a file
+     too, with an "attach:" line naming the page they belong to.
 
   1. Append a dict to PAGES, near the bottom of this file:
 
@@ -628,6 +630,9 @@ PAGES = [
          "without leaving the game: press F2 in here, or the WRITE button at "
          "the bottom. Give it a title, pick a section, type. F3 edits a page "
          "somebody wrote, and DELETE throws it away.",
+         "F3 also works on the pages the game generates. You cannot change "
+         "what Brawler's health is, but you can write underneath it — your "
+         "notes land at the bottom of his page and stay there.",
          "What it saves is an ordinary text file in the wiki/ folder next to "
          "the game, so a page written here opens in any text editor, and a "
          "file dropped into that folder shows up here the next time the game "
@@ -635,7 +640,8 @@ PAGES = [
          "long.",
          ("h", "What is worth writing"),
          ("b", "Tactics. The generated pages know the numbers, not what to do "
-               "with them."),
+               "with them — which is exactly what F3 on a fighter's page is "
+               "for."),
          ("b", "History. Why a fighter exists, who asked for him."),
          ("b", "Secrets you are willing to give away. The generated pages "
                "will not — a fighter the game hides behind \"???\" is hidden "
@@ -651,7 +657,7 @@ def _parse_page(text, fallback_title):
     lines = text.replace("\r\n", "\n").split("\n")
     i = 0
     while i < len(lines):
-        m = re.match(r"^(section|title|subtitle|color|tags)\s*:\s*(.*)$",
+        m = re.match(r"^(section|title|subtitle|color|tags|attach)\s*:\s*(.*)$",
                      lines[i].strip(), re.I)
         if not m:
             break
@@ -689,7 +695,16 @@ def _parse_page(text, fallback_title):
                 col = tuple(max(0, min(255, p)) for p in parts)
         except ValueError:
             pass
-    return {"raw": text,
+    # "attach: characters/Brawler" means this is a note written onto a page
+    # the game generates, not a page of its own.
+    attach = None
+    if head.get("attach"):
+        _a_sec, _, _a_title = head["attach"].partition("/")
+        if _a_title.strip():
+            attach = (_a_sec.strip().lower(), _a_title.strip())
+            head.setdefault("section", attach[0])
+            head.setdefault("title", attach[1])
+    return {"raw": text, "attach": attach,
             "section": (head.get("section") or "lore").lower().strip(),
             "title": head.get("title") or fallback_title,
             "subtitle": head.get("subtitle", ""), "color": col,
@@ -726,15 +741,29 @@ def _slug(title):
     return out[:48] or "page"
 
 
-def compose(section, title, subtitle, body_text):
+def compose(section, title, subtitle, body_text, attach=None):
     """The text of a page file, exactly as a person would have typed it."""
-    head = [f"section: {section}", f"title: {title}"]
-    if subtitle.strip():
-        head.append(f"subtitle: {subtitle.strip()}")
+    if attach:
+        head = [f"attach: {attach[0]}/{attach[1]}"]
+    else:
+        head = [f"section: {section}", f"title: {title}"]
+        if subtitle.strip():
+            head.append(f"subtitle: {subtitle.strip()}")
     return "\n".join(head) + "\n\n" + body_text.rstrip() + "\n"
 
 
-def save_page(section, title, subtitle, body_text, filename=None):
+def note_filename(section, title):
+    """Where a note on a generated page lives."""
+    return f"note-{_slug(section)}-{_slug(title)}.txt"
+
+
+def find_note(section, title):
+    """The note already written on a page, if there is one."""
+    fn = note_filename(section, title)
+    return fn if os.path.exists(os.path.join(WIKI_DIR, fn)) else None
+
+
+def save_page(section, title, subtitle, body_text, filename=None, attach=None):
     """Write a page into wiki/. Returns its filename, or None if it failed.
 
     Pages written in game are ordinary files in the same folder people drop
@@ -743,6 +772,8 @@ def save_page(section, title, subtitle, body_text, filename=None):
     """
     try:
         os.makedirs(WIKI_DIR, exist_ok=True)
+        if attach and not filename:
+            filename = note_filename(*attach)
         if not filename:
             base = _slug(title)
             filename = base + ".txt"
@@ -751,7 +782,7 @@ def save_page(section, title, subtitle, body_text, filename=None):
                 filename = f"{base}-{_i}.txt"
                 _i += 1
         with open(os.path.join(WIKI_DIR, filename), "w", encoding="utf-8") as fh:
-            fh.write(compose(section, title, subtitle, body_text))
+            fh.write(compose(section, title, subtitle, body_text, attach))
         return filename
     except Exception:
         return None
@@ -771,7 +802,7 @@ def body_source(page):
         lines = page["raw"].replace("\r\n", "\n").split("\n")
         i = 0
         while i < len(lines) and re.match(
-                r"^(section|title|subtitle|color|tags)\s*:", lines[i].strip(), re.I):
+                r"^(section|title|subtitle|color|tags|attach)\s*:", lines[i].strip(), re.I):
             i += 1
         while i < len(lines) and not lines[i].strip():
             i += 1
@@ -813,12 +844,29 @@ def build(unlocked=(), stats=None):
     pages += folder_pages()
 
     out = {s["id"]: [] for s in SECTIONS}
+    notes = [p for p in pages if p.get("attach")]
+    pages = [p for p in pages if not p.get("attach")]
     for p in pages:
         p.setdefault("color", (225, 228, 240))
         p.setdefault("tags", [])
         p.setdefault("art", None)
         p["search"] = _haystack(p)
         out.setdefault(p.get("section", "lore"), []).append(p)
+    # A note goes onto the page it names. If that page does not exist — the
+    # fighter was renamed, say — it stands on its own rather than vanishing.
+    for note in notes:
+        sec, title = note["attach"]
+        target = next((p for p in out.get(sec, [])
+                       if p["title"].lower() == title.lower()), None)
+        if target is None:
+            note["contributed"] = True
+            out.setdefault(sec, []).append(note)
+            continue
+        target["body"] = list(target["body"]) + [("h", "Notes")] + list(note["body"])
+        target["notes_file"] = note.get("file")
+        target["tags"] = list(target.get("tags", [])) + ["has notes"]
+        target["search"] = _haystack(target)
+
     for extra in [k for k in out if k not in SECTION_TITLE]:
         # A page claiming a section nobody declared still gets read.
         SECTIONS.append({"id": extra, "title": extra.title(), "color": (200, 200, 210)})

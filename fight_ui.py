@@ -3476,12 +3476,16 @@ def _wiki_confirm(question, yes="YES", no="NO"):
         pygame.display.flip()
 
 
-def wiki_editor(page=None, section_id="lore"):
+def wiki_editor(page=None, section_id="lore", attach_to=None):
     """Write a wiki page without leaving the game.
 
     What it saves is an ordinary file in the wiki/ folder — the same thing
     somebody would have typed into a text editor, in the same format. A page
     written here can be edited there and the other way round.
+
+    attach_to is (section, title): instead of a page of its own, what gets
+    written is a note onto a page the game generates. Brawler's page knows
+    his numbers; it does not know that you should block early against him.
     """
     sec_ids = [s["id"] for s in _wiki.SECTIONS]
     sec_i = sec_ids.index(page.get("section", section_id)) if page and \
@@ -3491,14 +3495,21 @@ def wiki_editor(page=None, section_id="lore"):
     f_sub   = _WikiField(page.get("subtitle", "") if page else "")
     f_body  = _WikiField(_wiki.body_source(page) if page else "", multiline=True)
     fields  = [f_title, f_sub, f_body]
-    focus   = 0
+    focus   = 2 if attach_to else 0
     note    = ""
     dirty   = False
     scroll  = 0
     editing = page.get("file") if page else None
+    if attach_to:
+        # The page it is written on supplies the title and the section
+        editing = _wiki.find_note(*attach_to)
+        if editing:
+            _ex = next((p for p in _wiki.folder_pages() if p.get("file") == editing), None)
+            f_body = _WikiField(_wiki.body_source(_ex) if _ex else "", multiline=True)
+            fields = [f_title, f_sub, f_body]
 
     BOXX, BOXW = 16, WIDTH - 32
-    TY, SY, BY = 96, 140, 188
+    TY, SY, BY = 96, 140, (108 if attach_to else 188)
     BBOT = HEIGHT - 64
     LINEH = 19
 
@@ -3515,10 +3526,10 @@ def wiki_editor(page=None, section_id="lore"):
                            if event.type == pygame.FINGERDOWN else event.pos)
                     if pygame.Rect(WIDTH - 108, 50, 92, 30).collidepoint(_mp):
                         _mp = None
-                        if f_title.text().strip():
+                        if attach_to or f_title.text().strip():
                             _fn = _wiki.save_page(sec_ids[sec_i], f_title.text().strip(),
                                                   f_sub.text().strip(), f_body.text(),
-                                                  editing)
+                                                  editing, attach_to)
                             if _fn:
                                 return _fn
                             note = "could not save — is the wiki folder writable?"
@@ -3528,13 +3539,13 @@ def wiki_editor(page=None, section_id="lore"):
                         if not dirty or _wiki_confirm("Throw this page away?",
                                                       "THROW AWAY", "KEEP EDITING"):
                             return None
-                    elif pygame.Rect(BOXX + 86, 54, 24, 22).collidepoint(_mp):
+                    elif not attach_to and pygame.Rect(BOXX + 86, 54, 24, 22).collidepoint(_mp):
                         sec_i = (sec_i - 1) % len(sec_ids); dirty = True
-                    elif pygame.Rect(BOXX + 236, 54, 24, 22).collidepoint(_mp):
+                    elif not attach_to and pygame.Rect(BOXX + 236, 54, 24, 22).collidepoint(_mp):
                         sec_i = (sec_i + 1) % len(sec_ids); dirty = True
-                    elif _mp and pygame.Rect(BOXX, TY, BOXW, 30).collidepoint(_mp):
+                    elif _mp and not attach_to and pygame.Rect(BOXX, TY, BOXW, 30).collidepoint(_mp):
                         focus = 0
-                    elif _mp and pygame.Rect(BOXX, SY, BOXW, 28).collidepoint(_mp):
+                    elif _mp and not attach_to and pygame.Rect(BOXX, SY, BOXW, 28).collidepoint(_mp):
                         focus = 1
                     elif _mp and pygame.Rect(BOXX, BY, BOXW, BBOT - BY).collidepoint(_mp):
                         focus = 2
@@ -3553,16 +3564,18 @@ def wiki_editor(page=None, section_id="lore"):
                         return None
                 elif event.key == pygame.K_F2 or (event.key == pygame.K_s and
                                                   (mods & pygame.KMOD_CTRL)):
-                    if not f_title.text().strip():
+                    if not (attach_to or f_title.text().strip()):
                         note = "a page needs a title"
                     else:
                         _fn = _wiki.save_page(sec_ids[sec_i], f_title.text().strip(),
-                                              f_sub.text().strip(), f_body.text(), editing)
+                                              f_sub.text().strip(), f_body.text(),
+                                              editing, attach_to)
                         if _fn:
                             return _fn
                         note = "could not save — is the wiki folder writable?"
                 elif event.key == pygame.K_TAB:
-                    focus = (focus + (-1 if mods & pygame.KMOD_SHIFT else 1)) % 3
+                    if not attach_to:
+                        focus = (focus + (-1 if mods & pygame.KMOD_SHIFT else 1)) % 3
                 elif event.key == pygame.K_RETURN:
                     if fld.multiline:
                         fld.newline(); dirty = True
@@ -3608,24 +3621,34 @@ def wiki_editor(page=None, section_id="lore"):
 
             # ── Draw ────────────────────────────────────────────────────
             screen.fill((14, 14, 20))
-            _t = font_medium.render("EDIT A WIKI PAGE" if editing else "WRITE A WIKI PAGE",
-                                    True, (235, 238, 250))
+            _hdr = ("WRITE ON THIS PAGE" if attach_to else
+                    ("EDIT A WIKI PAGE" if editing else "WRITE A WIKI PAGE"))
+            _t = font_medium.render(_hdr, True, (235, 238, 250))
             screen.blit(_t, (BOXX, 14))
             _h = font_tiny.render("it saves into the wiki folder, as a plain text file "
                                   "anyone can open", True, (110, 112, 132))
             screen.blit(_h, (BOXX + _t.get_width() + 14, 30))
 
-            # Section chooser
-            _sl = font_small.render("SECTION", True, (140, 142, 162))
-            screen.blit(_sl, (BOXX, 58))
-            for _ax, _ar in ((BOXX + 86, "<"), (BOXX + 236, ">")):
-                _r = pygame.Rect(_ax, 54, 24, 22)
-                pygame.draw.rect(screen, (30, 30, 42), _r, border_radius=4)
-                _a = font_small.render(_ar, True, (170, 172, 190))
-                screen.blit(_a, (_r.centerx - _a.get_width() // 2, _r.y + 1))
-            _sn = font_small.render(_wiki.SECTION_TITLE.get(sec_ids[sec_i], sec_ids[sec_i]),
-                                    True, (120, 190, 255))
-            screen.blit(_sn, (BOXX + 118 + 60 - _sn.get_width() // 2, 56))
+            if attach_to:
+                _wl = font_small.render("your notes go at the bottom of", True,
+                                        (140, 142, 162))
+                screen.blit(_wl, (BOXX, 58))
+                _wn = font_small.render(
+                    f"{_wiki.SECTION_TITLE.get(attach_to[0], attach_to[0])}  ›  "
+                    f"{attach_to[1]}", True, (120, 190, 255))
+                screen.blit(_wn, (BOXX + _wl.get_width() + 12, 58))
+            else:
+                # Section chooser
+                _sl = font_small.render("SECTION", True, (140, 142, 162))
+                screen.blit(_sl, (BOXX, 58))
+                for _ax, _ar in ((BOXX + 86, "<"), (BOXX + 236, ">")):
+                    _r = pygame.Rect(_ax, 54, 24, 22)
+                    pygame.draw.rect(screen, (30, 30, 42), _r, border_radius=4)
+                    _a = font_small.render(_ar, True, (170, 172, 190))
+                    screen.blit(_a, (_r.centerx - _a.get_width() // 2, _r.y + 1))
+                _sn = font_small.render(_wiki.SECTION_TITLE.get(sec_ids[sec_i], sec_ids[sec_i]),
+                                        True, (120, 190, 255))
+                screen.blit(_sn, (BOXX + 118 + 60 - _sn.get_width() // 2, 56))
 
             for _bx2, _lb2, _col2 in ((WIDTH - 210, "CANCEL", (150, 152, 170)),
                                       (WIDTH - 108, "SAVE", (110, 220, 130))):
@@ -3652,16 +3675,17 @@ def wiki_editor(page=None, section_id="lore"):
                     pygame.draw.line(screen, (120, 190, 255), (_cx, rect.y + 5),
                                      (_cx, rect.bottom - 5), 1)
 
-            _field_box(pygame.Rect(BOXX, TY, BOXW, 30), "TITLE", f_title, 0, font_small)
-            _field_box(pygame.Rect(BOXX, SY, BOXW, 28), "SUBTITLE  (optional)",
-                       f_sub, 1, font_small)
+            if not attach_to:
+                _field_box(pygame.Rect(BOXX, TY, BOXW, 30), "TITLE", f_title, 0, font_small)
+                _field_box(pygame.Rect(BOXX, SY, BOXW, 28), "SUBTITLE  (optional)",
+                           f_sub, 1, font_small)
 
             _br = pygame.Rect(BOXX, BY, BOXW, BBOT - BY)
             _on = (focus == 2)
             pygame.draw.rect(screen, (20, 20, 28), _br, border_radius=6)
             pygame.draw.rect(screen, (120, 190, 255) if _on else (56, 58, 72),
                              _br, 2 if _on else 1, border_radius=6)
-            _lb = font_tiny.render("PAGE", True, (110, 112, 132))
+            _lb = font_tiny.render("NOTES" if attach_to else "PAGE", True, (110, 112, 132))
             screen.blit(_lb, (_br.x + 2, _br.y - 14))
             screen.set_clip(_br.inflate(-4, -4))
             for _i, _ln in enumerate(f_body.lines[scroll:scroll + _rows]):
@@ -3689,8 +3713,10 @@ def wiki_editor(page=None, section_id="lore"):
                                        "a blank line starts a new paragraph",
                                        True, (110, 112, 132))
                 screen.blit(_f1, (BOXX, HEIGHT - 54))
-            _f2 = font_tiny.render("TAB moves between boxes   ·   F2 or CTRL+S saves   ·   "
-                                   "ESC throws it away", True, (92, 94, 112))
+            _f2 = font_tiny.render(
+                ("F2 or CTRL+S saves   ·   ESC throws it away" if attach_to else
+                 "TAB moves between boxes   ·   F2 or CTRL+S saves   ·   ESC throws it away"),
+                True, (92, 94, 112))
             screen.blit(_f2, (BOXX, HEIGHT - 34))
             pygame.display.flip()
     finally:
@@ -3809,15 +3835,19 @@ def wiki_screen(unlocked=(), stats=None):
                     if _fn:
                         _reload(_fn)
                     continue
-                if page and page.get("file"):
-                    if pygame.Rect(LISTX + 112, HEIGHT - 38, 70, 30).collidepoint(_mp):
-                        _fn = wiki_editor(page)
+                if page and not page.get("secret"):
+                    if pygame.Rect(LISTX + 112, HEIGHT - 38, 104, 30).collidepoint(_mp):
+                        _fn = (wiki_editor(page) if page.get("file") else
+                               wiki_editor(attach_to=(sections[sec_i]["id"], page["title"])))
                         if _fn:
-                            _reload(_fn)
+                            _reload(_fn if page.get("file") else None)
                         continue
-                    if pygame.Rect(LISTX + 190, HEIGHT - 38, 78, 30).collidepoint(_mp):
-                        if _wiki_confirm(f"Delete \"{page['title']}\"?", "DELETE", "KEEP"):
-                            _wiki.delete_page(page["file"])
+                    _own = page.get("file") or page.get("notes_file")
+                    if _own and pygame.Rect(LISTX + 224, HEIGHT - 38, 78, 30).collidepoint(_mp):
+                        _what = ("Delete \"%s\"?" % page["title"] if page.get("file")
+                                 else "Delete your notes on \"%s\"?" % page["title"])
+                        if _wiki_confirm(_what, "DELETE", "KEEP"):
+                            _wiki.delete_page(_own)
                             _reload()
                         continue
                 for _si, _s in enumerate(sections):
@@ -3855,10 +3885,14 @@ def wiki_screen(unlocked=(), stats=None):
                     _fn = wiki_editor(section_id=sections[sec_i]["id"])
                     if _fn:
                         _reload(_fn)
-                elif event.key == pygame.K_F3 and page and page.get("file"):
-                    _fn = wiki_editor(page)
-                    if _fn:
-                        _reload(_fn)
+                elif event.key == pygame.K_F3 and page and not page.get("secret"):
+                    if page.get("file"):
+                        _fn = wiki_editor(page)
+                        if _fn:
+                            _reload(_fn)
+                    else:
+                        if wiki_editor(attach_to=(sections[sec_i]["id"], page["title"])):
+                            _reload()
                 elif getattr(event, "unicode", "") and event.unicode.isprintable():
                     query += event.unicode
                     item_i, list_scroll = 0, 0
@@ -4022,11 +4056,15 @@ def wiki_screen(unlocked=(), stats=None):
         _wt = font_small.render("WRITE (F2)", True, (200, 240, 210))
         screen.blit(_wt, (_wb.centerx - _wt.get_width() // 2,
                           _wb.centery - _wt.get_height() // 2))
-        if page and page.get("file"):
-            for _r2, _lb2, _c2 in ((pygame.Rect(LISTX + 112, HEIGHT - 38, 70, 30),
-                                    "EDIT (F3)", (120, 190, 255)),
-                                   (pygame.Rect(LISTX + 190, HEIGHT - 38, 78, 30),
-                                    "DELETE", (220, 110, 110))):
+        if page and not page.get("secret"):
+            _btns = [(pygame.Rect(LISTX + 112, HEIGHT - 38, 104, 30),
+                      "EDIT (F3)" if page.get("file") else
+                      ("EDIT NOTES (F3)" if page.get("notes_file") else "WRITE ON IT (F3)"),
+                      (120, 190, 255))]
+            if page.get("file") or page.get("notes_file"):
+                _btns.append((pygame.Rect(LISTX + 224, HEIGHT - 38, 78, 30),
+                              "DELETE" if page.get("file") else "DEL NOTES", (220, 110, 110)))
+            for _r2, _lb2, _c2 in _btns:
                 pygame.draw.rect(screen, (26, 26, 34), _r2, border_radius=6)
                 pygame.draw.rect(screen, _c2, _r2, 2, border_radius=6)
                 _s4 = font_tiny.render(_lb2, True, _c2)
@@ -4041,9 +4079,9 @@ def wiki_screen(unlocked=(), stats=None):
                           _bb.centery - _bt.get_height() // 2))
         _ft2 = font_tiny.render("up/down picks a page   ·   page up/down scrolls it",
                                 True, (96, 98, 116))
-        screen.blit(_ft2, (LISTX + 280, HEIGHT - 36))
+        screen.blit(_ft2, (LISTX + 314, HEIGHT - 36))
         _ft3 = font_tiny.render("esc clears the search, then leaves", True, (96, 98, 116))
-        screen.blit(_ft3, (LISTX + 280, HEIGHT - 22))
+        screen.blit(_ft3, (LISTX + 314, HEIGHT - 22))
         pygame.display.flip()
 
 
