@@ -141,7 +141,6 @@ UNLOCK_CONDITIONS = {
     "Pyro":                ("win_on_stage",   "Volcano",       3,  "Win on Volcano 3 times"),
     # ── win_hard_ai ─────────────────────────────────────────────────────────
     "Hardy":               ("win_hard_ai",    None,            1,  "Win 1 match vs Hard AI"),
-    "ASCII":               ("win_on_stage",   "Computer",      2,  "Win on Computer 2 times"),
     "Viking":              ("win_hard_ai",    None,            3,  "Win 3 matches vs Hard AI"),
     "Laser Eyes":          ("win_hard_ai",    None,            5,  "Win 5 matches vs Hard AI"),
     "Mr. Crit":            ("win_hard_ai",    None,            7,  "Win 7 matches vs Hard AI"),

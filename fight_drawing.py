@@ -2359,60 +2359,6 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
             pygame.draw.circle(surface, (180, 180, 220),
                                (hx, hy), ring_r, max(1, int(s)))
 
-    elif char_name == "ASCII":
-        t = pygame.time.get_ticks()
-        key_font = font_tiny
-        # Dark terminal green-on-black bodysuit
-        pygame.draw.rect(surface, (10, 20, 12),
-                         (sx - int(10*s), sy, int(20*s), bl), border_radius=max(2, int(3*s)))
-        pygame.draw.rect(surface, (20, 60, 25),
-                         (sx - int(10*s), sy, int(20*s), bl), max(1, int(s)), border_radius=max(2, int(3*s)))
-        # Scrolling code text lines on torso
-        _code_lines = ["> RUN", "0x1A3", "NULL", "{}[];"]
-        _scroll = (t // 400) % len(_code_lines)
-        _ascii_f = _get_font(max(7, int(8*s)))
-        for _ali in range(3):
-            _alt = _code_lines[(_scroll + _ali) % len(_code_lines)]
-            _alsurf = _ascii_f.render(_alt, True, (0, 200, 50))
-            surface.blit(_alsurf, (sx - _alsurf.get_width()//2,
-                                   sy + int(bl*(0.2 + _ali*0.28)) - _alsurf.get_height()//2))
-        # Terminal monitor helmet — dark rectangle with green screen
-        pygame.draw.rect(surface, (15, 15, 15),
-                         (hx - int(hd*1.1), hy - hd - int(2*s), int(hd*2.2), int(hd*1.85)),
-                         border_radius=max(2, int(3*s)))
-        pygame.draw.rect(surface, (30, 80, 35),
-                         (hx - int(hd*1.1), hy - hd - int(2*s), int(hd*2.2), int(hd*1.85)),
-                         max(1, int(2*s)), border_radius=max(2, int(3*s)))
-        # Green CRT screen face
-        pygame.draw.rect(surface, (5, 40, 10),
-                         (hx - int(hd*.85), hy - hd + int(2*s), int(hd*1.7), int(hd*1.45)),
-                         border_radius=max(1, int(2*s)))
-        # Blinking cursor on face
-        if (t // 500) % 2 == 0:
-            pygame.draw.rect(surface, (0, 220, 50),
-                             (hx - int(2*s), hy - int(hd*0.1), int(8*s), max(3, int(5*s))))
-        # "@" symbol on screen face
-        _at_f = _get_font(max(9, int(13*s)))
-        _at_t = _at_f.render("@", True, (0, 200, 50))
-        surface.blit(_at_t, (hx - _at_t.get_width()//2, hy - _at_t.get_height()//2 - int(2*s)))
-        # Keyboard key decorations at body joints
-        _key_positions = [
-            (sx,  sy + int(6 * s),    '#'),
-            (wx,  wy,                  '$'),
-            (lhx, lhy,                '<'),
-            (rhx, rhy,                '>'),
-        ]
-        for kx, ky, kch in _key_positions:
-            kr = max(5, int(8 * s))
-            pygame.draw.rect(surface, (200, 200, 200),
-                             (kx - kr, ky - kr, kr * 2, kr * 2),
-                             border_radius=max(1, int(2 * s)))
-            pygame.draw.rect(surface, (80, 80, 80),
-                             (kx - kr, ky - kr, kr * 2, kr * 2),
-                             max(1, int(s)), border_radius=max(1, int(2 * s)))
-            txt = key_font.render(kch, True, (20, 20, 20))
-            surface.blit(txt, (kx - txt.get_width() // 2, ky - txt.get_height() // 2))
-
     elif char_name == "Snake":
         # Draw classic snake-game blocks along the body (like actual gameplay look)
         bsz = max(10, int(16 * s))
@@ -15412,52 +15358,6 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, s
         lh = (la[0] - 5 * s,  la[1] + al * 0.8)
         ra = (shoulder[0] + 10 * s, shoulder[1] + 10 * s)
         rh = (ra[0] + 5 * s,  ra[1] + al * 0.8)
-
-    # ── ASCII fighter: render body as ASCII art text chars ────────────────────
-    if char_name == "ASCII":
-        _asc_col = WHITE if flash else col
-        _af = pygame.font.SysFont("Courier", max(9, int(13 * s)), bold=True)
-        def _achar(ch, cx, cy):
-            _t = _af.render(ch, True, _asc_col)
-            surface.blit(_t, (int(cx) - _t.get_width()//2, int(cy) - _t.get_height()//2))
-        # Head
-        _achar("O", head_c[0], head_c[1])
-        # Torso
-        for _i in range(1, 5):
-            _ty = shoulder[1] + (waist[1] - shoulder[1]) * _i / 4
-            _achar("|", shoulder[0], _ty)
-        # Arms
-        if action == 'punch':
-            _achar("\\", la[0], la[1]); _achar("|", lh[0], lh[1])
-            _achar("-",  ra[0], ra[1]); _achar(">", rh[0], rh[1])
-        elif action == 'hurt':
-            _achar("<", la[0], la[1]); _achar("*", lh[0], lh[1])
-            _achar(">", ra[0], ra[1]); _achar("*", rh[0], rh[1])
-        elif action == 'duck':
-            _achar("-", la[0], la[1]); _achar("_", lh[0], lh[1])
-            _achar("-", ra[0], ra[1]); _achar("_", rh[0], rh[1])
-        else:
-            _achar("/",  la[0], la[1]); _achar("|", lh[0], lh[1])
-            _achar("\\", ra[0], ra[1]); _achar("|", rh[0], rh[1])
-        # Legs
-        if action == 'kick':
-            _achar("/",  lk[0], lk[1]); _achar("|", lf[0], lf[1])
-            _achar("=",  rk[0], rk[1]); _achar(">", rf[0] + facing * 5, rf[1])
-        elif action == 'jump':
-            _achar("/",  lk[0], lk[1]); _achar("/",  lf[0], lf[1])
-            _achar("\\", rk[0], rk[1]); _achar("\\", rf[0], rf[1])
-        elif action == 'duck':
-            _achar("/",  lk[0], lk[1]); _achar("_", lf[0], lf[1])
-            _achar("\\", rk[0], rk[1]); _achar("_", rf[0], rf[1])
-        else:
-            _achar("/",  lk[0], lk[1]); _achar("|", lf[0], lf[1])
-            _achar("\\", rk[0], rk[1]); _achar("|", rf[0], rf[1])
-        draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing, s, col)
-        if action == 'punch':
-            return (int(ra[0] + facing * 10 * s), int(ra[1]))
-        if action == 'kick':
-            return (int(waist[0] + facing * int(action_t * 80 * s)), int(y - 20 * s))
-        return None
 
     # ── Snake: draw only classic snake-game blocks, no stickman ─────────────
     if char_name == "Snake":

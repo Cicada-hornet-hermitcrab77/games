@@ -1,0 +1,4 @@
+attach: characters/Brawler
+author: Cicada77
+
+brawler is the best default character

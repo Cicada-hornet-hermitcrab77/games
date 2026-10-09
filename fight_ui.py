@@ -250,7 +250,6 @@ CHEAT_CODES = {
     "pyro_man":           "Pyro",
     # Hard AI
     "hard_as_nails":      "Hardy",
-    "ascii_draw":         "ASCII",
     "viking_fury":        "Viking",
     "laser_sight":        "Laser Eyes",
     "crit_hit_go":        "Mr. Crit",
@@ -3304,6 +3303,24 @@ def _wiki_wrap(text, font, width):
     return out
 
 
+def _wiki_cat_chip(rect, cats, vertical=False, border=True):
+    """A fighter's family as colour. Two families, half and half; three, thirds."""
+    if not cats:
+        return
+    _span = rect.height if vertical else rect.width
+    for _i, _c in enumerate(cats):
+        _a = rect.y + _span * _i // len(cats) if vertical else rect.x + _span * _i // len(cats)
+        _b = (rect.y + _span * (_i + 1) // len(cats) if vertical
+              else rect.x + _span * (_i + 1) // len(cats))
+        _col = _wiki.CATEGORY_COLOR.get(_c, (120, 120, 134))
+        if vertical:
+            pygame.draw.rect(screen, _col, (rect.x, _a, rect.width, max(1, _b - _a)))
+        else:
+            pygame.draw.rect(screen, _col, (_a, rect.y, max(1, _b - _a), rect.height))
+    if border:
+        pygame.draw.rect(screen, (40, 42, 54), rect, 1)
+
+
 def _wiki_stage_thumb(idx, w, h):
     """A small picture of a map, drawn once and kept."""
     key = (idx, w, h)
@@ -3476,7 +3493,7 @@ def _wiki_confirm(question, yes="YES", no="NO"):
         pygame.display.flip()
 
 
-def wiki_editor(page=None, section_id="lore", attach_to=None):
+def wiki_editor(page=None, section_id="lore", attach_to=None, author=""):
     """Write a wiki page without leaving the game.
 
     What it saves is an ordinary file in the wiki/ folder — the same thing
@@ -3529,7 +3546,7 @@ def wiki_editor(page=None, section_id="lore", attach_to=None):
                         if attach_to or f_title.text().strip():
                             _fn = _wiki.save_page(sec_ids[sec_i], f_title.text().strip(),
                                                   f_sub.text().strip(), f_body.text(),
-                                                  editing, attach_to)
+                                                  editing, attach_to, author)
                             if _fn:
                                 return _fn
                             note = "could not save — is the wiki folder writable?"
@@ -3569,7 +3586,7 @@ def wiki_editor(page=None, section_id="lore", attach_to=None):
                     else:
                         _fn = _wiki.save_page(sec_ids[sec_i], f_title.text().strip(),
                                               f_sub.text().strip(), f_body.text(),
-                                              editing, attach_to)
+                                              editing, attach_to, author)
                         if _fn:
                             return _fn
                         note = "could not save — is the wiki folder writable?"
@@ -3628,6 +3645,10 @@ def wiki_editor(page=None, section_id="lore", attach_to=None):
             _h = font_tiny.render("it saves into the wiki folder, as a plain text file "
                                   "anyone can open", True, (110, 112, 132))
             screen.blit(_h, (BOXX + _t.get_width() + 14, 30))
+            if author:
+                _au = font_tiny.render(f"it will say written by {author}", True,
+                                       (150, 185, 150))
+                screen.blit(_au, (BOXX + _t.get_width() + 14, 16))
 
             if attach_to:
                 _wl = font_small.render("your notes go at the bottom of", True,
@@ -3730,6 +3751,10 @@ def wiki_screen(unlocked=(), stats=None):
     is never out of date. Pages dropped into the wiki/ folder are read in
     alongside — see wiki/README.txt.
     """
+    try:
+        _author = (_net.load_userdata() or {}).get("username", "") or ""
+    except Exception:
+        _author = ""
     data = _wiki.build(unlocked, stats)
     sections = [s for s in _wiki.SECTIONS if data.get(s["id"])]
     if not sections:
@@ -3784,9 +3809,14 @@ def wiki_screen(unlocked=(), stats=None):
             lines.append(("title", page["title"]))
             if page.get("subtitle"):
                 lines.append(("sub", page["subtitle"]))
-            if page.get("tags") or page.get("contributed"):
-                lines.append(("tags", list(page.get("tags", [])) +
-                              (["written by a player"] if page.get("contributed") else [])))
+            _byline = []
+            if page.get("contributed"):
+                _byline = [f"written by {page['author']}" if page.get("author")
+                           else "written by a player"]
+            elif page.get("notes_author"):
+                _byline = [f"notes by {page['notes_author']}"]
+            if page.get("tags") or _byline:
+                lines.append(("tags", list(page.get("tags", [])) + _byline))
             lines.append(("gap", 6))
             for item in page.get("body", []):
                 if isinstance(item, str):
@@ -3806,8 +3836,19 @@ def wiki_screen(unlocked=(), stats=None):
                     lines.append(("kv", item[1], item[2]))
                 elif item[0] == "bar":
                     lines.append(("bar", item[1], item[2], item[3]))
+                elif item[0] == "cats":
+                    lines.append(("cats", item[1]))
+                elif item[0] == "tree":
+                    _prev = None
+                    for _d, _txt in item[1]:
+                        for _wi, _ln in enumerate(_wiki_wrap(
+                                _txt, font_small, ARTW - 40 - _artw - _d * 18)):
+                            lines.append(("tree", _d, _ln, _wi == 0,
+                                          _prev is not None and _prev >= _d))
+                        _prev = _d
         _lh = {"title": 30, "sub": 18, "tags": 20, "gap": 0, "p": 19, "head": 24,
-               "bullet": 19, "bullet2": 19, "kv": 19, "bar": 20}
+               "bullet": 19, "bullet2": 19, "kv": 19, "bar": 20, "tree": 20,
+               "cats": 24}
         art_h = sum(l[1] if l[0] == "gap" else _lh[l[0]] for l in lines)
         _has_art = bool(page and page.get("art"))
         if _has_art:
@@ -3831,14 +3872,15 @@ def wiki_screen(unlocked=(), stats=None):
                 if pygame.Rect(WIDTH - 94, HEIGHT - 38, 86, 30).collidepoint(_mp):
                     return
                 if pygame.Rect(LISTX, HEIGHT - 38, 104, 30).collidepoint(_mp):
-                    _fn = wiki_editor(section_id=sections[sec_i]["id"])
+                    _fn = wiki_editor(section_id=sections[sec_i]["id"], author=_author)
                     if _fn:
                         _reload(_fn)
                     continue
                 if page and not page.get("secret"):
                     if pygame.Rect(LISTX + 112, HEIGHT - 38, 104, 30).collidepoint(_mp):
-                        _fn = (wiki_editor(page) if page.get("file") else
-                               wiki_editor(attach_to=(sections[sec_i]["id"], page["title"])))
+                        _fn = (wiki_editor(page, author=_author) if page.get("file") else
+                               wiki_editor(attach_to=(sections[sec_i]["id"], page["title"]),
+                                             author=_author))
                         if _fn:
                             _reload(_fn if page.get("file") else None)
                         continue
@@ -3882,16 +3924,17 @@ def wiki_screen(unlocked=(), stats=None):
                 elif event.key == pygame.K_PAGEUP:
                     art_scroll = max(0, art_scroll - 160)
                 elif event.key == pygame.K_F2 and not query:
-                    _fn = wiki_editor(section_id=sections[sec_i]["id"])
+                    _fn = wiki_editor(section_id=sections[sec_i]["id"], author=_author)
                     if _fn:
                         _reload(_fn)
                 elif event.key == pygame.K_F3 and page and not page.get("secret"):
                     if page.get("file"):
-                        _fn = wiki_editor(page)
+                        _fn = wiki_editor(page, author=_author)
                         if _fn:
                             _reload(_fn)
                     else:
-                        if wiki_editor(attach_to=(sections[sec_i]["id"], page["title"])):
+                        if wiki_editor(attach_to=(sections[sec_i]["id"], page["title"]),
+                                             author=_author):
                             _reload()
                 elif getattr(event, "unicode", "") and event.unicode.isprintable():
                     query += event.unicode
@@ -3949,8 +3992,11 @@ def wiki_screen(unlocked=(), stats=None):
                 pygame.draw.rect(screen, (36, 38, 52),
                                  (LISTX + 2, _y, LISTW - 4, ROWH - 2), border_radius=4)
             _col = WHITE if _on else (168, 170, 186)
+            if _p.get("cats"):
+                _wiki_cat_chip(pygame.Rect(LISTX + 4, _y + 3, 4, ROWH - 8),
+                               _p["cats"], vertical=True, border=False)
             _nm = font_small.render(_p["title"], True, _col)
-            screen.blit(_nm, (LISTX + 10, _y + 2))
+            screen.blit(_nm, (LISTX + (14 if _p.get("cats") else 10), _y + 2))
             if _p.get("owned"):
                 pygame.draw.circle(screen, (110, 220, 130),
                                    (LISTX + LISTW - 12, _y + ROWH // 2 - 1), 3)
@@ -4021,6 +4067,26 @@ def wiki_screen(unlocked=(), stats=None):
                             pygame.draw.circle(screen, _pc, (ARTX + 18, _y + 9), 2)
                         _s2 = font_small.render(_ln[1], True, (205, 207, 220))
                         screen.blit(_s2, (ARTX + 30, _y))
+                    elif _k == "cats":
+                        _cr = pygame.Rect(ARTX + 12, _y + 3, 76, 14)
+                        _wiki_cat_chip(_cr, _ln[1])
+                        _cn = "  ·  ".join(_wiki.CATEGORY_LABEL.get(c, c) for c in _ln[1])
+                        _s2 = font_small.render(_cn, True, (205, 207, 220))
+                        screen.blit(_s2, (_cr.right + 10, _y + 1))
+                    elif _k == "tree":
+                        _d, _txt, _first, _sib = _ln[1], _ln[2], _ln[3], _ln[4]
+                        _ix = ARTX + 14 + _d * 18
+                        if _first and _d:
+                            # the elbow joining this branch to the one above
+                            pygame.draw.line(screen, tuple(c // 2 for c in _pc),
+                                             (_ix - 10, _y - 4), (_ix - 10, _y + 10), 1)
+                            pygame.draw.line(screen, tuple(c // 2 for c in _pc),
+                                             (_ix - 10, _y + 10), (_ix - 2, _y + 10), 1)
+                        _tc = (_pc if _d == 0 else
+                               (225, 227, 240) if _d == 1 else (190, 192, 208))
+                        _fnt = font_small if _d <= 1 else font_small
+                        _s2 = _fnt.render(_txt, True, _tc)
+                        screen.blit(_s2, (_ix + (0 if _first else 10), _y + 2))
                     elif _k == "kv":
                         _s2 = font_small.render(str(_ln[1]), True, (150, 152, 170))
                         screen.blit(_s2, (ARTX + 12, _y))

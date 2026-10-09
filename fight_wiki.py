@@ -31,7 +31,8 @@ There are two ways to add one, and neither touches any other file:
      picked up automatically the next time the game starts.
 
 A page's body is a list. A plain string is a paragraph; the tuples are
-("h", heading), ("b", bullet), ("kv", key, value) and ("bar", label, n, max).
+("h", heading), ("b", bullet), ("kv", key, value), ("bar", label, n, max)
+and ("tree", [(depth, text), ...]) for a branching list.
 """
 import os
 import re
@@ -123,7 +124,7 @@ ABILITY_NAMES = {
     "momentum": "Momentum",               "overdrive": "Overdrive",
     "overload": "Overload",               "pacifist": "Pacifist",
     "screentime": "Steals the screen",    "glitch_char": "Glitched",
-    "ascii_fighter": "Made of text",      "f13_dmg": "Friday the 13th damage",
+    "f13_dmg": "Friday the 13th damage",
     "prime_dmg": "Prime-number damage",   "seven_punch": "Lucky seven punch",
     "halves_punch": "Halving punch",      "nick_of_time": "Nick of time",
     "soul_master": "Soul master",         "voodoo": "Voodoo",
@@ -144,6 +145,124 @@ ABILITY_NAMES = {
 }
 
 _HIDE_FLAGS = {"shop_only", "costume_variant", "legacy_costume"}
+
+
+# ── What kind of fighter is this? ───────────────────────────────────────────
+# The leaves of the roster tree, each with a colour. A fighter wears the ones
+# it matches; two elements means half and half, three means thirds.
+CATEGORIES = [
+    ("pyrokin",     "Pyrokin",      (236,  92,  44)),
+    ("fishikin",    "Fishikin",     ( 58, 140, 232)),
+    ("cryokin",     "Cryokin",      (150, 226, 246)),
+    ("shockkin",    "Shockkin",     (242, 214,  62)),
+    ("venomskin",   "Venomskin",    (128, 206,  70)),
+    ("jokkin",      "Jokkin",       (226, 102, 210)),
+    ("hammerhead",  "Hammerhead",   (154, 162, 178)),
+    ("rockkin",     "Rockkin",      (158, 120,  86)),
+    ("plantkin",    "Plantkin",     ( 76, 168,  84)),
+    ("airkin",      "Airkin",       (206, 226, 240)),
+    ("gunners",     "Gunners",      (108, 142, 174)),
+    ("explosers",   "Explosers",    (250, 150,  50)),
+    ("copycats",    "Copycats",     (190, 170, 232)),
+    ("snake",       "Snake clan",   ( 58, 182,  92)),
+    ("bug",         "Bug clan",     (154, 172,  62)),
+    ("ghost",       "Ghost clan",   (202, 206, 232)),
+    ("unhittable",  "Unhittables",  (238, 238, 248)),
+    ("major",       "Seasonal major", (255, 200,  60)),
+    ("minor",       "Seasonal minor", (206, 166,  72)),
+    ("variant",     "Variant",      (192, 132,  82)),
+    ("fuser",       "Fuser",        (200, 140, 255)),
+    ("secret",      "Secret master", (202,  62,  92)),
+    ("default",     "Default",      (142, 146, 162)),
+    ("other",       "Other",        (106, 110, 126)),
+]
+CATEGORY_COLOR = {c[0]: c[2] for c in CATEGORIES}
+CATEGORY_LABEL = {c[0]: c[1] for c in CATEGORIES}
+
+# Which flags put a fighter in which family. A fighter with none of them has
+# no ability worth the name, and falls through to where it came from instead.
+_CAT_FLAGS = {
+    "pyrokin":    ("fire_punch", "fire_aura", "flame_trail", "wildfire",
+                   "summer_wildfire", "burning_mine_punch", "lava_immune",
+                   "phoenix_revive", "nian_breath", "saint_nix_coal"),
+    "fishikin":   ("water_kick", "water_breathing", "bubble_kick", "bubble_shield",
+                   "river_pull", "ink_kick", "red_herring"),
+    "cryokin":    ("freeze_kick", "freeze_laser", "freeze_on_melee_hit", "snow_aura",
+                   "glacier_punch", "ice_yellowstone_kick", "wind_mace_punch"),
+    "shockkin":   ("shock_aura", "shock_kick", "shock_punch", "thunder_punch",
+                   "ultralightning_kick", "storm_punch", "overload"),
+    "venomskin":  ("poison_kick", "toxic_aura", "venom_kick", "plague_punch",
+                   "flower_trail_poison", "widow_kick", "sap_kick", "decay_punch",
+                   "cursed_drain"),
+    "jokkin":     ("confuse_kick", "confuse_punch", "hypno_kick", "disorientated",
+                   "vex_debuff", "marionette_kick", "mirage", "hex_kick"),
+    "hammerhead": ("hammer_punch", "hammer_slam_kick", "quake_punch", "quake_land",
+                   "slam_kick", "stomp_punch", "titan_grip"),
+    "gunners":    ("sniper_shot", "rapid_fire", "auto_fire", "shoot_kick",
+                   "orb_shooter", "laser_eyes", "sniper_multiply_kick",
+                   "arcane_orb", "cobra_orb", "rockball_kick", "seed_rain_punch"),
+    "explosers":  ("nuke_bomb", "bomb_character", "explode_death", "mine_kick",
+                   "deco_bomb_kick", "slime_bomb_kick", "exploding_tire_kick",
+                   "bazooka_kick", "worm_mine_punch", "black_hole_kick"),
+    "copycats":   ("copycat", "copy_punch", "mimic_move", "mimic_stats", "chameleon",
+                   "bloob_shapeshift", "possess_kick", "swap_kick"),
+    "snake":      ("snake", "rainbow_snake", "golden_snake_kick", "taipan_punch",
+                   "snake_tail_lunge", "chomp_bite"),
+    "bug":        ("bee_punch", "bug_spawner_kick", "giant_bug_kick", "web_kick",
+                   "spider_dodge", "scorpio_kick", "muskshroom_punch"),
+    "ghost":      ("ghost_float", "phase", "phantom_strike", "poltergeist_fling",
+                   "undead", "revenant", "shade", "dementor_heal", "soul_master",
+                   "shadow_teleport_block", "shadow_mark_kick"),
+    "unhittable": ("unhittable", "mega_unhittable", "immune", "void_immune",
+                   "oracle_dodge", "phase_dodge", "auto_teleport", "auto_forcefield"),
+}
+
+# The dearest fighter on an event's shelf is its face; the rest are the rest.
+_MAJORS = set()
+for _ev in {c["event"] for c in SEASONAL_SHOP_CHARS}:
+    _roster = [c for c in SEASONAL_SHOP_CHARS if c["event"] == _ev]
+    if _roster:
+        _MAJORS.add(max(_roster, key=lambda c: c["cost"])["name"])
+
+
+# The Fuser deals in six elements. Three of them are the drawing's elementals
+# under another name; three it never got round to naming.
+_FUSER_ELEMENT_CAT = {"water": "fishikin", "fire": "pyrokin", "electric": "shockkin",
+                      "rock": "rockkin", "plant": "plantkin", "air": "airkin"}
+_FUSED_CATS = {}
+for _combo, _res in FUSER_RECIPES.items():
+    _FUSED_CATS[_res["name"]] = [_FUSER_ELEMENT_CAT[e] for e in sorted(_combo)
+                                 if e in _FUSER_ELEMENT_CAT]
+
+
+def categories_of(ch, conditions=None):
+    """The families a fighter belongs to, in the order CATEGORIES lists them."""
+    # A fused fighter is exactly the elements it was made from — no guessing
+    if ch["name"] in _FUSED_CATS:
+        _fc = _FUSED_CATS[ch["name"]]
+        return [c[0] for c in CATEGORIES if c[0] in _fc]
+    flags = {k for k, v in ch.items() if v is True}
+    cats = [cid for cid, want in _CAT_FLAGS.items() if flags.intersection(want)]
+    if cats:
+        return [c[0] for c in CATEGORIES if c[0] in cats]
+    # No ability of its own — say where it came from instead
+    name = ch["name"]
+    if ch.get("costume_of") or any(k.endswith("_variant") for k in flags):
+        return ["variant"]
+    if name in _FUSER_BY_NAME:
+        return ["fuser"]
+    if name in _SEASONAL_BY_NAME:
+        return ["major" if name in _MAJORS else "minor"]
+    cond = (conditions or {}).get(name)
+    if cond and len(cond) > 4 and cond[4]:
+        return ["secret"]
+    try:
+        from fight_game import _DEFAULT_UNLOCK
+    except Exception:
+        _DEFAULT_UNLOCK = set()
+    if name in _DEFAULT_UNLOCK:
+        return ["default"]
+    return ["other"]
 
 # A bar is only worth drawing against the rest of the roster
 def _roster_max(key, default):
@@ -311,10 +430,13 @@ def _character_pages(unlocked):
                 body.append(("kv", s, "at home"))
             for s in hated:
                 body.append(("kv", s, "out of his depth"))
+        cats = categories_of(ch, conditions)
+        body.insert(0, ("h", "Family"))
+        body.insert(1, ("cats", cats))
         out.append({
             "section": "characters", "title": name,
             "subtitle": ch.get("desc", ""), "color": ch["color"],
-            "art": ("fighter", name), "tags": tags,
+            "art": ("fighter", name), "tags": tags, "cats": cats,
             "owned": name in unlocked, "body": body,
         })
     return out
@@ -572,6 +694,66 @@ PAGES = [
          ("b", "Achievements — some hand over a costume."),
          ("b", "Secrets. Some fighters are not unlocked at all. They are found."),
      ]},
+    {"section": "characters", "title": "How the roster is grouped",
+     "subtitle": "every fighter is one of these",
+     "body": [
+         "Four hundred and thirty-odd fighters sounds like chaos until you "
+         "notice they all fall into a handful of families. This is the whole "
+         "roster, sorted by what a fighter actually is.",
+         ("tree", [
+             (0, "Characters"),
+             (1, "Seasonal — only on sale during their event"),
+             (2, "Major — the face of the event"),
+             (2, "Minor — the rest of that event's shelf"),
+             (2, "Variants — a second form of one you already own"),
+             (1, "Clans — fighters that belong to something bigger"),
+             (2, "Snake clan"),
+             (2, "Bug clan"),
+             (2, "Ghost clan"),
+             (2, "Unhittables"),
+             (1, "No ability — the fighting is all there is"),
+             (2, "Default — the four you start with"),
+             (2, "Other"),
+             (1, "Abilitizers — the ones with a trick"),
+             (2, "Copycats — they use yours"),
+             (2, "Shooters"),
+             (3, "Gunners — a steady stream"),
+             (3, "Explosers — one loud one"),
+             (2, "Elementals"),
+             (3, "Pyrokin — fire"),
+             (3, "Hydrakin — liquid"),
+             (4, "Fishikin — water"),
+             (4, "Cryokin — ice"),
+             (3, "Shockkin — lightning"),
+             (3, "Venomskin — poison"),
+             (3, "Jokkin — confusion"),
+             (3, "Hammerhead — impact"),
+             (3, "Rockkin — stone, from the Fuser"),
+             (3, "Plantkin — green, from the Fuser"),
+             (3, "Airkin — wind, from the Fuser"),
+             (1, "Fuser — made, not found"),
+             (1, "Cipher — typed in, not won"),
+             (1, "Secret masters — the ones nobody will tell you about"),
+         ]),
+         ("h", "The colours"),
+         "Every fighter in this wiki carries its family as a stripe beside its "
+         "name, and the same colours again at the top of its page. A fighter "
+         "in two families is striped half and half; in three, thirds. The "
+         "fused ones are always exactly two, because that is what they are "
+         "made of.",
+         ] + [("cats", [_c[0]]) for _c in CATEGORIES] + [
+         ("h", "Where the edges blur"),
+         ("b", "A fighter can sit in two families at once. A seasonal "
+               "elemental is still an elemental."),
+         ("b", "Elementals who answer to every element are their own small "
+               "club — elemental-all."),
+         ("b", "Ghost clan is the one nobody can agree on. Some of them are "
+               "only ghosts on the way out."),
+         ("h", "Why it matters"),
+         "Mostly it does not — nothing in the game checks these. It is how "
+         "to think about a roster this size, and how to guess what a fighter "
+         "you have never seen is going to do to you.",
+     ]},
     {"section": "modes", "title": "1 Player",
      "subtitle": "versus the computer",
      "body": ["Pick a fighter, pick a map, fight the computer. The difficulty "
@@ -657,7 +839,7 @@ def _parse_page(text, fallback_title):
     lines = text.replace("\r\n", "\n").split("\n")
     i = 0
     while i < len(lines):
-        m = re.match(r"^(section|title|subtitle|color|tags|attach)\s*:\s*(.*)$",
+        m = re.match(r"^(section|title|subtitle|color|tags|attach|author)\s*:\s*(.*)$",
                      lines[i].strip(), re.I)
         if not m:
             break
@@ -705,6 +887,7 @@ def _parse_page(text, fallback_title):
             head.setdefault("section", attach[0])
             head.setdefault("title", attach[1])
     return {"raw": text, "attach": attach,
+            "author": head.get("author", "").strip(),
             "section": (head.get("section") or "lore").lower().strip(),
             "title": head.get("title") or fallback_title,
             "subtitle": head.get("subtitle", ""), "color": col,
@@ -741,7 +924,7 @@ def _slug(title):
     return out[:48] or "page"
 
 
-def compose(section, title, subtitle, body_text, attach=None):
+def compose(section, title, subtitle, body_text, attach=None, author=""):
     """The text of a page file, exactly as a person would have typed it."""
     if attach:
         head = [f"attach: {attach[0]}/{attach[1]}"]
@@ -749,6 +932,8 @@ def compose(section, title, subtitle, body_text, attach=None):
         head = [f"section: {section}", f"title: {title}"]
         if subtitle.strip():
             head.append(f"subtitle: {subtitle.strip()}")
+    if author.strip():
+        head.append(f"author: {author.strip()}")
     return "\n".join(head) + "\n\n" + body_text.rstrip() + "\n"
 
 
@@ -763,7 +948,8 @@ def find_note(section, title):
     return fn if os.path.exists(os.path.join(WIKI_DIR, fn)) else None
 
 
-def save_page(section, title, subtitle, body_text, filename=None, attach=None):
+def save_page(section, title, subtitle, body_text, filename=None, attach=None,
+              author=""):
     """Write a page into wiki/. Returns its filename, or None if it failed.
 
     Pages written in game are ordinary files in the same folder people drop
@@ -782,7 +968,7 @@ def save_page(section, title, subtitle, body_text, filename=None, attach=None):
                 filename = f"{base}-{_i}.txt"
                 _i += 1
         with open(os.path.join(WIKI_DIR, filename), "w", encoding="utf-8") as fh:
-            fh.write(compose(section, title, subtitle, body_text, attach))
+            fh.write(compose(section, title, subtitle, body_text, attach, author))
         return filename
     except Exception:
         return None
@@ -802,7 +988,8 @@ def body_source(page):
         lines = page["raw"].replace("\r\n", "\n").split("\n")
         i = 0
         while i < len(lines) and re.match(
-                r"^(section|title|subtitle|color|tags|attach)\s*:", lines[i].strip(), re.I):
+                r"^(section|title|subtitle|color|tags|attach|author)\s*:",
+                lines[i].strip(), re.I):
             i += 1
         while i < len(lines) and not lines[i].strip():
             i += 1
@@ -825,7 +1012,14 @@ def body_source(page):
 def _haystack(p):
     bits = [p.get("title", ""), p.get("subtitle", "")] + list(p.get("tags", []))
     for item in p.get("body", []):
-        bits.append(item if isinstance(item, str) else " ".join(str(x) for x in item[1:]))
+        if isinstance(item, str):
+            bits.append(item)
+        elif item[0] == "tree":
+            bits += [t for _d, t in item[1]]
+        elif item[0] == "cats":
+            bits += [CATEGORY_LABEL.get(c, c) for c in item[1]]
+        else:
+            bits.append(" ".join(str(x) for x in item[1:]))
     return " ".join(bits).lower()
 
 
@@ -862,8 +1056,12 @@ def build(unlocked=(), stats=None):
             note["contributed"] = True
             out.setdefault(sec, []).append(note)
             continue
-        target["body"] = list(target["body"]) + [("h", "Notes")] + list(note["body"])
+        _by = note.get("author")
+        target["body"] = (list(target["body"])
+                          + [("h", f"Notes from {_by}" if _by else "Notes")]
+                          + list(note["body"]))
         target["notes_file"] = note.get("file")
+        target["notes_author"] = _by
         target["tags"] = list(target.get("tags", [])) + ["has notes"]
         target["search"] = _haystack(target)
 

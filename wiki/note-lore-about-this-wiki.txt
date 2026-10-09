@@ -1,0 +1,4 @@
+attach: lore/About this wiki
+author: Cicada77
+
+Cicada77 here!<_>

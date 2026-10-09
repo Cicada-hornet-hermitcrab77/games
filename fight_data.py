@@ -254,10 +254,6 @@ CHARACTERS = [
      "punch_dmg": 9, "kick_dmg": 11, "max_hp": 110, "block": 5,
      "desc": "Leaves a smoke trail wherever he runs", "double_jump": True,
      "smoke_trail": True},
-    {"name": "ASCII", "color": (0, 255, 120), "speed": 7, "jump": -13,
-     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 120, "block": 6,
-     "desc": "Made entirely of keyboard keys", "double_jump": True,
-     "ascii_fighter": True},
     # ---------- new batch ----------
     {"name": "Snake", "color": (20, 200, 60), "speed": 4, "jump": -10,
      "punch_dmg": 8, "kick_dmg": 10, "max_hp": 100, "block": 5,
