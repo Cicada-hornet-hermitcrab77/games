@@ -278,6 +278,15 @@ def categories_of(ch, conditions=None):
         return ["variant"]
     if ch["name"] in _FUSED_CATS or ch["name"] in _FUSER_BY_NAME:
         return ["fuser"]
+    # So do secret and master, and they are not the same thing: a secret is
+    # hidden until somebody finds it, a master is what finding enough of them
+    # earns you.
+    _c0 = (conditions or {}).get(ch["name"])
+    if _c0:
+        if len(_c0) > 4 and _c0[4]:
+            return ["secret"]
+        if _c0[0] == "secret_chars":
+            return ["master"]
     cats = [cid for cid, want in _CAT_FLAGS.items() if flags.intersection(want)]
     if any(c in _KINS for c in cats):
         cats = [c for c in cats if c not in _OVERPOWERED_BY_KIN]
@@ -285,17 +294,9 @@ def categories_of(ch, conditions=None):
     # A seasonal — one with no other way in — carries its event's standing
     if seasonal_only(name, conditions):
         cats.append(event_rank(_SEASONAL_BY_NAME[name]["event"]))
-    # Secret and master are not the same thing. Secret is hidden until it is
-    # found; master is earned by having found enough of them. Either sits on
-    # top of whatever kin the fighter already belongs to.
     _cond = (conditions or {}).get(name)
-    if _cond:
-        if len(_cond) > 4 and _cond[4]:
-            cats.append("secret")
-        if _cond[0] == "secret_chars":
-            cats.append("master")
-        if _cond[0] in _CLAN_BY_CONDITION:
-            cats.append(_CLAN_BY_CONDITION[_cond[0]])
+    if _cond and _cond[0] in _CLAN_BY_CONDITION:
+        cats.append(_CLAN_BY_CONDITION[_cond[0]])
     if cats:
         return [c[0] for c in CATEGORIES if c[0] in cats]
     # No ability of its own — say where it came from instead
@@ -883,7 +884,7 @@ PAGES = [
              (3, "Airkin — wind, from the Fuser"),
              (1, "Fuser — made, not found, and nothing else besides"),
              (1, "Cipher — typed in, not won"),
-             (1, "Secret — hidden until somebody finds it"),
+             (1, "Secret — hidden until somebody finds it, and nothing else"),
              (1, "Masters — earned by having found enough secrets"),
          ]),
          ("h", "The colours"),
@@ -896,10 +897,9 @@ PAGES = [
          ("h", "Where the edges blur"),
          ("b", "A fighter can sit in two families at once. A seasonal "
                "elemental is still an elemental, and wears both."),
-         ("b", "Secret and master are not the same thing. A secret is hidden "
-               "until it is found; a master is what finding enough of them "
-               "earns you. Both sit on top of whatever kin a fighter already "
-               "belongs to."),
+         ("b", "Secret and master beat everything too, and they are not the "
+               "same thing. A secret is hidden until somebody finds it; a "
+               "master is what finding enough of them earns you."),
          ("b", "Major and minor belong to the event, not the fighter. The "
                "minor seven are Emerald Echoes, Bound to the Ground, Legacy "
                "of Valor, Summer Solstice, Novel Beginnings, Project "
