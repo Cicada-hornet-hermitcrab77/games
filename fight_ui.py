@@ -4070,7 +4070,15 @@ def wiki_screen(unlocked=(), stats=None):
                     elif _k == "cats":
                         _cr = pygame.Rect(ARTX + 12, _y + 3, 76, 14)
                         _wiki_cat_chip(_cr, _ln[1])
-                        _cn = "  ·  ".join(_wiki.CATEGORY_LABEL.get(c, c) for c in _ln[1])
+                        # Drop whole names rather than cutting one in half
+                        _names = [_wiki.CATEGORY_LABEL.get(c, c) for c in _ln[1]]
+                        _room = _tw - 88
+                        _shown = len(_names)
+                        _cn = "  ·  ".join(_names)
+                        while _shown > 1 and font_small.size(_cn)[0] > _room:
+                            _shown -= 1
+                            _cn = ("  ·  ".join(_names[:_shown])
+                                   + f"  +{len(_names) - _shown} more")
                         _s2 = font_small.render(_cn, True, (205, 207, 220))
                         screen.blit(_s2, (_cr.right + 10, _y + 1))
                     elif _k == "tree":

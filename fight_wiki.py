@@ -151,6 +151,8 @@ _HIDE_FLAGS = {"shop_only", "costume_variant", "legacy_costume"}
 # The leaves of the roster tree, each with a colour. A fighter wears the ones
 # it matches; two elements means half and half, three means thirds.
 CATEGORIES = [
+    ("secret",      "Secret",       (202,  62,  92)),
+    ("master",      "Master",       (242, 162,  70)),
     ("pyrokin",     "Pyrokin",      (236,  92,  44)),
     ("fishikin",    "Fishikin",     ( 58, 140, 232)),
     ("cryokin",     "Cryokin",      (150, 226, 246)),
@@ -172,7 +174,6 @@ CATEGORIES = [
     ("minor",       "Seasonal minor", (206, 166,  72)),
     ("variant",     "Variant",      (192, 132,  82)),
     ("fuser",       "Fuser",        (200, 140, 255)),
-    ("secret",      "Secret master", (202,  62,  92)),
     ("default",     "Default",      (142, 146, 162)),
     ("other",       "Other",        (106, 110, 126)),
 ]
@@ -206,23 +207,55 @@ _CAT_FLAGS = {
                    "bazooka_kick", "worm_mine_punch", "black_hole_kick"),
     "copycats":   ("copycat", "copy_punch", "mimic_move", "mimic_stats", "chameleon",
                    "bloob_shapeshift", "possess_kick", "swap_kick"),
-    "snake":      ("snake", "rainbow_snake", "golden_snake_kick", "taipan_punch",
-                   "snake_tail_lunge", "chomp_bite"),
-    "bug":        ("bee_punch", "bug_spawner_kick", "giant_bug_kick", "web_kick",
-                   "spider_dodge", "scorpio_kick", "muskshroom_punch"),
     "ghost":      ("ghost_float", "phase", "phantom_strike", "poltergeist_fling",
                    "undead", "revenant", "shade", "dementor_heal", "soul_master",
                    "shadow_teleport_block", "shadow_mark_kick"),
-    "unhittable": ("unhittable", "mega_unhittable", "immune", "void_immune",
-                   "oracle_dodge", "phase_dodge", "auto_teleport", "auto_forcefield"),
 }
 
-# The dearest fighter on an event's shelf is its face; the rest are the rest.
-_MAJORS = set()
-for _ev in {c["event"] for c in SEASONAL_SHOP_CHARS}:
-    _roster = [c for c in SEASONAL_SHOP_CHARS if c["event"] == _ev]
-    if _roster:
-        _MAJORS.add(max(_roster, key=lambda c: c["cost"])["name"])
+# A clan is not something a fighter can do, it is what you had to do to earn
+# him. Snakes in the Jungle, bugs in the Computer, projectiles blocked.
+# An element beats a firing pattern: a fighter who throws fire is a pyrokin,
+# not a gunner who happens to be warm.
+_KINS = ("pyrokin", "fishikin", "cryokin", "shockkin", "venomskin", "jokkin",
+         "hammerhead", "rockkin", "plantkin", "airkin")
+_OVERPOWERED_BY_KIN = ("gunners", "explosers")
+
+_CLAN_BY_CONDITION = {
+    "jungle_snake_kills":  "snake",
+    "computer_bug_kills":  "bug",
+    "projectiles_blocked": "unhittable",
+}
+
+# Major or minor is a property of the event, not of the fighter: seven of the
+# fourteen are the minor ones, and everybody who comes out of them is minor.
+MINOR_EVENTS = {
+    "Emerald Echoes",        # St Patrick's
+    "Bound to the Ground",   # Earth Day
+    "Legacy of Valor",       # Tombstone
+    "Summer Solstice",
+    "Novel Beginnings",      # the book one
+    "Project Yellowstone",
+    "Aura of Menorah",
+}
+MAJOR_EVENTS = {c["event"] for c in SEASONAL_SHOP_CHARS} - MINOR_EVENTS
+
+
+def event_rank(event_name):
+    return "minor" if event_name in MINOR_EVENTS else "major"
+
+
+def seasonal_only(name, conditions=None):
+    """True when the shop window is the only way in.
+
+    Plenty of fighters turn up on a seasonal shelf and can also be won some
+    other way — Angel is in the Hearts and Harmonies shop and also comes free
+    for winning on Sky Island. Those are not seasonals. A seasonal is one you
+    cannot get any other way.
+    """
+    if name not in _SEASONAL_BY_NAME:
+        return False
+    cond = (conditions or {}).get(name)
+    return not cond or cond[3].startswith("Buy in Seasonal Shop")
 
 
 # The Fuser deals in six elements. Three of them are the drawing's elementals
@@ -237,25 +270,35 @@ for _combo, _res in FUSER_RECIPES.items():
 
 def categories_of(ch, conditions=None):
     """The families a fighter belongs to, in the order CATEGORIES lists them."""
-    # A fused fighter is exactly the elements it was made from — no guessing
-    if ch["name"] in _FUSED_CATS:
-        _fc = _FUSED_CATS[ch["name"]]
-        return [c[0] for c in CATEGORIES if c[0] in _fc]
     flags = {k for k, v in ch.items() if v is True}
+    # Two families beat everything else outright. A variant is a variant
+    # whatever the fighter underneath can do; and whatever went into a fused
+    # fighter, what comes out is a Fuser first and a Fuser last.
+    if ch.get("costume_of") or any(k.endswith("_variant") for k in flags):
+        return ["variant"]
+    if ch["name"] in _FUSED_CATS or ch["name"] in _FUSER_BY_NAME:
+        return ["fuser"]
     cats = [cid for cid, want in _CAT_FLAGS.items() if flags.intersection(want)]
+    if any(c in _KINS for c in cats):
+        cats = [c for c in cats if c not in _OVERPOWERED_BY_KIN]
+    name = ch["name"]
+    # A seasonal — one with no other way in — carries its event's standing
+    if seasonal_only(name, conditions):
+        cats.append(event_rank(_SEASONAL_BY_NAME[name]["event"]))
+    # Secret and master are not the same thing. Secret is hidden until it is
+    # found; master is earned by having found enough of them. Either sits on
+    # top of whatever kin the fighter already belongs to.
+    _cond = (conditions or {}).get(name)
+    if _cond:
+        if len(_cond) > 4 and _cond[4]:
+            cats.append("secret")
+        if _cond[0] == "secret_chars":
+            cats.append("master")
+        if _cond[0] in _CLAN_BY_CONDITION:
+            cats.append(_CLAN_BY_CONDITION[_cond[0]])
     if cats:
         return [c[0] for c in CATEGORIES if c[0] in cats]
     # No ability of its own — say where it came from instead
-    name = ch["name"]
-    if ch.get("costume_of") or any(k.endswith("_variant") for k in flags):
-        return ["variant"]
-    if name in _FUSER_BY_NAME:
-        return ["fuser"]
-    if name in _SEASONAL_BY_NAME:
-        return ["major" if name in _MAJORS else "minor"]
-    cond = (conditions or {}).get(name)
-    if cond and len(cond) > 4 and cond[4]:
-        return ["secret"]
     try:
         from fight_game import _DEFAULT_UNLOCK
     except Exception:
@@ -488,6 +531,110 @@ def _map_pages(unlocked):
     return out
 
 
+# ── The world the stages sit in ─────────────────────────────────────────────
+# Drawn by hand first. Each entry: the place, what kind of thing it is, who
+# lives there, and what was written about it.
+WORLD = [
+    ("Sea o' Seasons", "sea", ["Seasonals"],
+     "Only skilled navigators get past the Sea o' Seasons. Even Honner Cuboto "
+     "cannot. The best way through is the west route — which is why, during "
+     "the civil war, the majors took the west."),
+    ("Crashipine Mountain Range", "mountains", ["Unhittables"],
+     "The longest mountain range in the world. It stretches around 2,398 "
+     "quilos."),
+    ("Mount Crashipine", "mountain", [],
+     "The highest mountain in the world, over 3,000,000 quilos."),
+    ("Crashipine Sea", "sea", [],
+     "The largest freshwater sea in the world, and known to hold the gentle "
+     "but humungous Crashipine monster — Crashi, for short."),
+    ("Lake Crash", "lake", [],
+     "The small one, at the foot of the range that shares its name."),
+    ("Tanzono Rainforest", "forest", ["Snake clan", "Bug clan"],
+     "Behold: the biggest rainforest in the world. 4,673,219 quilos squared "
+     "and over 900 distinct species. Home to many clans and kins."),
+    ("The Waterlan Ocean", "ocean", ["Fishikin"],
+     "The middle ocean. The north is hot, grassy and a bit glitchy. The south "
+     "you do not want to go to — Fishikin will surround your boat like a "
+     "doughnut, and strike."),
+    ("Ghost clan's ground", "region", ["Ghost clan"],
+     "It is said ghost clan has been spotted here a few times. Of course, "
+     "there is no such thing as ghost clan. Or is there?"),
+    ("The Great Cities of the United States of Lanbo", "country", [],
+     "The crowded middle of the map, where most of the stages people actually "
+     "fight on are stacked up next to one another."),
+    ("City of Lanbo", "city", [],
+     "The capital of the USL. Population nineteen million."),
+    ("Cipher Island", "island", ["Secret", "Master"],
+     "Cipher had a civil war and split into Secret and Masters. ???"),
+    ("The Fuser", "wonder", ["Fuser"],
+     "The greatest mystery of Stickman Fight is who made the Fuser. Who?"),
+    ("The coldest place in the world", "pole", ["Cryokin"],
+     "Cryokin survive freezing temperatures. Even the best freezers dodge "
+     "this place. It is about as cold as when atoms freeze."),
+    ("Land of Hell", "region", ["Pyrokin"],
+     "This area is as hot as a humuwave — that is twice a heatwave."),
+    ("Sea of Hell", "sea", ["Pyrokin"],
+     "The water on the hot side of the map, for a given value of water."),
+    ("Volcano Urn", "volcano", ["Pyrokin"],
+     "Boom. Boom. Boom."),
+    ("Wombrock Town", "town", [],
+     "Wombrocks have been invading Tombstone lately. That is why Tombstone "
+     "sent two people to ask you: a tombstone called Tombstone, and, uh — a "
+     "black and white lanalle?"),
+    ("Ares Desert", "desert", ["Venomskin"],
+     "Dry, eastern, and nobody's idea of a shortcut."),
+    ("Dragon Skull Islands", "islands", [],
+     "Not much is known about this. Some people see it but cannot prove it. "
+     "Others do not even think it exists."),
+    ("a*@#!x", "???", [],
+     "g\u20ac@1!2rAO3xxx#Qwerty? Do! I.like-Q_WeRt.y"),
+]
+
+_WORLD_LEGEND = [
+    ("A plaque", "somewhere worth reading about"),
+    ("A square", "a stage you can fight on"),
+    ("A ring",   "ground a tribe holds"),
+]
+
+
+def _world_pages(unlocked):
+    out = [{
+        "section": "maps", "title": "The world",
+        "subtitle": "where all thirty-three stages actually are",
+        "color": (110, 215, 140), "art": None,
+        "tags": ["world", "map", "geography"],
+        "body": [
+            "The stages are not floating in nothing. They sit on a map — one "
+            "ocean in the middle, mountains and rainforest to the west, the "
+            "hot side to the north-east, the cities crowded in the centre, "
+            "and islands around the edge nobody can agree exist.",
+            ("h", "Reading the map"),
+            "Three marks are used on it, and nothing else.",
+        ] + [("kv", _k, _v) for _k, _v in _WORLD_LEGEND] + [
+            ("h", "Who holds what"),
+            "The tribes are drawn as rings. Every kin and every clan has "
+            "ground of its own.",
+        ] + [("kv", _tribe, _place)
+             for _place, _kind, _tribes, _blurb in WORLD
+             for _tribe in _tribes] + [
+            ("h", "The places"),
+        ] + [("b", _place) for _place, _k, _t, _b in WORLD],
+    }]
+    for place, kind, tribes, blurb in WORLD:
+        body = [blurb, ("h", "What it is"), ("kv", "Kind", kind)]
+        if tribes:
+            body.append(("kv", "Held by", ", ".join(tribes)))
+        body.append(("kv", "Part of", "the world map"))
+        out.append({
+            "section": "maps", "title": place,
+            "subtitle": f"{kind} · from the world map",
+            "color": (110, 215, 140), "art": None,
+            "tags": ["world"] + [t.lower() for t in tribes],
+            "body": body,
+        })
+    return out
+
+
 _MONTHS = ["", "January", "February", "March", "April", "May", "June", "July",
            "August", "September", "October", "November", "December"]
 
@@ -503,7 +650,8 @@ def _event_pages(unlocked):
         cos    = next((c for c in COSTUMES if c["event"] == ev["name"]), None)
         body = [f"{ev['name']} runs {when}. While it is on, the home screen "
                 f"changes, the shop opens, and these fighters can be bought — "
-                f"and only then."]
+                f"and only then.",
+                ("cats", [event_rank(ev["name"])])]
         body.append(("h", "Shop roster"))
         for c in roster:
             body.append(("kv", c["name"], f"{c['cost']} coins"
@@ -520,7 +668,8 @@ def _event_pages(unlocked):
             "section": "events", "title": ev["name"], "subtitle": when,
             "color": (255, 200, 60),
             "art": ("emblem", cos["emblem"], (255, 200, 60)) if cos else ("badge", "saintnix"),
-            "tags": (["complete"] if owned else []) +
+            "tags": [f"{event_rank(ev['name'])} event"] +
+                    (["complete"] if owned else []) +
                     (["special mode"] if ev.get("special_mode_label") else []),
             "body": body,
         })
@@ -694,29 +843,30 @@ PAGES = [
          ("b", "Achievements — some hand over a costume."),
          ("b", "Secrets. Some fighters are not unlocked at all. They are found."),
      ]},
-    {"section": "characters", "title": "How the roster is grouped",
-     "subtitle": "every fighter is one of these",
+    {"section": "characters", "title": "Taxonomy",
+     "subtitle": "how the roster is grouped — every fighter is one of these",
+     "tags": ["taxonomy", "tree", "families", "kins", "clans"],
      "body": [
          "Four hundred and thirty-odd fighters sounds like chaos until you "
          "notice they all fall into a handful of families. This is the whole "
          "roster, sorted by what a fighter actually is.",
          ("tree", [
              (0, "Characters"),
-             (1, "Seasonal — only on sale during their event"),
-             (2, "Major — the face of the event"),
-             (2, "Minor — the rest of that event's shelf"),
-             (2, "Variants — a second form of one you already own"),
-             (1, "Clans — fighters that belong to something bigger"),
-             (2, "Snake clan"),
-             (2, "Bug clan"),
-             (2, "Ghost clan"),
-             (2, "Unhittables"),
+             (1, "Seasonal — no way in but the shop window"),
+             (2, "Major — out of one of the seven big events"),
+             (2, "Minor — out of one of the seven small ones"),
+             (2, "Variants — a second form of one you own, and nothing else"),
+             (1, "Clans — earned the same hard way, one after another"),
+             (2, "Snake clan — killing snakes in the Jungle"),
+             (2, "Bug clan — killing bugs in the Computer"),
+             (2, "Unhittables — blocking projectiles"),
+             (2, "Ghost clan — nobody is sure"),
              (1, "No ability — the fighting is all there is"),
              (2, "Default — the four you start with"),
              (2, "Other"),
              (1, "Abilitizers — the ones with a trick"),
              (2, "Copycats — they use yours"),
-             (2, "Shooters"),
+             (2, "Shooters — for the ones with nothing else to them"),
              (3, "Gunners — a steady stream"),
              (3, "Explosers — one loud one"),
              (2, "Elementals"),
@@ -731,24 +881,50 @@ PAGES = [
              (3, "Rockkin — stone, from the Fuser"),
              (3, "Plantkin — green, from the Fuser"),
              (3, "Airkin — wind, from the Fuser"),
-             (1, "Fuser — made, not found"),
+             (1, "Fuser — made, not found, and nothing else besides"),
              (1, "Cipher — typed in, not won"),
-             (1, "Secret masters — the ones nobody will tell you about"),
+             (1, "Secret — hidden until somebody finds it"),
+             (1, "Masters — earned by having found enough secrets"),
          ]),
          ("h", "The colours"),
          "Every fighter in this wiki carries its family as a stripe beside its "
          "name, and the same colours again at the top of its page. A fighter "
          "in two families is striped half and half; in three, thirds. The "
-         "fused ones are always exactly two, because that is what they are "
-         "made of.",
+         "fused ones are the exception: whatever went into them, they come "
+         "out one colour.",
          ] + [("cats", [_c[0]]) for _c in CATEGORIES] + [
          ("h", "Where the edges blur"),
          ("b", "A fighter can sit in two families at once. A seasonal "
-               "elemental is still an elemental."),
+               "elemental is still an elemental, and wears both."),
+         ("b", "Secret and master are not the same thing. A secret is hidden "
+               "until it is found; a master is what finding enough of them "
+               "earns you. Both sit on top of whatever kin a fighter already "
+               "belongs to."),
+         ("b", "Major and minor belong to the event, not the fighter. The "
+               "minor seven are Emerald Echoes, Bound to the Ground, Legacy "
+               "of Valor, Summer Solstice, Novel Beginnings, Project "
+               "Yellowstone and Aura of Menorah; everyone out of them is "
+               "minor, and everyone out of the other seven is major."),
          ("b", "Elementals who answer to every element are their own small "
                "club — elemental-all."),
-         ("b", "Ghost clan is the one nobody can agree on. Some of them are "
-               "only ghosts on the way out."),
+         ("b", "A seasonal is one you cannot get any other way. A fighter "
+               "who sits on a seasonal shelf and can also be won on a map is "
+               "not a seasonal — he is just also for sale."),
+         ("b", "A variant beats everything. Whatever the fighter underneath "
+               "can do, a second form of him is a variant and only that."),
+         ("b", "The Fuser beats everything. Two elements go in and something "
+               "that is neither comes out, so a fused fighter is only ever a "
+               "Fuser — never half of what it was made from."),
+         ("b", "A kin beats a firing pattern. Somebody who throws fire is a "
+               "pyrokin, not a gunner who happens to be warm — so shooters "
+               "are only the ones with no element to them at all."),
+         ("b", "A clan is not a thing a fighter can do — it is what you had "
+               "to do to earn him. Six snakes killed in the Jungle, six bugs "
+               "killed in the Computer, seven for blocking projectiles, each "
+               "one asking more than the last."),
+         ("b", "Ghost clan is the one nobody can agree on, so it is drawn "
+               "from how they fight rather than how they are won. Some of "
+               "them are only ghosts on the way out."),
          ("h", "Why it matters"),
          "Mostly it does not — nothing in the game checks these. It is how "
          "to think about a roster this size, and how to guess what a fighter "
@@ -1029,6 +1205,7 @@ def build(unlocked=(), stats=None):
     pages = []
     pages += _character_pages(unlocked)
     pages += _map_pages(unlocked)
+    pages += _world_pages(unlocked)
     pages += _event_pages(unlocked)
     pages += _costume_pages(unlocked)
     pages += _fuser_pages(unlocked)
