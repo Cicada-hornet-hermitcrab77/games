@@ -371,7 +371,8 @@ def ways_to_get(name, conditions, default_set, ch=None):
         ways.append(("Yours from the first match — one of the four you start with", False))
     if name in _COSTUME_BY_NAME:
         c = _COSTUME_BY_NAME[name]
-        ways.append((f"Achievement: own every {c['event']} shop character", False))
+        ways.append((f"The costume rack — {c['cost']} coins, once you own "
+                     f"every {c['event']} fighter", False))
     if name in _SEASONAL_BY_NAME:
         c = _SEASONAL_BY_NAME[name]
         ways.append((f"Seasonal Shop during {c['event']} — {c['cost']} coins", False))
@@ -690,8 +691,10 @@ def _costume_pages(unlocked):
                      f"underneath — same health, same reach, same tricks — "
                      f"wearing something else.",
                      ("h", "How to get it"),
-                     f"Own every {c['event']} shop character. The achievement "
-                     f"hands it over the moment the last one is bought.",
+                     f"Own every {c['event']} fighter and the achievement puts "
+                     f"this costume on the rack — the one round the back of "
+                     f"the Seasonal Shop, or press R in there. It does not "
+                     f"hand it over: it still costs {c['cost']} coins.",
                      ("h", "Where to wear it"),
                      f"Pick {c['base']} on the character select and press "
                      f"Q/E (P1) or J/L (P2) to flip through his costumes."],
@@ -965,8 +968,28 @@ PAGES = [
               "and from the odd lucky match. What is on the shelf depends on "
               "the date — see the Events section for every roster.",
               ("h", "Worth knowing"),
-              "Buying every fighter in an event's shop earns that event's "
-              "costume, permanently."]},
+              "Owning every fighter in an event's shop puts that event's "
+              "costume on the costume rack. It does not give it to you."]},
+    {"section": "modes", "title": "The Costume Rack",
+     "subtitle": "round the back of the Seasonal Shop",
+     "body": ["Press R in the Seasonal Shop, or the rack button on the left. "
+              "Fourteen costumes hang there, one for each event, and none of "
+              "them is free.",
+              ("h", "How a costume gets there"),
+              "Own every fighter on an event's shelf. That earns the "
+              "achievement, and the achievement hangs the costume on the "
+              "rack. Until then it shows as NOT ON THE RACK, whatever you "
+              "have in your purse.",
+              ("h", "Then it still costs coins"),
+              "Between 130 and 200, depending on which. A costume you have "
+              "bought says WORN, and you pick it from its own fighter's box "
+              "on the character select with Q/E or J/L.",
+              ("h", "Worth knowing"),
+              ("b", "The rack is open whether or not an event is running."),
+              ("b", "A costume is its fighter's whole kit in new colours — "
+                    "nothing it can do changes."),
+              ("b", "Legacy Tombstone and Legacy Jawke are not on the rack. "
+                    "They live in their owners' boxes already.")]},
     {"section": "modes", "title": "Special modes",
      "subtitle": "one week only",
      "body": ["Some events bring a mode with them, playable only while the "

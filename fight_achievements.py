@@ -1211,7 +1211,13 @@ def reward_text(a):
         _n, _q = a["element"]
         bits.append(f"+{_q} {_n}")
     if a.get("unlock"):
-        bits.append("costume")
+        try:
+            from fight_data import COSTUMES as _CS
+            _c = next((c for c in _CS if c["name"] == a["unlock"]), None)
+        except Exception:
+            _c = None
+        bits.append(f"costume on the rack ({_c['cost']} coins)" if _c
+                    else "costume on the rack")
     if a.get("elements"):
         bits.append("+" + " +".join(f"{_q} {_n}" for _n, _q in a["elements"])
                     if len(a["elements"]) <= 2 else "+every element")
@@ -1255,6 +1261,7 @@ for _cos in _COSTUMES:
         "id": _bid,
         "name": _cos["name"],
         "desc": f"Own every {_cos['event']} shop character",
+        "cost": _cos.get("cost"),
         "reward": 0,
         "unlock": _cos["name"],
         "badge": _bid,
@@ -1289,9 +1296,14 @@ def check_achievements(stats, unlocked=(), userdata=None):
         newly.append(a)
         if a["reward"]:
             stats["seasonal_coins"] = max(0, stats.get("seasonal_coins", 0) + a["reward"])
+        # A costume is not handed over — it goes on the rack in the Seasonal
+        # Shop, where it still has to be paid for.
         _unlock = a.get("unlock")
-        if _unlock is not None and hasattr(unlocked, "add"):
-            unlocked.add(_unlock)
+        if _unlock is not None:
+            _rack = list(stats.get("rack_stock", []))
+            if _unlock not in _rack:
+                _rack.append(_unlock)
+            stats["rack_stock"] = _rack
         _els = a.get("elements") or ([a["element"]] if a.get("element") else [])
         if _els:
             _bag = stats.setdefault("fuser_elements", {})
