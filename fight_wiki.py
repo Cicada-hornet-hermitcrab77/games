@@ -168,7 +168,6 @@ CATEGORIES = [
     ("copycats",    "Copycats",     (190, 170, 232)),
     ("snake",       "Snake clan",   ( 58, 182,  92)),
     ("bug",         "Bug clan",     (154, 172,  62)),
-    ("ghost",       "Ghost clan",   (202, 206, 232)),
     ("unhittable",  "Unhittables",  (238, 238, 248)),
     ("major",       "Seasonal major", (255, 200,  60)),
     ("minor",       "Seasonal minor", (206, 166,  72)),
@@ -207,9 +206,6 @@ _CAT_FLAGS = {
                    "bazooka_kick", "worm_mine_punch", "black_hole_kick"),
     "copycats":   ("copycat", "copy_punch", "mimic_move", "mimic_stats", "chameleon",
                    "bloob_shapeshift", "possess_kick", "swap_kick"),
-    "ghost":      ("ghost_float", "phase", "phantom_strike", "poltergeist_fling",
-                   "undead", "revenant", "shade", "dementor_heal", "soul_master",
-                   "shadow_teleport_block", "shadow_mark_kick"),
 }
 
 # A clan is not something a fighter can do, it is what you had to do to earn
@@ -371,8 +367,11 @@ def ways_to_get(name, conditions, default_set, ch=None):
         ways.append(("Yours from the first match — one of the four you start with", False))
     if name in _COSTUME_BY_NAME:
         c = _COSTUME_BY_NAME[name]
-        ways.append((f"The costume rack — {c['cost']} coins, once you own "
-                     f"every {c['event']} fighter", False))
+        if c.get("source") == "rack":
+            ways.append((f"The costume rack — {c['cost']} coins", False))
+        else:
+            ways.append((f"Achievement: own every {c['event']} fighter. "
+                         f"Earned, never sold", False))
     if name in _SEASONAL_BY_NAME:
         c = _SEASONAL_BY_NAME[name]
         ways.append((f"Seasonal Shop during {c['event']} — {c['cost']} coins", False))
@@ -558,7 +557,7 @@ WORLD = [
      "The middle ocean. The north is hot, grassy and a bit glitchy. The south "
      "you do not want to go to — Fishikin will surround your boat like a "
      "doughnut, and strike."),
-    ("Ghost clan's ground", "region", ["Ghost clan"],
+    ("Ghost clan's ground", "region", [],
      "It is said ghost clan has been spotted here a few times. Of course, "
      "there is no such thing as ghost clan. Or is there?"),
     ("The Great Cities of the United States of Lanbo", "country", [],
@@ -681,21 +680,26 @@ def _event_pages(unlocked):
 def _costume_pages(unlocked):
     out = []
     for c in COSTUMES:
+        _sold = c.get("source") == "rack"
         out.append({
             "section": "costumes", "title": c["name"],
             "subtitle": f"{c['base']}  ·  {c['event']}",
             "color": c["color"], "art": ("fighter", c["name"]),
-            "tags": ["owned"] if c["name"] in unlocked else [],
+            "tags": (["owned"] if c["name"] in unlocked else [])
+                    + (["for sale"] if _sold else ["earned"]),
             "owned": c["name"] in unlocked,
             "body": [f"A {c['event']} coat for {c['base']}. Same fighter "
                      f"underneath — same health, same reach, same tricks — "
                      f"wearing something else.",
-                     ("h", "How to get it"),
-                     f"Own every {c['event']} fighter and the achievement puts "
-                     f"this costume on the rack — the one round the back of "
-                     f"the Seasonal Shop, or press R in there. It does not "
-                     f"hand it over: it still costs {c['cost']} coins.",
-                     ("h", "Where to wear it"),
+                     ("h", "How to get it")] +
+                    ([f"On the costume rack for {c['cost']} coins. The rack "
+                      f"has its own box on the home screen, and a door round "
+                      f"the back of the Seasonal Shop."]
+                     if _sold else
+                     [f"Own every {c['event']} fighter. The achievement hands "
+                      f"it straight over — this one is not for sale, and no "
+                      f"amount of coins will buy it."]) +
+                    [("h", "Where to wear it"),
                      f"Pick {c['base']} on the character select and press "
                      f"Q/E (P1) or J/L (P2) to flip through his costumes."],
         })
@@ -864,7 +868,6 @@ PAGES = [
              (2, "Snake clan — killing snakes in the Jungle"),
              (2, "Bug clan — killing bugs in the Computer"),
              (2, "Unhittables — blocking projectiles"),
-             (2, "Ghost clan — nobody is sure"),
              (1, "No ability — the fighting is all there is"),
              (2, "Default — the four you start with"),
              (2, "Other"),
@@ -925,9 +928,9 @@ PAGES = [
                "to do to earn him. Six snakes killed in the Jungle, six bugs "
                "killed in the Computer, seven for blocking projectiles, each "
                "one asking more than the last."),
-         ("b", "Ghost clan is the one nobody can agree on, so it is drawn "
-               "from how they fight rather than how they are won. Some of "
-               "them are only ghosts on the way out."),
+         ("b", "There is no ghost clan. People keep saying there is — it "
+               "has a stretch of the map named after it and everything — but "
+               "nobody has ever earned one, so nothing here wears it. Yet."),
          ("h", "Why it matters"),
          "Mostly it does not — nothing in the game checks these. It is how "
          "to think about a roster this size, and how to guess what a fighter "
@@ -971,23 +974,25 @@ PAGES = [
               "Owning every fighter in an event's shop puts that event's "
               "costume on the costume rack. It does not give it to you."]},
     {"section": "modes", "title": "The Costume Rack",
-     "subtitle": "round the back of the Seasonal Shop",
-     "body": ["Press R in the Seasonal Shop, or the rack button on the left. "
-              "Fourteen costumes hang there, one for each event, and none of "
-              "them is free.",
-              ("h", "How a costume gets there"),
-              "Own every fighter on an event's shelf. That earns the "
-              "achievement, and the achievement hangs the costume on the "
-              "rack. Until then it shows as NOT ON THE RACK, whatever you "
-              "have in your purse.",
-              ("h", "Then it still costs coins"),
-              "Between 130 and 200, depending on which. A costume you have "
-              "bought says WORN, and you pick it from its own fighter's box "
-              "on the character select with Q/E or J/L.",
+     "subtitle": "its own box on the home screen",
+     "body": ["A rail on castors with every costume in the game hanging off "
+              "it. Left and right slide it along; enter buys whatever is in "
+              "front of you. There is also a door to it round the back of the "
+              "Seasonal Shop.",
+              ("h", "Two kinds hang here"),
+              ("b", "The ones for sale. A paper tag with a number on it, and "
+                    "coins buy it — most are twenty to forty-five."),
+              ("b", "The ones you earn. A tag reading EARN, and no price at "
+                    "all. Own every fighter of an event and its costume is "
+                    "handed straight over. Those are not for sale and never "
+                    "will be."),
               ("h", "Worth knowing"),
               ("b", "The rack is open whether or not an event is running."),
               ("b", "A costume is its fighter's whole kit in new colours — "
                     "nothing it can do changes."),
+              ("b", "A bought costume says WORN, and you pick it from its "
+                    "fighter's own box on the character select with Q/E "
+                    "or J/L."),
               ("b", "Legacy Tombstone and Legacy Jawke are not on the rack. "
                     "They live in their owners' boxes already.")]},
     {"section": "modes", "title": "Special modes",

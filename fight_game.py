@@ -26,7 +26,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             Muskshroom, Cutlass, WormMine, RockBall, DandiSeed, EeebyLaser,
                             BurningMine, Car, RollingStone)
 import fight_network as _net
-from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, fuser_mode, tombstones_minefield
+from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, costume_rack, fuser_mode, tombstones_minefield
 from fight_chat import ChatBox as _ChatBox, EasterEggs as _EasterEggs
 import fight_achievements as _ach
 import fight_fighter as _fighter_mod
@@ -7316,6 +7316,12 @@ def main():
         # --- Seasonal shop path ---
         if mode == 'seasonal_shop':
             seasonal_shop(screen, clock, stats, unlocked)
+            _save_data(unlocked, stats)
+            continue
+
+        # --- The costume rack, its own box on the home screen ---
+        if mode == 'costume_rack':
+            costume_rack(screen, clock, stats, unlocked)
             _save_data(unlocked, stats)
             continue
 

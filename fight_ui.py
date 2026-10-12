@@ -741,10 +741,10 @@ def mode_select(unlocked=None, stats=None):
 
     # 7 cards: 6 playable (6th is Fuser, dimmed until Deco & Emoj is owned)
     # plus a 7th Story Mode teaser that is chained shut and cannot be picked.
-    card_w, card_h = 118, 240
-    GAP   = 8
-    START = WIDTH // 2 - (7 * card_w + 6 * GAP) // 2
-    card_xs = [START + i * (card_w + GAP) for i in range(7)]
+    card_w, card_h = 103, 240
+    GAP   = 7
+    START = WIDTH // 2 - (8 * card_w + 7 * GAP) // 2
+    card_xs = [START + i * (card_w + GAP) for i in range(8)]
     _story_teaser = [0]   # frames left showing the nudge
     _story_rattle = [0]   # frames left on the chain rattle (decays to still)
     _story_slide  = [0]   # 0..STORY_SLIDE — how far Tombstone has risen
@@ -847,6 +847,7 @@ def mode_select(unlocked=None, stats=None):
         elif selected == 2: return 'survival_2p' if survival_players else 'survival_1p'
         elif selected == 3: return 'online'
         elif selected == 4: return 'seasonal_shop'
+        elif selected == 5: return 'costume_rack'
         else:               return 'fuser'
 
     while True:
@@ -936,7 +937,7 @@ def mode_select(unlocked=None, stats=None):
                     if _ci in _eaten or _feast[0]:
                         continue          # Jawke ate that one
                     if pygame.Rect(_cx, 140, card_w, card_h).collidepoint(_mp):
-                        if _ci == 6:          # Story Mode: chained shut for now
+                        if _ci == 7:          # Story Mode: chained shut for now
                             _story_pokes[0] += 1
                             if _story_pokes[0] in STORY_JAWKE_AT:
                                 # Nobody asked for this.
@@ -1066,9 +1067,9 @@ def mode_select(unlocked=None, stats=None):
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit(); sys.exit()
                 if event.key in (pygame.K_LEFT, pygame.K_a):
-                    selected = (selected - 1) % 6
+                    selected = (selected - 1) % 8
                 if event.key in (pygame.K_RIGHT, pygame.K_d):
-                    selected = (selected + 1) % 6
+                    selected = (selected + 1) % 8
                 if selected == 0:   # 1P: difficulty picker
                     if event.key in (pygame.K_UP, pygame.K_w):
                         difficulty_idx = (difficulty_idx - 1) % len(difficulties)
@@ -1089,7 +1090,7 @@ def mode_select(unlocked=None, stats=None):
                 if event.key == pygame.K_b:
                     wiki_screen(unlocked, stats)
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE) and not _feast[0]:
-                    if not (selected == 5 and not _fuser_unlocked):
+                    if not (selected == 6 and not _fuser_unlocked):
                         if _home_lobby: _home_lobby.close()
                         return _mode_confirm()
                 if event.key == pygame.K_e and _ev_mode and not _feast[0]:
@@ -1129,21 +1130,23 @@ def mode_select(unlocked=None, stats=None):
             (card_xs[2], "SURVIVAL",  "endless",     GREEN),
             (card_xs[3], "ONLINE",    "internet",    CYAN),
             (card_xs[4], "SHOP",      "seasonal",    (255, 200, 0)),
-            (card_xs[5], "FUSER",     "elements",     (200, 140, 255) if _fuser_unlocked else GRAY),
-            (card_xs[6], "STORY",     "mode",         (120, 110, 100)),
+            (card_xs[5], "RACK",      "costumes",    (250, 190, 210)),
+            (card_xs[6], "FUSER",     "elements",     (200, 140, 255) if _fuser_unlocked else GRAY),
+            (card_xs[7], "STORY",     "mode",         (120, 110, 100)),
         ]
         for ci, (cx, top, sub, col) in enumerate(cards):
             if ci in _eaten:
                 continue                  # swallowed whole
-            _fuser_locked = (ci == 5 and not _fuser_unlocked)
-            border = (90, 82, 70) if ci == 6 else (WHITE if (ci == selected and not _fuser_locked) else GRAY)
-            bg_col = ((50, 45, 10) if ci == 4 else (35, 30, 45) if ci == 5
-                      else (26, 24, 22) if ci == 6 else (50, 50, 50))
+            _fuser_locked = (ci == 6 and not _fuser_unlocked)
+            border = (90, 82, 70) if ci == 7 else (WHITE if (ci == selected and not _fuser_locked) else GRAY)
+            bg_col = ((50, 45, 10) if ci == 4 else (44, 26, 38) if ci == 5
+                      else (35, 30, 45) if ci == 6
+                      else (26, 24, 22) if ci == 7 else (50, 50, 50))
             pygame.draw.rect(screen, bg_col, (cx, 140, card_w, card_h), border_radius=12)
             pygame.draw.rect(screen, border,  (cx, 140, card_w, card_h), 3, border_radius=12)
             # Seven cards are narrower than six were — step the title down a
             # font size when it would spill over its card.
-            _tcol = (150, 140, 125) if ci == 6 else col
+            _tcol = (150, 140, 125) if ci == 7 else col
             lbl = font_medium.render(top, True, _tcol)
             if lbl.get_width() > card_w - 10:
                 lbl = font_small.render(top, True, _tcol)
@@ -1159,6 +1162,24 @@ def mode_select(unlocked=None, stats=None):
                 _clbl = font_medium.render("$", True, (120, 90, 0))
                 screen.blit(_clbl, (cx + card_w//2 - _clbl.get_width()//2, 140 + card_h - 55 - _clbl.get_height()//2))
             elif ci == 5:
+                # A little clothes rail with one hanger on it
+                _rcx, _rcy = cx + card_w // 2, 140 + card_h - 62
+                pygame.draw.line(screen, (190, 192, 202), (_rcx - 32, _rcy - 22),
+                                 (_rcx + 32, _rcy - 22), 4)
+                for _rux in (_rcx - 30, _rcx + 30):
+                    pygame.draw.line(screen, (150, 152, 164), (_rux, _rcy - 22),
+                                     (_rux, _rcy + 30), 3)
+                    pygame.draw.circle(screen, (110, 110, 122), (_rux, _rcy + 32), 3)
+                pygame.draw.arc(screen, (230, 232, 240),
+                                (_rcx - 5, _rcy - 30, 10, 14), 0.3, 2.9, 2)
+                pygame.draw.lines(screen, (230, 232, 240), False, [
+                    (_rcx - 18, _rcy - 2), (_rcx, _rcy - 14), (_rcx + 18, _rcy - 2)], 3)
+                pygame.draw.line(screen, (230, 232, 240), (_rcx - 18, _rcy - 2),
+                                 (_rcx + 18, _rcy - 2), 2)
+                pygame.draw.polygon(screen, (250, 190, 210), [
+                    (_rcx - 16, _rcy - 1), (_rcx + 16, _rcy - 1),
+                    (_rcx + 12, _rcy + 26), (_rcx - 12, _rcy + 26)])
+            elif ci == 6:
                 # Draw a beaker/flask symbol instead of stickman
                 _fcx, _fcy = cx + card_w//2, 140 + card_h - 55
                 _fcol = (200, 140, 255) if _fuser_unlocked else (90, 90, 95)
@@ -1167,7 +1188,7 @@ def mode_select(unlocked=None, stats=None):
                 if not _fuser_unlocked:
                     _lktxt = font_tiny.render("Requires Deco & Emoj", True, (150, 150, 150))
                     screen.blit(_lktxt, (cx + card_w//2 - _lktxt.get_width()//2, 140 + card_h - 22))
-            elif ci == 6:
+            elif ci == 7:
                 # ── STORY MODE: chained shut, overgrown, and not opening yet ──
                 _sx0, _sy0 = cx, 140
                 _scx = cx + card_w // 2
@@ -5295,168 +5316,221 @@ def leaderboard_screen(userdata, lobby=None, stats=None):
 # ---------------------------------------------------------------------------
 
 def costume_rack(screen, clock, stats, unlocked):
-    """The costume rack, round the back of the Seasonal Shop.
+    """A clothes rail with the costumes hanging off it.
 
-    Owning every fighter on an event's shelf puts that event's costume on the
-    rack. It does not hand it over — the coins still have to come out.
+    Two kinds hang here. The fourteen you earn by owning every fighter of an
+    event are not for sale at any price — they are already yours or they are
+    not. The fourteen on the other end of the rail are, and cheaply.
     """
     from fight_data import COSTUMES, CHARACTERS as _CR_CHARS
     _by = {c["name"]: c for c in _CR_CHARS}
 
-    COIN_COL = (255, 200, 0)
-    CARD_W, CARD_H, GAP = 206, 150, 10
-    PER_ROW = 4
-    GRID_X  = WIDTH // 2 - (PER_ROW * CARD_W + (PER_ROW - 1) * GAP) // 2
-    TOP, BOT = 92, HEIGHT - 48
-    scroll = 0
+    COIN  = (255, 200, 0)
+    RAIL_Y   = 100            # where the bar runs
+    HANG_X   = 150            # space each hanger takes along it
+    FLOOR_Y  = HEIGHT - 78
+    sel   = 0
+    slide = 0.0               # how far the rail has been pushed along
     msg, msg_t = "", 0
+
+    def _price(c):
+        return c.get("cost") if c.get("source") == "rack" else None
+
+    def _state(c):
+        if c["name"] in unlocked:
+            return "worn"
+        if _price(c) is None:
+            return "earn"
+        # A costume is only for sale while its own event is running
+        _ev = get_active_event()
+        if not _ev or _ev["name"] != c["event"]:
+            return "closed"
+        return "buy" if stats.get("seasonal_coins", 0) >= c["cost"] else "short"
+
+    def _buy(c):
+        nonlocal msg, msg_t
+        st = _state(c)
+        if st == "worn":
+            msg, msg_t = f"{c['name']} is already yours", FPS * 2
+        elif st == "earn":
+            msg, msg_t = (f"Not for sale — own every {c['event']} fighter",
+                          FPS * 3)
+        elif st == "closed":
+            msg, msg_t = (f"Only during {c['event']}", FPS * 3)
+        elif st == "short":
+            msg, msg_t = (f"{c['cost'] - stats.get('seasonal_coins', 0)} coins short",
+                          FPS * 2)
+        else:
+            stats["seasonal_coins"] = stats.get("seasonal_coins", 0) - c["cost"]
+            unlocked.add(c["name"])
+            _b = list(stats.get("costumes_bought", []))
+            if c["name"] not in _b:
+                _b.append(c["name"])
+            stats["costumes_bought"] = _b
+            msg, msg_t = f"{c['name']} — wear it from {c['base']}'s box", FPS * 4
 
     while True:
         clock.tick(FPS)
         coins = stats.get("seasonal_coins", 0)
-        stock = list(stats.get("rack_stock", []))
-        rows  = (len(COSTUMES) + PER_ROW - 1) // PER_ROW
-        max_scroll = max(0, rows * (CARD_H + GAP) - (BOT - TOP))
         if msg_t > 0:
             msg_t -= 1
-
-        def _rect_for(i):
-            return pygame.Rect(GRID_X + (i % PER_ROW) * (CARD_W + GAP),
-                               TOP + (i // PER_ROW) * (CARD_H + GAP) - scroll,
-                               CARD_W, CARD_H)
+        # The rail slides so the one you are looking at sits in the middle
+        _target = sel * HANG_X - WIDTH // 2 + HANG_X // 2
+        slide += (_target - slide) * 0.22
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
             if event.type == pygame.MOUSEWHEEL:
-                scroll = max(0, min(max_scroll, scroll - event.y * 40))
+                sel = max(0, min(len(COSTUMES) - 1, sel - event.y))
             if event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_ESCAPE, pygame.K_BACKSPACE):
                     return
-                if event.key in (pygame.K_DOWN, pygame.K_s):
-                    scroll = min(max_scroll, scroll + 40)
-                if event.key in (pygame.K_UP, pygame.K_w):
-                    scroll = max(0, scroll - 40)
+                if event.key in (pygame.K_LEFT, pygame.K_a):
+                    sel = (sel - 1) % len(COSTUMES)
+                if event.key in (pygame.K_RIGHT, pygame.K_d):
+                    sel = (sel + 1) % len(COSTUMES)
+                if event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                    _buy(COSTUMES[sel])
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
                 _mp = ((int(event.x * WIDTH), int(event.y * HEIGHT))
                        if event.type == pygame.FINGERDOWN else event.pos)
-                if pygame.Rect(WIDTH // 2 - 70, HEIGHT - 40, 140, 32).collidepoint(_mp):
+                if pygame.Rect(WIDTH - 104, HEIGHT - 40, 96, 32).collidepoint(_mp):
                     return
-                for _i, _c in enumerate(COSTUMES):
-                    _r = _rect_for(_i)
-                    _btn = pygame.Rect(_r.x + 12, _r.bottom - 30, _r.width - 24, 22)
-                    if not _btn.collidepoint(_mp):
-                        continue
-                    if _c["name"] in unlocked:
-                        msg, msg_t = f"{_c['name']} is already yours", FPS * 2
-                    elif _c["name"] not in stock:
-                        msg, msg_t = (f"Own every {_c['event']} fighter first",
-                                      FPS * 3)
-                    elif coins < _c["cost"]:
-                        msg, msg_t = (f"{_c['cost'] - coins} coins short",
-                                      FPS * 2)
-                    else:
-                        stats["seasonal_coins"] = coins - _c["cost"]
-                        unlocked.add(_c["name"])
-                        _bought = list(stats.get("costumes_bought", []))
-                        if _c["name"] not in _bought:
-                            _bought.append(_c["name"])
-                        stats["costumes_bought"] = _bought
-                        msg, msg_t = (f"{_c['name']} — wear it from "
-                                      f"{_c['base']}'s box", FPS * 4)
+                if pygame.Rect(WIDTH // 2 - 90, HEIGHT - 42, 180, 34).collidepoint(_mp):
+                    _buy(COSTUMES[sel])
+                else:
+                    for _i in range(len(COSTUMES)):
+                        _cx = int(_i * HANG_X - slide + HANG_X // 2)
+                        if abs(_mp[0] - _cx) < HANG_X // 2 and RAIL_Y < _mp[1] < FLOOR_Y:
+                            if _i == sel:
+                                _buy(COSTUMES[_i])
+                            sel = _i
+                            break
 
         # ── Draw ────────────────────────────────────────────────────────
-        screen.fill((14, 12, 18))
-        draw_seasonal_decos(screen)
-        _t = font_large.render("COSTUME RACK", True, (250, 190, 210))
-        screen.blit(_t, (WIDTH // 2 - _t.get_width() // 2, 10))
-        _own = sum(1 for c in COSTUMES if c["name"] in unlocked)
-        _sub = font_tiny.render(
-            f"{_own} of {len(COSTUMES)} worn   ·   own every fighter of an event "
-            f"and its costume goes on the rack", True, (150, 140, 155))
-        screen.blit(_sub, (WIDTH // 2 - _sub.get_width() // 2, 62))
-        pygame.draw.circle(screen, COIN_COL, (WIDTH - 86, 30), 12)
-        pygame.draw.circle(screen, (180, 140, 0), (WIDTH - 86, 30), 12, 2)
-        _cl = font_medium.render(str(coins), True, COIN_COL)
-        screen.blit(_cl, (WIDTH - 68, 30 - _cl.get_height() // 2))
+        screen.fill((26, 22, 28))
+        # Back wall and the floor the rack stands on
+        pygame.draw.rect(screen, (34, 29, 36), (0, 0, WIDTH, FLOOR_Y))
+        pygame.draw.rect(screen, (46, 38, 44), (0, FLOOR_Y, WIDTH, HEIGHT - FLOOR_Y))
+        pygame.draw.line(screen, (62, 52, 60), (0, FLOOR_Y), (WIDTH, FLOOR_Y), 2)
 
-        screen.set_clip(pygame.Rect(0, TOP - 4, WIDTH, BOT - TOP + 8))
+        # The frame: two uprights with feet and castors, and the bar between
+        for _ux in (54, WIDTH - 54):
+            pygame.draw.line(screen, (148, 150, 160), (_ux, RAIL_Y), (_ux, FLOOR_Y - 14), 5)
+            pygame.draw.line(screen, (96, 98, 110), (_ux - 26, FLOOR_Y - 14),
+                             (_ux + 26, FLOOR_Y - 14), 5)
+            for _wx in (_ux - 22, _ux + 22):
+                pygame.draw.circle(screen, (70, 70, 80), (_wx, FLOOR_Y - 7), 6)
+                pygame.draw.circle(screen, (120, 122, 134), (_wx, FLOOR_Y - 7), 3)
+        pygame.draw.line(screen, (166, 168, 178), (54, RAIL_Y), (WIDTH - 54, RAIL_Y), 7)
+        pygame.draw.line(screen, (210, 212, 222), (54, RAIL_Y - 2),
+                         (WIDTH - 54, RAIL_Y - 2), 2)
+
+        # Everything hanging off it
+        screen.set_clip(pygame.Rect(0, RAIL_Y - 24, WIDTH, FLOOR_Y - RAIL_Y + 24))
         for _i, _c in enumerate(COSTUMES):
-            _r = _rect_for(_i)
-            if _r.bottom < TOP or _r.top > BOT:
+            _cx = int(_i * HANG_X - slide + HANG_X // 2)
+            if _cx < -HANG_X or _cx > WIDTH + HANG_X:
                 continue
-            _owned = _c["name"] in unlocked
-            _on_rack = _c["name"] in stock
-            _col = _c["color"]
-            pygame.draw.rect(screen, (30, 26, 34) if _on_rack else (20, 19, 24),
-                             _r, border_radius=10)
-            pygame.draw.rect(screen, _col if _on_rack else (56, 52, 62), _r,
-                             2 if _on_rack else 1, border_radius=10)
-            # The hanger rail the whole row hangs from
-            pygame.draw.line(screen, (120, 110, 125), (_r.x + 8, _r.y + 8),
-                             (_r.right - 8, _r.y + 8), 2)
-            # The costume itself, or its shadow if it is not stocked
-            _old = screen.get_clip()
-            screen.set_clip(_r.clip(pygame.Rect(0, TOP - 4, WIDTH, BOT - TOP + 8)))
+            _on = (_i == sel)
+            _st = _state(_c)
+            _col = (_c["color"] if _st in ("worn", "buy", "short")
+                    else (60, 56, 64))
+            _drop = 0 if _on else 10          # the chosen one is pulled forward
+            # Hook over the bar
+            pygame.draw.arc(screen, (198, 200, 210),
+                            (_cx - 7, RAIL_Y - 12, 14, 18), 0.3, 2.9, 3)
+            pygame.draw.line(screen, (198, 200, 210), (_cx, RAIL_Y + 2),
+                             (_cx, RAIL_Y + 14 + _drop), 2)
+            # Hanger shoulders
+            pygame.draw.lines(screen, (198, 200, 210), False, [
+                (_cx - 30, RAIL_Y + 30 + _drop), (_cx, RAIL_Y + 14 + _drop),
+                (_cx + 30, RAIL_Y + 30 + _drop)], 3)
+            pygame.draw.line(screen, (198, 200, 210), (_cx - 30, RAIL_Y + 30 + _drop),
+                             (_cx + 30, RAIL_Y + 30 + _drop), 2)
+            # The costume itself, hanging from the hanger
+            if _on:
+                pygame.draw.rect(screen, (46, 40, 52),
+                                 (_cx - 64, RAIL_Y + 24, 128, 232), border_radius=10)
+                pygame.draw.rect(screen, _c["color"],
+                                 (_cx - 64, RAIL_Y + 24, 128, 232), 2, border_radius=10)
             try:
-                draw_stickman(screen, _r.x + 44, _r.bottom - 36,
-                              _col if _on_rack else (44, 42, 50), 1, "idle", 0.3,
-                              scale=0.62, char_name=_c["name"])
+                draw_stickman(screen, _cx, RAIL_Y + 238 + _drop, _col, 1, "idle", 0.25,
+                              scale=1.05, char_name=_c["name"])
             except Exception:
                 pass
-            screen.set_clip(_old)
-            _room = _r.right - (_r.x + 78) - 8
-
-            def _fit(txt, font, room=_room):
-                if font.size(txt)[0] <= room:
-                    return txt
-                while txt and font.size(txt + "…")[0] > room:
-                    txt = txt[:-1]
-                return txt + "…"
-            _nm = font_small.render(_fit(_c["name"], font_small), True,
-                                    WHITE if _on_rack else (110, 106, 118))
-            screen.blit(_nm, (_r.x + 78, _r.y + 18))
-            _bs = font_tiny.render(_fit(f"{_c['base']}'s coat", font_tiny), True,
-                                   (190, 186, 200) if _on_rack else (92, 90, 100))
-            screen.blit(_bs, (_r.x + 78, _r.y + 40))
-            _ev = font_tiny.render(_fit(_c["event"], font_tiny), True,
-                                   (200, 170, 90) if _on_rack else (88, 80, 60))
-            screen.blit(_ev, (_r.x + 78, _r.y + 56))
-            pygame.draw.circle(screen, COIN_COL if _on_rack else (90, 78, 40),
-                               (_r.x + 84, _r.y + 80), 6)
-            _ct = font_small.render(str(_c["cost"]), True,
-                                    COIN_COL if _on_rack else (90, 78, 40))
-            screen.blit(_ct, (_r.x + 96, _r.y + 72))
-
-            _btn = pygame.Rect(_r.x + 12, _r.bottom - 30, _r.width - 24, 22)
-            if _owned:
-                _bc, _lbl = (60, 120, 200), "WORN"
-            elif not _on_rack:
-                _bc, _lbl = (48, 44, 54), "NOT ON THE RACK"
-            elif coins >= _c["cost"]:
-                _bc, _lbl = (60, 180, 60), "BUY"
+            # The paper tag knotted to the hanger
+            _tx, _ty = _cx + 32, RAIL_Y + 26 + _drop
+            pygame.draw.line(screen, (190, 180, 150), (_cx + 26, RAIL_Y + 28 + _drop),
+                             (_tx + 4, _ty + 6), 1)
+            _tag = pygame.Rect(_tx, _ty, 42, 22)
+            pygame.draw.rect(screen, (96, 92, 86) if _st in ("earn", "closed")
+                             else (228, 222, 198), _tag, border_radius=4)
+            pygame.draw.circle(screen, (120, 112, 92), (_tx + 6, _ty + 6), 2)
+            if _st == "worn":
+                _lbl = font_tiny.render("WORN", True, (40, 80, 150))
+            elif _price(_c) is None:
+                _lbl = font_tiny.render("EARN", True, (60, 54, 48))
+            elif _st == "closed":
+                _lbl = font_tiny.render("SHUT", True, (60, 54, 48))
             else:
-                _bc, _lbl = (58, 54, 64), f"NEED {_c['cost'] - coins} MORE"
-            pygame.draw.rect(screen, _bc, _btn, border_radius=5)
-            _lt = font_tiny.render(_lbl, True,
-                                   WHITE if _lbl in ("BUY", "WORN") else (140, 136, 150))
-            screen.blit(_lt, (_btn.centerx - _lt.get_width() // 2,
-                              _btn.centery - _lt.get_height() // 2))
+                _lbl = font_tiny.render(str(_c["cost"]), True, (120, 90, 20))
+            screen.blit(_lbl, (_tag.centerx - _lbl.get_width() // 2,
+                               _tag.centery - _lbl.get_height() // 2))
         screen.set_clip(None)
+
+        # Header
+        _t = font_medium.render("COSTUME RACK", True, (250, 190, 210))
+        screen.blit(_t, (16, 14))
+        _own = sum(1 for c in COSTUMES if c["name"] in unlocked)
+        _ev_now = get_active_event()
+        _sub = font_tiny.render(
+            f"{_own} of {len(COSTUMES)} worn   ·   left / right slides the rack   ·   "
+            + (f"{_ev_now['name']} is on, so its costumes are for sale"
+               if _ev_now else "nothing is for sale until an event comes round"),
+            True, (160, 148, 160))
+        screen.blit(_sub, (20, 52))
+        pygame.draw.circle(screen, COIN, (WIDTH - 104, 28), 12)
+        pygame.draw.circle(screen, (180, 140, 0), (WIDTH - 104, 28), 12, 2)
+        _cl = font_medium.render(str(coins), True, COIN)
+        screen.blit(_cl, (WIDTH - 86, 28 - _cl.get_height() // 2))
+
+        # What is in front of you
+        _c = COSTUMES[sel]
+        _st = _state(_c)
+        _nm = font_small.render(_c["name"], True, _c["color"])
+        screen.blit(_nm, (16, FLOOR_Y + 14))
+        _ln = f"{_c['base']}'s kit  ·  {_c['event']}"
+        _d = font_tiny.render(_ln, True, (170, 160, 172))
+        screen.blit(_d, (16, FLOOR_Y + 38))
+
+        _btn = pygame.Rect(WIDTH // 2 - 90, HEIGHT - 42, 180, 34)
+        _bc, _bl = {
+            "worn":   ((52, 88, 150), "WORN"),
+            "earn":   ((62, 56, 66),  "EARNED, NOT SOLD"),
+            "closed": ((62, 56, 66),  f"ONLY IN {_c['event'].upper()}"[:30]),
+            "buy":    ((60, 180, 60), f"BUY  ·  {_c.get('cost', 0)}"),
+            "short":  ((70, 60, 54),  f"NEED {_c.get('cost', 0) - coins} MORE"),
+        }[_st]
+        pygame.draw.rect(screen, _bc, _btn, border_radius=8)
+        _bt = font_small.render(_bl, True, WHITE if _st in ("buy", "worn") else (170, 164, 176))
+        screen.blit(_bt, (_btn.centerx - _bt.get_width() // 2,
+                          _btn.centery - _bt.get_height() // 2))
 
         if msg_t > 0:
             _m = font_small.render(msg, True, (255, 220, 160))
-            pygame.draw.rect(screen, (34, 28, 20),
-                             (WIDTH // 2 - _m.get_width() // 2 - 12, HEIGHT - 78,
+            pygame.draw.rect(screen, (40, 32, 24),
+                             (WIDTH // 2 - _m.get_width() // 2 - 12, FLOOR_Y - 34,
                               _m.get_width() + 24, 26), border_radius=6)
-            screen.blit(_m, (WIDTH // 2 - _m.get_width() // 2, HEIGHT - 75))
+            screen.blit(_m, (WIDTH // 2 - _m.get_width() // 2, FLOOR_Y - 31))
 
-        _b = pygame.Rect(WIDTH // 2 - 70, HEIGHT - 40, 140, 32)
-        pygame.draw.rect(screen, (40, 32, 40), _b, border_radius=8)
+        _b = pygame.Rect(WIDTH - 104, HEIGHT - 40, 96, 32)
+        pygame.draw.rect(screen, (46, 36, 44), _b, border_radius=8)
         pygame.draw.rect(screen, (250, 190, 210), _b, 2, border_radius=8)
-        _bt = font_small.render("BACK (ESC)", True, WHITE)
-        screen.blit(_bt, (_b.centerx - _bt.get_width() // 2,
-                          _b.centery - _bt.get_height() // 2))
+        _bk = font_small.render("BACK", True, WHITE)
+        screen.blit(_bk, (_b.centerx - _bk.get_width() // 2,
+                          _b.centery - _bk.get_height() // 2))
         pygame.display.flip()
 
 

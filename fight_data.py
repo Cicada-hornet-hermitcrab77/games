@@ -2208,35 +2208,126 @@ STAGE_MATCHUPS = {
 # ---------------------------------------------------------------------------
 
 COSTUMES = [
+    # ── Earned, never sold ──────────────────────────────────────────────
+    # Own every fighter on an event's shelf and its costume is yours. These
+    # hang on the rack so you can see them, but they are not for sale.
     {"name": "Koi-lue",        "base": "Red Herring", "event": "New Dynasties",
-     "color": (232, 184,  66), "emblem": "koi", "cost": 160},
+     "color": (232, 184,  66), "emblem": "koi",   "source": "achievement"},
     {"name": "Cupidity",       "base": "Angel",       "event": "Hearts and Harmonies",
-     "color": (250, 150, 180), "emblem": "heart", "cost": 140},
+     "color": (250, 150, 180), "emblem": "heart", "source": "achievement"},
     {"name": "Shamrocker",     "base": "Lucky",       "event": "Emerald Echoes",
-     "color": ( 60, 170,  80), "emblem": "clover", "cost": 150},
+     "color": ( 60, 170,  80), "emblem": "clover", "source": "achievement"},
     {"name": "Easta egg",      "base": "Eggshell",    "event": "April Rain",
-     "color": (168, 214, 236), "emblem": "egg", "cost": 130},
+     "color": (168, 214, 236), "emblem": "egg",   "source": "achievement"},
     {"name": "Terracotta",     "base": "Golem",       "event": "Bound to the Ground",
-     "color": (186, 106,  66), "emblem": "leaf", "cost": 150},
+     "color": (186, 106,  66), "emblem": "leaf",  "source": "achievement"},
     {"name": "Last post",      "base": "Reaper",      "event": "Legacy of Valor",
-     "color": ( 96, 104, 128), "emblem": "star", "cost": 170},
+     "color": ( 96, 104, 128), "emblem": "star",  "source": "achievement"},
     {"name": "Fruit chop",     "base": "Ninja",       "event": "Summer Solstice",
-     "color": (240, 170,  60), "emblem": "sun", "cost": 140},
+     "color": (240, 170,  60), "emblem": "sun",   "source": "achievement"},
     {"name": "Rockets red glare", "base": "Bazooka Man", "event": "Red White and Boom",
-     "color": (210,  64,  70), "emblem": "star", "cost": 180},
+     "color": (210,  64,  70), "emblem": "star",  "source": "achievement"},
     {"name": "Plot twist",     "base": "Shapeshifter", "event": "Novel Beginnings",
-     "color": (142, 120, 200), "emblem": "book", "cost": 150},
+     "color": (142, 120, 200), "emblem": "book",  "source": "achievement"},
     {"name": "Old faithful",   "base": "Lava Man",    "event": "Project Yellowstone",
-     "color": (226, 128,  54), "emblem": "flame", "cost": 170},
+     "color": (226, 128,  54), "emblem": "flame", "source": "achievement"},
     {"name": "Scaredy cat",    "base": "Copycat",     "event": "Echoes of the Undying",
-     "color": ( 86,  70, 110), "emblem": "cat", "cost": 190},
+     "color": ( 86,  70, 110), "emblem": "cat",   "source": "achievement"},
     {"name": "Food coma",      "base": "Sumo",        "event": "Feasterween",
-     "color": (196, 150,  92), "emblem": "leaf", "cost": 140},
+     "color": (196, 150,  92), "emblem": "leaf",  "source": "achievement"},
     {"name": "Latke than never", "base": "Magician",  "event": "Aura of Menorah",
-     "color": ( 80, 110, 200), "emblem": "flame", "cost": 150},
+     "color": ( 80, 110, 200), "emblem": "flame", "source": "achievement"},
     {"name": "Rodoff the red nosed thing", "base": "Wendigo", "event": "Yuletide Gatherings",
-     "color": (212,  86,  86), "emblem": "snow", "cost": 200},
+     "color": (212,  86,  86), "emblem": "snow",  "source": "achievement"},
+
+    # ── On the rack, for coins ──────────────────────────────────────────
+    # New Dynasties sells the zodiac: twelve animals, plus the lobster and
+    # the cracked one. Priced so a few wins during the event pays for any.
+    {"name": "Lucky lobster",     "base": "Brawler",     "event": "New Dynasties",
+     "color": (214,  70,  52), "emblem": "koi",   "source": "rack", "cost": 25},
+    {"name": "A bit cracky",      "base": "Bomb",        "event": "New Dynasties",
+     "color": (196, 186, 170), "emblem": "egg",   "source": "rack", "cost": 25},
+    {"name": "Tricky rat",        "base": "Mouse",       "event": "New Dynasties",
+     "color": (150, 148, 156), "emblem": "cat",   "source": "rack", "cost": 20},
+    {"name": "Bulky ox",          "base": "Minotaur",    "event": "New Dynasties",
+     "color": (122,  88,  66), "emblem": "leaf",  "source": "rack", "cost": 30},
+    {"name": "Bold tiger",        "base": "Oni",         "event": "New Dynasties",
+     "color": (238, 142,  44), "emblem": "sun",   "source": "rack", "cost": 35},
+    {"name": "Gentle rabbit",     "base": "Spring",      "event": "New Dynasties",
+     "color": (238, 226, 230), "emblem": "egg",   "source": "rack", "cost": 20},
+    {"name": "Brave dragon",      "base": "Chimera",     "event": "New Dynasties",
+     "color": ( 84, 180, 128), "emblem": "flame", "source": "rack", "cost": 45},
+    {"name": "Opulent snake",     "base": "Black Mamba", "event": "New Dynasties",
+     "color": (206, 174,  70), "emblem": "koi",   "source": "rack", "cost": 35},
+    {"name": "Energized horse",   "base": "Charger",     "event": "New Dynasties",
+     "color": (226, 196, 112), "emblem": "star",  "source": "rack", "cost": 30},
+    {"name": "Out-of-the-box goat", "base": "Demon",     "event": "New Dynasties",
+     "color": (186, 190, 198), "emblem": "book",  "source": "rack", "cost": 30},
+    {"name": "Adaptive monkey",   "base": "Buffer",      "event": "New Dynasties",
+     "color": (178, 126,  78), "emblem": "clover", "source": "rack", "cost": 30},
+    {"name": "Snipeshot rooster", "base": "Sniper",      "event": "New Dynasties",
+     "color": (220,  78,  70), "emblem": "sun",   "source": "rack", "cost": 35},
+    {"name": "Noble dog",         "base": "Kitsune",     "event": "New Dynasties",
+     "color": (198, 150,  96), "emblem": "star",  "source": "rack", "cost": 30},
+    {"name": "Sleepy pig",        "base": "Sumo",        "event": "New Dynasties",
+     "color": (242, 182, 190), "emblem": "snow",  "source": "rack", "cost": 25},
+
+    # Hearts and Harmonies sells six, and most of them are about the noise
+    # you make rather than the fighting.
+    {"name": "Harpy siren",       "base": "Harpy",       "event": "Hearts and Harmonies",
+     "color": (244, 146, 182), "emblem": "heart", "source": "rack", "cost": 30},
+    {"name": "I love to dance",   "base": "Dancing Man", "event": "Hearts and Harmonies",
+     "color": (250, 120, 160), "emblem": "heart", "source": "rack", "cost": 25},
+    {"name": "Serenado",          "base": "Bard",        "event": "Hearts and Harmonies",
+     "color": (210, 130, 190), "emblem": "star",  "source": "rack", "cost": 30},
+    {"name": "Floral knight",     "base": "Parry",       "event": "Hearts and Harmonies",
+     "color": (226, 160, 196), "emblem": "leaf",  "source": "rack", "cost": 35},
+    {"name": "Arrow-struck",      "base": "Lancer",      "event": "Hearts and Harmonies",
+     "color": (232,  96, 128), "emblem": "heart", "source": "rack", "cost": 30},
+    {"name": "Chalk-olate box",   "base": "Tank",        "event": "Hearts and Harmonies",
+     "color": (150,  98,  74), "emblem": "egg",   "source": "rack", "cost": 25},
+
+    # Emerald Echoes
+    {"name": "Can't catch me",    "base": "Phantom",     "event": "Emerald Echoes",
+     "color": ( 74, 186, 110), "emblem": "clover", "source": "rack", "cost": 30},
+    {"name": "Pot o' gold and fire", "base": "Blazex & Torrti", "event": "Emerald Echoes",
+     "color": (214, 170,  54), "emblem": "flame", "source": "rack", "cost": 45},
+    {"name": "Rain-boa",          "base": "Rainbow Snake", "event": "Emerald Echoes",
+     "color": (110, 200, 140), "emblem": "koi",   "source": "rack", "cost": 35},
+    {"name": "The potato warrior", "base": "Lancer",     "event": "Emerald Echoes",
+     "color": (156, 132,  84), "emblem": "leaf",  "source": "rack", "cost": 30},
+
+    # April Rain
+    {"name": "Egg-cellent",       "base": "Boxer",       "event": "April Rain",
+     "color": (246, 238, 218), "emblem": "egg",   "source": "rack", "cost": 25},
+    {"name": "Jelly-ster",        "base": "Jester",      "event": "April Rain",
+     "color": (196, 112, 208), "emblem": "star",  "source": "rack", "cost": 30},
+    {"name": "More mallow, less meadow", "base": "Ghost", "event": "April Rain",
+     "color": (250, 240, 244), "emblem": "snow",  "source": "rack", "cost": 30},
+    {"name": "Sad hatter & rad hatter", "base": "Xix!?xy & Zaor@k", "event": "April Rain",
+     "color": (120, 140, 210), "emblem": "book",  "source": "rack", "cost": 45},
+
+    # Bound to the Ground — one giant, taken apart into six
+    {"name": "Hands as clouds",   "base": "Angel",       "event": "Bound to the Ground",
+     "color": (228, 236, 246), "emblem": "snow",  "source": "rack", "cost": 30},
+    {"name": "Body as mountains", "base": "The Creator", "event": "Bound to the Ground",
+     "color": (124, 118, 110), "emblem": "leaf",  "source": "rack", "cost": 40},
+    {"name": "Head as stars",     "base": "Nightfall",   "event": "Bound to the Ground",
+     "color": ( 58,  62, 108), "emblem": "star",  "source": "rack", "cost": 35},
+    {"name": "Soul as air",       "base": "Wisp",        "event": "Bound to the Ground",
+     "color": (206, 224, 230), "emblem": "snow",  "source": "rack", "cost": 30},
+    {"name": "Heart as life",     "base": "Druid",       "event": "Bound to the Ground",
+     "color": (196,  72,  86), "emblem": "heart", "source": "rack", "cost": 30},
+    {"name": "Legs as trees",     "base": "Swamp Thing", "event": "Bound to the Ground",
+     "color": ( 96, 128,  64), "emblem": "leaf",  "source": "rack", "cost": 35},
+
+    # Legacy of Valor
+    {"name": "You pledge what you rob", "base": "Graverobber", "event": "Legacy of Valor",
+     "color": (132, 122,  96), "emblem": "star",  "source": "rack", "cost": 35},
 ]
+
+COSTUMES_EARNED = [c for c in COSTUMES if c.get("source") != "rack"]
+COSTUMES_FOR_SALE = [c for c in COSTUMES if c.get("source") == "rack"]
 
 COSTUME_BASE   = {c["name"]: c["base"] for c in COSTUMES}
 COSTUME_EMBLEM = {c["name"]: c["emblem"] for c in COSTUMES}
