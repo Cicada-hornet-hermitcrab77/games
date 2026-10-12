@@ -14698,6 +14698,262 @@ def draw_costume_extras(surface, costume, head_c, hd, shoulder, waist, lh, rh,
                                (hx + _sgn * int(r * 1.3), hy - int(r * 1.1)), max(1, int(r * 0.17)))
 
     else:
+        return _draw_rack_costume(surface, costume, hx, hy, sx, sy, wx, wy,
+                                  fx, fy, lh, rh, f, s, r, lw, col, t)
+    return True
+
+
+def _draw_rack_costume(surface, costume, hx, hy, sx, sy, wx, wy, fx, fy,
+                       lh, rh, f, s, r, lw, col, t):
+    """The costumes the rack sells. Same idea as the earned ones: the base
+    fighter, wearing something. Returns False if this one has no art yet."""
+
+    def _ears(kind, spread=0.5, h=1.3, ec=(240, 200, 200)):
+        for _sg in (-1, 1):
+            _ex = hx + _sg * int(r * spread)
+            if kind == "round":
+                pygame.draw.circle(surface, col, (_ex, hy - int(r * 0.85)),
+                                   max(2, int(r * 0.4)))
+                pygame.draw.circle(surface, ec, (_ex, hy - int(r * 0.85)),
+                                   max(1, int(r * 0.22)))
+            elif kind == "long":
+                pygame.draw.ellipse(surface, col,
+                                    (_ex - int(r * 0.18), hy - int(r * h) - int(r * 0.6),
+                                     max(2, int(r * 0.36)), max(3, int(r * h))))
+                pygame.draw.ellipse(surface, ec,
+                                    (_ex - int(r * 0.09), hy - int(r * h) - int(r * 0.4),
+                                     max(1, int(r * 0.18)), max(2, int(r * h * 0.7))))
+            elif kind == "point":
+                pygame.draw.polygon(surface, col, [
+                    (_ex - int(r * 0.3), hy - int(r * 0.5)),
+                    (_ex, hy - int(r * 1.5)),
+                    (_ex + int(r * 0.3), hy - int(r * 0.5))])
+
+    def _whiskers(n2=2):
+        for _sg in (-1, 1):
+            for _k in range(n2):
+                pygame.draw.line(surface, (245, 245, 250),
+                                 (hx + _sg * int(r * 0.3), hy + int(r * 0.3)),
+                                 (hx + _sg * int(r * 1.3),
+                                  hy + int(r * (0.1 + 0.35 * _k))), max(1, int(s)))
+
+    def _tail(curl=1.0, thick=3, tc=None):
+        _tc = tc or col
+        pygame.draw.lines(surface, _tc, False, [
+            (wx - f * int(r * 0.3), wy),
+            (wx - f * int(r * 1.3), wy - int(r * 0.3 * curl)),
+            (wx - f * int(r * 1.5), wy - int(r * 1.3 * curl))], max(2, int(s * thick)))
+
+    if costume == "Lucky lobster":
+        for _sg, _hxp in ((-1, lh if f > 0 else rh), (1, rh if f > 0 else lh)):
+            _cx2, _cy2 = int(_hxp[0]), int(_hxp[1])
+            pygame.draw.polygon(surface, (212, 62, 48), [
+                (_cx2, _cy2), (_cx2 + _sg * int(r * 0.9), _cy2 - int(r * 0.6)),
+                (_cx2 + _sg * int(r * 1.1), _cy2 + int(r * 0.2)),
+                (_cx2 + _sg * int(r * 0.4), _cy2 + int(r * 0.5))])
+            pygame.draw.line(surface, (120, 30, 24),
+                             (_cx2 + _sg * int(r * 0.45), _cy2 - int(r * 0.2)),
+                             (_cx2 + _sg * int(r * 1.05), _cy2 + int(r * 0.1)),
+                             max(1, int(s)))
+        for _sg in (-1, 1):
+            pygame.draw.line(surface, (212, 62, 48), (hx + _sg * int(r * 0.3), hy - r),
+                             (hx + _sg * int(r * 0.9), hy - int(r * 2.1)), lw)
+            pygame.draw.circle(surface, (240, 120, 100),
+                               (hx + _sg * int(r * 0.9), hy - int(r * 2.1)),
+                               max(1, int(r * 0.16)))
+        pygame.draw.polygon(surface, (212, 62, 48), [
+            (wx - f * int(r * 0.4), wy), (wx - f * int(r * 1.6), wy - int(r * 0.5)),
+            (wx - f * int(r * 1.6), wy + int(r * 0.5))])
+
+    elif costume == "A bit cracky":
+        for _i, (_x0, _y0) in enumerate(((-0.6, -0.5), (0.5, 0.0), (-0.2, 0.6))):
+            pygame.draw.lines(surface, (70, 66, 62), False, [
+                (hx + int(r * _x0), hy + int(r * _y0)),
+                (hx + int(r * (_x0 + 0.25)), hy + int(r * (_y0 + 0.3))),
+                (hx + int(r * (_x0 - 0.05)), hy + int(r * (_y0 + 0.7)))],
+                max(1, int(s * 2)))
+        pygame.draw.polygon(surface, (232, 226, 212), [
+            (hx + int(r * 0.5), hy - int(r * 0.9)), (hx + r, hy - int(r * 0.4)),
+            (hx + int(r * 0.7), hy - int(r * 0.1))])
+        pygame.draw.line(surface, (200, 60, 50), (sx, sy + int(r * 0.4)),
+                         (sx + int(r * 0.6), sy + int(r * 1.1)), max(1, int(s * 2)))
+
+    elif costume == "Tricky rat":
+        _ears("round", 0.6)
+        _whiskers()
+        pygame.draw.circle(surface, (240, 160, 170), (hx + f * int(r * 0.9), hy),
+                           max(1, int(r * 0.2)))
+        _tail(0.9, 2, (226, 190, 190))
+
+    elif costume == "Bulky ox":
+        for _sg in (-1, 1):
+            pygame.draw.lines(surface, (236, 230, 214), False, [
+                (hx + _sg * int(r * 0.7), hy - int(r * 0.6)),
+                (hx + _sg * int(r * 1.5), hy - int(r * 1.1)),
+                (hx + _sg * int(r * 1.4), hy - int(r * 1.9))], max(2, int(s * 3)))
+        pygame.draw.circle(surface, (210, 190, 90), (hx + f * int(r * 0.9), hy + int(r * 0.5)),
+                           max(2, int(r * 0.3)), max(1, int(s * 2)))
+        for _sg in (-1, 1):
+            pygame.draw.line(surface, (90, 70, 54), (sx + _sg * int(r * 0.8), sy),
+                             (sx + _sg * int(r * 1.0), sy + int(r * 0.8)),
+                             max(2, int(s * 4)))
+
+    elif costume == "Bold tiger":
+        for _i in range(4):
+            _yy = sy + int((wy - sy) * (0.1 + 0.25 * _i))
+            pygame.draw.line(surface, (36, 28, 24), (sx - int(r * 0.6), _yy),
+                             (sx + int(r * 0.6), _yy - int(r * 0.18)), max(2, int(s * 2)))
+        _ears("point", 0.6)
+        _whiskers()
+        _tail(0.8, 3, (238, 142, 44))
+
+    elif costume == "Gentle rabbit":
+        _ears("long", 0.42, 1.7)
+        pygame.draw.circle(surface, (252, 248, 250), (wx - f * int(r * 0.8), wy),
+                           max(2, int(r * 0.45)))
+        for _sg in (-1, 1):
+            pygame.draw.rect(surface, (255, 255, 255),
+                             (hx + _sg * int(r * 0.2) - int(r * 0.12), hy + int(r * 0.35),
+                              max(2, int(r * 0.24)), max(2, int(r * 0.4))))
+        pygame.draw.circle(surface, (244, 170, 180), (hx + f * int(r * 0.7), hy + int(r * 0.2)),
+                           max(1, int(r * 0.16)))
+
+    elif costume == "Brave dragon":
+        for _i in range(4):
+            _yy = sy + int((wy - sy) * (0.05 + 0.3 * _i))
+            pygame.draw.polygon(surface, (46, 130, 90), [
+                (sx - f * int(r * 0.4), _yy),
+                (sx - f * int(r * 1.0), _yy - int(r * 0.25)),
+                (sx - f * int(r * 0.4), _yy + int(r * 0.3))])
+        for _sg in (-1, 1):
+            pygame.draw.lines(surface, (236, 230, 200), False, [
+                (hx + f * int(r * 0.6), hy + int(r * 0.3)),
+                (hx + f * int(r * 1.4), hy + _sg * int(r * 0.25) + int(r * 0.4)),
+                (hx + f * int(r * 1.9), hy + _sg * int(r * 0.9))], max(1, int(s * 2)))
+        _ff = int(r * (0.5 + 0.2 * math.sin(t * 6)))
+        pygame.draw.polygon(surface, (255, 170, 50), [
+            (hx + f * int(r * 1.0), hy + int(r * 0.5)),
+            (hx + f * int(r * (1.6 + 0.2)), hy + int(r * 0.2)),
+            (hx + f * int(r * 1.8) + _ff, hy + int(r * 0.6)),
+            (hx + f * int(r * 1.5), hy + int(r * 0.9))])
+
+    elif costume == "Opulent snake":
+        for _i in range(3):
+            pygame.draw.ellipse(surface, (214, 180, 70),
+                                (sx - int(r * 0.75), sy + int((wy - sy) * 0.15 * _i)
+                                 + int(r * 0.2), int(r * 1.5), max(3, int(r * 0.4))),
+                                max(1, int(s * 2)))
+        pygame.draw.circle(surface, (240, 220, 120), (sx, sy + int(r * 0.6)),
+                           max(2, int(r * 0.26)))
+        pygame.draw.polygon(surface, (120, 40, 140), [
+            (sx, sy + int(r * 0.45)), (sx + int(r * 0.2), sy + int(r * 0.6)),
+            (sx, sy + int(r * 0.78)), (sx - int(r * 0.2), sy + int(r * 0.6))])
+
+    elif costume == "Energized horse":
+        for _i in range(5):
+            pygame.draw.line(surface, (60, 44, 32),
+                             (hx - f * int(r * 0.5), hy - int(r * 0.9) + int(r * 0.3 * _i)),
+                             (hx - f * int(r * 1.2), hy - int(r * 1.2) + int(r * 0.34 * _i)),
+                             max(1, int(s * 2)))
+        pygame.draw.arc(surface, (200, 200, 210),
+                        (sx - int(r * 0.5), sy + int(r * 0.3), int(r * 1.0), int(r * 1.0)),
+                        3.4, 6.0, max(2, int(s * 3)))
+        for _k in range(3):
+            _a = t * 7 + _k * 2.1
+            pygame.draw.circle(surface, (255, 230, 120),
+                               (wx + int(math.cos(_a) * r * 1.2),
+                                wy + int(r * 1.4) + int(math.sin(_a) * r * 0.3)),
+                               max(1, int(r * 0.14)))
+
+    elif costume == "Out-of-the-box goat":
+        for _sg in (-1, 1):
+            pygame.draw.arc(surface, (218, 206, 180),
+                            (hx + _sg * int(r * 0.4) - int(r * 0.5), hy - int(r * 1.9),
+                             int(r * 1.0), int(r * 1.2)),
+                            0.4 if _sg > 0 else 2.2, 2.9 if _sg > 0 else 4.7,
+                            max(2, int(s * 3)))
+        pygame.draw.polygon(surface, (226, 220, 206), [
+            (hx + f * int(r * 0.2), hy + int(r * 0.8)),
+            (hx + f * int(r * 0.5), hy + int(r * 1.6)),
+            (hx - f * int(r * 0.1), hy + int(r * 1.5))])
+        _bx2, _by2 = sx - f * int(r * 1.3), sy - int(r * 0.2)
+        pygame.draw.rect(surface, (170, 134, 90),
+                         (_bx2 - int(r * 0.5), _by2, int(r * 1.0), int(r * 1.0)))
+        pygame.draw.rect(surface, (120, 92, 60),
+                         (_bx2 - int(r * 0.5), _by2, int(r * 1.0), int(r * 1.0)),
+                         max(1, int(s)))
+
+    elif costume == "Adaptive monkey":
+        _ears("round", 0.95, ec=(236, 196, 170))
+        pygame.draw.ellipse(surface, (236, 200, 170),
+                            (hx - int(r * 0.55), hy - int(r * 0.1),
+                             int(r * 1.1), int(r * 0.9)))
+        pygame.draw.lines(surface, (150, 110, 70), False, [
+            (wx - f * int(r * 0.3), wy),
+            (wx - f * int(r * 1.4), wy - int(r * 0.2)),
+            (wx - f * int(r * 1.3), wy + int(r * 1.1)),
+            (wx - f * int(r * 0.6), wy + int(r * 1.2))], max(2, int(s * 2)))
+        pygame.draw.polygon(surface, (240, 220, 90), [
+            (fx, fy), (fx + f * int(r * 0.9), fy - int(r * 0.5)),
+            (fx + f * int(r * 1.0), fy - int(r * 0.2)), (fx + f * int(r * 0.2), fy + int(r * 0.3))])
+
+    elif costume == "Snipeshot rooster":
+        for _i in range(3):
+            pygame.draw.polygon(surface, (214, 48, 44), [
+                (hx - int(r * 0.4) + int(r * 0.4 * _i), hy - r),
+                (hx - int(r * 0.2) + int(r * 0.4 * _i), hy - int(r * 1.7)),
+                (hx + int(r * 0.05) + int(r * 0.4 * _i), hy - r)])
+        pygame.draw.polygon(surface, (246, 190, 60), [
+            (hx + f * int(r * 0.7), hy), (hx + f * int(r * 1.6), hy + int(r * 0.25)),
+            (hx + f * int(r * 0.7), hy + int(r * 0.5))])
+        pygame.draw.circle(surface, (200, 50, 50), (hx + f * int(r * 0.6), hy + int(r * 0.8)),
+                           max(1, int(r * 0.22)))
+        for _sg in (-1, 1):
+            pygame.draw.lines(surface, (170, 140, 60), False, [
+                (wx - f * int(r * 0.4), wy),
+                (wx - f * int(r * 1.3), wy - _sg * int(r * 0.4) - int(r * 0.6)),
+                (wx - f * int(r * 1.9), wy - _sg * int(r * 0.9) - int(r * 0.8))],
+                max(1, int(s * 2)))
+
+    elif costume == "Noble dog":
+        for _sg in (-1, 1):
+            pygame.draw.ellipse(surface, (150, 108, 64),
+                                (hx + _sg * int(r * 0.75) - int(r * 0.3), hy - int(r * 0.7),
+                                 max(2, int(r * 0.6)), max(3, int(r * 1.4))))
+        pygame.draw.circle(surface, (40, 34, 30), (hx + f * int(r * 0.9), hy + int(r * 0.2)),
+                           max(1, int(r * 0.2)))
+        pygame.draw.line(surface, (160, 40, 44), (sx - int(r * 0.7), sy + int(r * 0.1)),
+                         (sx + int(r * 0.7), sy + int(r * 0.1)), max(2, int(s * 3)))
+        pygame.draw.circle(surface, (226, 190, 90), (sx, sy + int(r * 0.45)),
+                           max(2, int(r * 0.26)))
+        _wag = int(math.sin(t * 7) * r * 0.5)
+        pygame.draw.line(surface, (150, 108, 64), (wx - f * int(r * 0.3), wy),
+                         (wx - f * int(r * 1.3) + _wag, wy - int(r * 0.9)),
+                         max(2, int(s * 3)))
+
+    elif costume == "Sleepy pig":
+        pygame.draw.ellipse(surface, (248, 182, 192),
+                            (hx + f * int(r * 0.4), hy - int(r * 0.1),
+                             int(r * 0.8), int(r * 0.6)))
+        for _ho in (-0.18, 0.18):
+            pygame.draw.circle(surface, (210, 130, 150),
+                               (hx + f * int(r * 0.8), hy + int(r * (0.2 + _ho))),
+                               max(1, int(r * 0.1)))
+        for _sg in (-1, 1):
+            pygame.draw.polygon(surface, (244, 170, 182), [
+                (hx + _sg * int(r * 0.4), hy - int(r * 0.7)),
+                (hx + _sg * int(r * 0.9), hy - int(r * 1.2)),
+                (hx + _sg * int(r * 0.9), hy - int(r * 0.4))])
+        for _k in range(3):
+            _a = -1.0 + _k * 1.1
+            pygame.draw.arc(surface, (240, 160, 176),
+                            (wx - f * int(r * 1.5) - int(r * 0.3 * _k), wy - int(r * 0.3),
+                             max(3, int(r * 0.5)), max(3, int(r * 0.5))), _a, _a + 3.2,
+                            max(1, int(s)))
+        _z = _get_font(max(7, int(r * 0.8))).render("z", True, (230, 230, 245))
+        surface.blit(_z, (hx + f * int(r * 1.0), hy - int(r * 1.6)))
+
+    else:
         return False
     return True
 

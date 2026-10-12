@@ -600,7 +600,7 @@ _WORLD_LEGEND = [
 
 def _world_pages(unlocked):
     out = [{
-        "section": "maps", "title": "The world",
+        "section": "maps", "title": "The world", "pin": True,
         "subtitle": "where all thirty-three stages actually are",
         "color": (110, 215, 140), "art": None,
         "tags": ["world", "map", "geography"],
@@ -851,7 +851,7 @@ PAGES = [
          ("b", "Achievements — some hand over a costume."),
          ("b", "Secrets. Some fighters are not unlocked at all. They are found."),
      ]},
-    {"section": "characters", "title": "Taxonomy",
+    {"section": "characters", "title": "Taxonomy", "pin": True,
      "subtitle": "how the roster is grouped — every fighter is one of these",
      "tags": ["taxonomy", "tree", "families", "kins", "clans"],
      "body": [
@@ -1269,6 +1269,9 @@ def build(unlocked=(), stats=None):
         target["notes_author"] = _by
         target["tags"] = list(target.get("tags", [])) + ["has notes"]
         target["search"] = _haystack(target)
+
+    for _sid in out:
+        out[_sid].sort(key=lambda p: 0 if p.get("pin") else 1)
 
     for extra in [k for k in out if k not in SECTION_TITLE]:
         # A page claiming a section nobody declared still gets read.

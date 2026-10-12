@@ -5331,6 +5331,7 @@ def costume_rack(screen, clock, stats, unlocked):
     FLOOR_Y  = HEIGHT - 78
     sel   = 0
     slide = 0.0               # how far the rail has been pushed along
+    fall  = {}                # costume index -> 0..1, how far off the rail it is
     msg, msg_t = "", 0
 
     def _price(c):
@@ -5428,39 +5429,65 @@ def costume_rack(screen, clock, stats, unlocked):
                          (WIDTH - 54, RAIL_Y - 2), 2)
 
         # Everything hanging off it
-        screen.set_clip(pygame.Rect(0, RAIL_Y - 24, WIDTH, FLOOR_Y - RAIL_Y + 24))
+        screen.set_clip(pygame.Rect(0, RAIL_Y - 24, WIDTH, FLOOR_Y - RAIL_Y + 30))
         for _i, _c in enumerate(COSTUMES):
             _cx = int(_i * HANG_X - slide + HANG_X // 2)
             if _cx < -HANG_X or _cx > WIDTH + HANG_X:
                 continue
             _on = (_i == sel)
             _st = _state(_c)
+            # Pushed past an upright, it comes off the bar and drops
+            _off = _cx < 54 + 18 or _cx > WIDTH - 54 - 18
+            _f = fall.get(_i, 0.0) + (0.08 if _off else -0.14)
+            _f = max(0.0, min(1.0, _f))
+            if _f:
+                fall[_i] = _f
+            else:
+                fall.pop(_i, None)
             _col = (_c["color"] if _st in ("worn", "buy", "short")
                     else (60, 56, 64))
             _drop = 0 if _on else 10          # the chosen one is pulled forward
-            # Hook over the bar
-            pygame.draw.arc(screen, (198, 200, 210),
-                            (_cx - 7, RAIL_Y - 12, 14, 18), 0.3, 2.9, 3)
-            pygame.draw.line(screen, (198, 200, 210), (_cx, RAIL_Y + 2),
-                             (_cx, RAIL_Y + 14 + _drop), 2)
-            # Hanger shoulders
-            pygame.draw.lines(screen, (198, 200, 210), False, [
-                (_cx - 30, RAIL_Y + 30 + _drop), (_cx, RAIL_Y + 14 + _drop),
-                (_cx + 30, RAIL_Y + 30 + _drop)], 3)
-            pygame.draw.line(screen, (198, 200, 210), (_cx - 30, RAIL_Y + 30 + _drop),
-                             (_cx + 30, RAIL_Y + 30 + _drop), 2)
+            if _f < 1.0:
+                # Hook over the bar
+                pygame.draw.arc(screen, (198, 200, 210),
+                                (_cx - 7, RAIL_Y - 12, 14, 18), 0.3, 2.9, 3)
+                pygame.draw.line(screen, (198, 200, 210), (_cx, RAIL_Y + 2),
+                                 (_cx, RAIL_Y + 14 + _drop), 2)
+                # Hanger shoulders
+                pygame.draw.lines(screen, (198, 200, 210), False, [
+                    (_cx - 30, RAIL_Y + 30 + _drop), (_cx, RAIL_Y + 14 + _drop),
+                    (_cx + 30, RAIL_Y + 30 + _drop)], 3)
+                pygame.draw.line(screen, (198, 200, 210),
+                                 (_cx - 30, RAIL_Y + 30 + _drop),
+                                 (_cx + 30, RAIL_Y + 30 + _drop), 2)
             # The costume itself, hanging from the hanger
-            if _on:
+            if _on and _f <= 0:
                 pygame.draw.rect(screen, (46, 40, 52),
                                  (_cx - 64, RAIL_Y + 24, 128, 232), border_radius=10)
                 pygame.draw.rect(screen, _c["color"],
                                  (_cx - 64, RAIL_Y + 24, 128, 232), 2, border_radius=10)
-            try:
-                draw_stickman(screen, _cx, RAIL_Y + 238 + _drop, _col, 1, "idle", 0.25,
-                              scale=1.05, char_name=_c["name"])
-            except Exception:
-                pass
+            if _f <= 0:
+                try:
+                    draw_stickman(screen, _cx, RAIL_Y + 238 + _drop, _col, 1, "idle",
+                                  0.25, scale=1.05, char_name=_c["name"])
+                except Exception:
+                    pass
+            else:
+                # Off the hanger: it tips over and lands in a heap by the post
+                _fs = pygame.Surface((170, 250), pygame.SRCALPHA)
+                try:
+                    draw_stickman(_fs, 85, 230, _col, 1, "idle", 0.25, scale=1.05,
+                                  char_name=_c["name"])
+                except Exception:
+                    pass
+                _lean = -1 if _cx < WIDTH // 2 else 1
+                _rot = pygame.transform.rotate(_fs, -_lean * 82 * _f)
+                _dy = int((FLOOR_Y - 16 - (RAIL_Y + 238)) * (_f * _f))
+                screen.blit(_rot, (_cx - _rot.get_width() // 2,
+                                   RAIL_Y + 238 + _dy - _rot.get_height() + 24))
             # The paper tag knotted to the hanger
+            if _f >= 1.0:
+                continue          # it is in a heap on the floor, tag and all
             _tx, _ty = _cx + 32, RAIL_Y + 26 + _drop
             pygame.draw.line(screen, (190, 180, 150), (_cx + 26, RAIL_Y + 28 + _drop),
                              (_tx + 4, _ty + 6), 1)
