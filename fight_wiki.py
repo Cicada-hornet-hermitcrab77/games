@@ -160,9 +160,6 @@ CATEGORIES = [
     ("venomskin",   "Venomskin",    (128, 206,  70)),
     ("jokkin",      "Jokkin",       (226, 102, 210)),
     ("hammerhead",  "Hammerhead",   (154, 162, 178)),
-    ("rockkin",     "Rockkin",      (158, 120,  86)),
-    ("plantkin",    "Plantkin",     ( 76, 168,  84)),
-    ("airkin",      "Airkin",       (206, 226, 240)),
     ("gunners",     "Gunners",      (108, 142, 174)),
     ("explosers",   "Explosers",    (250, 150,  50)),
     ("copycats",    "Copycats",     (190, 170, 232)),
@@ -213,7 +210,7 @@ _CAT_FLAGS = {
 # An element beats a firing pattern: a fighter who throws fire is a pyrokin,
 # not a gunner who happens to be warm.
 _KINS = ("pyrokin", "fishikin", "cryokin", "shockkin", "venomskin", "jokkin",
-         "hammerhead", "rockkin", "plantkin", "airkin")
+         "hammerhead")
 _OVERPOWERED_BY_KIN = ("gunners", "explosers")
 
 _CLAN_BY_CONDITION = {
@@ -254,14 +251,9 @@ def seasonal_only(name, conditions=None):
     return not cond or cond[3].startswith("Buy in Seasonal Shop")
 
 
-# The Fuser deals in six elements. Three of them are the drawing's elementals
-# under another name; three it never got round to naming.
-_FUSER_ELEMENT_CAT = {"water": "fishikin", "fire": "pyrokin", "electric": "shockkin",
-                      "rock": "rockkin", "plant": "plantkin", "air": "airkin"}
-_FUSED_CATS = {}
-for _combo, _res in FUSER_RECIPES.items():
-    _FUSED_CATS[_res["name"]] = [_FUSER_ELEMENT_CAT[e] for e in sorted(_combo)
-                                 if e in _FUSER_ELEMENT_CAT]
+# The Fuser trades in six elements, but rock, plant and air are not kins —
+# no fighter wears them. A fused fighter is a Fuser and nothing else anyway.
+_FUSED_CATS = {_res["name"]: ["fuser"] for _res in FUSER_RECIPES.values()}
 
 
 def categories_of(ch, conditions=None):
@@ -605,6 +597,7 @@ def _world_pages(unlocked):
         "color": (110, 215, 140), "art": None,
         "tags": ["world", "map", "geography"],
         "body": [
+            ("worldmap",),
             "The stages are not floating in nothing. They sit on a map — one "
             "ocean in the middle, mountains and rainforest to the west, the "
             "hot side to the north-east, the cities crowded in the centre, "
@@ -885,9 +878,6 @@ PAGES = [
              (3, "Venomskin — poison"),
              (3, "Jokkin — confusion"),
              (3, "Hammerhead — impact"),
-             (3, "Rockkin — stone, from the Fuser"),
-             (3, "Plantkin — green, from the Fuser"),
-             (3, "Airkin — wind, from the Fuser"),
              (1, "Fuser — made, not found, and nothing else besides"),
              (1, "Cipher — typed in, not won"),
              (1, "Secret — hidden until somebody finds it, and nothing else"),

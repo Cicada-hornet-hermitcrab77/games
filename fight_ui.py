@@ -11,7 +11,8 @@ import fight_achievements as _ach
 import fight_wiki as _wiki
 from constants import *
 from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS, FUSER_ELEMENTS, FUSER_RECIPES, FUSER_SHOP_CHARS
-from fight_drawing import draw_bg, draw_stickman, draw_jawke_legacy, _draw_emblem
+from fight_drawing import (draw_bg, draw_stickman, draw_jawke_legacy, _draw_emblem,
+                           draw_world_map)
 from fight_seasonal import (SEASONAL_EVENTS, SEASONAL_SHOP_CHARS, get_active_event, draw_seasonal_decos,
                             is_solar_eclipse_today, is_lunar_eclipse_today)
 
@@ -3859,6 +3860,8 @@ def wiki_screen(unlocked=(), stats=None):
                     lines.append(("bar", item[1], item[2], item[3]))
                 elif item[0] == "cats":
                     lines.append(("cats", item[1]))
+                elif item[0] == "worldmap":
+                    lines.append(("worldmap",))
                 elif item[0] == "tree":
                     _prev = None
                     for _d, _txt in item[1]:
@@ -3869,7 +3872,7 @@ def wiki_screen(unlocked=(), stats=None):
                         _prev = _d
         _lh = {"title": 30, "sub": 18, "tags": 20, "gap": 0, "p": 19, "head": 24,
                "bullet": 19, "bullet2": 19, "kv": 19, "bar": 20, "tree": 20,
-               "cats": 24}
+               "cats": 24, "worldmap": 232}
         art_h = sum(l[1] if l[0] == "gap" else _lh[l[0]] for l in lines)
         _has_art = bool(page and page.get("art"))
         if _has_art:
@@ -4088,6 +4091,9 @@ def wiki_screen(unlocked=(), stats=None):
                             pygame.draw.circle(screen, _pc, (ARTX + 18, _y + 9), 2)
                         _s2 = font_small.render(_ln[1], True, (205, 207, 220))
                         screen.blit(_s2, (ARTX + 30, _y))
+                    elif _k == "worldmap":
+                        draw_world_map(screen, (ARTX + 12, _y + 4, _tw, 220),
+                                       label_font=font_tiny)
                     elif _k == "cats":
                         _cr = pygame.Rect(ARTX + 12, _y + 3, 76, 14)
                         _wiki_cat_chip(_cr, _ln[1])
