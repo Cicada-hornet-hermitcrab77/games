@@ -2350,10 +2350,57 @@ COSTUMES = [
      "color": ( 92, 126, 220), "emblem": "snow",  "source": "rack", "cost": 25},
     {"name": "Reddy set go!",     "base": "Speedster",   "event": "Red White and Boom",
      "color": (222,  54,  58), "emblem": "sun",   "source": "rack", "cost": 30},
+
+    # Project Yellowstone
+    {"name": "Bot-tub",           "base": "Mech",        "event": "Project Yellowstone",
+     "color": (126, 182, 206), "emblem": "snow",  "source": "rack", "cost": 35},
+    {"name": "Smoky fear",        "base": "Shade",       "event": "Project Yellowstone",
+     "color": ( 88,  86,  94), "emblem": "flame", "source": "rack", "cost": 30},
+    {"name": "He's gonna blow",   "base": "Fault Line",  "event": "Project Yellowstone",
+     "color": (222, 118,  50), "emblem": "flame", "source": "rack", "cost": 35},
+    {"name": "Big big big",       "base": "Colossus",    "event": "Project Yellowstone",
+     "color": (148, 124,  96), "emblem": "star",  "source": "rack", "cost": 45},
 ]
 
 COSTUMES_EARNED = [c for c in COSTUMES if c.get("source") != "rack"]
 COSTUMES_FOR_SALE = [c for c in COSTUMES if c.get("source") == "rack"]
+
+
+# ── What a costume is worth ─────────────────────────────────────────────────
+# Every costume carries a price it went on the rack at, and a rating out of
+# five. A costume nobody has rated sits at whatever it launched on; rate it
+# and the rating is yours. The better it is thought of, the more it costs —
+# five stars is thirty per cent over the ticket price, one star is thirty
+# per cent under.
+COSTUME_LAUNCH_STARS = 3
+
+
+def costume_stars(costume, stats=None):
+    """How many stars this costume is on, 1..5."""
+    _name = costume["name"] if isinstance(costume, dict) else costume
+    _rated = (stats or {}).get("costume_ratings", {}).get(_name)
+    if _rated:
+        return max(1, min(5, int(_rated)))
+    if isinstance(costume, dict):
+        return costume.get("stars", COSTUME_LAUNCH_STARS)
+    return COSTUME_LAUNCH_STARS
+
+
+def costume_price(costume, stats=None):
+    """What it costs today, which depends on what people think of it."""
+    _base = costume.get("cost") if isinstance(costume, dict) else None
+    if not _base:
+        return None
+    return max(5, int(round(_base * (0.55 + 0.15 * costume_stars(costume, stats)))))
+
+
+def rate_costume(stats, name, stars):
+    """Give a costume a rating. Returns the rating that stuck."""
+    stars = max(1, min(5, int(stars)))
+    _all = dict(stats.get("costume_ratings", {}))
+    _all[name] = stars
+    stats["costume_ratings"] = _all
+    return stars
 
 COSTUME_BASE   = {c["name"]: c["base"] for c in COSTUMES}
 COSTUME_EMBLEM = {c["name"]: c["emblem"] for c in COSTUMES}

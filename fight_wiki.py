@@ -685,9 +685,11 @@ def _costume_pages(unlocked):
                      f"underneath — same health, same reach, same tricks — "
                      f"wearing something else.",
                      ("h", "How to get it")] +
-                    ([f"On the costume rack for {c['cost']} coins. The rack "
-                      f"has its own box on the home screen, and a door round "
-                      f"the back of the Seasonal Shop."]
+                    ([f"On the costume rack for {c['cost']} coins at three "
+                      f"stars — more if it is better thought of, less if it "
+                      f"is not. The rack has its own box on the home screen, "
+                      f"and a door round the back of the Seasonal Shop. It is "
+                      f"only on sale during {c['event']}."]
                      if _sold else
                      [f"Own every {c['event']} fighter. The achievement hands "
                       f"it straight over — this one is not for sale, and no "
@@ -969,13 +971,15 @@ PAGES = [
               "it. Left and right slide it along; enter buys whatever is in "
               "front of you. There is also a door to it round the back of the "
               "Seasonal Shop.",
-              ("h", "Two kinds hang here"),
-              ("b", "The ones for sale. A paper tag with a number on it, and "
-                    "coins buy it — most are twenty to forty-five."),
-              ("b", "The ones you earn. A tag reading EARN, and no price at "
-                    "all. Own every fighter of an event and its costume is "
-                    "handed straight over. Those are not for sale and never "
-                    "will be."),
+              ("h", "Only what is for sale"),
+              "The costumes you earn by owning every fighter of an event are "
+              "not stock. They go straight into their fighter's box and never "
+              "hang here at all.",
+              ("h", "Stars set the price"),
+              "Every costume carries a rating out of five. Press 1 to 5 while "
+              "it is in front of you, or click the stars. Five stars puts "
+              "thirty per cent on the ticket price; one star takes thirty per "
+              "cent off.",
               ("h", "Worth knowing"),
               ("b", "The rack is open whether or not an event is running."),
               ("b", "A costume is its fighter's whole kit in new colours — "

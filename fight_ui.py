@@ -5322,14 +5322,27 @@ def leaderboard_screen(userdata, lobby=None, stats=None):
 # ---------------------------------------------------------------------------
 
 def costume_rack(screen, clock, stats, unlocked):
-    """A clothes rail with the costumes hanging off it.
+    """A clothes rail with the costumes for sale hanging off it.
 
-    Two kinds hang here. The fourteen you earn by owning every fighter of an
-    event are not for sale at any price — they are already yours or they are
-    not. The fourteen on the other end of the rail are, and cheaply.
+    Only the ones with a price. The fourteen you earn by owning every fighter
+    of an event are not stock — they go straight into their fighter's box and
+    never see a shop.
     """
-    from fight_data import COSTUMES, CHARACTERS as _CR_CHARS
+    from fight_data import (COSTUMES_FOR_SALE as COSTUMES, CHARACTERS as _CR_CHARS,
+                            costume_price, costume_stars, rate_costume)
     _by = {c["name"]: c for c in _CR_CHARS}
+
+    def _draw_stars(cx, cy, stars, size, dim=False):
+        """Five stars, however many of them are filled in."""
+        _rects = []
+        for _i in range(5):
+            _x = cx + _i * int(size * 2.4)
+            _on = _i < stars
+            _draw_emblem(screen, "star", _x, cy, size,
+                         (90, 86, 80) if (dim and not _on) else
+                         ((236, 200, 70) if _on else (70, 66, 74)))
+            _rects.append(pygame.Rect(_x - size, cy - size, size * 2 + 2, size * 2 + 2))
+        return _rects
 
     COIN  = (255, 200, 0)
     RAIL_Y   = 100            # where the bar runs
@@ -5341,7 +5354,7 @@ def costume_rack(screen, clock, stats, unlocked):
     msg, msg_t = "", 0
 
     def _price(c):
-        return c.get("cost") if c.get("source") == "rack" else None
+        return costume_price(c, stats) if c.get("source") == "rack" else None
 
     def _state(c):
         if c["name"] in unlocked:
@@ -5352,7 +5365,7 @@ def costume_rack(screen, clock, stats, unlocked):
         _ev = get_active_event()
         if not _ev or _ev["name"] != c["event"]:
             return "closed"
-        return "buy" if stats.get("seasonal_coins", 0) >= c["cost"] else "short"
+        return "buy" if stats.get("seasonal_coins", 0) >= _price(c) else "short"
 
     def _buy(c):
         nonlocal msg, msg_t
@@ -5365,10 +5378,10 @@ def costume_rack(screen, clock, stats, unlocked):
         elif st == "closed":
             msg, msg_t = (f"Only during {c['event']}", FPS * 3)
         elif st == "short":
-            msg, msg_t = (f"{c['cost'] - stats.get('seasonal_coins', 0)} coins short",
+            msg, msg_t = (f"{_price(c) - stats.get('seasonal_coins', 0)} coins short",
                           FPS * 2)
         else:
-            stats["seasonal_coins"] = stats.get("seasonal_coins", 0) - c["cost"]
+            stats["seasonal_coins"] = stats.get("seasonal_coins", 0) - _price(c)
             unlocked.add(c["name"])
             _b = list(stats.get("costumes_bought", []))
             if c["name"] not in _b:
@@ -5399,11 +5412,28 @@ def costume_rack(screen, clock, stats, unlocked):
                     sel = (sel + 1) % len(COSTUMES)
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     _buy(COSTUMES[sel])
+                if pygame.K_1 <= event.key <= pygame.K_5:
+                    _c0 = COSTUMES[sel]
+                    _was = _price(_c0)
+                    _st0 = rate_costume(stats, _c0["name"], event.key - pygame.K_0)
+                    _now = _price(_c0)
+                    msg = (f"{_st0} star{'s' if _st0 != 1 else ''}" +
+                           (f"  ·  {_c0['name']} now costs {_now}"
+                            f" ({'+' if _now >= _was else ''}{_now - _was})"
+                            if _now is not None else ""))
+                    msg_t = FPS * 3
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
                 _mp = ((int(event.x * WIDTH), int(event.y * HEIGHT))
                        if event.type == pygame.FINGERDOWN else event.pos)
                 if pygame.Rect(WIDTH - 104, HEIGHT - 40, 96, 32).collidepoint(_mp):
                     return
+                for _si2 in range(5):
+                    if pygame.Rect(WIDTH - 330 + _si2 * 19, FLOOR_Y + 12,
+                                   20, 22).collidepoint(_mp):
+                        rate_costume(stats, COSTUMES[sel]["name"], _si2 + 1)
+                        msg, msg_t = (f"{_si2 + 1} star"
+                                      f"{'s' if _si2 else ''}", FPS * 2)
+                        break
                 if pygame.Rect(WIDTH // 2 - 90, HEIGHT - 42, 180, 34).collidepoint(_mp):
                     _buy(COSTUMES[sel])
                 else:
@@ -5508,7 +5538,7 @@ def costume_rack(screen, clock, stats, unlocked):
             elif _st == "closed":
                 _lbl = font_tiny.render("SHUT", True, (60, 54, 48))
             else:
-                _lbl = font_tiny.render(str(_c["cost"]), True, (120, 90, 20))
+                _lbl = font_tiny.render(str(_price(_c)), True, (120, 90, 20))
             screen.blit(_lbl, (_tag.centerx - _lbl.get_width() // 2,
                                _tag.centery - _lbl.get_height() // 2))
         screen.set_clip(None)
@@ -5537,14 +5567,21 @@ def costume_rack(screen, clock, stats, unlocked):
         _ln = f"{_c['base']}'s kit  ·  {_c['event']}"
         _d = font_tiny.render(_ln, True, (170, 160, 172))
         screen.blit(_d, (16, FLOOR_Y + 38))
+        _stars = costume_stars(_c, stats)
+        _star_rects = _draw_stars(WIDTH - 320, FLOOR_Y + 22, _stars, 8)
+        _rated = _c["name"] in stats.get("costume_ratings", {})
+        _rl = font_tiny.render(f"{_stars}/5  —  " +
+                               ("your rating, press 1-5 to change it" if _rated
+                                else "press 1-5 to rate it"), True, (150, 142, 152))
+        screen.blit(_rl, (WIDTH - 320, FLOOR_Y + 40))
 
         _btn = pygame.Rect(WIDTH // 2 - 90, HEIGHT - 42, 180, 34)
         _bc, _bl = {
             "worn":   ((52, 88, 150), "WORN"),
             "earn":   ((62, 56, 66),  "EARNED, NOT SOLD"),
             "closed": ((62, 56, 66),  f"ONLY IN {_c['event'].upper()}"[:30]),
-            "buy":    ((60, 180, 60), f"BUY  ·  {_c.get('cost', 0)}"),
-            "short":  ((70, 60, 54),  f"NEED {_c.get('cost', 0) - coins} MORE"),
+            "buy":    ((60, 180, 60), f"BUY  ·  {_price(_c) or 0}"),
+            "short":  ((70, 60, 54),  f"NEED {(_price(_c) or 0) - coins} MORE"),
         }[_st]
         pygame.draw.rect(screen, _bc, _btn, border_radius=8)
         _bt = font_small.render(_bl, True, WHITE if _st in ("buy", "worn") else (170, 164, 176))
