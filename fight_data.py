@@ -2246,7 +2246,7 @@ COSTUMES = [
     {"name": "Lucky lobster",     "base": "Brawler",     "event": "New Dynasties",
      "color": (214,  70,  52), "emblem": "koi",   "source": "rack", "cost": 25},
     {"name": "A bit cracky",      "base": "Bomb",        "event": "New Dynasties",
-     "color": (196, 186, 170), "emblem": "egg",   "source": "rack", "cost": 25},
+     "color": (214,  56,  48), "emblem": "flame", "source": "rack", "cost": 25},
     {"name": "Tricky rat",        "base": "Mouse",       "event": "New Dynasties",
      "color": (150, 148, 156), "emblem": "cat",   "source": "rack", "cost": 20},
     {"name": "Bulky ox",          "base": "Minotaur",    "event": "New Dynasties",

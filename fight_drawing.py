@@ -14766,17 +14766,50 @@ def _draw_rack_costume(surface, costume, hx, hy, sx, sy, wx, wy, fx, fy,
             (wx - f * int(r * 1.6), wy + int(r * 0.5))])
 
     elif costume == "A bit cracky":
-        for _i, (_x0, _y0) in enumerate(((-0.6, -0.5), (0.5, 0.0), (-0.2, 0.6))):
-            pygame.draw.lines(surface, (70, 66, 62), False, [
-                (hx + int(r * _x0), hy + int(r * _y0)),
-                (hx + int(r * (_x0 + 0.25)), hy + int(r * (_y0 + 0.3))),
-                (hx + int(r * (_x0 - 0.05)), hy + int(r * (_y0 + 0.7)))],
-                max(1, int(s * 2)))
-        pygame.draw.polygon(surface, (232, 226, 212), [
-            (hx + int(r * 0.5), hy - int(r * 0.9)), (hx + r, hy - int(r * 0.4)),
-            (hx + int(r * 0.7), hy - int(r * 0.1))])
-        pygame.draw.line(surface, (200, 60, 50), (sx, sy + int(r * 0.4)),
-                         (sx + int(r * 0.6), sy + int(r * 1.1)), max(1, int(s * 2)))
+        # A firecracker: red paper tube, gold bands, and a fuse going
+        _tw3 = int(r * 0.95)
+        _tt3 = sy - int(r * 0.3)
+        _th3 = max(8, (wy - sy) + int(r * 0.9))
+        pygame.draw.rect(surface, (206, 46, 40), (sx - _tw3, _tt3, _tw3 * 2, _th3),
+                         border_radius=max(2, int(r * 0.2)))
+        pygame.draw.rect(surface, (140, 24, 20), (sx - _tw3, _tt3, _tw3 * 2, _th3),
+                         max(1, int(s)), border_radius=max(2, int(r * 0.2)))
+        for _k in range(3):
+            pygame.draw.rect(surface, (232, 196, 86),
+                             (sx - _tw3, _tt3 + int(_th3 * (0.18 + 0.3 * _k)),
+                              _tw3 * 2, max(2, int(r * 0.26))))
+        pygame.draw.rect(surface, (240, 218, 140),
+                         (sx - int(_tw3 * 0.55), _tt3 + int(_th3 * 0.45),
+                          max(3, int(_tw3 * 1.1)), max(3, int(r * 0.7))))
+        for _k in range(2):
+            pygame.draw.line(surface, (160, 30, 26),
+                             (sx - int(_tw3 * 0.3) + int(_tw3 * 0.6 * _k),
+                              _tt3 + int(_th3 * 0.47)),
+                             (sx - int(_tw3 * 0.3) + int(_tw3 * 0.6 * _k),
+                              _tt3 + int(_th3 * 0.47) + int(r * 0.6)), max(1, int(s)))
+        # The fuse, and the sparks coming off it
+        _fx3, _fy3 = hx + f * int(r * 0.3), hy - r
+        pygame.draw.lines(surface, (210, 190, 150), False, [
+            (_fx3, _fy3), (_fx3 + f * int(r * 0.5), _fy3 - int(r * 0.9)),
+            (_fx3 - f * int(r * 0.1), _fy3 - int(r * 1.7))], max(2, int(s * 2)))
+        _sp = (_fx3 - f * int(r * 0.1), _fy3 - int(r * 1.7))
+        for _k in range(6):
+            _a = t * 9 + _k * 1.05
+            _rr3 = r * (0.3 + 0.35 * abs(math.sin(t * 5 + _k)))
+            pygame.draw.line(surface, (255, 220, 110) if _k % 2 else (255, 150, 60),
+                             _sp, (_sp[0] + int(math.cos(_a) * _rr3),
+                                   _sp[1] + int(math.sin(_a) * _rr3)), max(1, int(s)))
+        pygame.draw.circle(surface, (255, 240, 200), _sp, max(1, int(r * 0.2)))
+        # A couple more on a string, held in the free hand
+        for _k in range(2):
+            _cx6 = fx + f * int(r * (0.5 + 0.55 * _k))
+            _cy6 = fy + int(r * (0.3 + 0.2 * _k))
+            pygame.draw.rect(surface, (206, 46, 40),
+                             (_cx6 - int(r * 0.16), _cy6, max(2, int(r * 0.32)),
+                              max(3, int(r * 0.8))), border_radius=max(1, int(r * 0.08)))
+            pygame.draw.line(surface, (210, 190, 150), (_cx6, _cy6),
+                             (_cx6 - f * int(r * 0.3), _cy6 - int(r * 0.4)),
+                             max(1, int(s)))
 
     elif costume == "Tricky rat":
         _ears("round", 0.6)
