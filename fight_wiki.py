@@ -331,6 +331,16 @@ def _unlock_tables():
         return {}, set(), set(range(len(STAGES)))
 
 
+def _casino_odds():
+    """Name -> how likely the casino is to hand it over, as a percentage."""
+    try:
+        from fight_game import CASINO_REWARDS
+    except Exception:
+        return {}
+    _total = sum(w for _, w in CASINO_REWARDS) or 1
+    return {n: 100.0 * w / _total for n, w in CASINO_REWARDS}
+
+
 _SEASONAL_BY_NAME = {c["name"]: c for c in SEASONAL_SHOP_CHARS}
 _FUSER_BY_NAME    = {c["name"]: c for c in FUSER_SHOP_CHARS}
 _COSTUME_BY_NAME  = {c["name"]: c for c in COSTUMES}
@@ -370,6 +380,10 @@ def ways_to_get(name, conditions, default_set, ch=None):
     if name in _FUSER_BY_NAME:
         ways.append((f"The Fuser — {_FUSER_BY_NAME[name]['cost']} coins, plus the elements",
                      False))
+    _odds = _casino_odds().get(name)
+    if _odds is not None:
+        ways.append((f"The Casino — every tenth win rolls for one, and this "
+                     f"one comes up {_odds:.1f}% of the time", False))
     cond = conditions.get(name)
     if cond:
         text, secret = cond[3], bool(len(cond) > 4 and cond[4])

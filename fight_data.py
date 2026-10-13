@@ -1662,6 +1662,29 @@ CHARACTERS = [
      "desc": "Punch scatters Blazex's burning mines; kick rams the enemy — untouchable mid-charge",
      "double_jump": False, "burning_mine_punch": True, "torrti_ram": True,
      "shop_only": True, "lava_immune": True},
+
+    # ---------- water expansion ----------
+    {"name": "Mermaid", "color": (80, 220, 210), "speed": 6, "jump": -14,
+     "punch_dmg": 9, "kick_dmg": 13, "max_hp": 110, "block": 5,
+     "desc": "Sings underwater; her kick blows a bubble that carries you off",
+     "double_jump": True, "water_breathing": True, "bubble_kick": True},
+    {"name": "Starfish", "color": (248, 150, 90), "speed": 3, "jump": -11,
+     "punch_dmg": 11, "kick_dmg": 11, "max_hp": 140, "block": 7,
+     "desc": "Grows back whatever you take off it, and never lets go of a wall",
+     "water_breathing": True, "regen": True, "wall_cling": True},
+    {"name": "Pufferfish", "color": (214, 206, 110), "speed": 4, "jump": -12,
+     "punch_dmg": 10, "kick_dmg": 10, "max_hp": 120, "block": 6,
+     "desc": "Puffs up when struck — all spines, and they hurt to touch",
+     "water_breathing": True, "spike_body": True, "thorn_block": True},
+    {"name": "Gold Fish", "color": (248, 192, 60), "speed": 7, "jump": -13,
+     "punch_dmg": 8, "kick_dmg": 12, "max_hp": 95, "block": 4,
+     "desc": "Every hit shakes coins loose, and its luck is unreasonable",
+     "double_jump": True, "water_breathing": True, "money_hit": True,
+     "lucky_strike": True},
+    {"name": "Octo-Octo", "color": (176, 96, 200), "speed": 5, "jump": -12,
+     "punch_dmg": 7, "kick_dmg": 9, "max_hp": 130, "block": 5,
+     "desc": "Eight arms, so eight of everything — long reach and an ink kick",
+     "water_breathing": True, "long_range": True, "ink_kick": True},
 ]
 
 # ---------------------------------------------------------------------------

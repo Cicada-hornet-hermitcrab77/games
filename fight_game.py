@@ -75,7 +75,25 @@ def _is_prime(n): return n in _PRIMES_60
 #        win_hard_ai | win_streak | win_2p | play_survival | survival_kills |
 #        survival_best | perfect_wins | clutch_wins | losses | unique_wins |
 #        daily_streak | konami_unlock | void_deaths | played_at_333pm
+# What the casino pays out every tenth win, and how often each comes up.
+CASINO_REWARDS = [
+    ("Clover",        8),
+    ("Tycoon",      250),
+    ("Gambler",     200),
+    ("Fortune",     150),
+    ("High Roller",  80),
+    ("Lucky",        40),
+    ("Wildcard",     20),
+    ("Gold Fish",    12),
+    ("Gilded Clover", 1),
+]
+
 UNLOCK_CONDITIONS = {
+    # ---------- water expansion ----------
+    "Mermaid":             ("win_on_stage",   "Underwater",    2,  "Win on Underwater 2 times"),
+    "Starfish":            ("win_on_stage",   "Underwater",    5,  "Win on Underwater 5 times"),
+    "Pufferfish":          ("win_with",       "Cecalia",       3,  "Win 3 matches as Cecalia"),
+    "Octo-Octo":           ("win_with",       "Pufferfish",    4,  "Win 4 matches as Pufferfish"),
     # ── wins_total ──────────────────────────────────────────────────────────
     "Ares":                ("wins_total",     None,            2,  "Win 2 matches vs AI"),
     "Zephyr":              ("wins_total",     None,            3,  "Win 3 matches vs AI"),
@@ -7492,16 +7510,7 @@ def main():
                 if p1_won:
                     stats["casino_wins"] = stats.get("casino_wins", 0) + 1
                     if stats["casino_wins"] % 10 == 0:
-                        _casino_weights = [
-                            ("Clover",        8),
-                            ("Tycoon",      250),
-                            ("Gambler",     200),
-                            ("Fortune",     150),
-                            ("High Roller",  80),
-                            ("Lucky",        40),
-                            ("Wildcard",     20),
-                            ("Gilded Clover", 1),
-                        ]
+                        _casino_weights = CASINO_REWARDS
                         _casino_pool_w = [n for n, w in _casino_weights for _ in range(w)]
                         _cas_locked = [n for n in {n for n, _ in _casino_weights} if n not in unlocked]
                         _cas_locked_w = [n for n in _casino_pool_w if n in set(_cas_locked)]

@@ -13003,6 +13003,171 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                              (hx - int(facing * int(hd * 0.2)), _vsy),
                              max(2, int(3*s)))
 
+    elif char_name == "Mermaid":
+        _mt = pygame.time.get_ticks() / 1000.0
+        # Tail instead of legs, flicking as she goes
+        _flick = math.sin(_mt * 3.4) * 0.5
+        _tb = -facing
+        _trx, _try = wx + _tb * int(6*s), wy + int(6*s)
+        _ttx = _trx + _tb * int(26*s)
+        _tty = _try + int(26*s) + int(_flick * 8 * s)
+        pygame.draw.polygon(surface, (70, 200, 190), [
+            (_trx - int(8*s), _try), (_trx + int(8*s), _try),
+            (_ttx + int(5*s), _tty), (_ttx - int(5*s), _tty)])
+        pygame.draw.polygon(surface, (50, 170, 165), [
+            (_ttx, _tty - int(4*s)),
+            (_ttx + _tb * int(16*s), _tty - int(16*s)),
+            (_ttx + _tb * int(20*s), _tty + int(6*s)),
+            (_ttx, _tty + int(8*s)),
+            (_ttx + _tb * int(16*s), _tty + int(20*s)),
+            (_ttx + _tb * int(4*s), _tty + int(6*s))])
+        for _i in range(3):
+            pygame.draw.arc(surface, (120, 240, 230),
+                            (_trx - int(8*s), _try + int(7*s*_i),
+                             int(16*s), int(10*s)), 3.4, 6.0, max(1, int(s)))
+        # Shell top and long hair
+        for _sg in (-1, 1):
+            pygame.draw.circle(surface, (250, 190, 205),
+                               (sx + _sg*int(7*s), sy + int(7*s)), max(2, int(6*s)))
+            pygame.draw.arc(surface, (220, 140, 170),
+                            (sx + _sg*int(7*s) - int(6*s), sy + int(s),
+                             int(12*s), int(12*s)), 0.4, 2.8, max(1, int(s)))
+        for _k in range(4):
+            pygame.draw.line(surface, (232, 108, 70),
+                             (hx - facing*int(4*s), hy - int(6*s)),
+                             (hx - facing*int((14 + 4*_k)*s),
+                              hy + int((10 + 5*_k)*s) + int(math.sin(_mt*2 + _k)*3*s)),
+                             max(2, int(2.5*s)))
+        # Bubbles rising
+        for _k in range(3):
+            _bp = ((_mt * 0.5 + _k * 0.33) % 1.0)
+            pygame.draw.circle(surface, (190, 245, 245),
+                               (hx + facing*int((10 + 6*_k)*s),
+                                hy - int(_bp * 40 * s)),
+                               max(1, int((3 - _bp*1.5)*s)), max(1, int(s)))
+
+    elif char_name == "Starfish":
+        _st2 = pygame.time.get_ticks() / 1000.0
+        _arm = int(26 * s)
+        _cx2, _cy2 = (sx + wx)//2, (sy + wy)//2
+        for _i in range(5):
+            _a = -math.pi/2 + _i * (2*math.pi/5) + math.sin(_st2*1.6 + _i)*0.12
+            _ex = _cx2 + int(math.cos(_a) * _arm)
+            _ey = _cy2 + int(math.sin(_a) * _arm)
+            pygame.draw.polygon(surface, (248, 150, 90), [
+                (_cx2 + int(math.cos(_a - 0.5) * _arm*0.42),
+                 _cy2 + int(math.sin(_a - 0.5) * _arm*0.42)),
+                (_ex, _ey),
+                (_cx2 + int(math.cos(_a + 0.5) * _arm*0.42),
+                 _cy2 + int(math.sin(_a + 0.5) * _arm*0.42))])
+            pygame.draw.circle(surface, (255, 200, 150), (_ex, _ey), max(1, int(2.5*s)))
+        pygame.draw.circle(surface, (255, 186, 130), (_cx2, _cy2), max(3, int(9*s)))
+        for _i in range(6):
+            _a = _st2 * 0.8 + _i
+            pygame.draw.circle(surface, (226, 120, 70),
+                               (_cx2 + int(math.cos(_a) * 5 * s),
+                                _cy2 + int(math.sin(_a) * 5 * s)), max(1, int(1.6*s)))
+        for _sg in (-1, 1):
+            pygame.draw.circle(surface, (30, 26, 30),
+                               (_cx2 + _sg*int(4*s) + facing*int(2*s), _cy2 - int(2*s)),
+                               max(1, int(1.8*s)))
+
+    elif char_name == "Pufferfish":
+        _pt = pygame.time.get_ticks() / 1000.0
+        # It breathes in and out; every few seconds it is fully puffed
+        _puffed = (0.5 + 0.5 * math.sin(_pt * 1.3)) > 0.62
+        _pr = int((20 if _puffed else 14) * s)
+        _pcx, _pcy = (sx + wx)//2, (sy + wy)//2
+        for _i in range(14):
+            _a = _i * (2*math.pi/14) + _pt*0.4
+            _sl = _pr + int((9 if _puffed else 4) * s)
+            pygame.draw.line(surface, (120, 110, 60),
+                             (_pcx + int(math.cos(_a)*_pr*0.9),
+                              _pcy + int(math.sin(_a)*_pr*0.9)),
+                             (_pcx + int(math.cos(_a)*_sl),
+                              _pcy + int(math.sin(_a)*_sl)), max(1, int(1.6*s)))
+        pygame.draw.circle(surface, (226, 218, 120), (_pcx, _pcy), _pr)
+        pygame.draw.circle(surface, (176, 166, 80), (_pcx, _pcy), _pr, max(1, int(1.5*s)))
+        pygame.draw.polygon(surface, (200, 190, 100), [
+            (_pcx - facing*_pr, _pcy),
+            (_pcx - facing*(_pr + int(12*s)), _pcy - int(9*s)),
+            (_pcx - facing*(_pr + int(12*s)), _pcy + int(9*s))])
+        for _sg in (-1, 1):
+            pygame.draw.circle(surface, (250, 250, 250),
+                               (_pcx + facing*int(_pr*0.45) + _sg*int(4*s),
+                                _pcy - int(_pr*0.35)), max(2, int(4*s)))
+            pygame.draw.circle(surface, (24, 22, 24),
+                               (_pcx + facing*int(_pr*0.5) + _sg*int(4*s),
+                                _pcy - int(_pr*0.35)), max(1, int(2*s)))
+        pygame.draw.circle(surface, (150, 140, 70),
+                           (_pcx + facing*int(_pr*0.75), _pcy + int(_pr*0.3)),
+                           max(1, int(3*s)), max(1, int(s)))
+
+    elif char_name == "Gold Fish":
+        _gt = pygame.time.get_ticks() / 1000.0
+        _bx5, _by5 = (sx + wx)//2, (sy + wy)//2
+        pygame.draw.ellipse(surface, (248, 192, 60),
+                            (_bx5 - int(18*s), _by5 - int(12*s), int(36*s), int(24*s)))
+        pygame.draw.ellipse(surface, (210, 150, 30),
+                            (_bx5 - int(18*s), _by5 - int(12*s), int(36*s), int(24*s)),
+                            max(1, int(1.5*s)))
+        _fl = math.sin(_gt * 5.0)
+        pygame.draw.polygon(surface, (252, 212, 110), [
+            (_bx5 - facing*int(16*s), _by5),
+            (_bx5 - facing*int(32*s), _by5 - int(12*s) + int(_fl*5*s)),
+            (_bx5 - facing*int(28*s), _by5),
+            (_bx5 - facing*int(32*s), _by5 + int(12*s) + int(_fl*5*s))])
+        pygame.draw.polygon(surface, (252, 212, 110), [
+            (_bx5 - int(6*s), _by5 - int(10*s)),
+            (_bx5 + int(2*s), _by5 - int(22*s) - int(_fl*2*s)),
+            (_bx5 + int(10*s), _by5 - int(10*s))])
+        pygame.draw.circle(surface, (255, 255, 255),
+                           (_bx5 + facing*int(10*s), _by5 - int(3*s)), max(2, int(4.5*s)))
+        pygame.draw.circle(surface, (26, 22, 20),
+                           (_bx5 + facing*int(11*s), _by5 - int(3*s)), max(1, int(2.2*s)))
+        for _k in range(3):
+            _cp = ((_gt * 0.7 + _k * 0.34) % 1.0)
+            _coin_y = _by5 - int(_cp * 44 * s)
+            pygame.draw.circle(surface, (255, 214, 80),
+                               (_bx5 + facing*int((14 + 7*_k)*s), _coin_y),
+                               max(1, int((4 - _cp*2)*s)))
+            pygame.draw.circle(surface, (190, 140, 20),
+                               (_bx5 + facing*int((14 + 7*_k)*s), _coin_y),
+                               max(1, int((4 - _cp*2)*s)), max(1, int(s)))
+
+    elif char_name == "Octo-Octo":
+        _ot = pygame.time.get_ticks() / 1000.0
+        pygame.draw.ellipse(surface, (176, 96, 200),
+                            (hx - int(16*s), hy - int(20*s), int(32*s), int(34*s)))
+        pygame.draw.ellipse(surface, (134, 62, 158),
+                            (hx - int(16*s), hy - int(20*s), int(32*s), int(34*s)),
+                            max(1, int(1.5*s)))
+        for _sg in (-1, 1):
+            pygame.draw.circle(surface, (250, 250, 252),
+                               (hx + _sg*int(6*s) + facing*int(2*s), hy - int(4*s)),
+                               max(2, int(5*s)))
+            pygame.draw.circle(surface, (26, 20, 30),
+                               (hx + _sg*int(6*s) + facing*int(3*s), hy - int(4*s)),
+                               max(1, int(2.4*s)))
+        # Eight arms, each on its own beat
+        for _i in range(8):
+            _base = hx - int(14*s) + int(4*s*_i)
+            _ph   = _ot * 2.4 + _i * 0.8
+            _p1a  = (_base + int(math.sin(_ph) * 7 * s), wy - int(4*s))
+            _p2a  = (_base + int(math.sin(_ph + 1.1) * 12 * s), wy + int(12*s))
+            _p3a  = (_base + int(math.sin(_ph + 2.2) * 16 * s), wy + int(26*s))
+            pygame.draw.lines(surface, (166, 86, 190), False,
+                              [(_base, hy + int(12*s)), _p1a, _p2a, _p3a],
+                              max(2, int(3*s)))
+            pygame.draw.circle(surface, (210, 150, 230), _p3a, max(1, int(2*s)))
+        for _k in range(2):
+            _ip = ((_ot * 0.6 + _k * 0.5) % 1.0)
+            _ink = pygame.Surface((int(16*s) + 4, int(16*s) + 4), pygame.SRCALPHA)
+            pygame.draw.circle(_ink, (60, 30, 80, int(150 * (1 - _ip))),
+                               (int(8*s), int(8*s)), max(2, int((4 + _ip*5)*s)))
+            surface.blit(_ink, (hx - facing*int((20 + _ip*26)*s) - int(8*s),
+                                hy - int(8*s)))
+
     elif char_name == "Red Herring":
         # Fish tail below waist (replaces legs visually — drawn as fin)
         # The fin takes the fighter's own colour, so a costume (Koi-lue's gold)
