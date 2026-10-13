@@ -3172,10 +3172,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             for fighter in (p1, p2):
                 if fighter.pending_clover_snake:
                     fighter.pending_clover_snake = False
-                    jungle_snakes.append(JungleSnake())
+                    jungle_snakes.append(JungleSnake(owner=fighter))
                 if fighter.pending_golden_snake:
                     fighter.pending_golden_snake = False
-                    jungle_snakes.append(GoldenJungleSnake())
+                    jungle_snakes.append(GoldenJungleSnake(owner=fighter))
             # WakeUp — kick pops the hat and summons teddy bear rain
             for fighter in (p1, p2):
                 if fighter.pending_teddy_rain:
@@ -3705,7 +3705,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         for _af in (p1, p2):
                             if abs(_af.x - _gnpc["x"]) < 210:
                                 _af.hp  = max(0, _af.hp - 22)
-                                _af.vx += (_af.x - _gnpc["x"]) / 25
+                                # Fighters are shoved with knockback, not vx —
+                                # there is no such thing as vx
+                                _af.knockback = (1 if _af.x >= _gnpc["x"] else -1) * 14
                                 _af.vy  = -9
                                 _af.flash_timer = max(_af.flash_timer, 14)
                         _gnpc["hit_done"] = True
@@ -4212,6 +4214,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             for attacker, hit_pos in [(p1, p1_hit), (p2, p2_hit)]:
                 if attacker.attacking and hit_pos:
                     for sn in jungle_snakes:
+                        if sn.owner is attacker:
+                            continue          # it is yours; you cannot kill it
                         if math.hypot(hit_pos[0] - sn.x, hit_pos[1] - (sn.y - 8)) < 44:
                             dmg = (attacker.char["punch_dmg"] if attacker.action == 'punch'
                                    else attacker.char["kick_dmg"])
@@ -5400,10 +5404,10 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             for p in _sv_actors():
                 if p.pending_clover_snake:
                     p.pending_clover_snake = False
-                    jungle_snakes.append(JungleSnake())
+                    jungle_snakes.append(JungleSnake(owner=p))
                 if p.pending_golden_snake:
                     p.pending_golden_snake = False
-                    jungle_snakes.append(GoldenJungleSnake())
+                    jungle_snakes.append(GoldenJungleSnake(owner=p))
 
             # WakeUp — kick pops the hat and summons teddy bear rain (survival)
             for p in _sv_actors():
@@ -6889,6 +6893,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             for attacker, hit_pos in ([(p1, p1_hit)] + ([(p2, p2_hit)] if two_player else [])):
                 if attacker.attacking and hit_pos:
                     for sn in jungle_snakes:
+                        if sn.owner is attacker:
+                            continue          # it is yours; you cannot kill it
                         if math.hypot(hit_pos[0]-sn.x, hit_pos[1]-(sn.y-8)) < 44:
                             dmg = (attacker.char["punch_dmg"] if attacker.action=='punch'
                                    else attacker.char["kick_dmg"])

@@ -772,7 +772,7 @@ class JungleSnake:
     BITE_COOLDOWN = 120   # 2 seconds at 60 fps
     BITE_RANGE   = 45
 
-    def __init__(self):
+    def __init__(self, owner=None):
         self.x                = float(random.choice([80, WIDTH - 80]))
         self.y                = float(GROUND_Y)
         self.facing           = 1
@@ -782,6 +782,10 @@ class JungleSnake:
         self.t                = 0
         self.possessed_timer  = 0
         self.possessed_target = None
+        # A snake somebody summoned works for them: it will not bite its
+        # summoner, and its summoner cannot kill it. A wild one has no owner
+        # and bites whoever is nearest.
+        self.owner            = owner
 
     def update(self, p1, p2):
         if not self.alive:
@@ -795,6 +799,10 @@ class JungleSnake:
         # Possessed: always chase the possessed target; normal: chase closest
         if self.possessed_timer > 0 and self.possessed_target is not None:
             target = self.possessed_target
+        elif self.owner is not None:
+            target = p2 if self.owner is p1 else p1
+            if target.hp <= 0:
+                return
         else:
             d1 = abs(self.x - p1.x) if p1.hp > 0 else 99999
             d2 = abs(self.x - p2.x) if p2.hp > 0 else 99999
@@ -1288,8 +1296,8 @@ class GoldenJungleSnake(JungleSnake):
     BITE_DMG      = 8      # hits harder
     BITE_COOLDOWN = 80
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, owner=None):
+        super().__init__(owner)
         self.gold = True
 
     def draw(self, surface):

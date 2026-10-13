@@ -1205,6 +1205,10 @@ class Fighter:
         if self.char.get("bbboomerang_kick") and self.bbboomerang_timer == 0 and self.bbboomerang_cooldown == 0:
             self.bbboomerang_timer = 300   # 5 seconds
             self.bbboomerang_angle = 0.0
+        if self.char.get("clover_kick"):
+            self.pending_clover_snake = True
+        if self.char.get("golden_snake_kick"):
+            self.pending_golden_snake = True
         if self.char.get("shoot_kick"):
             self.pending_ball = True
         if self.char.get("bazooka_kick") and self.bazooka_cooldown == 0:
@@ -1840,10 +1844,6 @@ class Fighter:
             if self.char.get("teddy_rain") and self.action == 'kick':
                 self.pending_teddy_rain = True
                 self.hat_pop_timer = 45
-            if self.char.get("clover_kick") and self.action == 'kick':
-                self.pending_clover_snake = True
-            if self.char.get("golden_snake_kick") and self.action == 'kick':
-                self.pending_golden_snake = True
             if self.char.get("yellowstone_kick") and self.action == 'kick':
                 self.pending_yellowstone_geysers = True
             if self.char.get("ice_yellowstone_kick") and self.action == 'kick':
