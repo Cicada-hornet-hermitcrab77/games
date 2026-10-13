@@ -2324,6 +2324,32 @@ COSTUMES = [
     # Legacy of Valor
     {"name": "You pledge what you rob", "base": "Graverobber", "event": "Legacy of Valor",
      "color": (132, 122,  96), "emblem": "star",  "source": "rack", "cost": 35},
+
+    # Summer Solstice — the longest day, spent badly
+    {"name": "What-a-melon",      "base": "Eggshell",    "event": "Summer Solstice",
+     "color": ( 70, 170,  80), "emblem": "leaf",  "source": "rack", "cost": 30},
+    {"name": "Kawaii islands",    "base": "Great Totem Spirit", "event": "Summer Solstice",
+     "color": (248, 206, 170), "emblem": "sun",   "source": "rack", "cost": 40},
+    {"name": "Mowrmaid",          "base": "Cecalia",     "event": "Summer Solstice",
+     "color": ( 90, 190, 190), "emblem": "koi",   "source": "rack", "cost": 35},
+    {"name": "Cooked-tus",        "base": "Cactus",      "event": "Summer Solstice",
+     "color": (124, 140,  70), "emblem": "flame", "source": "rack", "cost": 25},
+    {"name": "Pick-nic ant",      "base": "8-Bit Wasp",  "event": "Summer Solstice",
+     "color": (208,  72,  62), "emblem": "leaf",  "source": "rack", "cost": 30},
+    {"name": "Surfs up",          "base": "Riptide",     "event": "Summer Solstice",
+     "color": ( 80, 190, 230), "emblem": "sun",   "source": "rack", "cost": 30},
+
+    # Red White and Boom
+    {"name": "Fiverwork",         "base": "Bomb",        "event": "Red White and Boom",
+     "color": (226,  68,  72), "emblem": "star",  "source": "rack", "cost": 30},
+    {"name": "Matrix dodge",      "base": "Hacker",      "event": "Red White and Boom",
+     "color": ( 60, 200,  90), "emblem": "star",  "source": "rack", "cost": 35},
+    {"name": "Why?te",            "base": "Ran-Doom",    "event": "Red White and Boom",
+     "color": (244, 244, 250), "emblem": "book",  "source": "rack", "cost": 30},
+    {"name": "Blue boo",          "base": "Medic",       "event": "Red White and Boom",
+     "color": ( 92, 126, 220), "emblem": "snow",  "source": "rack", "cost": 25},
+    {"name": "Reddy set go!",     "base": "Speedster",   "event": "Red White and Boom",
+     "color": (222,  54,  58), "emblem": "sun",   "source": "rack", "cost": 30},
 ]
 
 COSTUMES_EARNED = [c for c in COSTUMES if c.get("source") != "rack"]
