@@ -2102,10 +2102,11 @@ STAGES = [
     ], "springs": [], "conveyors": [], "portals": [], "hazards": []},
     # Floor is Lava (dedicated mode stage — index 28)
     {"name": "Floor is Lava", "special_mode_only": True, "platforms": [
-        {"x": 80,  "y": 420, "w": 160},
-        {"x": 340, "y": 370, "w": 200},
-        {"x": 620, "y": 420, "w": 160},
-    ], "hazards": []},
+        # (x, y, width, speed, range) — the same shape every other stage uses
+        (80,  420, 160, 0, 0),
+        (340, 370, 200, 0, 0),
+        (620, 420, 160, 0, 0),
+    ], "springs": [], "conveyors": [], "portals": [], "hazards": []},
     # Chaos Arena (dedicated mode stage — index 29)
     {"name": "Chaos Arena", "special_mode_only": True, "platforms": [
         (80,  GROUND_Y-130, 150, 2.5,  100),

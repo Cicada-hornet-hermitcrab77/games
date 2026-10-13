@@ -5356,14 +5356,34 @@ def costume_rack(screen, clock, stats, unlocked):
     def _price(c):
         return costume_price(c, stats) if c.get("source") == "rack" else None
 
+    def _in_season(c):
+        """Its own event is running, so it can be bought and rated."""
+        _ev = get_active_event()
+        return bool(_ev) and _ev["name"] == c["event"]
+
+    def _rate(c, stars):
+        """Rate it, if it is in season. Nobody prices a shut shop."""
+        nonlocal msg, msg_t
+        if not _in_season(c):
+            msg, msg_t = (f"You can only rate {c['name']} during {c['event']}",
+                          FPS * 3)
+            return
+        _was = _price(c)
+        _got = rate_costume(stats, c["name"], stars)
+        _now = _price(c)
+        msg = f"{_got} star{'s' if _got != 1 else ''}"
+        if _now is not None and _was is not None:
+            msg += (f"  ·  {c['name']} now costs {_now}"
+                    f" ({'+' if _now >= _was else ''}{_now - _was})")
+        msg_t = FPS * 3
+
     def _state(c):
         if c["name"] in unlocked:
             return "worn"
         if _price(c) is None:
             return "earn"
         # A costume is only for sale while its own event is running
-        _ev = get_active_event()
-        if not _ev or _ev["name"] != c["event"]:
+        if not _in_season(c):
             return "closed"
         return "buy" if stats.get("seasonal_coins", 0) >= _price(c) else "short"
 
@@ -5413,15 +5433,7 @@ def costume_rack(screen, clock, stats, unlocked):
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     _buy(COSTUMES[sel])
                 if pygame.K_1 <= event.key <= pygame.K_5:
-                    _c0 = COSTUMES[sel]
-                    _was = _price(_c0)
-                    _st0 = rate_costume(stats, _c0["name"], event.key - pygame.K_0)
-                    _now = _price(_c0)
-                    msg = (f"{_st0} star{'s' if _st0 != 1 else ''}" +
-                           (f"  ·  {_c0['name']} now costs {_now}"
-                            f" ({'+' if _now >= _was else ''}{_now - _was})"
-                            if _now is not None else ""))
-                    msg_t = FPS * 3
+                    _rate(COSTUMES[sel], event.key - pygame.K_0)
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
                 _mp = ((int(event.x * WIDTH), int(event.y * HEIGHT))
                        if event.type == pygame.FINGERDOWN else event.pos)
@@ -5430,9 +5442,7 @@ def costume_rack(screen, clock, stats, unlocked):
                 for _si2 in range(5):
                     if pygame.Rect(WIDTH - 330 + _si2 * 19, FLOOR_Y + 12,
                                    20, 22).collidepoint(_mp):
-                        rate_costume(stats, COSTUMES[sel]["name"], _si2 + 1)
-                        msg, msg_t = (f"{_si2 + 1} star"
-                                      f"{'s' if _si2 else ''}", FPS * 2)
+                        _rate(COSTUMES[sel], _si2 + 1)
                         break
                 if pygame.Rect(WIDTH // 2 - 90, HEIGHT - 42, 180, 34).collidepoint(_mp):
                     _buy(COSTUMES[sel])
@@ -5568,11 +5578,14 @@ def costume_rack(screen, clock, stats, unlocked):
         _d = font_tiny.render(_ln, True, (170, 160, 172))
         screen.blit(_d, (16, FLOOR_Y + 38))
         _stars = costume_stars(_c, stats)
-        _star_rects = _draw_stars(WIDTH - 320, FLOOR_Y + 22, _stars, 8)
+        _open = _in_season(_c)
+        _draw_stars(WIDTH - 320, FLOOR_Y + 22, _stars, 8, dim=not _open)
         _rated = _c["name"] in stats.get("costume_ratings", {})
-        _rl = font_tiny.render(f"{_stars}/5  —  " +
-                               ("your rating, press 1-5 to change it" if _rated
-                                else "press 1-5 to rate it"), True, (150, 142, 152))
+        _rl = font_tiny.render(
+            f"{_stars}/5  —  " + ("your rating, press 1-5 to change it" if _rated
+                                  else "press 1-5 to rate it") if _open
+            else f"{_stars}/5  —  rate it during {_c['event']}",
+            True, (150, 142, 152) if _open else (104, 98, 108))
         screen.blit(_rl, (WIDTH - 320, FLOOR_Y + 40))
 
         _btn = pygame.Rect(WIDTH // 2 - 90, HEIGHT - 42, 180, 34)
