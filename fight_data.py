@@ -2384,6 +2384,26 @@ COSTUMES = [
      "color": (222, 118,  50), "emblem": "flame", "source": "rack", "cost": 35},
     {"name": "Big big big",       "base": "Colossus",    "event": "Project Yellowstone",
      "color": (148, 124,  96), "emblem": "star",  "source": "rack", "cost": 45},
+
+    # Novel Beginnings — eight books, badly remembered
+    {"name": "Bookeater",         "base": "Pacman",      "event": "Novel Beginnings",
+     "color": (240, 210,  60), "emblem": "book",  "source": "rack", "cost": 30},
+    {"name": "This is not what books are used for", "base": "Jetpack",
+     "event": "Novel Beginnings",
+     "color": (152, 112,  72), "emblem": "book",  "source": "rack", "cost": 35},
+    {"name": "Fictionary",        "base": "Scrollmaster", "event": "Novel Beginnings",
+     "color": (214, 196, 150), "emblem": "book",  "source": "rack", "cost": 30},
+    {"name": "Save the drama for your grandman", "base": "Mime",
+     "event": "Novel Beginnings",
+     "color": (192,  62,  92), "emblem": "star",  "source": "rack", "cost": 30},
+    {"name": "Star-lotte's web",  "base": "Black Widow", "event": "Novel Beginnings",
+     "color": ( 68,  70, 108), "emblem": "star",  "source": "rack", "cost": 35},
+    {"name": "The lizard of Oz",  "base": "Magician",    "event": "Novel Beginnings",
+     "color": ( 78, 180,  92), "emblem": "clover", "source": "rack", "cost": 40},
+    {"name": "Big-small woman",   "base": "Morph",       "event": "Novel Beginnings",
+     "color": (232, 148, 198), "emblem": "egg",   "source": "rack", "cost": 35},
+    {"name": "Palace in wonderland", "base": "Emperor",  "event": "Novel Beginnings",
+     "color": (220,  62,  72), "emblem": "heart", "source": "rack", "cost": 45},
 ]
 
 COSTUMES_EARNED = [c for c in COSTUMES if c.get("source") != "rack"]

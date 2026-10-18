@@ -15680,6 +15680,205 @@ def _draw_rack_costume(surface, costume, hx, hy, sx, sy, wx, wy, fx, fy,
             surface.blit(_b, (hx - _b.get_width() // 2 + int(r * (_k - 1) * 1.4),
                               hy - int(r * (1.6 + 0.8 * _k))))
 
+    # ── Novel Beginnings ────────────────────────────────────────────────
+    elif costume == "Bookeater":
+        for _k in range(3):
+            _bkx = hx + f * int(r * (1.6 + 0.9 * _k))
+            _bky = hy - int(r * 0.2) + int(math.sin(t * 2 + _k) * r * 0.3)
+            _tilt = int(r * 0.2 * (1 if _k % 2 else -1))
+            pygame.draw.polygon(surface, (196, 76, 62) if _k % 2 else (72, 110, 190), [
+                (_bkx - int(r * 0.4), _bky - int(r * 0.5) + _tilt),
+                (_bkx + int(r * 0.4), _bky - int(r * 0.5) - _tilt),
+                (_bkx + int(r * 0.4), _bky + int(r * 0.4) - _tilt),
+                (_bkx - int(r * 0.4), _bky + int(r * 0.4) + _tilt)])
+            pygame.draw.line(surface, (244, 240, 228),
+                             (_bkx - int(r * 0.3), _bky - int(r * 0.4) + _tilt),
+                             (_bkx + int(r * 0.3), _bky - int(r * 0.4) - _tilt),
+                             max(1, int(s)))
+        for _k in range(5):
+            _a = t * 2.2 + _k * 1.25
+            pygame.draw.rect(surface, (246, 242, 230),
+                             (hx + f * int(r * 1.0) + int(math.cos(_a) * r * 0.9),
+                              hy - int(r * 0.9) + int(math.sin(_a) * r * 0.7),
+                              max(1, int(r * 0.22)), max(1, int(r * 0.3))))
+
+    elif costume == "This is not what books are used for":
+        for _sg in (-1, 1):
+            _bx7 = sx - f * int(r * 0.9) + _sg * int(r * 0.35)
+            pygame.draw.rect(surface, (140, 90, 56),
+                             (_bx7 - int(r * 0.3), sy - int(r * 0.2),
+                              max(3, int(r * 0.6)), max(6, int(r * 1.8))))
+            pygame.draw.rect(surface, (238, 232, 214),
+                             (_bx7 - int(r * 0.16), sy - int(r * 0.15),
+                              max(2, int(r * 0.2)), max(5, int(r * 1.7))))
+            for _k in range(4):
+                _pp = ((t * 1.3 + _k * 0.3 + _sg) % 1.0)
+                _pg = pygame.Surface((int(r * 0.9) + 2, int(r * 0.9) + 2), pygame.SRCALPHA)
+                pygame.draw.polygon(_pg, (250, 246, 230, int(200 * (1 - _pp))), [
+                    (0, 0), (int(r * 0.8), int(r * 0.2)), (int(r * 0.3), int(r * 0.8))])
+                surface.blit(_pg, (_bx7 - int(r * 0.4) + int(_sg * _pp * r * 1.2),
+                                   sy + int(r * 1.6) + int(_pp * r * 2.2)))
+
+    elif costume == "Fictionary":
+        pygame.draw.rect(surface, (214, 196, 150),
+                         (sx - int(r * 1.1), sy + int(r * 0.1),
+                          max(4, int(r * 2.2)), max(5, int(r * 1.5))),
+                         border_radius=max(1, int(r * 0.12)))
+        pygame.draw.rect(surface, (160, 134, 86),
+                         (sx - int(r * 1.1), sy + int(r * 0.1),
+                          max(4, int(r * 2.2)), max(5, int(r * 1.5))),
+                         max(1, int(s)), border_radius=max(1, int(r * 0.12)))
+        for _k in range(3):
+            pygame.draw.line(surface, (120, 100, 70),
+                             (sx - int(r * 0.85), sy + int(r * (0.45 + 0.3 * _k))),
+                             (sx + int(r * 0.85), sy + int(r * (0.45 + 0.3 * _k))),
+                             max(1, int(s)))
+        for _k, _ch in enumerate("ZQX"):
+            _a = t * 1.1 + _k * 2.1
+            _g = _get_font(max(7, int(r * 0.8))).render(_ch, True, (240, 232, 200))
+            surface.blit(_g, (hx + int(math.cos(_a) * r * 1.5) - _g.get_width() // 2,
+                              hy - int(r * 1.5) + int(math.sin(_a) * r * 0.7)))
+
+    elif costume == "Save the drama for your grandman":
+        for _sg, _fc in ((-1, (238, 230, 214)), (1, (60, 56, 64))):
+            _mx3 = sx + _sg * int(r * 1.3)
+            _my3 = sy + int(r * 0.5)
+            pygame.draw.ellipse(surface, _fc,
+                                (_mx3 - int(r * 0.6), _my3 - int(r * 0.75),
+                                 max(3, int(r * 1.2)), max(4, int(r * 1.5))))
+            for _ex in (-0.26, 0.26):
+                pygame.draw.circle(surface, (30, 26, 30) if _sg < 0 else (236, 230, 220),
+                                   (_mx3 + int(_ex * r), _my3 - int(r * 0.2)),
+                                   max(1, int(r * 0.13)))
+            pygame.draw.arc(surface, (30, 26, 30) if _sg < 0 else (236, 230, 220),
+                            (_mx3 - int(r * 0.3), _my3 + int(r * 0.05),
+                             max(3, int(r * 0.6)), max(3, int(r * 0.5))),
+                            3.4 if _sg < 0 else 0.3, 6.0 if _sg < 0 else 2.8,
+                            max(1, int(s)))
+        for _sg in (-1, 1):
+            pygame.draw.polygon(surface, (168, 40, 64), [
+                (hx + _sg * int(r * 1.1), hy - int(r * 2.3)),
+                (hx + _sg * int(r * 2.3), hy - int(r * 2.3)),
+                (hx + _sg * int(r * 2.1), hy + int(r * 1.2)),
+                (hx + _sg * int(r * 1.3), hy + int(r * 0.9))])
+            for _k in range(3):
+                pygame.draw.line(surface, (130, 24, 46),
+                                 (hx + _sg * int(r * (1.3 + 0.3 * _k)), hy - int(r * 2.2)),
+                                 (hx + _sg * int(r * (1.4 + 0.3 * _k)), hy + int(r * 1.0)),
+                                 max(1, int(s)))
+        pygame.draw.line(surface, (120, 110, 100), (hx - int(r * 2.4), hy - int(r * 2.35)),
+                         (hx + int(r * 2.4), hy - int(r * 2.35)), max(2, int(s * 2)))
+
+    elif costume == "Star-lotte's web":
+        _wcx, _wcy = hx - f * int(r * 2.0), hy - int(r * 1.4)
+        for _ring in (0.5, 0.9, 1.3):
+            _pts = [(_wcx + int(math.cos(_a) * r * _ring),
+                     _wcy + int(math.sin(_a) * r * _ring))
+                    for _a in [_i * math.pi / 4 for _i in range(8)]]
+            pygame.draw.lines(surface, (210, 214, 232), True, _pts, max(1, int(s)))
+        for _i in range(8):
+            _a = _i * math.pi / 4
+            pygame.draw.line(surface, (210, 214, 232), (_wcx, _wcy),
+                             (_wcx + int(math.cos(_a) * r * 1.3),
+                              _wcy + int(math.sin(_a) * r * 1.3)), max(1, int(s)))
+        for _k in range(4):
+            _a = t * 0.7 + _k * 1.57
+            _draw_emblem(surface, "star",
+                         _wcx + int(math.cos(_a) * r * 0.95),
+                         _wcy + int(math.sin(_a) * r * 0.95),
+                         max(2, int(r * 0.22)), (250, 242, 180))
+        pygame.draw.line(surface, (210, 214, 232), (_wcx, _wcy - int(r * 1.3)),
+                         (_wcx, _wcy - int(r * 2.2)), max(1, int(s)))
+        _draw_emblem(surface, "star", hx, hy - int(r * 0.1), max(2, int(r * 0.45)),
+                     (248, 240, 190))
+
+    elif costume == "The lizard of Oz":
+        pygame.draw.lines(surface, (62, 150, 76), False, [
+            (wx - f * int(r * 0.3), wy),
+            (wx - f * int(r * 1.5), wy + int(r * 0.5)),
+            (wx - f * int(r * 2.3), wy - int(r * 0.4)
+             + int(math.sin(t * 3) * r * 0.4))], max(2, int(s * 4)))
+        for _k in range(5):
+            pygame.draw.polygon(surface, (120, 210, 120), [
+                (hx - int(r * 0.8) + int(r * 0.4 * _k), hy - int(r * 0.95)),
+                (hx - int(r * 0.65) + int(r * 0.4 * _k), hy - int(r * 1.5)),
+                (hx - int(r * 0.45) + int(r * 0.4 * _k), hy - int(r * 0.95))])
+        for _sg in (-1, 1):
+            pygame.draw.circle(surface, (60, 220, 140),
+                               (hx + f * int(r * 0.2) + _sg * int(r * 0.42),
+                                hy - int(r * 0.1)), max(2, int(r * 0.3)))
+            pygame.draw.circle(surface, (20, 50, 30),
+                               (hx + f * int(r * 0.2) + _sg * int(r * 0.42),
+                                hy - int(r * 0.1)), max(1, int(r * 0.3)), max(1, int(s)))
+            pygame.draw.line(surface, (20, 50, 30),
+                             (hx + f * int(r * 0.2) + _sg * int(r * 0.42),
+                              hy - int(r * 0.35)),
+                             (hx + f * int(r * 0.2) + _sg * int(r * 0.42),
+                              hy + int(r * 0.15)), max(1, int(s)))
+        pygame.draw.line(surface, (220, 90, 110), (hx + f * int(r * 0.7), hy + int(r * 0.5)),
+                         (hx + f * int(r * (1.5 + 0.4 * math.sin(t * 6))),
+                          hy + int(r * 0.7)), max(1, int(s * 2)))
+
+    elif costume == "Big-small woman":
+        _grow = 0.5 + 0.5 * math.sin(t * 1.6)
+        _bigr = int(r * (0.6 + 1.1 * _grow))
+        pygame.draw.circle(surface, (236, 160, 206),
+                           (sx - f * int(r * 1.8), sy + int(r * 0.6)), max(2, _bigr),
+                           max(1, int(s * 2)))
+        pygame.draw.circle(surface, (236, 160, 206),
+                           (sx + f * int(r * 1.8), sy + int(r * 0.6)),
+                           max(2, int(r * 1.7) - _bigr), max(1, int(s * 2)))
+        _bx8, _by8 = fx + f * int(r * 0.6), fy
+        pygame.draw.polygon(surface, (150, 210, 240), [
+            (_bx8 - int(r * 0.26), _by8),
+            (_bx8 + int(r * 0.26), _by8),
+            (_bx8 + int(r * 0.34), _by8 + int(r * 0.9)),
+            (_bx8 - int(r * 0.34), _by8 + int(r * 0.9))])
+        pygame.draw.rect(surface, (150, 210, 240),
+                         (_bx8 - int(r * 0.12), _by8 - int(r * 0.45),
+                          max(2, int(r * 0.24)), max(2, int(r * 0.45))))
+        pygame.draw.rect(surface, (250, 248, 236),
+                         (_bx8 - int(r * 0.26), _by8 + int(r * 0.25),
+                          max(3, int(r * 0.52)), max(2, int(r * 0.3))))
+        pygame.draw.rect(surface, (238, 222, 188),
+                         (wx - f * int(r * 1.6), wy + int(r * 0.4),
+                          max(3, int(r * 0.9)), max(3, int(r * 0.6))))
+        pygame.draw.rect(surface, (244, 150, 180),
+                         (wx - f * int(r * 1.6), wy + int(r * 0.3),
+                          max(3, int(r * 0.9)), max(2, int(r * 0.2))))
+
+    elif costume == "Palace in wonderland":
+        for _i, _sx5 in enumerate((-1.0, 0.0, 1.0)):
+            _cwx = hx + int(_sx5 * r * 0.85)
+            _cwy = hy - int(r * (1.5 + (0.35 if _i == 1 else 0)))
+            pygame.draw.rect(surface, (248, 244, 236),
+                             (_cwx - int(r * 0.32), _cwy,
+                              max(3, int(r * 0.64)), max(4, int(r * 0.95))),
+                             border_radius=max(1, int(r * 0.1)))
+            pygame.draw.rect(surface, (40, 36, 40),
+                             (_cwx - int(r * 0.32), _cwy,
+                              max(3, int(r * 0.64)), max(4, int(r * 0.95))),
+                             max(1, int(s)), border_radius=max(1, int(r * 0.1)))
+            _draw_emblem(surface, "heart", _cwx, _cwy + int(r * 0.45),
+                         max(2, int(r * 0.22)), (216, 52, 64))
+        for _sg in (-1, 1):
+            pygame.draw.rect(surface, (238, 232, 226),
+                             (sx + _sg * int(r * 0.9) - int(r * 0.3), sy + int(r * 0.2),
+                              max(3, int(r * 0.6)), max(4, int(r * 1.3))))
+            _draw_emblem(surface, "heart", sx + _sg * int(r * 0.9), sy + int(r * 0.85),
+                         max(2, int(r * 0.2)), (216, 52, 64))
+        for _k in range(3):
+            _rx2 = wx - f * int(r * (1.1 + 0.55 * _k))
+            _ry2 = wy + int(r * (0.5 + 0.25 * (_k % 2)))
+            pygame.draw.circle(surface, (236, 236, 240) if _k == 1 else (214, 48, 60),
+                               (_rx2, _ry2), max(2, int(r * 0.26)))
+            pygame.draw.line(surface, (80, 150, 80), (_rx2, _ry2 + int(r * 0.26)),
+                             (_rx2, _ry2 + int(r * 0.8)), max(1, int(s)))
+        if int(t * 2) % 2 == 0:
+            pygame.draw.line(surface, (214, 48, 60),
+                             (wx - f * int(r * 1.1), wy + int(r * 0.3)),
+                             (wx - f * int(r * 0.7), wy + int(r * 0.1)), max(1, int(s * 2)))
+
     else:
         return False
     return True
