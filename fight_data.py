@@ -2393,7 +2393,7 @@ COSTUMES = [
      "color": (152, 112,  72), "emblem": "book",  "source": "rack", "cost": 35},
     {"name": "Fictionary",        "base": "Scrollmaster", "event": "Novel Beginnings",
      "color": (214, 196, 150), "emblem": "book",  "source": "rack", "cost": 30},
-    {"name": "Save the drama for your grandman", "base": "Mime",
+    {"name": "Save the drama for your grandma", "base": "Mime",
      "event": "Novel Beginnings",
      "color": (192,  62,  92), "emblem": "star",  "source": "rack", "cost": 30},
     {"name": "Star-lotte's web",  "base": "Black Widow", "event": "Novel Beginnings",
@@ -2404,6 +2404,36 @@ COSTUMES = [
      "color": (232, 148, 198), "emblem": "egg",   "source": "rack", "cost": 35},
     {"name": "Palace in wonderland", "base": "Emperor",  "event": "Novel Beginnings",
      "color": (220,  62,  72), "emblem": "heart", "source": "rack", "cost": 45},
+
+    # Echoes of the Undying
+    {"name": "I.M. Ded",          "base": "Skeleton",    "event": "Echoes of the Undying",
+     "color": (206, 202, 190), "emblem": "star",  "source": "rack", "cost": 30},
+    {"name": "The big eye",       "base": "I",           "event": "Echoes of the Undying",
+     "color": (232, 240, 248), "emblem": "cat",   "source": "rack", "cost": 45},
+    {"name": "Rotten poppy",      "base": "Dandibell & Eeeby", "event": "Echoes of the Undying",
+     "color": ( 98,  76,  64), "emblem": "leaf",  "source": "rack", "cost": 40},
+    {"name": "Pump-king",         "base": "Headless Horseman", "event": "Echoes of the Undying",
+     "color": (236, 128,  36), "emblem": "flame", "source": "rack", "cost": 40},
+    {"name": "Spookerman",        "base": "Spooderman",  "event": "Echoes of the Undying",
+     "color": (238, 238, 246), "emblem": "snow",  "source": "rack", "cost": 35},
+    {"name": "Creepy classic clown", "base": "Clown",    "event": "Echoes of the Undying",
+     "color": (214, 214, 222), "emblem": "star",  "source": "rack", "cost": 35},
+    {"name": "Sweet tooth",       "base": "Vampire",     "event": "Echoes of the Undying",
+     "color": (236,  90, 140), "emblem": "heart", "source": "rack", "cost": 30},
+    {"name": "Mummy mommy",       "base": "Medic",       "event": "Echoes of the Undying",
+     "color": (228, 214, 182), "emblem": "egg",   "source": "rack", "cost": 35},
+
+    # Feasterween — mostly said backwards
+    {"name": "Yumbo jumbo",       "base": "Giant",       "event": "Feasterween",
+     "color": (196, 120,  60), "emblem": "leaf",  "source": "rack", "cost": 45},
+    {"name": "Amoc doof",         "base": "omuS",        "event": "Feasterween",
+     "color": (150, 190, 120), "emblem": "leaf",  "source": "rack", "cost": 35},
+    {"name": "Rooster of the roster", "base": "Mimic",   "event": "Feasterween",
+     "color": (232, 190,  70), "emblem": "sun",   "source": "rack", "cost": 30},
+    {"name": "Loser shirted",     "base": "Scratch",     "event": "Feasterween",
+     "color": (122, 132, 162), "emblem": "star",  "source": "rack", "cost": 25},
+    {"name": "What does the fox say?", "base": "Kitsune", "event": "Feasterween",
+     "color": (236, 140,  60), "emblem": "star",  "source": "rack", "cost": 35},
 ]
 
 COSTUMES_EARNED = [c for c in COSTUMES if c.get("source") != "rack"]
