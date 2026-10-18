@@ -775,7 +775,10 @@ class Fighter:
         self._prev_vy = self.vy   # capture before zeroing (quake_land)
         self.y  += self.vy
         landed = False
-        if constants.STAGE_VOID and self.y > HEIGHT + 30:
+        # Ice Cave: the floor has holes in it where a slab has dropped away
+        _holes = getattr(constants, "GROUND_HOLES", None)
+        _over_hole = bool(_holes) and any(_a <= self.x <= _b for _a, _b in _holes)
+        if (constants.STAGE_VOID or _over_hole) and self.y > HEIGHT + 30:
             if not self._in_void:
                 self._in_void = True
                 self.void_falls += 1
@@ -787,7 +790,7 @@ class Fighter:
                 self.hp = 0   # fell into the void
         elif constants.STAGE_CEILING and self.y < -30:
             self.hp = 0   # hit the ceiling (Under the Void)
-        elif not constants.STAGE_VOID and self.y >= GROUND_Y:
+        elif not constants.STAGE_VOID and self.y >= GROUND_Y and not _over_hole:
             self.y = GROUND_Y
             self.vy = 0
             landed = True
@@ -2213,7 +2216,10 @@ class AIFighter(Fighter):
         self._prev_vy = self.vy
         self.y  += self.vy
         landed = False
-        if constants.STAGE_VOID and self.y > HEIGHT + 30:
+        # Ice Cave: the floor has holes in it where a slab has dropped away
+        _holes = getattr(constants, "GROUND_HOLES", None)
+        _over_hole = bool(_holes) and any(_a <= self.x <= _b for _a, _b in _holes)
+        if (constants.STAGE_VOID or _over_hole) and self.y > HEIGHT + 30:
             if not self._in_void:
                 self._in_void = True
                 self.void_falls += 1
@@ -2225,7 +2231,7 @@ class AIFighter(Fighter):
                 self.hp = 0   # fell into the void
         elif constants.STAGE_CEILING and self.y < -30:
             self.hp = 0   # hit the ceiling (Under the Void)
-        elif not constants.STAGE_VOID and self.y >= GROUND_Y:
+        elif not constants.STAGE_VOID and self.y >= GROUND_Y and not _over_hole:
             self.y = GROUND_Y
             self.vy = 0
             landed = True

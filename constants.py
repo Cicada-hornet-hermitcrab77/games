@@ -48,6 +48,7 @@ font_tiny   = pygame.font.SysFont("Arial", 11)
 
 GRAVITY = 0.55
 STAGE_VOID    = False   # when True the ground floor is removed; falling off = instant death
+GROUND_HOLES = []   # Ice Cave: spans of floor that have dropped away
 STAGE_CEILING = False   # when True the ceiling is lethal; jumping into the top kills you
 STAGE_WATER   = False   # when True the arena is flooded up to WATER_LINE_Y (Underwater stage)
 # The Crooking Glass: the game loop publishes the hourglass state here so

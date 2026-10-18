@@ -765,6 +765,109 @@ class Spring:
 # Jungle snake NPC
 # ---------------------------------------------------------------------------
 
+class IceFloorPanel:
+    """One slab of the Ice Cave floor.
+
+    It cracks on its own, faster with somebody standing on it, and when the
+    cracks join up it drops away and leaves a hole you can fall through. The
+    cave freezes it back over after a while, or the fight would end up with
+    nothing to stand on.
+    """
+    CRACK_IDLE    = 1.0 / (17 * FPS)    # bare ice: about seventeen seconds
+    CRACK_LOADED  = 1.0 / (4.0 * FPS)   # with somebody on it: four
+    REFREEZE      = int(7.5 * FPS)      # how long the hole stays open
+
+    def __init__(self, x, w):
+        self.x       = float(x)
+        self.w       = int(w)
+        self.crack   = 0.0
+        self.fallen  = False
+        self.fall_y  = 0.0
+        self.fall_vy = 0.0
+        self.spin    = 0.0
+        self.regrow  = 0
+        self.shards  = []
+
+    @property
+    def x2(self):
+        return self.x + self.w
+
+    def holds(self, fx):
+        """Is this slab under that x, and still there to stand on?"""
+        return (not self.fallen) and self.x <= fx <= self.x2
+
+    def _shatter(self):
+        self.fallen  = True
+        self.fall_vy = 0.6
+        self.spin    = random.uniform(-2.2, 2.2)
+        self.regrow  = self.REFREEZE
+        for _ in range(7):
+            self.shards.append([self.x + random.uniform(0, self.w), float(GROUND_Y),
+                                random.uniform(-2.4, 2.4), random.uniform(-5.0, -1.5),
+                                random.randint(18, 34)])
+
+    def update(self, fighters):
+        for sh in self.shards:
+            sh[0] += sh[2]; sh[1] += sh[3]; sh[3] += 0.35; sh[4] -= 1
+        self.shards = [sh for sh in self.shards if sh[4] > 0]
+
+        if self.fallen:
+            self.fall_vy += 0.45
+            self.fall_y  += self.fall_vy
+            self.regrow  -= 1
+            if self.regrow <= 0 and self.fall_y > HEIGHT:
+                self.fallen  = False
+                self.crack   = 0.0
+                self.fall_y  = 0.0
+                self.fall_vy = 0.0
+            return
+
+        _loaded = any(f.hp > 0 and abs(f.y - GROUND_Y) < 6 and self.x <= f.x <= self.x2
+                      for f in fighters)
+        self.crack += self.CRACK_LOADED if _loaded else self.CRACK_IDLE
+        if self.crack >= 1.0:
+            self._shatter()
+
+    def draw(self, surface):
+        for sh in self.shards:
+            pygame.draw.polygon(surface, (214, 236, 248), [
+                (int(sh[0]), int(sh[1])), (int(sh[0] + 5), int(sh[1] + 3)),
+                (int(sh[0] + 2), int(sh[1] + 7))])
+        if self.fallen:
+            if self.fall_y > HEIGHT:
+                return
+            _slab = pygame.Surface((self.w, 20), pygame.SRCALPHA)
+            pygame.draw.rect(_slab, (176, 216, 238), (0, 0, self.w, 20))
+            pygame.draw.rect(_slab, (120, 172, 206), (0, 0, self.w, 20), 2)
+            _rot = pygame.transform.rotate(_slab, self.spin * self.fall_y * 0.25)
+            surface.blit(_rot, (int(self.x + self.w // 2 - _rot.get_width() // 2),
+                                int(GROUND_Y + self.fall_y - _rot.get_height() // 2)))
+            return
+
+        _c = self.crack
+        _top = (int(196 - 40 * _c), int(230 - 46 * _c), int(246 - 30 * _c))
+        pygame.draw.rect(surface, _top, (int(self.x), GROUND_Y, self.w, 22))
+        pygame.draw.rect(surface, (120, 172, 206), (int(self.x), GROUND_Y, self.w, 22), 2)
+        pygame.draw.line(surface, (236, 248, 255), (int(self.x) + 3, GROUND_Y + 3),
+                         (int(self.x2) - 3, GROUND_Y + 3), 2)
+        # Cracks spread from the middle as it goes
+        _n = int(_c * 7)
+        random.seed(int(self.x))          # same slab, same crack pattern
+        for _i in range(_n):
+            _sx = self.x + self.w * (0.15 + 0.7 * random.random())
+            _dx = random.uniform(-1, 1) * self.w * 0.18 * (0.4 + _c)
+            pygame.draw.lines(surface, (96, 140, 180), False, [
+                (int(_sx), GROUND_Y + 1),
+                (int(_sx + _dx * 0.5), GROUND_Y + 9),
+                (int(_sx + _dx), GROUND_Y + 20)], max(1, 1 + int(_c * 2)))
+        random.seed()
+        if _c > 0.75:                      # about to go
+            _f = (pygame.time.get_ticks() // 120) % 2
+            if _f:
+                pygame.draw.rect(surface, (250, 250, 255),
+                                 (int(self.x), GROUND_Y, self.w, 22), 2)
+
+
 class JungleSnake:
     SPEED        = 2.5
     MAX_HP       = 20

@@ -10,6 +10,7 @@ from constants import *
 from fight_data import CHARACTERS, POWERUPS, STAGES, STAGE_MATCHUPS, FUSER_ELEMENTS, FUSER_RECIPES, FUSER_SHOP_CHARS
 from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
                            draw_win_screen, draw_active_powerups, draw_stickman, _get_font)
+from fight_stage import IceFloorPanel
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt, SlantedConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull, FallingTeddy, HazardZone,
@@ -1119,6 +1120,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     if _stage_name == "Space":
         constants.GRAVITY = 0.13   # floaty anti-gravity
     constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World", "Booked"))
+    # Ice Cave: eight slabs of floor that crack underfoot and drop away
+    _is_ice_cave = (_stage_name == "Ice Cave")
+    _ice_floor   = ([IceFloorPanel(i * (WIDTH / 8.0), int(WIDTH / 8.0) + 1)
+                     for i in range(8)] if _is_ice_cave else [])
+    constants.GROUND_HOLES = []
     constants.STAGE_CEILING = (_stage_name == "The Nether")
     constants.STAGE_WATER   = (_stage_name == "Underwater")
 
@@ -1496,17 +1502,17 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                              p2.char["name"], ai_difficulty, p1.void_falls,
                              p1.hp, p1.hp <= p1.max_hp // 2)
                     if event.key == pygame.K_r:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('rematch', _info)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; constants.GROUND_HOLES = []; return ('rematch', _info)
                     if event.key == pygame.K_c:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; constants.GROUND_HOLES = []
                         # Online needs to tell "back to fighter select" apart
                         # from "quit"; offline both mean the same thing.
                         return ('charselect' if net is not None else 'select', _info)
                     if event.key == pygame.K_ESCAPE:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('select', _info)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; constants.GROUND_HOLES = []; return ('select', _info)
                 else:
                     if event.key == pygame.K_ESCAPE:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; constants.GROUND_HOLES = []
                         return ('select', (False, p1.char["name"], _stage_name, False, False, p2.char["name"], ai_difficulty, p1.void_falls))
                     # Konami code tracking (only on Computer stage)
                     if is_computer and not _konami_unlocked_this_fight:
@@ -3696,6 +3702,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         break
             powerups = [pu for pu in powerups if not pu.picked_up]
 
+        # Ice Cave: the floor cracks under whoever is standing on it
+        if _ice_floor and not game_over:
+            for _pan in _ice_floor:
+                _pan.update((p1, p2))
+            constants.GROUND_HOLES = [(_pan.x, _pan.x2) for _pan in _ice_floor
+                                      if _pan.fallen]
+
         # Giant NPC hazard (Giants Among Us stage only)
         if giant_mode and not game_over:
             if _gnpc is None:
@@ -3813,6 +3826,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
         pygame.draw.line(screen, (180, 180, 200), (0, 20), (WIDTH, 20), 3)
         for portal in portals_obj:
             portal.draw(screen)
+        for _pan in _ice_floor:
+            _pan.draw(screen)
         for plat in platforms:
             plat.draw(screen, stage_idx)
         for sp in springs:
@@ -4351,6 +4366,11 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     if _stage_name == "Space":
         constants.GRAVITY = 0.13
     constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World", "Booked"))
+    # Ice Cave: eight slabs of floor that crack underfoot and drop away
+    _is_ice_cave = (_stage_name == "Ice Cave")
+    _ice_floor   = ([IceFloorPanel(i * (WIDTH / 8.0), int(WIDTH / 8.0) + 1)
+                     for i in range(8)] if _is_ice_cave else [])
+    constants.GROUND_HOLES = []
     constants.STAGE_CEILING = (_stage_name == "The Nether")
     constants.STAGE_WATER   = (_stage_name == "Underwater")
 
@@ -4696,14 +4716,14 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             if event.type == pygame.KEYDOWN:
                 if game_over:
                     if event.key == pygame.K_r:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('rematch', enemies_killed)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; constants.GROUND_HOLES = []; return ('rematch', enemies_killed)
                     if event.key == pygame.K_c:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('select',  enemies_killed)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; constants.GROUND_HOLES = []; return ('select',  enemies_killed)
                     if event.key == pygame.K_ESCAPE:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('select', enemies_killed)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; constants.GROUND_HOLES = []; return ('select', enemies_killed)
                 else:
                     if event.key == pygame.K_ESCAPE:
-                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; return ('select', enemies_killed)
+                        constants.GRAVITY = _orig_gravity; constants.STAGE_VOID = False; constants.STAGE_CEILING = False; constants.STAGE_WATER = False; constants.GROUND_HOLES = []; return ('select', enemies_killed)
                     # Red Herring: type CLUE to heal to full (if a Red Herring player is alive)
                     _rh_player = next((p for p in players if p.char.get("red_herring") and p.hp > 0), None)
                     if _rh_player is not None:

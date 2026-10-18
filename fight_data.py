@@ -1891,9 +1891,8 @@ STAGES = [
         (340, GROUND_Y-220, 160, 2.0, 130),
     ], "springs": [
         (200, -22), (700, -22),
+    # The ground is eight slabs of cracking ice now — no belts along it
     ], "conveyors": [
-        (50,  GROUND_Y, 300, 4.5),
-        (550, GROUND_Y, 300, -4.5),
     ], "portals": [(140, GROUND_Y-165), (720, GROUND_Y-165)]},
     # Pirate Ship
     {"name": "Pirate Ship", "platforms": [
@@ -2434,6 +2433,26 @@ COSTUMES = [
      "color": (122, 132, 162), "emblem": "star",  "source": "rack", "cost": 25},
     {"name": "What does the fox say?", "base": "Kitsune", "event": "Feasterween",
      "color": (236, 140,  60), "emblem": "star",  "source": "rack", "cost": 35},
+
+    # Aura of Menorah
+    {"name": "7 candles, 7 colors", "base": "Rainbow Man", "event": "Aura of Menorah",
+     "color": (236, 232, 240), "emblem": "flame", "source": "rack", "cost": 40},
+    {"name": "Light'z like crazy", "base": "Crazy",     "event": "Aura of Menorah",
+     "color": (250, 206,  90), "emblem": "flame", "source": "rack", "cost": 35},
+
+    # Yuletide Gatherings
+    {"name": "Mr. Clau-ZZZ",      "base": "Sandman",     "event": "Yuletide Gatherings",
+     "color": (214,  58,  62), "emblem": "snow",  "source": "rack", "cost": 40},
+    {"name": "Missile-toe",       "base": "Nuke",        "event": "Yuletide Gatherings",
+     "color": ( 86, 158,  86), "emblem": "leaf",  "source": "rack", "cost": 40},
+    {"name": "Gettin' festive",   "base": "Crytrap",     "event": "Yuletide Gatherings",
+     "color": (196,  66,  70), "emblem": "star",  "source": "rack", "cost": 35},
+    {"name": "Crisp-mas tree",    "base": "Arsonist",    "event": "Yuletide Gatherings",
+     "color": ( 74, 134,  72), "emblem": "flame", "source": "rack", "cost": 35},
+    {"name": "Brr-lock holmes",   "base": "Red Herring", "event": "Yuletide Gatherings",
+     "color": (150, 196, 220), "emblem": "snow",  "source": "rack", "cost": 40},
+    {"name": "Handy cane",        "base": "Hooker",      "event": "Yuletide Gatherings",
+     "color": (240, 240, 246), "emblem": "heart", "source": "rack", "cost": 30},
 ]
 
 COSTUMES_EARNED = [c for c in COSTUMES if c.get("source") != "rack"]
