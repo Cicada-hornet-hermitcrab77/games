@@ -13003,171 +13003,6 @@ def draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing
                              (hx - int(facing * int(hd * 0.2)), _vsy),
                              max(2, int(3*s)))
 
-    elif char_name == "Mermaid":
-        _mt = pygame.time.get_ticks() / 1000.0
-        # Tail instead of legs, flicking as she goes
-        _flick = math.sin(_mt * 3.4) * 0.5
-        _tb = -facing
-        _trx, _try = wx + _tb * int(6*s), wy + int(6*s)
-        _ttx = _trx + _tb * int(26*s)
-        _tty = _try + int(26*s) + int(_flick * 8 * s)
-        pygame.draw.polygon(surface, (70, 200, 190), [
-            (_trx - int(8*s), _try), (_trx + int(8*s), _try),
-            (_ttx + int(5*s), _tty), (_ttx - int(5*s), _tty)])
-        pygame.draw.polygon(surface, (50, 170, 165), [
-            (_ttx, _tty - int(4*s)),
-            (_ttx + _tb * int(16*s), _tty - int(16*s)),
-            (_ttx + _tb * int(20*s), _tty + int(6*s)),
-            (_ttx, _tty + int(8*s)),
-            (_ttx + _tb * int(16*s), _tty + int(20*s)),
-            (_ttx + _tb * int(4*s), _tty + int(6*s))])
-        for _i in range(3):
-            pygame.draw.arc(surface, (120, 240, 230),
-                            (_trx - int(8*s), _try + int(7*s*_i),
-                             int(16*s), int(10*s)), 3.4, 6.0, max(1, int(s)))
-        # Shell top and long hair
-        for _sg in (-1, 1):
-            pygame.draw.circle(surface, (250, 190, 205),
-                               (sx + _sg*int(7*s), sy + int(7*s)), max(2, int(6*s)))
-            pygame.draw.arc(surface, (220, 140, 170),
-                            (sx + _sg*int(7*s) - int(6*s), sy + int(s),
-                             int(12*s), int(12*s)), 0.4, 2.8, max(1, int(s)))
-        for _k in range(4):
-            pygame.draw.line(surface, (232, 108, 70),
-                             (hx - facing*int(4*s), hy - int(6*s)),
-                             (hx - facing*int((14 + 4*_k)*s),
-                              hy + int((10 + 5*_k)*s) + int(math.sin(_mt*2 + _k)*3*s)),
-                             max(2, int(2.5*s)))
-        # Bubbles rising
-        for _k in range(3):
-            _bp = ((_mt * 0.5 + _k * 0.33) % 1.0)
-            pygame.draw.circle(surface, (190, 245, 245),
-                               (hx + facing*int((10 + 6*_k)*s),
-                                hy - int(_bp * 40 * s)),
-                               max(1, int((3 - _bp*1.5)*s)), max(1, int(s)))
-
-    elif char_name == "Starfish":
-        _st2 = pygame.time.get_ticks() / 1000.0
-        _arm = int(26 * s)
-        _cx2, _cy2 = (sx + wx)//2, (sy + wy)//2
-        for _i in range(5):
-            _a = -math.pi/2 + _i * (2*math.pi/5) + math.sin(_st2*1.6 + _i)*0.12
-            _ex = _cx2 + int(math.cos(_a) * _arm)
-            _ey = _cy2 + int(math.sin(_a) * _arm)
-            pygame.draw.polygon(surface, (248, 150, 90), [
-                (_cx2 + int(math.cos(_a - 0.5) * _arm*0.42),
-                 _cy2 + int(math.sin(_a - 0.5) * _arm*0.42)),
-                (_ex, _ey),
-                (_cx2 + int(math.cos(_a + 0.5) * _arm*0.42),
-                 _cy2 + int(math.sin(_a + 0.5) * _arm*0.42))])
-            pygame.draw.circle(surface, (255, 200, 150), (_ex, _ey), max(1, int(2.5*s)))
-        pygame.draw.circle(surface, (255, 186, 130), (_cx2, _cy2), max(3, int(9*s)))
-        for _i in range(6):
-            _a = _st2 * 0.8 + _i
-            pygame.draw.circle(surface, (226, 120, 70),
-                               (_cx2 + int(math.cos(_a) * 5 * s),
-                                _cy2 + int(math.sin(_a) * 5 * s)), max(1, int(1.6*s)))
-        for _sg in (-1, 1):
-            pygame.draw.circle(surface, (30, 26, 30),
-                               (_cx2 + _sg*int(4*s) + facing*int(2*s), _cy2 - int(2*s)),
-                               max(1, int(1.8*s)))
-
-    elif char_name == "Pufferfish":
-        _pt = pygame.time.get_ticks() / 1000.0
-        # It breathes in and out; every few seconds it is fully puffed
-        _puffed = (0.5 + 0.5 * math.sin(_pt * 1.3)) > 0.62
-        _pr = int((20 if _puffed else 14) * s)
-        _pcx, _pcy = (sx + wx)//2, (sy + wy)//2
-        for _i in range(14):
-            _a = _i * (2*math.pi/14) + _pt*0.4
-            _sl = _pr + int((9 if _puffed else 4) * s)
-            pygame.draw.line(surface, (120, 110, 60),
-                             (_pcx + int(math.cos(_a)*_pr*0.9),
-                              _pcy + int(math.sin(_a)*_pr*0.9)),
-                             (_pcx + int(math.cos(_a)*_sl),
-                              _pcy + int(math.sin(_a)*_sl)), max(1, int(1.6*s)))
-        pygame.draw.circle(surface, (226, 218, 120), (_pcx, _pcy), _pr)
-        pygame.draw.circle(surface, (176, 166, 80), (_pcx, _pcy), _pr, max(1, int(1.5*s)))
-        pygame.draw.polygon(surface, (200, 190, 100), [
-            (_pcx - facing*_pr, _pcy),
-            (_pcx - facing*(_pr + int(12*s)), _pcy - int(9*s)),
-            (_pcx - facing*(_pr + int(12*s)), _pcy + int(9*s))])
-        for _sg in (-1, 1):
-            pygame.draw.circle(surface, (250, 250, 250),
-                               (_pcx + facing*int(_pr*0.45) + _sg*int(4*s),
-                                _pcy - int(_pr*0.35)), max(2, int(4*s)))
-            pygame.draw.circle(surface, (24, 22, 24),
-                               (_pcx + facing*int(_pr*0.5) + _sg*int(4*s),
-                                _pcy - int(_pr*0.35)), max(1, int(2*s)))
-        pygame.draw.circle(surface, (150, 140, 70),
-                           (_pcx + facing*int(_pr*0.75), _pcy + int(_pr*0.3)),
-                           max(1, int(3*s)), max(1, int(s)))
-
-    elif char_name == "Gold Fish":
-        _gt = pygame.time.get_ticks() / 1000.0
-        _bx5, _by5 = (sx + wx)//2, (sy + wy)//2
-        pygame.draw.ellipse(surface, (248, 192, 60),
-                            (_bx5 - int(18*s), _by5 - int(12*s), int(36*s), int(24*s)))
-        pygame.draw.ellipse(surface, (210, 150, 30),
-                            (_bx5 - int(18*s), _by5 - int(12*s), int(36*s), int(24*s)),
-                            max(1, int(1.5*s)))
-        _fl = math.sin(_gt * 5.0)
-        pygame.draw.polygon(surface, (252, 212, 110), [
-            (_bx5 - facing*int(16*s), _by5),
-            (_bx5 - facing*int(32*s), _by5 - int(12*s) + int(_fl*5*s)),
-            (_bx5 - facing*int(28*s), _by5),
-            (_bx5 - facing*int(32*s), _by5 + int(12*s) + int(_fl*5*s))])
-        pygame.draw.polygon(surface, (252, 212, 110), [
-            (_bx5 - int(6*s), _by5 - int(10*s)),
-            (_bx5 + int(2*s), _by5 - int(22*s) - int(_fl*2*s)),
-            (_bx5 + int(10*s), _by5 - int(10*s))])
-        pygame.draw.circle(surface, (255, 255, 255),
-                           (_bx5 + facing*int(10*s), _by5 - int(3*s)), max(2, int(4.5*s)))
-        pygame.draw.circle(surface, (26, 22, 20),
-                           (_bx5 + facing*int(11*s), _by5 - int(3*s)), max(1, int(2.2*s)))
-        for _k in range(3):
-            _cp = ((_gt * 0.7 + _k * 0.34) % 1.0)
-            _coin_y = _by5 - int(_cp * 44 * s)
-            pygame.draw.circle(surface, (255, 214, 80),
-                               (_bx5 + facing*int((14 + 7*_k)*s), _coin_y),
-                               max(1, int((4 - _cp*2)*s)))
-            pygame.draw.circle(surface, (190, 140, 20),
-                               (_bx5 + facing*int((14 + 7*_k)*s), _coin_y),
-                               max(1, int((4 - _cp*2)*s)), max(1, int(s)))
-
-    elif char_name == "Octo-Octo":
-        _ot = pygame.time.get_ticks() / 1000.0
-        pygame.draw.ellipse(surface, (176, 96, 200),
-                            (hx - int(16*s), hy - int(20*s), int(32*s), int(34*s)))
-        pygame.draw.ellipse(surface, (134, 62, 158),
-                            (hx - int(16*s), hy - int(20*s), int(32*s), int(34*s)),
-                            max(1, int(1.5*s)))
-        for _sg in (-1, 1):
-            pygame.draw.circle(surface, (250, 250, 252),
-                               (hx + _sg*int(6*s) + facing*int(2*s), hy - int(4*s)),
-                               max(2, int(5*s)))
-            pygame.draw.circle(surface, (26, 20, 30),
-                               (hx + _sg*int(6*s) + facing*int(3*s), hy - int(4*s)),
-                               max(1, int(2.4*s)))
-        # Eight arms, each on its own beat
-        for _i in range(8):
-            _base = hx - int(14*s) + int(4*s*_i)
-            _ph   = _ot * 2.4 + _i * 0.8
-            _p1a  = (_base + int(math.sin(_ph) * 7 * s), wy - int(4*s))
-            _p2a  = (_base + int(math.sin(_ph + 1.1) * 12 * s), wy + int(12*s))
-            _p3a  = (_base + int(math.sin(_ph + 2.2) * 16 * s), wy + int(26*s))
-            pygame.draw.lines(surface, (166, 86, 190), False,
-                              [(_base, hy + int(12*s)), _p1a, _p2a, _p3a],
-                              max(2, int(3*s)))
-            pygame.draw.circle(surface, (210, 150, 230), _p3a, max(1, int(2*s)))
-        for _k in range(2):
-            _ip = ((_ot * 0.6 + _k * 0.5) % 1.0)
-            _ink = pygame.Surface((int(16*s) + 4, int(16*s) + 4), pygame.SRCALPHA)
-            pygame.draw.circle(_ink, (60, 30, 80, int(150 * (1 - _ip))),
-                               (int(8*s), int(8*s)), max(2, int((4 + _ip*5)*s)))
-            surface.blit(_ink, (hx - facing*int((20 + _ip*26)*s) - int(8*s),
-                                hy - int(8*s)))
-
     elif char_name == "Red Herring":
         # Fish tail below waist (replaces legs visually — drawn as fin)
         # The fin takes the fighter's own colour, so a costume (Koi-lue's gold)
@@ -16575,6 +16410,268 @@ def _draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, 
             pygame.draw.circle(surface, (200, 230, 250), (_stamp_x, int(y)), _dsurf_r, max(1, int(s)))
 
         return (int(x + facing * 40 * s), int(y - 100 * s))
+
+    # ── Water expansion: none of these five are stickman-shaped ───────────
+    if char_name in ("Mermaid", "Starfish", "Pufferfish", "Gold Fish", "Octo-Octo"):
+        _wt   = pygame.time.get_ticks() / 1000.0
+        _base = int(y)
+        _dead = (action == 'dead')
+        _bob  = 0 if _dead else int(math.sin(_wt * 2.2) * 3 * s)
+        _lunge = 0
+        if action == 'punch':
+            _lunge = int(facing * 10 * s * math.sin(action_t * math.pi))
+        elif action == 'kick':
+            _lunge = int(facing * 6 * s * action_t)
+        _cx = int(x) + _lunge
+        _dk = tuple(max(0, c - 55) for c in col)
+        _lt = tuple(min(255, c + 60) for c in col)
+
+        def _eye(ex, ey, er, look=1):
+            pygame.draw.circle(surface, (252, 252, 254), (int(ex), int(ey)), max(2, int(er)))
+            pygame.draw.circle(surface, (22, 20, 28),
+                               (int(ex + facing * er * 0.35 * look), int(ey)),
+                               max(1, int(er * 0.5)))
+
+        if char_name == "Mermaid":
+            _tailtop = _base - int(46 * s) - _bob
+            _hy2     = _base - int(96 * s) - _bob
+            _flick   = math.sin(_wt * 3.2) * (1.6 if action == 'kick' else 1.0)
+            if _dead:
+                _tailtop = _base - int(14 * s)
+                _hy2     = _base - int(26 * s)
+            # Tail: a curve from the waist down to a fluke
+            _ttx = _cx - facing * int((10 + _flick * 7) * s)
+            _tty = _base - int(6 * s)
+            pygame.draw.polygon(surface, col, [
+                (_cx - int(11 * s), _tailtop),
+                (_cx + int(11 * s), _tailtop),
+                (_ttx + int(6 * s), _tty), (_ttx - int(6 * s), _tty)])
+            for _i in range(4):
+                _sy3 = _tailtop + int((_tty - _tailtop) * (0.15 + 0.22 * _i))
+                pygame.draw.arc(surface, _lt,
+                                (_cx - int(10 * s) - facing * int(_i * 2 * s), _sy3,
+                                 int(20 * s), int(9 * s)), 3.4, 6.0, max(1, int(s)))
+            pygame.draw.polygon(surface, _dk, [
+                (_ttx, _tty - int(3 * s)),
+                (_ttx - facing * int(16 * s), _tty - int(17 * s)),
+                (_ttx - facing * int(21 * s), _tty + int(3 * s)),
+                (_ttx, _tty + int(6 * s)),
+                (_ttx - facing * int(16 * s), _tty + int(19 * s)),
+                (_ttx - facing * int(5 * s), _tty + int(4 * s))])
+            # Torso, shell top, arms and head
+            pygame.draw.ellipse(surface, _lt,
+                                (_cx - int(12 * s), _tailtop - int(34 * s),
+                                 int(24 * s), int(40 * s)))
+            for _sg in (-1, 1):
+                pygame.draw.circle(surface, (250, 186, 202),
+                                   (_cx + _sg * int(7 * s), _tailtop - int(22 * s)),
+                                   max(2, int(6 * s)))
+                pygame.draw.arc(surface, (214, 132, 162),
+                                (_cx + _sg * int(7 * s) - int(6 * s), _tailtop - int(28 * s),
+                                 int(12 * s), int(12 * s)), 0.4, 2.8, max(1, int(s)))
+            _reach = int(26 * s) if action == 'punch' else int(13 * s)
+            for _sg, _r2 in ((1, _reach), (-1, int(12 * s))):
+                _ax = _cx + facing * _sg * _r2
+                _ay = _tailtop - int(26 * s) + (0 if _sg > 0 and action == 'punch'
+                                               else int(math.sin(_wt * 2 + _sg) * 3 * s))
+                pygame.draw.line(surface, _lt, (_cx, _tailtop - int(28 * s)),
+                                 (_ax, _ay), max(2, int(4 * s)))
+                pygame.draw.circle(surface, _lt, (_ax, _ay), max(2, int(4 * s)))
+            pygame.draw.circle(surface, _lt, (_cx, _hy2), max(4, int(12 * s)))
+            # Long hair, strand by strand, drifting as if underwater
+            for _k in range(6):
+                _sw = math.sin(_wt * 1.8 + _k * 0.7) * 4 * s
+                pygame.draw.lines(surface, (226, 104, 68) if _k % 2 else (242, 134, 92),
+                                  False, [
+                    (_cx - facing * int((2 + _k) * s), _hy2 - int(10 * s)),
+                    (_cx - facing * int((10 + 2 * _k) * s) + int(_sw),
+                     _hy2 + int(4 * s)),
+                    (_cx - facing * int((12 + 3 * _k) * s) - int(_sw),
+                     _hy2 + int((22 + 3 * _k) * s)),
+                    (_cx - facing * int((8 + 3 * _k) * s) + int(_sw * 1.4),
+                     _hy2 + int((38 + 4 * _k) * s))], max(2, int(2.2 * s)))
+            if not _dead:
+                _eye(_cx + facing * int(4 * s), _hy2 - int(2 * s), int(2.6 * s))
+                for _k in range(3):
+                    _bp = ((_wt * 0.5 + _k * 0.33) % 1.0)
+                    pygame.draw.circle(surface, (196, 246, 246),
+                                       (_cx + facing * int((12 + 6 * _k) * s),
+                                        _hy2 - int(_bp * 42 * s)),
+                                       max(1, int((3 - _bp * 1.6) * s)), max(1, int(s)))
+            if action == 'punch':
+                return (_cx + facing * int(34 * s), _tailtop - int(26 * s))
+            if action == 'kick':
+                return (_ttx - facing * int(18 * s), _tty)
+            return None
+
+        if char_name == "Starfish":
+            _arm = int(34 * s)
+            _cy2 = _base - _arm - int(4 * s) - _bob
+            if _dead:
+                _cy2 = _base - int(arm_h := _arm // 2)
+            _spin = _wt * 0.6 + (action_t * 3.0 if action == 'kick' else 0.0)
+            _pts = []
+            for _i in range(10):
+                _rr = _arm if _i % 2 == 0 else _arm * 0.42
+                _a  = -math.pi / 2 + _i * math.pi / 5 + _spin * 0.25
+                if _i % 2 == 0 and action == 'punch' and _i == 2:
+                    _rr = _arm * (1.0 + 0.5 * math.sin(action_t * math.pi))
+                _pts.append((_cx + int(math.cos(_a) * _rr),
+                             _cy2 + int(math.sin(_a) * _rr)))
+            pygame.draw.polygon(surface, col, _pts)
+            pygame.draw.polygon(surface, _dk, _pts, max(1, int(1.6 * s)))
+            for _i in range(7):
+                _a = _wt * 0.8 + _i * 0.9
+                pygame.draw.circle(surface, _dk,
+                                   (_cx + int(math.cos(_a) * _arm * 0.3),
+                                    _cy2 + int(math.sin(_a) * _arm * 0.3)),
+                                   max(1, int(2 * s)))
+            if not _dead:
+                for _sg in (-1, 1):
+                    _eye(_cx + facing * int(4 * s) + _sg * int(6 * s),
+                         _cy2 - int(4 * s), int(3.4 * s))
+            if action == 'punch':
+                return (_cx + facing * int(_arm * 1.4), _cy2)
+            if action == 'kick':
+                return (_cx + facing * int(action_t * 70 * s), _cy2 + int(10 * s))
+            return None
+
+        if char_name == "Pufferfish":
+            _puff = 0.5 + 0.5 * math.sin(_wt * 1.3)
+            if action in ('block', 'kick'):
+                _puff = 1.0
+            _pr  = int((17 + 9 * _puff) * s)
+            _pcy = _base - _pr - int(10 * s) - _bob
+            if _dead:
+                _pr, _pcy = int(18 * s), _base - int(16 * s)
+            for _i in range(16):
+                _a  = _i * (2 * math.pi / 16) + _wt * 0.3
+                _sl = _pr + int((4 + 9 * _puff) * s)
+                pygame.draw.line(surface, _dk,
+                                 (_cx + int(math.cos(_a) * _pr * 0.92),
+                                  _pcy + int(math.sin(_a) * _pr * 0.92)),
+                                 (_cx + int(math.cos(_a) * _sl),
+                                  _pcy + int(math.sin(_a) * _sl)), max(1, int(1.8 * s)))
+            pygame.draw.circle(surface, col, (_cx, _pcy), _pr)
+            pygame.draw.circle(surface, _dk, (_cx, _pcy), _pr, max(1, int(1.6 * s)))
+            pygame.draw.polygon(surface, _lt, [
+                (_cx - facing * _pr, _pcy),
+                (_cx - facing * (_pr + int(14 * s)), _pcy - int(10 * s)),
+                (_cx - facing * (_pr + int(14 * s)), _pcy + int(10 * s))])
+            for _sg in (-1, 1):
+                _fw = int(math.sin(_wt * 7 + _sg) * 3 * s)
+                pygame.draw.ellipse(surface, _lt,
+                                    (_cx + facing * int(_pr * 0.2) + _sg * int(_pr * 0.6),
+                                     _pcy + _pr - int(4 * s) + _fw,
+                                     max(3, int(9 * s)), max(3, int(6 * s))))
+            if not _dead:
+                for _sg in (-1, 1):
+                    _eye(_cx + facing * int(_pr * 0.45) + _sg * int(5 * s),
+                         _pcy - int(_pr * 0.3), int(4 * s))
+                pygame.draw.circle(surface, _dk,
+                                   (_cx + facing * int(_pr * 0.78), _pcy + int(_pr * 0.3)),
+                                   max(1, int(3 * s)), max(1, int(s)))
+            if action == 'punch':
+                return (_cx + facing * (_pr + int(16 * s)), _pcy)
+            if action == 'kick':
+                return (_cx + facing * int(action_t * 76 * s), _pcy + int(6 * s))
+            return None
+
+        if char_name == "Gold Fish":
+            _fy2 = _base - int(40 * s) - _bob
+            if _dead:
+                _fy2 = _base - int(12 * s)
+            _fl = math.sin(_wt * 5.0) * (2.2 if action == 'kick' else 1.0)
+            pygame.draw.polygon(surface, _lt, [
+                (_cx - facing * int(18 * s), _fy2),
+                (_cx - facing * int(40 * s), _fy2 - int(16 * s) + int(_fl * 6 * s)),
+                (_cx - facing * int(34 * s), _fy2),
+                (_cx - facing * int(40 * s), _fy2 + int(16 * s) + int(_fl * 6 * s))])
+            pygame.draw.ellipse(surface, col,
+                                (_cx - int(22 * s), _fy2 - int(16 * s),
+                                 int(44 * s), int(32 * s)))
+            pygame.draw.ellipse(surface, _dk,
+                                (_cx - int(22 * s), _fy2 - int(16 * s),
+                                 int(44 * s), int(32 * s)), max(1, int(1.6 * s)))
+            pygame.draw.polygon(surface, _lt, [
+                (_cx - int(8 * s), _fy2 - int(14 * s)),
+                (_cx + int(2 * s), _fy2 - int(30 * s) - int(_fl * 2 * s)),
+                (_cx + int(12 * s), _fy2 - int(14 * s))])
+            for _sg in (-1, 1):
+                pygame.draw.ellipse(surface, _lt,
+                                    (_cx + facing * int(2 * s),
+                                     _fy2 + int(6 * s) + _sg * int(3 * s),
+                                     max(4, int(14 * s)), max(3, int(7 * s))))
+            pygame.draw.arc(surface, _dk,
+                            (_cx + facing * int(2 * s), _fy2 - int(14 * s),
+                             int(14 * s), int(28 * s)), 1.2, 5.1, max(1, int(1.4 * s)))
+            if not _dead:
+                _eye(_cx + facing * int(12 * s), _fy2 - int(4 * s), int(4.6 * s))
+                pygame.draw.arc(surface, _dk,
+                                (_cx + facing * int(14 * s), _fy2 + int(2 * s),
+                                 int(10 * s), int(8 * s)), 3.3, 6.1, max(1, int(1.4 * s)))
+                for _k in range(3):
+                    _cp = ((_wt * 0.7 + _k * 0.34) % 1.0)
+                    _coy = _fy2 - int(_cp * 46 * s)
+                    pygame.draw.circle(surface, (255, 214, 80),
+                                       (_cx + facing * int((18 + 8 * _k) * s), _coy),
+                                       max(1, int((4.5 - _cp * 2.4) * s)))
+                    pygame.draw.circle(surface, (186, 136, 18),
+                                       (_cx + facing * int((18 + 8 * _k) * s), _coy),
+                                       max(1, int((4.5 - _cp * 2.4) * s)), max(1, int(s)))
+            if action == 'punch':
+                return (_cx + facing * int(32 * s), _fy2)
+            if action == 'kick':
+                return (_cx - facing * int(36 * s), _fy2)
+            return None
+
+        # Octo-Octo
+        _mr  = int(19 * s)
+        _mcy = _base - int(62 * s) - _bob
+        if _dead:
+            _mcy = _base - int(20 * s)
+        pygame.draw.ellipse(surface, col,
+                            (_cx - _mr, _mcy - int(_mr * 1.25),
+                             _mr * 2, int(_mr * 2.2)))
+        pygame.draw.ellipse(surface, _dk,
+                            (_cx - _mr, _mcy - int(_mr * 1.25),
+                             _mr * 2, int(_mr * 2.2)), max(1, int(1.5 * s)))
+        for _i in range(8):
+            _bx6 = _cx - int(_mr * 0.85) + int((_mr * 1.7 / 7) * _i)
+            _ph  = _wt * 2.4 + _i * 0.8
+            _amp = 1.0
+            _fw  = 0
+            if action == 'punch' and _i in (6, 7):
+                _amp, _fw = 0.2, int(facing * 34 * s * math.sin(action_t * math.pi))
+            elif action == 'kick' and _i in (0, 1, 2):
+                _amp, _fw = 0.3, int(facing * 30 * s * action_t)
+            _p1a = (_bx6 + int(math.sin(_ph) * 7 * s * _amp) + _fw // 3,
+                    _mcy + int(_mr * 0.9))
+            _p2a = (_bx6 + int(math.sin(_ph + 1.1) * 12 * s * _amp) + 2 * _fw // 3,
+                    _mcy + int(_mr * 1.9))
+            _p3a = (_bx6 + int(math.sin(_ph + 2.2) * 16 * s * _amp) + _fw,
+                    _base - int(2 * s) if not _dead else _mcy + int(_mr * 2.2))
+            pygame.draw.lines(surface, _lt, False,
+                              [(_bx6, _mcy + int(_mr * 0.5)), _p1a, _p2a, _p3a],
+                              max(2, int(3.4 * s)))
+            pygame.draw.circle(surface, col, _p3a, max(1, int(2.2 * s)))
+        if not _dead:
+            for _sg in (-1, 1):
+                _eye(_cx + facing * int(3 * s) + _sg * int(7 * s),
+                     _mcy - int(_mr * 0.3), int(5 * s))
+            for _k in range(2):
+                _ip = ((_wt * 0.6 + _k * 0.5) % 1.0)
+                _ink = pygame.Surface((int(22 * s) + 6, int(22 * s) + 6), pygame.SRCALPHA)
+                pygame.draw.circle(_ink, (58, 28, 78, int(150 * (1 - _ip))),
+                                   (int(11 * s), int(11 * s)),
+                                   max(2, int((5 + _ip * 6) * s)))
+                surface.blit(_ink, (_cx - facing * int((24 + _ip * 28) * s) - int(11 * s),
+                                    _mcy - int(11 * s)))
+        if action == 'punch':
+            return (_cx + facing * int(44 * s), _mcy + int(_mr * 1.4))
+        if action == 'kick':
+            return (_cx + facing * int(action_t * 80 * s), _base - int(14 * s))
+        return None
 
     # ── Dead pose: stickman lying flat on the ground ────────────────────────
     if action == 'dead':

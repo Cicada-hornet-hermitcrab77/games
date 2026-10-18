@@ -94,6 +94,8 @@ UNLOCK_CONDITIONS = {
     "Starfish":            ("win_on_stage",   "Underwater",    5,  "Win on Underwater 5 times"),
     "Pufferfish":          ("win_with",       "Cecalia",       3,  "Win 3 matches as Cecalia"),
     "Octo-Octo":           ("win_with",       "Pufferfish",    4,  "Win 4 matches as Pufferfish"),
+    # Gold Fish also drops out of the casino — see CASINO_REWARDS
+    "Gold Fish":           ("win_with",       "Tycoon",        3,  "Win 3 matches as Tycoon"),
     # ── wins_total ──────────────────────────────────────────────────────────
     "Ares":                ("wins_total",     None,            2,  "Win 2 matches vs AI"),
     "Zephyr":              ("wins_total",     None,            3,  "Win 3 matches vs AI"),
