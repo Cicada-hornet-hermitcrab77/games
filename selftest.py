@@ -1,0 +1,182 @@
+"""A compact standing check over everything built so far."""
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+import pygame
+pygame.init()
+pygame.display.set_mode((900, 550))
+
+import fight_data as D
+import fight_wiki as W
+import fight_achievements as A
+import fight_drawing as DR
+import fight_game as G
+from fight_stage import Platform, ConveyorBelt, SlantedConveyorBelt
+
+CONDS, DEFAULT, _ = W._unlock_tables()
+POSES = (("idle", 0.3), ("walk", 0.5), ("punch", 0.5), ("kick", 0.6),
+         ("jump", 0.2), ("block", 0.0), ("dead", 1.0))
+surf = pygame.Surface((900, 550))
+
+# 1. Every fighter draws, both facings, every pose, two scales
+for c in D.CHARACTERS:
+    for act, at in POSES:
+        for fc in (1, -1):
+            DR.draw_stickman(surf, 450, 500, c["color"], fc, act, at, char_name=c["name"])
+            DR.draw_stickman(surf, 450, 500, c["color"], fc, act, at, scale=1.8,
+                             char_name=c["name"])
+print(f"all {len(D.CHARACTERS)} fighters draw in every pose, both facings")
+
+# 2. The five water ones are creatures, not decorated stickmen: their art
+#    runs before the skeleton is ever drawn, and returns on its own
+WATER = ["Mermaid", "Starfish", "Pufferfish", "Gold Fish", "Octo-Octo"]
+src = open("fight_drawing.py").read()
+i_water = src.index('if char_name in ("Mermaid", "Starfish", "Pufferfish"')
+i_dead = src.index("# ── Dead pose: stickman lying flat on the ground")
+i_skel = src.index("    ln(waist, lk); ln(lk, lf)")
+assert i_water < i_dead < i_skel, "water art must run before the stickman is drawn"
+for n in WATER:
+    assert n in D.CHARACTERS_BY_NAME if hasattr(D, "CHARACTERS_BY_NAME") else True
+    ch = next(c for c in D.CHARACTERS if c["name"] == n)
+    assert ch.get("water_breathing"), n
+    # punch and kick must still report where they land
+    assert DR.draw_stickman(surf, 450, 500, ch["color"], 1, "punch", 0.5,
+                            char_name=n) is not None, n
+    assert DR.draw_stickman(surf, 450, 500, ch["color"], 1, "kick", 0.6,
+                            char_name=n) is not None, n
+    assert DR.draw_stickman(surf, 450, 500, ch["color"], 1, "idle", 0.3,
+                            char_name=n) is None, n
+print("the five water fighters are drawn as creatures and still land their hits")
+
+# 3. Every costume gets art of its own
+plain = []
+for c in D.COSTUMES:
+    seen = []
+    orig = DR.draw_costume_extras
+    DR.draw_costume_extras = lambda *a, **k: (seen.append(a[1]), orig(*a, **k))[1]
+    try:
+        DR.draw_stickman(surf, 450, 500, c["color"], 1, "idle", 0.3, char_name=c["name"])
+    finally:
+        DR.draw_costume_extras = orig
+    if not seen:
+        plain.append(c["name"])
+assert not plain, plain
+print(f"all {len(D.COSTUMES)} costumes have art of their own")
+
+# 4. Costume pricing and the rack
+assert len(D.COSTUMES_EARNED) == 14
+for c in D.COSTUMES_EARNED:
+    assert "cost" not in c and D.costume_price(c, {}) is None, c["name"]
+for c in D.COSTUMES_FOR_SALE:
+    assert D.costume_price(c, {}) == c["cost"], c["name"]
+    hi = D.costume_price(c, {"costume_ratings": {c["name"]: 5}})
+    lo = D.costume_price(c, {"costume_ratings": {c["name"]: 1}})
+    assert lo < c["cost"] < hi, (c["name"], lo, hi)
+print(f"{len(D.COSTUMES_FOR_SALE)} costumes on the rack, each dearer at five stars "
+      f"and cheaper at one")
+
+# 5. Every stage builds and every character has a real base
+for i, st in enumerate(D.STAGES):
+    for key, cls in (("platforms", Platform), ("conveyors", ConveyorBelt),
+                     ("slanted_conveyors", SlantedConveyorBelt)):
+        for p in st.get(key, []):
+            assert isinstance(p, (tuple, list)), (st["name"], key, p)
+            cls(*p)
+names = {c["name"] for c in D.CHARACTERS}
+for c in D.COSTUMES:
+    assert c["base"] in names and c["name"] in names, c["name"]
+print(f"all {len(D.STAGES)} stages build; every costume's base is a real fighter")
+
+# 6. Achievements still pay out
+st, un = {"seasonal_coins": 10, "wins_total": 1}, set()
+A.check_achievements(st, un)
+assert st["seasonal_coins"] == 15
+from fight_seasonal import SEASONAL_SHOP_CHARS
+roster = {c["name"] for c in SEASONAL_SHOP_CHARS if c["event"] == "New Dynasties"}
+un2 = set(roster)
+got = A.check_achievements({}, un2)
+assert "Koi-lue" in un2 and got and got[0]["name"] == "Koi-lue"
+print(f"{len(A.ACHIEVEMENTS)} achievements: coins pay, earned costumes hand over")
+
+# 7. The wiki builds and covers the roster
+w = W.build(unlocked={"Ninja"}, stats={"wins_total": 1})
+assert {p["title"] for p in w["characters"] if not p.get("secret")} <= names | {"Taxonomy"}
+assert any(p["title"] == "The world" for p in w["maps"])
+assert any(p["title"] == "Taxonomy" for p in w["characters"])
+for n in WATER:
+    p = next(x for x in w["characters"] if x["title"] == n)
+    assert p["cats"] == ["fishikin"], (n, p["cats"])
+gf = W.ways_to_get("Gold Fish", CONDS, DEFAULT)
+assert len(gf) == 2, gf
+print(f"wiki: {sum(len(v) for v in w.values())} pages; Gold Fish has "
+      f"{len(gf)} ways in")
+# 8. The Ice Cave floor cracks, drops away and freezes back
+from fight_stage import IceFloorPanel
+from constants import GROUND_Y
+import constants as _C
+CTRL = {'left': pygame.K_a, 'right': pygame.K_d, 'jump': pygame.K_w,
+        'duck': pygame.K_s, 'punch': pygame.K_f, 'kick': pygame.K_g,
+        'block': pygame.K_r}
+from fight_fighter import Fighter
+_br = next(c for c in D.CHARACTERS if c["name"] == "Brawler")
+_keys = [False] * 400
+def _mk(x, y):
+    _f = Fighter(x, _br, 1, CTRL); _f.y = y; return _f
+_ice = next(st for st in D.STAGES if st["name"] == "Ice Cave")
+assert not _ice.get("conveyors"), "the ice floor is the floor; no belts on it"
+_C.GROUND_HOLES = []
+_a, _foe = _mk(400, GROUND_Y - 80), _mk(100, GROUND_Y)
+for _ in range(120):
+    _a.update(_keys, _foe, [])
+assert _a.y == GROUND_Y and _a.hp > 0
+_C.GROUND_HOLES = [(350.0, 460.0)]
+_b = _mk(400, GROUND_Y - 10)
+for _ in range(240):
+    _b.update(_keys, _foe, [])
+assert _b.hp <= 0, "a hole in the floor has to be a hole"
+_c2 = _mk(600, GROUND_Y - 10)
+for _ in range(120):
+    _c2.update(_keys, _foe, [])
+assert _c2.y == GROUND_Y and _c2.hp > 0, "the next slab along still holds"
+_C.GROUND_HOLES = []
+_p1, _p2 = IceFloorPanel(300, 120), IceFloorPanel(300, 120)
+_on, _off = _mk(360, GROUND_Y), _mk(800, GROUND_Y)
+for _ in range(60):
+    _p1.update((_on,)); _p2.update((_off,))
+assert _p1.crack > _p2.crack * 3
+_n = 0
+while not _p1.fallen and _n < 60 * 40:
+    _p1.update((_on,)); _n += 1
+assert _p1.fallen
+_n2 = 0
+while _p1.fallen and _n2 < 60 * 90:
+    _p1.update(()); _n2 += 1
+assert not _p1.fallen and _p1.crack == 0.0
+print(f"Ice Cave: eight slabs, {_n/60:.0f}s under weight, "
+      f"{_n2/60:.0f}s to freeze back; a hole is a hole")
+_C.GROUND_HOLES = []
+
+# 9. Searching the character select narrows the grid and still returns
+#    indices into the real roster
+import fight_ui as _UI
+pygame.display.flip = lambda: None
+def _K(k, u=""):
+    return [pygame.event.Event(pygame.KEYDOWN, key=k, unicode=u)]
+def _T(txt):
+    return [pygame.event.Event(pygame.KEYDOWN, key=0, unicode=ch) for ch in txt]
+def _pick(q):
+    _it = iter([[], _K(pygame.K_SLASH), _T(q), [], _K(pygame.K_RETURN), [],
+                _K(pygame.K_f), []])
+    pygame.event.get = lambda *a, **k: next(_it, [])
+    return _UI.character_select(vs_ai=True)
+for _q, _want in (("mermaid", "Mermaid"), ("octo", "Octo-Octo"),
+                  ("arson", "Arsonist"), ("ninja", "Ninja")):
+    _p1, _ = _pick(_q)
+    assert D.CHARACTERS[_p1]["name"] == _want, (_q, D.CHARACTERS[_p1]["name"])
+_p1, _p2 = _pick("zzzzz")
+assert 0 <= _p1 < len(D.CHARACTERS) and 0 <= _p2 < len(D.CHARACTERS)
+_ui_src = open("fight_ui.py").read()
+assert "press  /  to search by name" in _ui_src
+print("character select: search narrows the grid, prefix matches first, "
+      "and picking still returns the real index")
+
+print("ALL OK")

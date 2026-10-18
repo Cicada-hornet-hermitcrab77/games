@@ -1866,6 +1866,14 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         unlock_hints = {}
     if unlock_progress is None:
         unlock_progress = {}
+    # The grid is a view on this. Searching narrows it; clearing the search
+    # puts it all back.
+    _ALL_CHARS, _ALL_ORIG = _CHARS, _orig_idx
+    _search      = ""       # what has been typed
+    _search_on   = False    # is the box taking keys
+    _search_prev = None     # so the grid is only rebuilt when it changes
+    _search_miss = False    # typed something nothing matches
+
     n     = len(_CHARS)
     ROWS  = (n + COLS - 1) // COLS
     VISIBLE_ROWS = 12   # how many card rows show at once
@@ -1932,13 +1940,61 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         preview_t = (preview_t + 0.02) % 1.0
         flash_t   = (flash_t + 1) % 40
 
+        # ── Search: rebuild the grid when what was typed changes ──────────
+        if _search != _search_prev:
+            _search_prev = _search
+            _was1 = _CHARS[p1_idx]["name"] if 0 <= p1_idx < len(_CHARS) else None
+            _was2 = _CHARS[p2_idx]["name"] if 0 <= p2_idx < len(_CHARS) else None
+            _q2 = _search.strip().lower()
+            if _q2:
+                # Names that start with what you typed come first — type
+                # "octo" and Octo-Octo beats Plague Doctor to the front
+                _starts = [(o, c) for o, c in zip(_ALL_ORIG, _ALL_CHARS)
+                           if c["name"].lower().startswith(_q2)]
+                _inside = [(o, c) for o, c in zip(_ALL_ORIG, _ALL_CHARS)
+                           if _q2 in c["name"].lower()
+                           and not c["name"].lower().startswith(_q2)]
+                _keep = _starts + _inside
+                if not _keep:          # nothing matches — show it all, say so
+                    _keep = list(zip(_ALL_ORIG, _ALL_CHARS))
+                    _search_miss = True
+                else:
+                    _search_miss = False
+            else:
+                _keep = list(zip(_ALL_ORIG, _ALL_CHARS))
+                _search_miss = False
+            _orig_idx = [o for o, _ in _keep]
+            _CHARS    = [c for _, c in _keep]
+            n         = len(_CHARS)
+            ROWS      = (n + COLS - 1) // COLS
+            # Stay on the same fighter if it is still on screen
+            _names_now = [c["name"] for c in _CHARS]
+            p1_idx = _names_now.index(_was1) if _was1 in _names_now else 0
+            p2_idx = (_names_now.index(_was2) if _was2 in _names_now
+                      else min(1, n - 1))
+            scroll_top = 0
+            clip_scroll(p2_idx if (p1_ready and not p2_ready) else p1_idx)
+
         for event in pygame.event.get():
+            # While the search box has the keyboard, nothing else sees a key
+            if _search_on and event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_ESCAPE, pygame.K_RETURN, pygame.K_KP_ENTER):
+                    _search_on = False
+                elif event.key == pygame.K_BACKSPACE:
+                    _search = _search[:-1]
+                elif getattr(event, "unicode", "") and event.unicode.isprintable():
+                    if len(_search) < 22:
+                        _search += event.unicode
+                continue
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
             # Touch / click: tap a character cell to select, tap READY to confirm
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
                 _tp = (int(event.x * WIDTH), int(event.y * HEIGHT)) if event.type == pygame.FINGERDOWN else event.pos
                 _tx, _ty = _tp
+                if pygame.Rect(GX + 296, 8, 332, 26).collidepoint(_tp):
+                    _search_on = True
+                    continue
                 # Tap scroll buttons above/below grid
                 _stbh = 26
                 if pygame.Rect(GX, GY - _stbh - 2, GW, _stbh).collidepoint(_tp) and scroll_top > 0:
@@ -2175,7 +2231,13 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
                             if _ev_ok_t2:
                                 p2_ready = True
             if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_SLASH, pygame.K_QUESTION):
+                    _search_on = True
+                    continue
                 if event.key == pygame.K_ESCAPE:
+                    if _search:          # first escape just clears the search
+                        _search = ""
+                        continue
                     return None, None
                 # P1 navigation (WASD or arrows while P1 not ready)
                 if not p1_ready:
@@ -2481,6 +2543,27 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         _title_str = select_title if select_title else "SELECT YOUR FIGHTER"
         title = font_medium.render(_title_str, True, YELLOW)
         screen.blit(title, (GX, 10))
+        # Search box — with this many fighters, scrolling for one is no fun
+        _sb2 = pygame.Rect(GX + 296, 8, 332, 26)
+        pygame.draw.rect(screen, (20, 20, 34), _sb2, border_radius=6)
+        pygame.draw.rect(screen, (255, 206, 70) if _search_on else
+                         ((220, 90, 90) if _search_miss else (70, 72, 96)),
+                         _sb2, 2 if _search_on else 1, border_radius=6)
+        pygame.draw.circle(screen, (150, 152, 176), (_sb2.x + 14, _sb2.centery - 2), 5, 1)
+        pygame.draw.line(screen, (150, 152, 176), (_sb2.x + 18, _sb2.centery + 2),
+                         (_sb2.x + 23, _sb2.centery + 7), 2)
+        if _search:
+            _st3 = f"{_search}   —   nothing called that" if _search_miss else \
+                   f"{_search}   —   {n} of {len(_ALL_CHARS)}"
+            _sc3 = (230, 140, 140) if _search_miss else WHITE
+        else:
+            _st3, _sc3 = ("press  /  to search by name", (110, 112, 136))
+        _sr3 = font_small.render(_st3, True, _sc3)
+        screen.blit(_sr3, (_sb2.x + 32, _sb2.centery - _sr3.get_height() // 2))
+        if _search_on and (pygame.time.get_ticks() // 450) % 2 == 0:
+            _cx3 = _sb2.x + 32 + font_small.size(_search)[0] + 1
+            pygame.draw.line(screen, (255, 206, 70), (_cx3, _sb2.y + 5),
+                             (_cx3, _sb2.bottom - 5), 1)
         if not vs_ai:
             phase = "P1 choosing" if not p1_ready else "P2 choosing"
             phase_col = BLUE if not p1_ready else ORANGE
