@@ -67,6 +67,9 @@ _nick_of_time_flag    = [False]   # True when p1 KO'd p2 with ≤1 second on the
 _session_match_streak = [0]       # consecutive matches played without returning to mode_select
 _freeze_streak_flag   = [False]   # True when an opponent was kept frozen 20s continuously
 _p1_melee_hit_flag    = [False]   # True if p1 landed any direct melee (punch/kick) hit this fight
+_p1_kick_landed_flag  = [False]   # True if p1 landed a kick this fight
+_bear_hands_flag      = [False]   # Polar Bear beat a deer without kicking once
+_DEER = ("Wendigo", "Rodoff the red nosed thing")   # anything with antlers
 
 _PRIMES_60 = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59}
 def _is_prime(n): return n in _PRIMES_60
@@ -1225,6 +1228,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     _friday13_flag[0]        = False
     _nick_of_time_flag[0]    = False
     _p1_melee_hit_flag[0]    = False
+    _p1_kick_landed_flag[0]  = False
+    _bear_hands_flag[0]      = False
 
     game_over          = False
     winner             = None
@@ -3627,6 +3632,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     _nick_of_time_flag[0] = True
                 game_over = True
                 winner = p1 if p1.hp >= p2.hp else p2
+                if (winner is p1 and not _p1_kick_landed_flag[0]
+                        and p1.char["name"] == "Polar Bear"
+                        and p2.char["name"] in _DEER):
+                    _bear_hands_flag[0] = True       # bare hands, no kicks
                 if winner is p1:
                     # The clock runs down from 90s, so what is missing is how
                     # long the fight actually took.
@@ -4241,6 +4250,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     _p1_non_crit_flag[0] = True
                 if p1.attack_hit and p1.action in ('punch', 'kick'):
                     _p1_melee_hit_flag[0] = True
+                if p1.attack_hit and p1.action == 'kick':
+                    _p1_kick_landed_flag[0] = True
             if p2.attacking and not p2.attack_hit:
                 p2.check_hit(p2_hit, p1)
                 if p2.attack_hit:
@@ -8195,6 +8206,9 @@ def main():
             if _computer_bug_kills_flag[0]:
                 stats["computer_bug_kills"] = stats.get("computer_bug_kills", 0) + _computer_bug_kills_flag[0]
                 _computer_bug_kills_flag[0] = 0
+            if _bear_hands_flag[0]:
+                stats["bear_hands_win"] = True
+                _bear_hands_flag[0] = False
             if vs_ai and p1_won and not _p1_non_crit_flag[0]:
                 stats["crit_only_wins"] = stats.get("crit_only_wins", 0) + 1
             if vs_ai and not p1_won and not _p1_opp_hit_flag[0] and _p1_powerup_kill_flag[0]:

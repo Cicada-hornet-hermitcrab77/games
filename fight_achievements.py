@@ -1218,6 +1218,70 @@ def reward_text(a):
     return "   ".join(bits)
 
 
+def _badge_bear_deer(surf, cx, cy, r, col=(150, 106, 70)):
+    """A bear's paw filling the frame, and a deer behind it having second
+    thoughts about the whole arrangement."""
+    # The deer, upper right, looking out
+    _dx, _dy = cx + int(r * 0.46), cy - int(r * 0.36)
+    _dr = max(2, int(r * 0.34))
+    for _sg in (-1, 1):
+        pygame.draw.lines(surf, (226, 208, 172), False, [
+            (_dx + _sg * int(_dr * 0.6), _dy - int(_dr * 0.7)),
+            (_dx + _sg * int(_dr * 1.1), _dy - int(_dr * 1.9)),
+            (_dx + _sg * int(_dr * 0.8), _dy - int(_dr * 2.6))], max(1, r // 16))
+        pygame.draw.line(surf, (226, 208, 172),
+                         (_dx + _sg * int(_dr * 0.92), _dy - int(_dr * 1.5)),
+                         (_dx + _sg * int(_dr * 1.8), _dy - int(_dr * 1.8)),
+                         max(1, r // 18))
+        pygame.draw.ellipse(surf, (196, 158, 112),
+                            (_dx + _sg * int(_dr * 0.95) - int(_dr * 0.2),
+                             _dy - int(_dr * 0.8), max(2, int(_dr * 0.4)),
+                             max(2, int(_dr * 0.8))))
+    pygame.draw.ellipse(surf, (206, 166, 118),
+                        (_dx - _dr, _dy - int(_dr * 0.8), _dr * 2, int(_dr * 2.2)))
+    pygame.draw.ellipse(surf, (236, 224, 206),
+                        (_dx - int(_dr * 0.5), _dy + int(_dr * 0.5),
+                         _dr, int(_dr * 0.85)))
+    for _sg in (-1, 1):                      # wide, worried eyes
+        pygame.draw.circle(surf, (250, 250, 250),
+                           (_dx + _sg * int(_dr * 0.42), _dy + int(_dr * 0.06)),
+                           max(1, int(_dr * 0.3)))
+        pygame.draw.circle(surf, (28, 24, 24),
+                           (_dx + _sg * int(_dr * 0.42), _dy + int(_dr * 0.1)),
+                           max(1, int(_dr * 0.16)))
+    pygame.draw.circle(surf, (44, 34, 34), (_dx, _dy + int(_dr * 1.0)),
+                       max(1, int(_dr * 0.18)))
+
+    # The paw, front and centre and a great deal bigger
+    _px, _py = cx - int(r * 0.26), cy + int(r * 0.26)
+    _pr = max(3, int(r * 0.52))
+    for _i, _a in enumerate((-2.5, -1.95, -1.2, -0.62)):
+        _tx2 = _px + int(math.cos(_a) * _pr * 1.08)
+        _ty2 = _py + int(math.sin(_a) * _pr * 1.08)
+        pygame.draw.circle(surf, col, (_tx2, _ty2), max(1, int(_pr * 0.33)))
+        pygame.draw.circle(surf, (64, 42, 32), (_tx2, _ty2), max(1, int(_pr * 0.17)))
+        pygame.draw.line(surf, (246, 240, 230), (_tx2, _ty2 - int(_pr * 0.3)),
+                         (_tx2 + int(math.cos(_a) * _pr * 0.4),
+                          _ty2 + int(math.sin(_a) * _pr * 0.4) - int(_pr * 0.42)),
+                         max(1, r // 18))
+    pygame.draw.circle(surf, col, (_px, _py), _pr)
+    pygame.draw.ellipse(surf, (64, 42, 32),
+                        (_px - int(_pr * 0.46), _py - int(_pr * 0.3),
+                         int(_pr * 0.92), int(_pr * 0.8)))
+
+
+BADGES["bear_hands"] = _badge_bear_deer
+
+ACHIEVEMENTS.append({
+    "id": "bear_hands",
+    "name": "I will fight you with my BEAR hands! Oh deer",
+    "desc": "Beat a deer as Polar Bear without landing a single kick",
+    "reward": 15,
+    "badge": "bear_hands",
+    "check": lambda s, u, d: bool(s.get("bear_hands_win")),
+})
+
+
 # ── Seasonal costume achievements ────────────────────────────────────────
 # One per event: own every character in that event's shop and the costume is
 # yours. All fourteen share this shape, so they are generated from the costume

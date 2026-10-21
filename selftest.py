@@ -179,4 +179,44 @@ assert "press  /  to search by name" in _ui_src
 print("character select: search narrows the grid, prefix matches first, "
       "and picking still returns the real index")
 
+# 10. "I will fight you with my BEAR hands! Oh deer"
+import fight_fighter as _FF
+_PB = next(i for i, c in enumerate(D.CHARACTERS) if c["name"] == "Polar Bear")
+_WE = next(i for i, c in enumerate(D.CHARACTERS) if c["name"] == "Wendigo")
+_BR = next(i for i, c in enumerate(D.CHARACTERS) if c["name"] == "Brawler")
+
+def _bear_fight(a, b, kick=False):
+    """Run a real fight, kill the AI off, and see whether it counted."""
+    _n = [0]
+    pygame.display.flip = lambda: _n.__setitem__(0, _n[0] + 1)
+    _orig = _FF.AIFighter.update
+    def _drain(self, keys, other, platforms=()):
+        if _n[0] > 40:
+            self.hp = 0
+        if kick and _n[0] == 20:
+            G._p1_kick_landed_flag[0] = True
+        return _orig(self, keys, other, platforms)
+    _FF.AIFighter.update = _drain
+    pygame.event.get = lambda *a, **k: (
+        [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE)] if _n[0] > 150 else [])
+    try:
+        G.run_fight(a, b, vs_ai=True, ai_difficulty='easy', stage_idx=0)
+    except SystemExit:
+        pass
+    finally:
+        _FF.AIFighter.update = _orig
+    return G._bear_hands_flag[0]
+
+assert _bear_fight(_PB, _WE) is True,  "bear beats deer bare-handed: should count"
+assert _bear_fight(_PB, _WE, True) is False, "one kick and it should not count"
+assert _bear_fight(_PB, _BR) is False, "Brawler is not a deer"
+assert _bear_fight(_BR, _WE) is False, "Brawler is not a bear"
+_g = open("fight_game.py").read()
+assert 'stats["bear_hands_win"] = True' in _g
+_ba = A.BY_ID["bear_hands"]
+assert _ba["check"]({"bear_hands_win": True}, (), None)
+assert not _ba["check"]({}, (), None)
+print("bear hands: Polar Bear beating a deer without a single kick, and "
+      "nothing else, earns it")
+
 print("ALL OK")
