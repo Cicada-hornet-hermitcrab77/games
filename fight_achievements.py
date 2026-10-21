@@ -1276,7 +1276,7 @@ ACHIEVEMENTS.append({
     "id": "bear_hands",
     "name": "I will fight you with my BEAR hands! Oh deer",
     "desc": "Beat a deer as Polar Bear without landing a single kick",
-    "reward": 15,
+    "reward": 30,
     "badge": "bear_hands",
     "check": lambda s, u, d: bool(s.get("bear_hands_win")),
 })
