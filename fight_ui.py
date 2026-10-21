@@ -5621,19 +5621,39 @@ def costume_rack(screen, clock, stats, unlocked):
             pygame.draw.line(screen, (190, 180, 150), (_cx + 26, RAIL_Y + 28 + _drop),
                              (_tx + 4, _ty + 6), 1)
             _tag = pygame.Rect(_tx, _ty, 42, 22)
-            pygame.draw.rect(screen, (96, 92, 86) if _st in ("earn", "closed")
+            pygame.draw.rect(screen, (96, 92, 86) if _st == "earn"
+                             else (196, 192, 174) if _st == "closed"
                              else (228, 222, 198), _tag, border_radius=4)
             pygame.draw.circle(screen, (120, 112, 92), (_tx + 6, _ty + 6), 2)
+            _pnow = _price(_c)
             if _st == "worn":
                 _lbl = font_tiny.render("WORN", True, (40, 80, 150))
-            elif _price(_c) is None:
+            elif _pnow is None:
                 _lbl = font_tiny.render("EARN", True, (60, 54, 48))
-            elif _st == "closed":
-                _lbl = font_tiny.render("SHUT", True, (60, 54, 48))
             else:
-                _lbl = font_tiny.render(str(_price(_c)), True, (120, 90, 20))
+                # Shut or open, the price is on the tag — otherwise a rating
+                # changes nothing you can see for eleven months of the year
+                _lbl = font_tiny.render(str(_pnow), True,
+                                        (104, 96, 74) if _st == "closed"
+                                        else (120, 90, 20))
             screen.blit(_lbl, (_tag.centerx - _lbl.get_width() // 2,
                                _tag.centery - _lbl.get_height() // 2))
+            # What the rating did to it, in one character
+            if _pnow is not None and _pnow != _c.get("cost"):
+                _up = _pnow > _c["cost"]
+                _ax2 = _tag.right + 3
+                _ay2 = _tag.centery
+                pygame.draw.polygon(screen, (110, 200, 120) if _up else (220, 130, 120),
+                                    [(_ax2 + 3, _ay2 - (4 if _up else -4)),
+                                     (_ax2, _ay2 + (3 if _up else -3)),
+                                     (_ax2 + 6, _ay2 + (3 if _up else -3))])
+            # Its rating, as stars under the tag
+            _rated2 = _c["name"] in stats.get("costume_ratings", {})
+            if _rated2 and _pnow is not None:
+                _stn = costume_stars(_c, stats)
+                for _si3 in range(5):
+                    _draw_emblem(screen, "star", _tag.x + 4 + _si3 * 9, _tag.bottom + 7, 3,
+                                 (236, 200, 70) if _si3 < _stn else (76, 72, 80))
         screen.set_clip(None)
 
         # Header
@@ -5670,6 +5690,13 @@ def costume_rack(screen, clock, stats, unlocked):
             else f"{_stars}/5  —  rate it during {_c['event']}",
             True, (150, 142, 152) if _open else (104, 98, 108))
         screen.blit(_rl, (WIDTH - 320, FLOOR_Y + 40))
+        _pn2 = _price(_c)
+        if _pn2 is not None and _pn2 != _c["cost"]:
+            _dl = font_tiny.render(
+                f"was {_c['cost']}, now {_pn2}  "
+                f"({'+' if _pn2 > _c['cost'] else ''}{_pn2 - _c['cost']} on your rating)",
+                True, (120, 200, 130) if _pn2 > _c["cost"] else (226, 140, 130))
+            screen.blit(_dl, (WIDTH - 320, FLOOR_Y + 54))
 
         _btn = pygame.Rect(WIDTH // 2 - 90, HEIGHT - 42, 180, 34)
         _bc, _bl = {
