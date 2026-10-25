@@ -219,4 +219,53 @@ assert not _ba["check"]({}, (), None)
 print("bear hands: Polar Bear beating a deer without a single kick, and "
       "nothing else, earns it")
 
+# 11. Took the L — the Feasterween mode
+from fight_stage import LoserShirt
+import fight_projectiles as _FP
+_tl_stage = next(st for st in D.STAGES if st["name"] == "Took the L")
+assert _tl_stage.get("special_mode_only")
+assert len(_tl_stage["platforms"]) == 7, "three Ls and a shelf"
+from fight_seasonal import SEASONAL_EVENTS as _SE
+_fw = next(e for e in _SE if e["name"] == "Feasterween")
+assert _fw.get("special_mode") == "took_the_l"
+_g2 = open("fight_game.py").read()
+assert "if mode == 'took_the_l':" in _g2
+for _nm in ("Clown", "Hardy", "Impossible", "Mime", "Joker", "Jester",
+            "Rage Quitter", "Cornucopia", "Sickman Stickman"):
+    assert f'"{_nm}"' in _g2, _nm
+assert '_tl_reward = "Sickman Stickman"' in _g2 and '_tl_roll < 0.001' in _g2
+assert '_tl_reward = "Cornucopia"' in _g2 and '_tl_roll < 0.011' in _g2
+
+# A Loser shirt losers whoever walks into it, and the debuff bites
+_lsf = _mk(400, GROUND_Y)
+_shirt = LoserShirt(400, GROUND_Y - 46)
+_shirt.update((_lsf, _mk(800, GROUND_Y)))
+assert _shirt.taken and _lsf.losered_timer == LoserShirt.LOSERED
+_clean, _worn = _mk(400, GROUND_Y), _mk(400, GROUND_Y)
+_v1, _v2 = _mk(460, GROUND_Y), _mk(460, GROUND_Y)
+_clean._start('punch', 1.0); _clean.check_hit((460, GROUND_Y - 70), _v1)
+_worn.losered_timer = 300
+_worn._start('punch', 1.0); _worn.check_hit((460, GROUND_Y - 70), _v2)
+assert 0 < (_v2.max_hp - _v2.hp) < (_v1.max_hp - _v1.hp), "the shirt must halve damage"
+assert open("fight_fighter.py").read().count(
+    "0.5 if self.losered_timer > 0 else 1.0") == 2, "and halve speed for both classes"
+
+# Sickman Stickman throws six things, one of which is not thrown
+_sick = next(c for c in D.CHARACTERS if c["name"] == "Sickman Stickman")
+assert _sick["desc"] == "Made in collaboration with AK47."
+_sf = Fighter(400, _sick, 1, CTRL)
+_pulled = set()
+for _ in range(600):
+    _sf._sickman_fire()
+    _pulled.add(_sf.pending_sick_item[0])
+assert _pulled == set(Fighter._SICK_ITEMS), _pulled
+assert set(_FP.SickItem.KINDS) == _pulled - {"loser hat"}
+for _k in _FP.SickItem.KINDS:
+    _p = _FP.SickItem(400, 370, 1, _sf, _k)
+    for _ in range(30):
+        _p.update()
+assert '_target.hp = max(0, _target.hp - 10)' in _g2, "the loser hat costs them ten"
+print("Took the L: L platforms, shirts that loser you, and Sickman Stickman's "
+      "six-item bag")
+
 print("ALL OK")

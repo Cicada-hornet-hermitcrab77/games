@@ -77,6 +77,7 @@ class Fighter:
         self.ducking          = False  # currently ducking (immune to punches)
         self.blocking         = False  # currently holding block
         self.shock_frames     = 0   # frames of speed-halving shock remaining
+        self.losered_timer    = 0   # Took the L: wearing a Loser shirt
         self.boomerang_timer    = 0   # frames boomerang is active
         self.boomerang_cooldown = 0   # frames until can throw again
         self.boomerang_angle    = 0.0 # current orbit angle in radians
@@ -290,6 +291,8 @@ class Fighter:
         self.jack_rocket_cd      = 0      # Broken Jak: cooldown between launches
         self._jack_launched      = False  # Broken Jak: airborne from a launch right now
         self.pending_fruit_attack = None  # Cornucopia: fruit type string to spawn this frame
+        self.pending_sick_item    = None  # Sickman Stickman: which item he threw
+        self.sick_item_shown      = None  # and what he is holding right now
         self.cornucopia_feather_lit = None  # Cornucopia: which feather is currently lit (0-9)
         self.cornucopia_feather_timer = 0   # Cornucopia: frames feather stays lit
         self.saint_nix_coal_idx  = 0      # Saint Nix: cycles through coal types 0-3
@@ -461,6 +464,8 @@ class Fighter:
                 self.pending_rockball = True
         if self.shock_frames > 0:
             self.shock_frames -= 1
+        if self.losered_timer > 0:
+            self.losered_timer -= 1
         if self.bazooka_cooldown > 0:
             self.bazooka_cooldown -= 1
         if self.eye_kick_cooldown > 0:
@@ -870,7 +875,7 @@ class Fighter:
             self.angle     = 0.0
             self.angle_vel = 0.0
 
-        spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
+        spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0) * (0.5 if self.losered_timer > 0 else 1.0)
         if self.char.get("berserk_low") and self.hp < self.max_hp * 0.25:
             spd *= 2.0
         if self._berserker_active:
@@ -1192,6 +1197,8 @@ class Fighter:
             self.pending_jack_pumpkin = True
         if self.char.get("cornucopia_fruits"):
             self._cornucopia_fire()
+        if self.char.get("sick_stickman"):
+            self._sickman_fire()
         if self.char.get("saint_nix_coal"):
             self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
             self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
@@ -1280,6 +1287,8 @@ class Fighter:
             self.pending_jack_seed = True      # kick also fires a seed
         if self.char.get("cornucopia_fruits"):
             self._cornucopia_fire()
+        if self.char.get("sick_stickman"):
+            self._sickman_fire()
         if self.char.get("saint_nix_coal"):
             self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
             self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
@@ -1636,6 +1645,9 @@ class Fighter:
             if self.char.get("feedback") and self.action == 'punch' and self.feedback_stored > 0:
                 dmg += self.feedback_stored
                 self.feedback_stored = 0
+            # Took the L: whoever is wearing the shirt hits like one
+            if self.losered_timer > 0 and dmg > 0:
+                dmg = max(1, dmg // 2)
             if dmg < 0:
                 other.hp = min(other.max_hp, other.hp - dmg)
             else:
@@ -1852,6 +1864,22 @@ class Fighter:
             if self.char.get("ice_yellowstone_kick") and self.action == 'kick':
                 self.pending_ice_yellowstone_kick = True
 
+    _SICK_ITEMS = ("loser hat", "headphones", "softball",
+                   "shoes", "glasses", "skateboard")
+
+    def _sickman_fire(self):
+        """One of six things out of the bag, at random.
+
+        The loser hat is the only one that is not thrown — it goes straight
+        onto the other fighter's head, and costs them ten.
+        """
+        item = random.choice(self._SICK_ITEMS)
+        self.sick_item_shown = item
+        if item == "loser hat":
+            self.pending_sick_item = ("loser hat", None)
+        else:
+            self.pending_sick_item = (item, None)
+
     def _cornucopia_fire(self):
         _FRUITS = ['cranberry', 'pear', 'apple', 'grape', 'banana',
                    'strawberry', 'orange', 'peach', 'lemon', 'blackberry']
@@ -2049,7 +2077,8 @@ class Fighter:
                                     (int(self.x) - _sw//2, int(self.y) - _sh//2, _sw, _sh))
                 result = draw_stickman(surface, self.x, self.y, self.color,
                                        self.facing, self.action, self.action_t, flash=flash, scale=_scale,
-                                       char_name=_cname)
+                                       char_name=_cname,
+                                       losered=self.losered_timer > 0)
         if self.poison_frames > 0:
             top_y = int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2 - 14
             for i, dx in enumerate((-10, 0, 10)):
@@ -2382,7 +2411,7 @@ class AIFighter(Fighter):
                     self._trigger_kick_abilities(other)
             self.ai_attack = None
         elif self.ai_move != 0:
-            _ai_spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0)
+            _ai_spd = self.char["speed"] * self.speed_boost * (0.5 if self.shock_frames > 0 else 1.0) * (0.5 if self.losered_timer > 0 else 1.0)
             if self._berserker_active:
                 _ai_spd *= 1.5
             self.x += self.ai_move * _ai_spd

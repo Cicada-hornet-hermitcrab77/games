@@ -38,6 +38,118 @@ class Projectile:
 # BeeShot  (Beekeeper's bee swarm — small angled projectile with vy support)
 # ---------------------------------------------------------------------------
 
+class SickItem:
+    """One of the things Sickman Stickman throws.
+
+    Six items, each with its own speed, damage and what it does on landing.
+    The loser hat is not one of these — that one is dealt straight to the
+    face and never leaves his hands.
+    """
+    KINDS = {
+        # kind         speed  dmg  radius  colour
+        "headphones": (7.0,    8,   11,  (60,  60,  70)),
+        "softball":   (9.0,   11,   10,  (246, 244, 232)),
+        "shoes":      (17.0,   9,    9,  (210, 216, 226)),
+        "glasses":    (22.0,  10,    7,  (120, 230, 250)),
+        "skateboard": (8.0,   12,   11,  (190,  80, 180)),
+    }
+
+    def __init__(self, x, y, facing, owner, kind):
+        self.kind   = kind
+        _sp, self.dmg, self.RADIUS, self.col = self.KINDS[kind]
+        self.x      = float(x)
+        self.y      = float(y)
+        self.vx     = _sp * facing
+        self.vy     = -4.5 if kind == "skateboard" else 0.0
+        self.facing = facing
+        self.owner  = owner
+        self.alive  = True
+        self.t      = 0
+        self.bounces = 0
+
+    def update(self):
+        self.t += 1
+        self.x += self.vx
+        if self.kind == "skateboard":
+            self.vy += 0.55
+            self.y  += self.vy
+            if self.y >= GROUND_Y - 12:
+                self.y  = GROUND_Y - 12
+                self.vy = -8.5
+                self.bounces += 1
+                if self.bounces > 4:
+                    self.alive = False
+        if self.x < -20 or self.x > WIDTH + 20:
+            self.alive = False
+
+    def on_hit(self, victim):
+        """What landing it does, over and above the damage."""
+        if self.kind == "headphones":
+            victim.confuse_frames = max(victim.confuse_frames, 240)   # 4 seconds
+        elif self.kind == "shoes":
+            victim.knockback = self.facing * 16
+        elif self.kind == "skateboard":
+            victim.knockback = self.facing * 10
+            victim.vy = min(victim.vy, -7.0)
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        if self.kind == "headphones":
+            pygame.draw.arc(surface, (40, 40, 48), (cx - 11, cy - 12, 22, 18),
+                            0.2, 2.95, 3)
+            for _sg in (-1, 1):
+                pygame.draw.ellipse(surface, (56, 56, 66),
+                                    (cx + _sg * 9 - 5, cy - 4, 10, 13))
+                pygame.draw.ellipse(surface, (140, 150, 170),
+                                    (cx + _sg * 9 - 3, cy - 2, 6, 9))
+            for _k in range(2):           # a couple of notes coming off it
+                _a = self.t * 0.2 + _k * 2.0
+                pygame.draw.circle(surface, (170, 210, 250),
+                                   (cx + int(math.cos(_a) * 15),
+                                    cy - 12 + int(math.sin(_a) * 5)), 2)
+        elif self.kind == "softball":
+            pygame.draw.circle(surface, (246, 244, 232), (cx, cy), self.RADIUS)
+            pygame.draw.circle(surface, (190, 186, 176), (cx, cy), self.RADIUS, 1)
+            for _sg in (-1, 1):
+                pygame.draw.arc(surface, (206, 70, 60),
+                                (cx - 8 * _sg - 4, cy - 8, 12, 16), 1.5, 4.7, 2)
+            _lbl = pygame.font.SysFont("Arial", 7).render("foots", True, (140, 136, 130))
+            surface.blit(_lbl, (cx - _lbl.get_width() // 2, cy - 3))
+        elif self.kind == "shoes":
+            for _k in range(3):           # it is going quickly
+                pygame.draw.line(surface, (190, 200, 216),
+                                 (cx - self.facing * (14 + _k * 9), cy - 4 + _k * 4),
+                                 (cx - self.facing * (26 + _k * 9), cy - 4 + _k * 4), 2)
+            pygame.draw.polygon(surface, (214, 220, 230), [
+                (cx - self.facing * 10, cy + 5), (cx + self.facing * 11, cy + 5),
+                (cx + self.facing * 12, cy - 1), (cx - self.facing * 4, cy - 6),
+                (cx - self.facing * 10, cy - 2)])
+            pygame.draw.line(surface, (236, 240, 248), (cx - self.facing * 4, cy - 4),
+                             (cx + self.facing * 6, cy - 1), 2)
+            for _wg in (-1, 1):           # little wings, because mercury
+                pygame.draw.polygon(surface, (250, 250, 255), [
+                    (cx - self.facing * 6, cy + _wg * 2),
+                    (cx - self.facing * 15, cy + _wg * 8),
+                    (cx - self.facing * 7, cy + _wg * 6)])
+        elif self.kind == "glasses":
+            pygame.draw.line(surface, (120, 230, 250),
+                             (cx - self.facing * 40, cy), (cx, cy), 5)
+            pygame.draw.line(surface, (236, 252, 255),
+                             (cx - self.facing * 40, cy), (cx, cy), 2)
+            for _sg in (-1, 1):
+                pygame.draw.circle(surface, (60, 70, 86), (cx + _sg * 6, cy), 6, 2)
+            pygame.draw.line(surface, (60, 70, 86), (cx - 2, cy), (cx + 2, cy), 2)
+        else:                              # skateboard
+            pygame.draw.ellipse(surface, (190, 80, 180), (cx - 14, cy - 4, 28, 8))
+            pygame.draw.ellipse(surface, (120, 40, 120), (cx - 14, cy - 4, 28, 8), 1)
+            for _sg in (-1, 1):
+                pygame.draw.circle(surface, (250, 220, 90), (cx + _sg * 8, cy + 6), 3)
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x,
+                          self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+
 class BeeShot:
     RADIUS = 5
     SPEED  = 8

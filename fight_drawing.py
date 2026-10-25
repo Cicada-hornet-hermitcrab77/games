@@ -16518,8 +16518,12 @@ def draw_world_map(surface, rect, font=None, label_font=None):
 _COSTUME_DRAWN = [False]
 
 
+class _SICK_HELD:
+    item = None
+
+
 def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False,
-                  scale=1.0, char_name=""):
+                  scale=1.0, char_name="", losered=False):
     """Draw a fighter, and dress it if the name is a costume.
 
     A handful of fighters are not stickmen at all and bail out of the body
@@ -16529,7 +16533,7 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False,
     """
     _COSTUME_DRAWN[0] = False
     _out = _draw_stickman(surface, x, y, color, facing, action, action_t,
-                          flash, scale, char_name)
+                          flash, scale, char_name, losered)
     if char_name in COSTUME_BASE and not _COSTUME_DRAWN[0]:
         _s2 = scale
         _hd2 = int(HEAD_R * _s2)
@@ -16548,8 +16552,10 @@ def draw_stickman(surface, x, y, color, facing, action, action_t, flash=False,
     return _out
 
 
-def _draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, scale=1.0, char_name=""):
+def _draw_stickman(surface, x, y, color, facing, action, action_t, flash=False,
+                   scale=1.0, char_name="", losered=False):
     col = WHITE if flash else color
+    _losered = losered
     s = scale
     # Seasonal costumes borrow their base fighter's whole look and kit; the
     # colour changes, and draw_costume_extras dresses the rest.
@@ -17125,6 +17131,89 @@ def _draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, 
             pygame.draw.circle(surface, (200, 230, 250), (_stamp_x, int(y)), _dsurf_r, max(1, int(s)))
 
         return (int(x + facing * 40 * s), int(y - 100 * s))
+
+    # ── Sickman Stickman: a stickman who refuses to animate ───────────────
+    if char_name == "Sickman Stickman":
+        _kt   = pygame.time.get_ticks() / 1000.0
+        _base = int(y)
+        _hd2  = int(HEAD_R * scale)
+        _bl2  = int(BODY_LEN * scale)
+        _ll2  = int(LEG_LEN * scale)
+        _nl2  = int(NECK_LEN * scale)
+        _cx8  = int(x)
+        if action == 'punch':
+            _cx8 += int(facing * 8 * scale)
+        _wy8  = _base - _ll2
+        _sy8  = _wy8 - _bl2
+        _hy8  = _sy8 - _nl2 - _hd2
+        if action == 'dead':
+            _wy8 = _base - int(10 * scale)
+            _sy8 = _wy8 - int(6 * scale)
+            _hy8 = _sy8 - _hd2
+
+        def _ln2(p1, p2, w, c):
+            pygame.draw.line(surface, c, (int(p1[0]), int(p1[1])),
+                             (int(p2[0]), int(p2[1])), max(1, int(w * scale)))
+
+        _body = WHITE if flash else color
+        _arm  = WHITE if flash else (246, 210, 60)      # the arms are yellow
+        # Legs and body: planted, and they stay planted
+        _ln2((_cx8, _wy8), (_cx8 - int(16 * scale), _base), 3, _body)
+        _ln2((_cx8, _wy8), (_cx8 + int(16 * scale), _base), 3, _body)
+        _ln2((_cx8, _wy8), (_cx8, _sy8), 4, _body)
+        # One long \\ straight through him: left arm up, right arm down, and
+        # neither of them ever moves
+        _ln2((_cx8 - int(3 * scale), _sy8 + int(2 * scale)),
+             (_cx8 - int(22 * scale), _sy8 - int(22 * scale)), 3, _arm)
+        _ln2((_cx8 + int(3 * scale), _sy8 + int(2 * scale)),
+             (_cx8 + int(22 * scale), _sy8 + int(26 * scale)), 3, _arm)
+        # No face at all — just a head with a yellow circle inside it
+        pygame.draw.circle(surface, _body, (_cx8, _hy8), _hd2)
+        pygame.draw.circle(surface, WHITE if flash else (246, 210, 60),
+                           (_cx8, _hy8), max(2, int(_hd2 * 0.55)))
+        # The hat, which says what it says
+        _hw2 = int(_hd2 * 2.2)
+        pygame.draw.rect(surface, (60, 70, 160),
+                         (_cx8 - _hw2 // 2, _hy8 - _hd2 - int(13 * scale),
+                          _hw2, int(13 * scale)), border_radius=max(1, int(2 * scale)))
+        pygame.draw.rect(surface, (40, 48, 120),
+                         (_cx8 - _hw2 // 2 - int(4 * scale),
+                          _hy8 - _hd2 - int(3 * scale),
+                          _hw2 + int(8 * scale), max(2, int(4 * scale))))
+        _ht = _get_font(max(6, int(8 * scale))).render("sick man!", True, (246, 244, 250))
+        if _ht.get_width() > _hw2 - 2:
+            _ht = pygame.transform.smoothscale(
+                _ht, (_hw2 - 2, max(5, int(_ht.get_height() * (_hw2 - 2) / _ht.get_width()))))
+        surface.blit(_ht, (_cx8 - _ht.get_width() // 2,
+                           _hy8 - _hd2 - int(12 * scale)))
+        # Whatever he last pulled out of the bag, held in the lower hand
+        _hx8 = _cx8 + int(26 * scale)
+        _hy9 = _sy8 + int(30 * scale)
+        _held = getattr(_SICK_HELD, "item", None)
+        pygame.draw.circle(surface, (246, 244, 232), (_hx8, _hy9), max(4, int(11 * scale)))
+        pygame.draw.circle(surface, (190, 186, 176), (_hx8, _hy9), max(4, int(11 * scale)),
+                           max(1, int(scale)))
+        for _sg in (-1, 1):
+            pygame.draw.arc(surface, (206, 70, 60),
+                            (_hx8 - _sg * int(7 * scale) - int(4 * scale),
+                             _hy9 - int(8 * scale), int(12 * scale), int(16 * scale)),
+                            1.5, 4.7, max(1, int(2 * scale)))
+        _sb3 = _get_font(max(5, int(7 * scale))).render("foots", True, (110, 106, 102))
+        surface.blit(_sb3, (_hx8 - _sb3.get_width() // 2,
+                            _hy9 - _sb3.get_height() // 2))
+        # the label, on a bit of string
+        _lx8, _ly8 = _hx8 + int(10 * scale), _hy9 + int(9 * scale)
+        pygame.draw.line(surface, (190, 180, 150), (_hx8 + int(5 * scale),
+                                                    _hy9 + int(6 * scale)),
+                         (_lx8, _ly8), max(1, int(scale)))
+        pygame.draw.rect(surface, (232, 226, 204),
+                         (_lx8, _ly8, max(3, int(13 * scale)), max(2, int(8 * scale))),
+                         border_radius=max(1, int(scale)))
+        if action == 'punch':
+            return (_cx8 + facing * int(32 * scale), _sy8 + int(22 * scale))
+        if action == 'kick':
+            return (_cx8 + facing * int(action_t * 70 * scale), _base - int(20 * scale))
+        return None
 
     # ── Water expansion: none of these five are stickman-shaped ───────────
     if char_name in ("Mermaid", "Starfish", "Pufferfish", "Gold Fish", "Octo-Octo"):
@@ -18716,6 +18805,14 @@ def _draw_stickman(surface, x, y, color, facing, action, action_t, flash=False, 
     if char_name:
         draw_costume(surface, char_name, head_c, hd, shoulder, waist, lh, rh, facing, s, col)
 
+    if _losered:
+        try:
+            from fight_stage import draw_loser_shirt
+            draw_loser_shirt(surface, int(shoulder[0]),
+                             int(shoulder[1]) - int(4 * s), s * 1.15)
+        except Exception:
+            pass
+
     if _costume_name:
         _dressed = draw_costume_extras(surface, _costume_name, head_c, hd, shoulder, waist,
                                        lh, rh, facing, s, col,
@@ -18952,6 +19049,28 @@ def draw_bg(surface, stage_idx=0):
         clk = font_tiny.render(_t.strftime("%H:%M"), True, (220, 220, 220))
         surface.blit(clk, (WIDTH - clk.get_width() - 8, GROUND_Y + 8))
 
+    elif s == 33:  # Took the L
+        _lt2 = pygame.time.get_ticks() / 1000.0
+        surface.fill((34, 30, 44))
+        for _i in range(8):          # giant Ls looming on the back wall
+            _lx7 = 40 + _i * 112
+            _ly7 = 40 + (_i % 3) * 56
+            _ls2 = 34 + (_i % 2) * 10
+            pygame.draw.lines(surface, (44, 40, 56), False, [
+                (_lx7, _ly7), (_lx7, _ly7 + _ls2),
+                (_lx7 + int(_ls2 * 0.62), _ly7 + _ls2)], 9)
+        pygame.draw.rect(surface, (28, 25, 36), (0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y))
+        pygame.draw.line(surface, (64, 58, 76), (0, GROUND_Y), (WIDTH, GROUND_Y), 3)
+        for _i in range(14):         # floorboards
+            pygame.draw.line(surface, (40, 36, 50),
+                             (_i * 66, GROUND_Y), (_i * 66 - 20, HEIGHT), 1)
+        # Spotlight on the shelf the shirts hang from
+        _spot = pygame.Surface((420, 200), pygame.SRCALPHA)
+        pygame.draw.polygon(_spot, (250, 240, 200, 26),
+                            [(190, 0), (230, 0), (420, 200), (0, 200)])
+        surface.blit(_spot, (WIDTH // 2 - 210, 30))
+        _ban = font_small.render("TOOK THE L", True, (76, 70, 92))
+        surface.blit(_ban, (WIDTH // 2 - _ban.get_width() // 2, GROUND_Y + 56))
     elif s == 10:  # Ice Cave
         surface.fill((40, 60, 100))
         # Background ice wall gradient

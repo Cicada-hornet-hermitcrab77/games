@@ -10,7 +10,7 @@ from constants import *
 from fight_data import CHARACTERS, POWERUPS, STAGES, STAGE_MATCHUPS, FUSER_ELEMENTS, FUSER_RECIPES, FUSER_SHOP_CHARS
 from fight_drawing import (draw_bg, draw_health_bars, draw_health_bars_labeled,
                            draw_win_screen, draw_active_powerups, draw_stickman, _get_font)
-from fight_stage import IceFloorPanel
+from fight_stage import IceFloorPanel, LoserShirt
 from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             StageEraser, DrawnPlatform, TimedPlatform, Portal, ConveyorBelt, SlantedConveyorBelt,
                             Spring, SnakeHook, Pumpkin, FallingSkull, FallingTeddy, HazardZone,
@@ -25,6 +25,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             FruitProj, CoalProj, WildfireBall, SniderBolt,
                             SandSpit, SlimeBomb, TentaMissile, ExplodingTire,
                             Muskshroom, Cutlass, WormMine, RockBall, DandiSeed, EeebyLaser,
+                            SickItem,
                             BurningMine, Car, RollingStone)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, costume_rack, fuser_mode, tombstones_minefield
@@ -1124,6 +1125,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
         constants.GRAVITY = 0.13   # floaty anti-gravity
     constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World", "Booked"))
     # Ice Cave: eight slabs of floor that crack underfoot and drop away
+    _is_took_l   = (_stage_name == "Took the L")
+    _l_shirts    = ([LoserShirt(300 + i * 115, GROUND_Y - 336) for i in range(4)]
+                    if _is_took_l else [])
+    _l_respawn   = 0
+    sick_items   = []          # Sickman Stickman's six-item bag
     _is_ice_cave = (_stage_name == "Ice Cave")
     _ice_floor   = ([IceFloorPanel(i * (WIDTH / 8.0), int(WIDTH / 8.0) + 1)
                      for i in range(8)] if _is_ice_cave else [])
@@ -2785,6 +2791,19 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     for _sd_dy in ((0, -20) if shooter.char.get("broken_jack") else (0,)):
                         jack_seeds.append(PumpkinSeed(shooter.x + shooter.facing * 24,
                                                       shooter.y - 60 + _sd_dy, shooter.facing, shooter))
+                if shooter.pending_sick_item:
+                    _si4, _ = shooter.pending_sick_item
+                    shooter.pending_sick_item = None
+                    _target = p2 if shooter is p1 else p1
+                    if _si4 == "loser hat":
+                        # Not thrown — jammed straight onto their head
+                        _target.hp = max(0, _target.hp - 10)
+                        _target.flash_timer = max(_target.flash_timer, 12)
+                        _target.losered_timer = max(_target.losered_timer, 3 * FPS)
+                    else:
+                        sick_items.append(SickItem(shooter.x + shooter.facing * 30,
+                                                   shooter.y - 60, shooter.facing,
+                                                   shooter, _si4))
                 if shooter.pending_fruit_attack:
                     fa = shooter.pending_fruit_attack
                     shooter.pending_fruit_attack = None
@@ -2803,6 +2822,15 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         coal_projs.append(CoalProj(_fx, _fy, shooter.facing, shooter, fa[1]))
                     else:
                         fruit_projs.append(FruitProj(_fx, _fy, shooter.facing, shooter, fa[0]))
+            for _si5 in sick_items:
+                _si5.update()
+                if _si5.alive:
+                    _vic = p2 if _si5.owner is p1 else p1
+                    if _vic.hp > 0 and _si5.collides(_vic):
+                        _vic.take_proj_dmg(_si5.dmg)
+                        _si5.on_hit(_vic)
+                        _si5.alive = False
+            sick_items = [_si5 for _si5 in sick_items if _si5.alive]
             for js in jack_seeds:
                 js.update()
                 if js.alive:
@@ -3711,6 +3739,24 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         break
             powerups = [pu for pu in powerups if not pu.picked_up]
 
+        # Took the L: shirts on the top shelf, and whoever walks into one
+        if _is_took_l and not game_over:
+            for _sh2 in _l_shirts:
+                _sh2.update((p1, p2))
+            _l_shirts = [_s3 for _s3 in _l_shirts if not (_s3.taken and _s3.worn > 40)]
+            if len(_l_shirts) < 4:
+                _l_respawn -= 1
+                if _l_respawn <= 0:
+                    _taken_x = [int(_s3.x) for _s3 in _l_shirts]
+                    for _slot in range(4):
+                        _sx4 = 300 + _slot * 115
+                        if _sx4 not in _taken_x:
+                            _l_shirts.append(LoserShirt(_sx4, GROUND_Y - 336))
+                            break
+                    _l_respawn = int(2.5 * FPS)
+            else:
+                _l_respawn = int(2.5 * FPS)
+
         # Ice Cave: the floor cracks under whoever is standing on it
         if _ice_floor and not game_over:
             for _pan in _ice_floor:
@@ -3835,6 +3881,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
         pygame.draw.line(screen, (180, 180, 200), (0, 20), (WIDTH, 20), 3)
         for portal in portals_obj:
             portal.draw(screen)
+        for _sh2 in _l_shirts:
+            _sh2.draw(screen)
         for _pan in _ice_floor:
             _pan.draw(screen)
         for plat in platforms:
@@ -3941,6 +3989,8 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             js.draw(screen)
         for fp in fruit_projs:
             fp.draw(screen)
+        for _si6 in sick_items:
+            _si6.draw(screen)
         for cp in coal_projs:
             cp.draw(screen)
         for w in whips:
@@ -4378,6 +4428,11 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         constants.GRAVITY = 0.13
     constants.STAGE_VOID    = (_stage_name in ("The Void", "Conveyor World", "Booked"))
     # Ice Cave: eight slabs of floor that crack underfoot and drop away
+    _is_took_l   = (_stage_name == "Took the L")
+    _l_shirts    = ([LoserShirt(300 + i * 115, GROUND_Y - 336) for i in range(4)]
+                    if _is_took_l else [])
+    _l_respawn   = 0
+    sick_items   = []          # Sickman Stickman's six-item bag
     _is_ice_cave = (_stage_name == "Ice Cave")
     _ice_floor   = ([IceFloorPanel(i * (WIDTH / 8.0), int(WIDTH / 8.0) + 1)
                      for i in range(8)] if _is_ice_cave else [])
@@ -6165,6 +6220,15 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     for _jdy in ((0, -20) if _jdbl else (0,)):
                         (en_jack_seeds if _jen else jack_seeds).append(
                             PumpkinSeed(_jf.x + _jf.facing * 24, _jf.y - 60 + _jdy, _jf.facing, _jf))
+            for _si5 in sick_items:
+                _si5.update()
+                if _si5.alive:
+                    _vic = p2 if _si5.owner is p1 else p1
+                    if _vic.hp > 0 and _si5.collides(_vic):
+                        _vic.take_proj_dmg(_si5.dmg)
+                        _si5.on_hit(_vic)
+                        _si5.alive = False
+            sick_items = [_si5 for _si5 in sick_items if _si5.alive]
             for js in jack_seeds:
                 js.update()
                 if js.alive:
@@ -6185,6 +6249,19 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             en_jack_seeds = [js for js in en_jack_seeds if js.alive]
             # Fruit projectiles + coal + thunder (survival, both sides)
             for shooter in _sv_actors():
+                if shooter.pending_sick_item:
+                    _si4, _ = shooter.pending_sick_item
+                    shooter.pending_sick_item = None
+                    _target = p2 if shooter is p1 else p1
+                    if _si4 == "loser hat":
+                        # Not thrown — jammed straight onto their head
+                        _target.hp = max(0, _target.hp - 10)
+                        _target.flash_timer = max(_target.flash_timer, 12)
+                        _target.losered_timer = max(_target.losered_timer, 3 * FPS)
+                    else:
+                        sick_items.append(SickItem(shooter.x + shooter.facing * 30,
+                                                   shooter.y - 60, shooter.facing,
+                                                   shooter, _si4))
                 if shooter.pending_fruit_attack:
                     fa = shooter.pending_fruit_attack
                     shooter.pending_fruit_attack = None
@@ -6798,6 +6875,7 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for js   in jack_seeds:    js.draw(screen)
         for js   in en_jack_seeds: js.draw(screen)
         for fp   in fruit_projs:   fp.draw(screen)
+        for _si6 in sick_items:    _si6.draw(screen)
         for cp   in coal_projs:    cp.draw(screen)
         for tb   in thunder_bolts: tb.draw(screen)
         for pk   in en_pumpkins:   pk.draw(screen)
@@ -7852,6 +7930,91 @@ def main():
             continue
 
         # --- The Crooking Glass (Echoes of the Undying event) path ---
+        if mode == 'took_the_l':
+            _tl_lines = [
+                ("TOOK THE L",               font_large,  (236, 236, 244), -130),
+                ("Every platform here is an L, and you will be standing on one.",
+                                             font_small,  (210, 206, 220),  -60),
+                ("Loser shirts hang from the shelf above.",
+                                             font_small,  (210, 206, 220),  -40),
+                ("Touch one and you wear it: half damage, half speed, 7 seconds.",
+                                             font_small,  (226, 150, 150),  -20),
+                ("Only the clowns and the hard-luck cases fight here.",
+                                             font_small,  (255, 180,  70),   20),
+                ("Every win is a chance at a rare fighter:",
+                                             font_small,  (255, 180,  70),   60),
+                ("1% Cornucopia   -   0.1% Sickman Stickman",
+                                             font_small,  (255, 220, 120),   80),
+                ("Available during Feasterween only.",
+                                             font_small,  (170, 190, 220),  140),
+                ("press any key to continue", font_tiny,  (110, 110, 110),  190),
+            ]
+            _tl_start = pygame.time.get_ticks()
+            _tl_done  = False
+            while not _tl_done:
+                clock.tick(FPS)
+                for _tlev in pygame.event.get():
+                    if _tlev.type == pygame.QUIT:
+                        pygame.quit(); sys.exit()
+                    if _tlev.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                        _tl_done = True
+                if pygame.time.get_ticks() - _tl_start > 10000:
+                    _tl_done = True
+                _tla = min(255, int((pygame.time.get_ticks() - _tl_start) / 600 * 255))
+                screen.fill((26, 23, 34))
+                for _tltx, _tlf, _tlc, _tldy in _tl_lines:
+                    _tls = _tlf.render(_tltx, True, _tlc)
+                    _tls.set_alpha(_tla)
+                    screen.blit(_tls, (WIDTH // 2 - _tls.get_width() // 2, HEIGHT // 2 + _tldy))
+                pygame.display.flip()
+
+            _TL_FILTER = frozenset({
+                "Clown", "Hardy", "Impossible", "Mime", "Joker", "Jester",
+                "Rage Quitter", "Cornucopia", "Sickman Stickman",
+            })
+            # Cornucopia and his sick variant are the prizes, not starting
+            # picks — their cards show but stay locked until a win rolls one.
+            _TL_REWARDS  = {"Cornucopia", "Sickman Stickman"}
+            _tl_playable = frozenset((_TL_FILTER - _TL_REWARDS) | (_TL_FILTER & set(unlocked)))
+            p1_idx, p2_idx = character_select(
+                vs_ai=True, unlocked=_tl_playable,
+                char_filter=_TL_FILTER,
+                select_title="TOOK THE L",
+            )
+            if p1_idx is None:
+                continue
+            _tl_stage_idx = next((i for i, st in enumerate(STAGES)
+                                  if st["name"] == "Took the L"), 0)
+            while True:
+                result = run_fight(p1_idx, p2_idx, vs_ai=True, ai_difficulty='mega_hard',
+                                   stage_idx=_tl_stage_idx)
+                action, info = result if isinstance(result, tuple) else (result, (False,)*5 + (None, None, 0, 0))
+                p1_won = info[0] if isinstance(info, tuple) else False
+                if p1_won:
+                    stats["took_the_l_wins"] = stats.get("took_the_l_wins", 0) + 1
+                    # Flat per-win odds, rarest first: 0.1% then 1%
+                    _tl_roll = random.random()
+                    _tl_reward = None
+                    if _tl_roll < 0.001:
+                        _tl_reward = "Sickman Stickman"
+                    elif _tl_roll < 0.011:
+                        _tl_reward = "Cornucopia"
+                    if _tl_reward and _tl_reward not in unlocked:
+                        unlocked.add(_tl_reward)
+                        _save_data(unlocked, stats)
+                        _show_unlocks([_tl_reward])
+                    else:
+                        _save_data(unlocked, stats)
+                if _konami_flag[0]:
+                    stats["konami_unlocked"] = True
+                    _konami_flag[0] = False
+                _session_match_streak[0] += 1
+                stats["marathon_best"] = max(stats.get("marathon_best", 0), _session_match_streak[0])
+                if action == 'rematch':
+                    continue
+                break
+            continue
+
         if mode == 'crooking_glass':
             _cg_lines = [
                 ("THE CROOKING GLASS",       font_large,  (210, 150, 255), -130),

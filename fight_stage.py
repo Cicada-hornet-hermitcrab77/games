@@ -868,6 +868,78 @@ class IceFloorPanel:
                                  (int(self.x), GROUND_Y, self.w, 22), 2)
 
 
+class LoserShirt:
+    """A shirt with a big L on it, hanging from the shelf at the top.
+
+    Touch one and it drops over your head: half damage and half speed for a
+    while, and everyone can see what happened. They swing on their hangers,
+    and a new one appears a few seconds after the last is taken.
+    """
+    LOSERED = 7 * FPS          # how long you wear it
+
+    def __init__(self, x, y):
+        self.x     = float(x)
+        self.y     = float(y)
+        self.t     = random.uniform(0, 6.28)
+        self.taken = False
+        self.worn  = 0          # frames of the drop animation once taken
+        self.drop_y = 0.0
+
+    @property
+    def cx(self):
+        return self.x + math.sin(self.t) * 9
+
+    def update(self, fighters):
+        self.t += 0.04
+        if self.taken:
+            self.worn += 1
+            self.drop_y += 3.5
+            return
+        for f in fighters:
+            if f.hp <= 0:
+                continue
+            if abs(f.x - self.cx) < 34 and abs((f.y - 46) - self.y) < 52:
+                self.taken = True
+                f.losered_timer = self.LOSERED
+                break
+
+    def draw(self, surface):
+        _cx = int(self.cx)
+        _cy = int(self.y + (self.drop_y if self.taken else 0))
+        if self.taken and self.worn > 40:
+            return
+        if not self.taken:          # the hanger it swings on
+            pygame.draw.arc(surface, (198, 200, 210), (_cx - 5, _cy - 22, 10, 13),
+                            0.3, 2.9, 2)
+            pygame.draw.lines(surface, (198, 200, 210), False, [
+                (_cx - 18, _cy - 2), (_cx, _cy - 12), (_cx + 18, _cy - 2)], 2)
+            pygame.draw.line(surface, (198, 200, 210), (_cx - 18, _cy - 2),
+                             (_cx + 18, _cy - 2), 2)
+        draw_loser_shirt(surface, _cx, _cy, 1.0)
+
+
+def draw_loser_shirt(surface, cx, cy, scale=1.0, alpha=255):
+    """The shirt itself: white, short sleeves, one enormous L."""
+    _w, _h = int(30 * scale), int(34 * scale)
+    _sh = pygame.Surface((_w * 2, _h + 6), pygame.SRCALPHA)
+    _ox = _w
+    pygame.draw.polygon(_sh, (238, 238, 244, alpha), [
+        (_ox - _w // 2, 2), (_ox + _w // 2, 2),
+        (_ox + int(_w * 0.75), int(_h * 0.34)),
+        (_ox + int(_w * 0.42), int(_h * 0.34)),
+        (_ox + int(_w * 0.42), _h),
+        (_ox - int(_w * 0.42), _h),
+        (_ox - int(_w * 0.42), int(_h * 0.34)),
+        (_ox - int(_w * 0.75), int(_h * 0.34))])
+    pygame.draw.line(_sh, (176, 178, 190, alpha), (_ox - _w // 3, 3),
+                     (_ox + _w // 3, 3), max(1, int(2 * scale)))
+    pygame.draw.lines(_sh, (70, 76, 100, alpha), False, [
+        (_ox - int(_w * 0.2), int(_h * 0.45)),
+        (_ox - int(_w * 0.2), int(_h * 0.82)),
+        (_ox + int(_w * 0.22), int(_h * 0.82))], max(2, int(5 * scale)))
+    surface.blit(_sh, (cx - _ox, cy - 2))
+
+
 class JungleSnake:
     SPEED        = 2.5
     MAX_HP       = 20

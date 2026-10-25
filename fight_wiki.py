@@ -341,6 +341,14 @@ def _casino_odds():
     return {n: 100.0 * w / _total for n, w in CASINO_REWARDS}
 
 
+# What each special mode rolls for on a win, and how often
+MODE_REWARDS = {
+    "Jack O' Slash":        ("The Crooking Glass", 1.0),
+    "Broken Jak 0' Lash":   ("The Crooking Glass", 0.1),
+    "Cornucopia":           ("Took the L",         1.0),
+    "Sickman Stickman":     ("Took the L",         0.1),
+}
+
 _SEASONAL_BY_NAME = {c["name"]: c for c in SEASONAL_SHOP_CHARS}
 _FUSER_BY_NAME    = {c["name"]: c for c in FUSER_SHOP_CHARS}
 _COSTUME_BY_NAME  = {c["name"]: c for c in COSTUMES}
@@ -380,6 +388,10 @@ def ways_to_get(name, conditions, default_set, ch=None):
     if name in _FUSER_BY_NAME:
         ways.append((f"The Fuser — {_FUSER_BY_NAME[name]['cost']} coins, plus the elements",
                      False))
+    _mode = MODE_REWARDS.get(name)
+    if _mode:
+        ways.append((f"{_mode[0]} — every win rolls for one, and this one "
+                     f"comes up {_mode[1]}% of the time", False))
     _odds = _casino_odds().get(name)
     if _odds is not None:
         ways.append((f"The Casino — every tenth win rolls for one, and this "

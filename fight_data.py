@@ -1484,6 +1484,11 @@ CHARACTERS = [
      "punch_dmg": 14, "kick_dmg": 17, "max_hp": 130, "block": 6,
      "desc": "Turkey warrior: each attack fires a random fruit with unique effects",
      "double_jump": False, "shop_only": True, "cornucopia_fruits": True},
+    {"name": "Sickman Stickman", "color": (238, 238, 244), "speed": 4,  "jump": -12,
+     "punch_dmg": 11, "kick_dmg": 14, "max_hp": 140, "block": 5,
+     "desc": "Made in collaboration with AK47.",
+     "double_jump": False, "shop_only": True, "sick_stickman": True,
+     "costume_of": "Cornucopia", "costume_variant": True},
     {"name": "Nun-Gimel-Hei-Shin", "color": (40, 110, 210), "speed": 5, "jump": -15,
      "punch_dmg": 0,  "kick_dmg": 0,  "max_hp": 120, "block": 7,
      "desc": "Dreidel spin: each hit deals 0, heals opponent 1, deals 50, or deals 100 — randomly",
@@ -2182,6 +2187,22 @@ STAGES = [
         (140, GROUND_Y-305, 120, 1.0, 90),
         (610, GROUND_Y-305, 120, 1.0, 90),
     ], "springs": [], "conveyors": [], "portals": [], "hazards": []},
+    # Took the L (Feasterween mode stage). Every platform pair makes an L:
+    # a tall thin upright with a wide foot at the bottom of it.
+    {"name": "Took the L", "special_mode_only": True, "platforms": [
+        # left L — tall upright with a wide foot
+        (70,  GROUND_Y-210, 46,  0, 0),
+        (70,  GROUND_Y-100, 160, 0, 0),
+        # right L
+        (700, GROUND_Y-210, 46,  0, 0),
+        (650, GROUND_Y-100, 160, 0, 0),
+        # middle L, taller, the way up to the shelf
+        (400, GROUND_Y-230, 46,  0, 0),
+        (330, GROUND_Y-120, 180, 0, 0),
+        # the shelf the shirts hang over
+        (260, GROUND_Y-300, 380, 0, 0),
+    ], "springs": [(200, -20), (680, -20)],
+       "conveyors": [], "portals": [], "hazards": []},
 ]
 
 # Stage-specific character advantages and disadvantages.
