@@ -259,13 +259,18 @@ for _ in range(600):
     _sf._sickman_fire()
     _pulled.add(_sf.pending_sick_item[0])
 assert _pulled == set(Fighter._SICK_ITEMS), _pulled
+assert len(_pulled) == 8, _pulled
+assert {"sword", "wizard hat"} <= _pulled
 assert set(_FP.SickItem.KINDS) == _pulled - {"loser hat"}
+# the sword is the hardest hit of the lot, the hat the slowest
+assert max(_FP.SickItem.KINDS, key=lambda k: _FP.SickItem.KINDS[k][1]) == "sword"
+assert min(_FP.SickItem.KINDS, key=lambda k: _FP.SickItem.KINDS[k][0]) == "wizard hat"
 for _k in _FP.SickItem.KINDS:
     _p = _FP.SickItem(400, 370, 1, _sf, _k)
     for _ in range(30):
         _p.update()
 assert '_target.hp = max(0, _target.hp - 10)' in _g2, "the loser hat costs them ten"
 print("Took the L: L platforms, shirts that loser you, and Sickman Stickman's "
-      "six-item bag")
+      "eight-item bag")
 
 print("ALL OK")

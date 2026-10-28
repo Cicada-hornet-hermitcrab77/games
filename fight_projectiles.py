@@ -38,6 +38,16 @@ class Projectile:
 # BeeShot  (Beekeeper's bee swarm — small angled projectile with vy support)
 # ---------------------------------------------------------------------------
 
+def _draw_star(surface, cx, cy, r, col):
+    """A tiny five-pointed sparkle."""
+    _pts = []
+    for _i in range(10):
+        _rr = r if _i % 2 == 0 else r * 0.45
+        _a  = -math.pi / 2 + _i * math.pi / 5
+        _pts.append((cx + int(math.cos(_a) * _rr), cy + int(math.sin(_a) * _rr)))
+    pygame.draw.polygon(surface, col, _pts)
+
+
 class SickItem:
     """One of the things Sickman Stickman throws.
 
@@ -52,6 +62,8 @@ class SickItem:
         "shoes":      (17.0,   9,    9,  (210, 216, 226)),
         "glasses":    (22.0,  10,    7,  (120, 230, 250)),
         "skateboard": (8.0,   12,   11,  (190,  80, 180)),
+        "sword":      (13.0,  16,   12,  (214, 218, 230)),
+        "wizard hat": (6.0,   10,   13,  (108,  72, 190)),
     }
 
     def __init__(self, x, y, facing, owner, kind):
@@ -61,6 +73,7 @@ class SickItem:
         self.y      = float(y)
         self.vx     = _sp * facing
         self.vy     = -4.5 if kind == "skateboard" else 0.0
+        self.spin   = 0.0
         self.facing = facing
         self.owner  = owner
         self.alive  = True
@@ -69,7 +82,11 @@ class SickItem:
 
     def update(self):
         self.t += 1
+        self.spin += 14.0
         self.x += self.vx
+        if self.kind == "wizard hat":
+            # It floats, the way a thrown hat does not
+            self.y += math.sin(self.t * 0.14) * 2.2
         if self.kind == "skateboard":
             self.vy += 0.55
             self.y  += self.vy
@@ -91,6 +108,11 @@ class SickItem:
         elif self.kind == "skateboard":
             victim.knockback = self.facing * 10
             victim.vy = min(victim.vy, -7.0)
+        elif self.kind == "sword":
+            victim.knockback = self.facing * 8
+            victim.hurt_timer = max(victim.hurt_timer, 24)
+        elif self.kind == "wizard hat":
+            victim.shock_frames = max(victim.shock_frames, 240)   # 4 seconds slow
 
     def draw(self, surface):
         cx, cy = int(self.x), int(self.y)
@@ -139,6 +161,30 @@ class SickItem:
             for _sg in (-1, 1):
                 pygame.draw.circle(surface, (60, 70, 86), (cx + _sg * 6, cy), 6, 2)
             pygame.draw.line(surface, (60, 70, 86), (cx - 2, cy), (cx + 2, cy), 2)
+        elif self.kind == "sword":
+            # End over end, the way a thrown sword goes
+            _sw = pygame.Surface((54, 54), pygame.SRCALPHA)
+            pygame.draw.polygon(_sw, (222, 226, 238), [
+                (27, 4), (31, 12), (31, 34), (23, 34), (23, 12)])
+            pygame.draw.polygon(_sw, (168, 174, 190), [
+                (27, 4), (31, 12), (27, 12), (23, 12)])
+            pygame.draw.rect(_sw, (188, 150, 60), (18, 34, 18, 4))
+            pygame.draw.rect(_sw, (120, 84, 40), (25, 38, 4, 11))
+            pygame.draw.circle(_sw, (210, 170, 70), (27, 50), 3)
+            _rot = pygame.transform.rotate(_sw, self.spin * self.facing)
+            surface.blit(_rot, (cx - _rot.get_width() // 2, cy - _rot.get_height() // 2))
+        elif self.kind == "wizard hat":
+            pygame.draw.polygon(surface, (88, 58, 160), [
+                (cx, cy - 16), (cx + 13, cy + 7), (cx - 13, cy + 7)])
+            pygame.draw.ellipse(surface, (108, 72, 190), (cx - 17, cy + 4, 34, 9))
+            pygame.draw.ellipse(surface, (66, 40, 120), (cx - 17, cy + 4, 34, 9), 1)
+            pygame.draw.line(surface, (236, 206, 90), (cx - 11, cy + 1),
+                             (cx + 9, cy - 3), 2)
+            for _k in range(3):        # it is casting something, clearly
+                _a = self.t * 0.2 + _k * 2.1
+                _draw_star(surface, cx + int(math.cos(_a) * 19),
+                           cy - 6 + int(math.sin(_a) * 11), 3,
+                           (250, 232, 140) if _k % 2 else (190, 160, 250))
         else:                              # skateboard
             pygame.draw.ellipse(surface, (190, 80, 180), (cx - 14, cy - 4, 28, 8))
             pygame.draw.ellipse(surface, (120, 40, 120), (cx - 14, cy - 4, 28, 8), 1)

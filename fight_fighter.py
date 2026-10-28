@@ -1864,8 +1864,8 @@ class Fighter:
             if self.char.get("ice_yellowstone_kick") and self.action == 'kick':
                 self.pending_ice_yellowstone_kick = True
 
-    _SICK_ITEMS = ("loser hat", "headphones", "softball",
-                   "shoes", "glasses", "skateboard")
+    _SICK_ITEMS = ("loser hat", "headphones", "softball", "shoes",
+                   "glasses", "skateboard", "sword", "wizard hat")
 
     def _sickman_fire(self):
         """One of six things out of the bag, at random.
