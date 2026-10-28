@@ -1668,6 +1668,30 @@ CHARACTERS = [
      "double_jump": False, "burning_mine_punch": True, "torrti_ram": True,
      "shop_only": True, "lava_immune": True},
 
+    # ---------- the ghost clan ----------
+    # Earned by banishing the flying ghost snakes in the Haunted Graveyard
+    {"name": "Da Sik Worm", "color": (150, 210, 170), "speed": 6, "jump": -11,
+     "punch_dmg": 9, "kick_dmg": 12, "max_hp": 95, "block": 4,
+     "desc": "The first one back. Kicks a laser out of both eyes at once",
+     "ghost_float": True, "phase_dodge": True, "sik_laser_kick": True},
+    {"name": "Pokerhauntus", "color": (210, 150, 110), "speed": 7, "jump": -14,
+     "punch_dmg": 11, "kick_dmg": 14, "max_hp": 105, "block": 4,
+     "desc": "Kick summons an ally in a poker card who fights alongside her",
+     "double_jump": True, "ghost_float": True, "poker_ally_kick": True},
+    {"name": "Izic Newt", "color": (170, 190, 230), "speed": 4, "jump": -17,
+     "punch_dmg": 13, "kick_dmg": 15, "max_hp": 110, "block": 5,
+     "desc": "Gravity was his idea: punch throws an apple that chases you down",
+     "double_jump": True, "ghost_float": True, "slow_fall": True,
+     "big_apple_punch": True},
+    {"name": "Darvin de Bread&butterfly", "color": (196, 170, 110), "speed": 6,
+     "jump": -13, "punch_dmg": 12, "kick_dmg": 16, "max_hp": 115, "block": 5,
+     "desc": "Wherever he goes it rains animals, the whole match long",
+     "double_jump": True, "ghost_float": True, "animal_rain": True},
+    {"name": "Old Mr. Eyeingstine", "color": (222, 222, 232), "speed": 3,
+     "jump": -12, "punch_dmg": 15, "kick_dmg": 18, "max_hp": 130, "block": 6,
+     "desc": "Worked out what the maths meant. Punch lobs a uranium bomb",
+     "ghost_float": True, "uranium_punch": True},
+
     # ---------- water expansion ----------
     {"name": "Mermaid", "color": (80, 220, 210), "speed": 6, "jump": -14,
      "punch_dmg": 9, "kick_dmg": 13, "max_hp": 110, "block": 5,

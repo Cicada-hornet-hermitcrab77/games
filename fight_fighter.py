@@ -292,6 +292,10 @@ class Fighter:
         self._jack_launched      = False  # Broken Jak: airborne from a launch right now
         self.pending_fruit_attack = None  # Cornucopia: fruit type string to spawn this frame
         self.pending_sick_item    = None  # Sickman Stickman: which item he threw
+        self.pending_sik_laser    = False # Da Sik Worm: eye beam on kick
+        self.pending_poker_ally   = False # Pokerhauntus: summon on kick
+        self.pending_big_apple    = False # Izic Newt: homing apple on punch
+        self.pending_uranium      = False # Old Mr. Eyeingstine: bomb on punch
         self.sick_item_shown      = None  # and what he is holding right now
         self.cornucopia_feather_lit = None  # Cornucopia: which feather is currently lit (0-9)
         self.cornucopia_feather_timer = 0   # Cornucopia: frames feather stays lit
@@ -1199,6 +1203,10 @@ class Fighter:
             self._cornucopia_fire()
         if self.char.get("sick_stickman"):
             self._sickman_fire()
+        if self.char.get("big_apple_punch"):
+            self.pending_big_apple = True
+        if self.char.get("uranium_punch"):
+            self.pending_uranium = True
         if self.char.get("saint_nix_coal"):
             self.pending_fruit_attack = ('coal', self.saint_nix_coal_idx)
             self.saint_nix_coal_idx = (self.saint_nix_coal_idx + 1) % 4
@@ -1215,6 +1223,10 @@ class Fighter:
         if self.char.get("bbboomerang_kick") and self.bbboomerang_timer == 0 and self.bbboomerang_cooldown == 0:
             self.bbboomerang_timer = 300   # 5 seconds
             self.bbboomerang_angle = 0.0
+        if self.char.get("sik_laser_kick"):
+            self.pending_sik_laser = True
+        if self.char.get("poker_ally_kick"):
+            self.pending_poker_ally = True
         if self.char.get("clover_kick"):
             self.pending_clover_snake = True
         if self.char.get("golden_snake_kick"):

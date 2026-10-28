@@ -166,6 +166,7 @@ CATEGORIES = [
     ("snake",       "Snake clan",   ( 58, 182,  92)),
     ("bug",         "Bug clan",     (154, 172,  62)),
     ("unhittable",  "Unhittables",  (238, 238, 248)),
+    ("ghost",       "Ghost clan",   (176, 206, 226)),
     ("major",       "Seasonal major", (255, 200,  60)),
     ("minor",       "Seasonal minor", (206, 166,  72)),
     ("variant",     "Variant",      (192, 132,  82)),
@@ -217,6 +218,7 @@ _CLAN_BY_CONDITION = {
     "jungle_snake_kills":  "snake",
     "computer_bug_kills":  "bug",
     "projectiles_blocked": "unhittable",
+    "ghost_snake_kills":   "ghost",
 }
 
 # Major or minor is a property of the event, not of the fighter: seven of the
@@ -575,9 +577,10 @@ WORLD = [
      "The middle ocean. The north is hot, grassy and a bit glitchy. The south "
      "you do not want to go to — Fishikin will surround your boat like a "
      "doughnut, and strike."),
-    ("Ghost clan's ground", "region", [],
-     "It is said ghost clan has been spotted here a few times. Of course, "
-     "there is no such thing as ghost clan. Or is there?"),
+    ("Ghost clan's ground", "region", ["Ghost clan"],
+     "It was said ghost clan had been spotted here a few times, and that of "
+     "course there was no such thing. There is. Five of them, and they came "
+     "from here."),
     ("The Great Cities of the United States of Lanbo", "country", [],
      "The crowded middle of the map, where most of the stages people actually "
      "fight on are stacked up next to one another."),
@@ -889,6 +892,7 @@ PAGES = [
              (2, "Snake clan — killing snakes in the Jungle"),
              (2, "Bug clan — killing bugs in the Computer"),
              (2, "Unhittables — blocking projectiles"),
+             (2, "Ghost clan — banishing ghost snakes in the Graveyard"),
              (1, "No ability — the fighting is all there is"),
              (2, "Default — the four you start with"),
              (2, "Other"),
@@ -946,9 +950,10 @@ PAGES = [
                "to do to earn him. Six snakes killed in the Jungle, six bugs "
                "killed in the Computer, seven for blocking projectiles, each "
                "one asking more than the last."),
-         ("b", "There is no ghost clan. People keep saying there is — it "
-               "has a stretch of the map named after it and everything — but "
-               "nobody has ever earned one, so nothing here wears it. Yet."),
+         ("b", "Ghost clan turned out to be real after all. It is earned in "
+               "the Haunted Graveyard, by banishing the flying ghost snakes "
+               "that come out of it — ten of them for the first, five hundred "
+               "for the last."),
          ("h", "Why it matters"),
          "Mostly it does not — nothing in the game checks these. It is how "
          "to think about a roster this size, and how to guess what a fighter "

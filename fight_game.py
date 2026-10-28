@@ -25,7 +25,8 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             FruitProj, CoalProj, WildfireBall, SniderBolt,
                             SandSpit, SlimeBomb, TentaMissile, ExplodingTire,
                             Muskshroom, Cutlass, WormMine, RockBall, DandiSeed, EeebyLaser,
-                            SickItem,
+                            SickItem, SikLaser, PokerAlly, BigApple,
+                            FallingAnimal, UraniumBomb,
                             BurningMine, Car, RollingStone)
 import fight_network as _net
 from fight_ui import stage_select, mode_select, character_select, online_menu, _type42_typed, secret_menu, _map_man_flag, _solar_eclipse_flag, _lunar_eclipse_flag, _dino_bones_collected, TouchControls, touch_p1_enabled, touch_p2_enabled, seasonal_shop, costume_rack, fuser_mode, tombstones_minefield
@@ -49,6 +50,7 @@ _totem_kill_flag  = [False]   # set True when a TotemPole kills p1
 _everything_flag  = [0]       # count of 'Everything' powerups collected by p1
 _void_fall_timer_flag = [False]  # set True when p1 falls in void with 2-7s remaining
 _jungle_kills_flag    = [0]      # count of JungleSnakes killed this session
+_ghost_kills_flag     = [0]      # count of GhostSnakes banished this session
 _computer_bug_kills_flag = [0]   # count of ComputerBugs killed this fight
 _p1_non_crit_flag = [False]      # True if p1 landed any non-crit punch this fight
 _p1_opp_hit_flag  = [False]      # True if opponent ever successfully hit p1 this fight
@@ -94,6 +96,14 @@ CASINO_REWARDS = [
 ]
 
 UNLOCK_CONDITIONS = {
+    # ---------- the ghost clan ----------
+    # Banished in the Haunted Graveyard, where the flying ones come from
+    "Da Sik Worm":         ("ghost_snake_kills", None,   10, "Banish 10 ghost snakes"),
+    "Pokerhauntus":        ("ghost_snake_kills", None,   50, "Banish 50 ghost snakes"),
+    "Izic Newt":           ("ghost_snake_kills", None,  100, "Banish 100 ghost snakes"),
+    "Darvin de Bread&butterfly":
+                           ("ghost_snake_kills", None,  200, "Banish 200 ghost snakes"),
+    "Old Mr. Eyeingstine": ("ghost_snake_kills", None,  500, "Banish 500 ghost snakes"),
     # ---------- water expansion ----------
     "Mermaid":             ("win_on_stage",   "Underwater",    2,  "Win on Underwater 2 times"),
     "Starfish":            ("win_on_stage",   "Underwater",    5,  "Win on Underwater 5 times"),
@@ -755,6 +765,8 @@ def _meets_condition(cond, stats):
         return stats.get("played_at_333pm", False)
     if kind == "iddqd_win":
         return stats.get("iddqd_win", False)
+    if kind == "ghost_snake_kills":
+        return stats.get("ghost_snake_kills", 0) >= n
     if kind == "secret_chars":
         return stats.get("secret_chars_unlocked", 0) >= n
     if kind == "played_at_midnight":
@@ -850,6 +862,7 @@ def _unlock_progress(stats):
         elif kind == "win_super_hard":    cur = stats.get("wins_super_hard", 0)
         elif kind == "win_super_super_hard": cur = stats.get("wins_super_super_hard", 0)
         elif kind == "win_mega_hard":     cur = stats.get("wins_mega_hard", 0)
+        elif kind == "ghost_snake_kills": cur = stats.get("ghost_snake_kills", 0)
         elif kind == "secret_chars":      cur = stats.get("secret_chars_unlocked", 0)
         elif kind == "win_with_all":
             chars = [c.strip() for c in param.split(',')]
@@ -1129,7 +1142,20 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     _l_shirts    = ([LoserShirt(300 + i * 115, GROUND_Y - 336) for i in range(4)]
                     if _is_took_l else [])
     _l_respawn   = 0
-    sick_items   = []          # Sickman Stickman's six-item bag
+    sick_items   = []          # Sickman Stickman's eight-item bag
+    sik_lasers   = []          # Da Sik Worm's eye beams
+    poker_allies = []          # Pokerhauntus's summons
+    big_apples   = []          # Izic Newt's apples
+    animal_rain  = []          # Darvin's weather
+    _rain_cd     = 0
+    uranium      = []          # Old Mr. Eyeingstine's bombs
+
+    def _foe_of(f):
+        return p2 if f is p1 else p1
+
+    def _blast_targets(_src=None):
+        return (p1, p2)
+
     _is_ice_cave = (_stage_name == "Ice Cave")
     _ice_floor   = ([IceFloorPanel(i * (WIDTH / 8.0), int(WIDTH / 8.0) + 1)
                      for i in range(8)] if _is_ice_cave else [])
@@ -2791,6 +2817,24 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     for _sd_dy in ((0, -20) if shooter.char.get("broken_jack") else (0,)):
                         jack_seeds.append(PumpkinSeed(shooter.x + shooter.facing * 24,
                                                       shooter.y - 60 + _sd_dy, shooter.facing, shooter))
+                if shooter.pending_sik_laser:
+                    shooter.pending_sik_laser = False
+                    sik_lasers.append(SikLaser(shooter.x + shooter.facing * 18,
+                                               shooter.y - 92, shooter.facing, shooter))
+                if shooter.pending_poker_ally:
+                    shooter.pending_poker_ally = False
+                    if len([a for a in poker_allies if a.owner is shooter]) < 2:
+                        poker_allies.append(PokerAlly(
+                            shooter.x - shooter.facing * 60, shooter))
+                if shooter.pending_big_apple:
+                    shooter.pending_big_apple = False
+                    big_apples.append(BigApple(shooter.x + shooter.facing * 28,
+                                               shooter.y - 70, shooter.facing, shooter,
+                                               _foe_of(shooter)))
+                if shooter.pending_uranium:
+                    shooter.pending_uranium = False
+                    uranium.append(UraniumBomb(shooter.x + shooter.facing * 26,
+                                               shooter.y - 70, shooter.facing, shooter))
                 if shooter.pending_sick_item:
                     _si4, _ = shooter.pending_sick_item
                     shooter.pending_sick_item = None
@@ -2822,6 +2866,54 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         coal_projs.append(CoalProj(_fx, _fy, shooter.facing, shooter, fa[1]))
                     else:
                         fruit_projs.append(FruitProj(_fx, _fy, shooter.facing, shooter, fa[0]))
+            for _bm in sik_lasers:
+                _bm.update()
+                if _bm.alive and not _bm.hit:
+                    _vic2 = _foe_of(_bm.owner)
+                    if _vic2 is not None and _vic2.hp > 0 and _bm.collides(_vic2):
+                        _vic2.take_proj_dmg(_bm.DMG)
+                        _bm.hit = True
+            sik_lasers = [_bm for _bm in sik_lasers if _bm.alive]
+            for _pa in poker_allies:
+                _pa.update(_foe_of(_pa.owner))
+            poker_allies = [_pa for _pa in poker_allies if _pa.alive]
+            for _ba in big_apples:
+                _ba.update()
+                if _ba.alive:
+                    _vic2 = _foe_of(_ba.owner)
+                    if _vic2 is not None and _vic2.hp > 0 and _ba.collides(_vic2):
+                        _vic2.take_proj_dmg(_ba.DMG)
+                        _vic2.knockback = (1 if _vic2.x > _ba.x else -1) * 9
+                        _ba.alive = False
+            big_apples = [_ba for _ba in big_apples if _ba.alive]
+            for _ub in uranium:
+                _ub.update()
+                if _ub.alive:
+                    _vic2 = _foe_of(_ub.owner)
+                    if _vic2 is not None and _vic2.hp > 0 and _ub.collides(_vic2):
+                        _ub.explode()
+                    if _ub.exploded:
+                        for _any in _blast_targets(_ub):
+                            if _ub.hits(_any):
+                                _any.take_proj_dmg(_ub.EXPLODE_DMG)
+                                _any.knockback = (1 if _any.x > _ub.x else -1) * 18
+                                _any.vy = min(_any.vy, -9.0)
+            uranium = [_ub for _ub in uranium if _ub.alive]
+            # Darvin: it rains animals the whole match long
+            if any(_f9.char.get("animal_rain") for _f9 in _blast_targets()):
+                _rain_cd -= 1
+                if _rain_cd <= 0 and len(animal_rain) < 7:
+                    animal_rain.append(FallingAnimal())
+                    _rain_cd = random.randint(26, 54)
+            for _fa in animal_rain:
+                _fa.update()
+                if _fa.hit_cd == 0:
+                    for _any in _blast_targets(None):
+                        if _any.hp > 0 and _fa.collides(_any):
+                            _any.take_proj_dmg(_fa.dmg)
+                            _any.flash_timer = max(_any.flash_timer, 8)
+                            _fa.hit_cd = _fa.HIT_CD
+            animal_rain = [_fa for _fa in animal_rain if _fa.alive]
             for _si5 in sick_items:
                 _si5.update()
                 if _si5.alive:
@@ -3528,7 +3620,9 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     ghost_spawn_timer = random.randint(280, 460)
             for _gs in ghost_snakes:
                 _gs.update(p1, p2)
+            _prev_gs = len(ghost_snakes)
             ghost_snakes = [_gs for _gs in ghost_snakes if _gs.alive]
+            _ghost_kills_flag[0] += _prev_gs - len(ghost_snakes)
 
             # The Crooking Glass: the hourglass flips, the bats pour out
             if _is_crooking:
@@ -3989,6 +4083,11 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
             js.draw(screen)
         for fp in fruit_projs:
             fp.draw(screen)
+        for _fa in animal_rain:  _fa.draw(screen)
+        for _pa in poker_allies: _pa.draw(screen)
+        for _ba in big_apples:   _ba.draw(screen)
+        for _ub in uranium:      _ub.draw(screen)
+        for _bm in sik_lasers:   _bm.draw(screen)
         for _si6 in sick_items:
             _si6.draw(screen)
         for cp in coal_projs:
@@ -4432,7 +4531,24 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
     _l_shirts    = ([LoserShirt(300 + i * 115, GROUND_Y - 336) for i in range(4)]
                     if _is_took_l else [])
     _l_respawn   = 0
-    sick_items   = []          # Sickman Stickman's six-item bag
+    sick_items   = []          # Sickman Stickman's eight-item bag
+    sik_lasers   = []          # Da Sik Worm's eye beams
+    poker_allies = []          # Pokerhauntus's summons
+    big_apples   = []          # Izic Newt's apples
+    animal_rain  = []          # Darvin's weather
+    _rain_cd     = 0
+    uranium      = []          # Old Mr. Eyeingstine's bombs
+
+    def _foe_of(f):
+        """The nearest live fighter on the other side."""
+        _side  = players if f in players else enemies
+        _other = enemies if _side is players else players
+        _live  = [t for t in _other if t.hp > 0]
+        return min(_live, key=lambda t: abs(t.x - f.x)) if _live else None
+
+    def _blast_targets(_src=None):
+        return [t for t in players + enemies if t.hp > 0]
+
     _is_ice_cave = (_stage_name == "Ice Cave")
     _ice_floor   = ([IceFloorPanel(i * (WIDTH / 8.0), int(WIDTH / 8.0) + 1)
                      for i in range(8)] if _is_ice_cave else [])
@@ -6220,6 +6336,54 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     for _jdy in ((0, -20) if _jdbl else (0,)):
                         (en_jack_seeds if _jen else jack_seeds).append(
                             PumpkinSeed(_jf.x + _jf.facing * 24, _jf.y - 60 + _jdy, _jf.facing, _jf))
+            for _bm in sik_lasers:
+                _bm.update()
+                if _bm.alive and not _bm.hit:
+                    _vic2 = _foe_of(_bm.owner)
+                    if _vic2 is not None and _vic2.hp > 0 and _bm.collides(_vic2):
+                        _vic2.take_proj_dmg(_bm.DMG)
+                        _bm.hit = True
+            sik_lasers = [_bm for _bm in sik_lasers if _bm.alive]
+            for _pa in poker_allies:
+                _pa.update(_foe_of(_pa.owner))
+            poker_allies = [_pa for _pa in poker_allies if _pa.alive]
+            for _ba in big_apples:
+                _ba.update()
+                if _ba.alive:
+                    _vic2 = _foe_of(_ba.owner)
+                    if _vic2 is not None and _vic2.hp > 0 and _ba.collides(_vic2):
+                        _vic2.take_proj_dmg(_ba.DMG)
+                        _vic2.knockback = (1 if _vic2.x > _ba.x else -1) * 9
+                        _ba.alive = False
+            big_apples = [_ba for _ba in big_apples if _ba.alive]
+            for _ub in uranium:
+                _ub.update()
+                if _ub.alive:
+                    _vic2 = _foe_of(_ub.owner)
+                    if _vic2 is not None and _vic2.hp > 0 and _ub.collides(_vic2):
+                        _ub.explode()
+                    if _ub.exploded:
+                        for _any in _blast_targets(_ub):
+                            if _ub.hits(_any):
+                                _any.take_proj_dmg(_ub.EXPLODE_DMG)
+                                _any.knockback = (1 if _any.x > _ub.x else -1) * 18
+                                _any.vy = min(_any.vy, -9.0)
+            uranium = [_ub for _ub in uranium if _ub.alive]
+            # Darvin: it rains animals the whole match long
+            if any(_f9.char.get("animal_rain") for _f9 in _blast_targets()):
+                _rain_cd -= 1
+                if _rain_cd <= 0 and len(animal_rain) < 7:
+                    animal_rain.append(FallingAnimal())
+                    _rain_cd = random.randint(26, 54)
+            for _fa in animal_rain:
+                _fa.update()
+                if _fa.hit_cd == 0:
+                    for _any in _blast_targets(None):
+                        if _any.hp > 0 and _fa.collides(_any):
+                            _any.take_proj_dmg(_fa.dmg)
+                            _any.flash_timer = max(_any.flash_timer, 8)
+                            _fa.hit_cd = _fa.HIT_CD
+            animal_rain = [_fa for _fa in animal_rain if _fa.alive]
             for _si5 in sick_items:
                 _si5.update()
                 if _si5.alive:
@@ -6249,6 +6413,24 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             en_jack_seeds = [js for js in en_jack_seeds if js.alive]
             # Fruit projectiles + coal + thunder (survival, both sides)
             for shooter in _sv_actors():
+                if shooter.pending_sik_laser:
+                    shooter.pending_sik_laser = False
+                    sik_lasers.append(SikLaser(shooter.x + shooter.facing * 18,
+                                               shooter.y - 92, shooter.facing, shooter))
+                if shooter.pending_poker_ally:
+                    shooter.pending_poker_ally = False
+                    if len([a for a in poker_allies if a.owner is shooter]) < 2:
+                        poker_allies.append(PokerAlly(
+                            shooter.x - shooter.facing * 60, shooter))
+                if shooter.pending_big_apple:
+                    shooter.pending_big_apple = False
+                    big_apples.append(BigApple(shooter.x + shooter.facing * 28,
+                                               shooter.y - 70, shooter.facing, shooter,
+                                               _foe_of(shooter)))
+                if shooter.pending_uranium:
+                    shooter.pending_uranium = False
+                    uranium.append(UraniumBomb(shooter.x + shooter.facing * 26,
+                                               shooter.y - 70, shooter.facing, shooter))
                 if shooter.pending_sick_item:
                     _si4, _ = shooter.pending_sick_item
                     shooter.pending_sick_item = None
@@ -6550,7 +6732,9 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                 if _gtargets:
                     _gclosest = min(_gtargets, key=lambda t: math.hypot(t.x - _gs.x, (t.y - 60) - _gs.y))
                     _gs.update(_gclosest, _gclosest)
+            _prev_gs = len(ghost_snakes)
             ghost_snakes = [_gs for _gs in ghost_snakes if _gs.alive]
+            _ghost_kills_flag[0] += _prev_gs - len(ghost_snakes)
 
             # The Crooking Glass: the hourglass flips, the bats pour out
             if _is_crooking:
@@ -6875,6 +7059,11 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for js   in jack_seeds:    js.draw(screen)
         for js   in en_jack_seeds: js.draw(screen)
         for fp   in fruit_projs:   fp.draw(screen)
+        for _fa in animal_rain:    _fa.draw(screen)
+        for _pa in poker_allies:   _pa.draw(screen)
+        for _ba in big_apples:     _ba.draw(screen)
+        for _ub in uranium:        _ub.draw(screen)
+        for _bm in sik_lasers:     _bm.draw(screen)
         for _si6 in sick_items:    _si6.draw(screen)
         for cp   in coal_projs:    cp.draw(screen)
         for tb   in thunder_bolts: tb.draw(screen)
@@ -8360,6 +8549,9 @@ def main():
             if _jungle_kills_flag[0]:
                 stats["jungle_snake_kills"] = stats.get("jungle_snake_kills", 0) + _jungle_kills_flag[0]
                 _jungle_kills_flag[0] = 0
+            if _ghost_kills_flag[0]:
+                stats["ghost_snake_kills"] = stats.get("ghost_snake_kills", 0) + _ghost_kills_flag[0]
+                _ghost_kills_flag[0] = 0
             if _paradox_portals_flag[0]:
                 stats["paradox_portals_done"] = True
                 _paradox_portals_flag[0] = False

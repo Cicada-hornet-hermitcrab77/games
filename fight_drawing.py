@@ -17132,6 +17132,200 @@ def _draw_stickman(surface, x, y, color, facing, action, action_t, flash=False,
 
         return (int(x + facing * 40 * s), int(y - 100 * s))
 
+    # ── The ghost clan: all five float, none of them have legs ────────────
+    if char_name in ("Da Sik Worm", "Pokerhauntus", "Izic Newt",
+                     "Darvin de Bread&butterfly", "Old Mr. Eyeingstine"):
+        _gt2  = pygame.time.get_ticks() / 1000.0
+        _s9   = scale
+        _col9 = WHITE if flash else color
+        _dk9  = tuple(max(0, c - 60) for c in _col9)
+        _lt9  = tuple(min(255, c + 45) for c in _col9)
+        _base = int(y)
+        _dead9 = (action == 'dead')
+        _bob9 = 0 if _dead9 else int(math.sin(_gt2 * 1.8) * 5 * _s9)
+        _cx9  = int(x)
+        if action == 'punch':
+            _cx9 += int(facing * 10 * _s9)
+        elif action == 'kick':
+            _cx9 += int(facing * 7 * _s9 * action_t)
+        _hr9  = int(17 * _s9)
+        _hy9b = _base - int(86 * _s9) - _bob9
+        if _dead9:
+            _hy9b = _base - int(26 * _s9)
+
+        def _ghost_body(cx, cy, w, h, tails=4):
+            """Head and a tattered sheet, with a wavy hem."""
+            _gs2 = pygame.Surface((w * 2 + 8, h + int(22 * _s9) + 8), pygame.SRCALPHA)
+            _ox2 = w + 4
+            pygame.draw.ellipse(_gs2, _col9 + (215,), (4, 0, w * 2, int(h * 1.15)))
+            pygame.draw.rect(_gs2, _col9 + (215,), (4, h // 2, w * 2, h // 2))
+            for _k in range(tails):
+                _tw3 = (w * 2) // tails
+                _tx3 = 4 + _k * _tw3
+                _ph3 = math.sin(_gt2 * 2.6 + _k * 1.3) * 7 * _s9
+                pygame.draw.polygon(_gs2, _col9 + (215,), [
+                    (_tx3, h - 2), (_tx3 + _tw3, h - 2),
+                    (_tx3 + _tw3 // 2, h + int((12 + 8 * (_k % 2)) * _s9) + int(_ph3))])
+            surface.blit(_gs2, (cx - _ox2, cy - int(h * 0.55)))
+
+        _bw9 = int(20 * _s9)
+        _bh9 = int(52 * _s9)
+        if _dead9:
+            _bh9 = int(20 * _s9)
+        _ghost_body(_cx9, _hy9b + int(18 * _s9), _bw9, _bh9)
+
+        def _eyes(cx, cy, r2, pupil=(26, 24, 32)):
+            for _sg in (-1, 1):
+                pygame.draw.ellipse(surface, (250, 250, 254),
+                                    (cx + _sg * int(r2 * 0.52) - int(r2 * 0.3),
+                                     cy - int(r2 * 0.38),
+                                     max(2, int(r2 * 0.6)), max(3, int(r2 * 0.8))))
+                pygame.draw.circle(surface, pupil,
+                                   (cx + _sg * int(r2 * 0.52) + facing * int(r2 * 0.1),
+                                    cy), max(1, int(r2 * 0.22)))
+
+        if char_name == "Da Sik Worm":
+            # A worm, so a segmented tail instead of a sheet, and it looks ill
+            for _k in range(5):
+                _wy9 = _hy9b + int((20 + 15 * _k) * _s9)
+                _wx9 = _cx9 + int(math.sin(_gt2 * 2.4 + _k * 0.8) * (6 + 2 * _k) * _s9)
+                pygame.draw.circle(surface, _col9 if _k % 2 else _lt9,
+                                   (_wx9, _wy9), max(2, int((13 - 1.8 * _k) * _s9)))
+            # Shades, because the laser has to come from somewhere cool
+            pygame.draw.rect(surface, (26, 24, 30),
+                             (_cx9 - int(_hr9 * 1.05), _hy9b - int(_hr9 * 0.3),
+                              max(4, int(_hr9 * 2.1)), max(3, int(_hr9 * 0.62))),
+                             border_radius=max(1, int(2 * _s9)))
+            pygame.draw.line(surface, (26, 24, 30),
+                             (_cx9 - int(_hr9 * 1.25), _hy9b - int(_hr9 * 0.2)),
+                             (_cx9 + int(_hr9 * 1.25), _hy9b - int(_hr9 * 0.2)),
+                             max(1, int(2 * _s9)))
+            for _sg in (-1, 1):          # a glint of the beam behind them
+                pygame.draw.line(surface, (150, 255, 200),
+                                 (_cx9 + _sg * int(_hr9 * 0.75) - int(3 * _s9),
+                                  _hy9b - int(_hr9 * 0.08)),
+                                 (_cx9 + _sg * int(_hr9 * 0.75) + int(3 * _s9),
+                                  _hy9b - int(_hr9 * 0.08)), max(1, int(2 * _s9)))
+            pygame.draw.arc(surface, (40, 70, 50),
+                            (_cx9 - int(_hr9 * 0.5), _hy9b + int(_hr9 * 0.4),
+                             max(3, int(_hr9)), max(3, int(_hr9 * 0.7))), 3.4, 6.0,
+                            max(1, int(2 * _s9)))
+            if not _dead9:                 # queasy little clouds
+                for _k in range(2):
+                    _a9 = _gt2 * 1.4 + _k * 2.4
+                    pygame.draw.circle(surface, (150, 200, 140),
+                                       (_cx9 + int(math.cos(_a9) * 22 * _s9),
+                                        _hy9b - int(22 * _s9) + int(math.sin(_a9) * 7 * _s9)),
+                                       max(1, int(3.5 * _s9)))
+
+        elif char_name == "Pokerhauntus":
+            # Long hair streaming sideways in a wind only she gets
+            for _k in range(6):
+                _hp9 = math.sin(_gt2 * 2.0 + _k * 0.5)
+                pygame.draw.lines(surface, (54, 44, 48) if _k % 2 else (78, 62, 62),
+                                  False, [
+                    (_cx9 - facing * int(4 * _s9), _hy9b - int(10 * _s9)),
+                    (_cx9 - facing * int((22 + 4 * _k) * _s9),
+                     _hy9b - int(4 * _s9) + int(_hp9 * 5 * _s9)),
+                    (_cx9 - facing * int((44 + 5 * _k) * _s9),
+                     _hy9b + int((6 + 3 * _k) * _s9) + int(_hp9 * 9 * _s9))],
+                    max(2, int(2.6 * _s9)))
+            _eyes(_cx9, _hy9b, _hr9)
+            for _sg in (-1, 1):            # a feather either side of the head
+                pygame.draw.polygon(surface, (230, 190, 90) if _sg > 0 else (210, 120, 90), [
+                    (_cx9 + _sg * int(10 * _s9), _hy9b - int(14 * _s9)),
+                    (_cx9 + _sg * int(20 * _s9), _hy9b - int(34 * _s9)),
+                    (_cx9 + _sg * int(15 * _s9), _hy9b - int(13 * _s9))])
+            pygame.draw.line(surface, (160, 110, 70),
+                             (_cx9 - int(16 * _s9), _hy9b - int(11 * _s9)),
+                             (_cx9 + int(16 * _s9), _hy9b - int(11 * _s9)),
+                             max(1, int(2 * _s9)))
+
+        elif char_name == "Izic Newt":
+            # The wig goes round the head, not over the face
+            for _sg in (-1, 1):
+                pygame.draw.ellipse(surface, (238, 238, 244),
+                                    (_cx9 + _sg * int(17 * _s9) - int(8 * _s9),
+                                     _hy9b - int(8 * _s9),
+                                     max(3, int(16 * _s9)), max(4, int(32 * _s9))))
+            pygame.draw.ellipse(surface, (242, 242, 248),
+                                (_cx9 - int(20 * _s9), _hy9b - int(30 * _s9),
+                                 max(5, int(40 * _s9)), max(4, int(20 * _s9))))
+            _eyes(_cx9, _hy9b, _hr9)
+            _ap9 = ((_gt2 * 0.55) % 1.0)
+            _ay9 = _hy9b - int(46 * _s9) + int(_ap9 * 36 * _s9)
+            pygame.draw.circle(surface, (206, 56, 52),
+                               (_cx9 + int(24 * _s9), _ay9), max(2, int(6 * _s9)))
+            pygame.draw.line(surface, (90, 130, 60),
+                             (_cx9 + int(24 * _s9), _ay9 - int(5 * _s9)),
+                             (_cx9 + int(26 * _s9), _ay9 - int(10 * _s9)),
+                             max(1, int(1.5 * _s9)))
+
+        elif char_name == "Darvin de Bread&butterfly":
+            # Wings of bread, one of them half eaten
+            for _sg in (-1, 1):
+                _fl9 = math.sin(_gt2 * 3.4 + (0 if _sg > 0 else 1.6))
+                _wx10 = _cx9 + _sg * int((26 + _fl9 * 5) * _s9)
+                _wy10 = _hy9b + int(10 * _s9)
+                pygame.draw.polygon(surface, (226, 196, 140), [
+                    (_cx9 + _sg * int(8 * _s9), _hy9b + int(4 * _s9)),
+                    (_wx10, _wy10 - int(20 * _s9)),
+                    (_wx10 + _sg * int(8 * _s9), _wy10 + int(6 * _s9)),
+                    (_cx9 + _sg * int(8 * _s9), _wy10 + int(14 * _s9))])
+                pygame.draw.polygon(surface, (178, 140, 86), [
+                    (_cx9 + _sg * int(8 * _s9), _hy9b + int(4 * _s9)),
+                    (_wx10, _wy10 - int(20 * _s9)),
+                    (_wx10 + _sg * int(8 * _s9), _wy10 + int(6 * _s9)),
+                    (_cx9 + _sg * int(8 * _s9), _wy10 + int(14 * _s9))],
+                    max(1, int(1.6 * _s9)))
+                if _sg > 0:                # a bite out of the right one
+                    pygame.draw.circle(surface, (26, 24, 34),
+                                       (_wx10 + int(4 * _s9), _wy10 - int(6 * _s9)),
+                                       max(2, int(7 * _s9)))
+            _eyes(_cx9, _hy9b, _hr9)
+            pygame.draw.ellipse(surface, (236, 236, 240),      # a great white beard
+                                (_cx9 - int(10 * _s9), _hy9b + int(9 * _s9),
+                                 max(4, int(20 * _s9)), max(5, int(20 * _s9))))
+            for _sg in (-1, 1):            # antennae, because butterfly
+                pygame.draw.line(surface, (120, 100, 70),
+                                 (_cx9 + _sg * int(6 * _s9), _hy9b - int(14 * _s9)),
+                                 (_cx9 + _sg * int(13 * _s9), _hy9b - int(30 * _s9)),
+                                 max(1, int(1.6 * _s9)))
+                pygame.draw.circle(surface, (120, 100, 70),
+                                   (_cx9 + _sg * int(13 * _s9), _hy9b - int(30 * _s9)),
+                                   max(1, int(2.2 * _s9)))
+
+        else:                               # Old Mr. Eyeingstine
+            # The hair, the moustache, and one enormous eye
+            for _k in range(9):
+                _a10 = -2.9 + _k * 0.33
+                pygame.draw.line(surface, (236, 238, 244),
+                                 (_cx9 + int(math.cos(_a10) * _hr9 * 0.9),
+                                  _hy9b + int(math.sin(_a10) * _hr9 * 0.9)),
+                                 (_cx9 + int(math.cos(_a10) * _hr9 * (1.9 + 0.3 *
+                                             math.sin(_gt2 * 2 + _k))),
+                                  _hy9b + int(math.sin(_a10) * _hr9 * 1.9)),
+                                 max(2, int(2.4 * _s9)))
+            _er9 = int(_hr9 * 0.78)
+            pygame.draw.circle(surface, (250, 250, 254), (_cx9, _hy9b), _er9)
+            pygame.draw.circle(surface, (120, 170, 200), (_cx9, _hy9b),
+                               max(2, int(_er9 * 0.58)))
+            pygame.draw.circle(surface, (22, 20, 28),
+                               (_cx9 + facing * int(_er9 * 0.18), _hy9b),
+                               max(1, int(_er9 * 0.3)))
+            pygame.draw.circle(surface, (255, 255, 255),
+                               (_cx9 - int(_er9 * 0.26), _hy9b - int(_er9 * 0.3)),
+                               max(1, int(_er9 * 0.16)))
+            pygame.draw.ellipse(surface, (236, 238, 244),
+                                (_cx9 - int(17 * _s9), _hy9b + int(13 * _s9),
+                                 max(5, int(34 * _s9)), max(3, int(11 * _s9))))
+
+        if action == 'punch':
+            return (_cx9 + facing * int(36 * _s9), _hy9b + int(16 * _s9))
+        if action == 'kick':
+            return (_cx9 + facing * int(action_t * 78 * _s9), _hy9b + int(40 * _s9))
+        return None
+
     # ── Sickman Stickman: a stickman who refuses to animate ───────────────
     if char_name == "Sickman Stickman":
         _kt   = pygame.time.get_ticks() / 1000.0

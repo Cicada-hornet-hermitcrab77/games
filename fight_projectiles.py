@@ -38,6 +38,458 @@ class Projectile:
 # BeeShot  (Beekeeper's bee swarm — small angled projectile with vy support)
 # ---------------------------------------------------------------------------
 
+class SikLaser:
+    """Da Sik Worm's kick: a beam out of both eyes that sweeps forward."""
+    LIFE   = 26
+    DMG    = 14
+    HEIGHT = 11
+
+    def __init__(self, x, y, facing, owner):
+        self.x      = float(x)
+        self.y      = float(y)
+        self.facing = facing
+        self.owner  = owner
+        self.alive  = True
+        self.t      = 0
+        self.hit    = False
+
+    @property
+    def reach(self):
+        return min(1.0, self.t / 7.0) * (WIDTH * 0.75)
+
+    def update(self):
+        self.t += 1
+        if self.t > self.LIFE:
+            self.alive = False
+
+    def collides(self, fighter):
+        if self.hit:
+            return False
+        _x1 = self.x
+        _x2 = self.x + self.facing * self.reach
+        _lo, _hi = min(_x1, _x2), max(_x1, _x2)
+        return (_lo <= fighter.x <= _hi and
+                abs((fighter.y - 60) - self.y) < 46)
+
+    def draw(self, surface):
+        _fade = max(0.0, 1.0 - max(0, self.t - 14) / 12.0)
+        if _fade <= 0:
+            return
+        _len = int(self.reach)
+        _h   = max(2, int(self.HEIGHT * _fade))
+        _beam = pygame.Surface((max(1, _len), _h * 3), pygame.SRCALPHA)
+        for _i, (_c, _hh) in enumerate((((120, 255, 180, 90), _h * 3),
+                                        ((180, 255, 220, 170), _h * 2),
+                                        ((250, 255, 250, 240), _h))):
+            pygame.draw.rect(_beam, _c, (0, (_h * 3 - _hh) // 2, max(1, _len), _hh))
+        _bx = int(self.x) if self.facing > 0 else int(self.x) - _len
+        surface.blit(_beam, (_bx, int(self.y) - _h * 3 // 2))
+        for _k in range(3):               # sparks off the muzzle
+            _a = self.t * 0.5 + _k * 2.1
+            pygame.draw.circle(surface, (200, 255, 220),
+                               (int(self.x + math.cos(_a) * 9),
+                                int(self.y + math.sin(_a) * 9)), 2)
+
+
+class PokerAlly:
+    """Pokerhauntus's summon: a card-suited ally that walks in and swings.
+
+    It picks its own fights and goes away after a while, the way an ally
+    with somewhere else to be does.
+    """
+    LIFE     = FPS * 9
+    SPEED    = 3.1
+    DMG      = 9
+    SWING_CD = 46
+    REACH    = 54
+
+    SUITS = ("spade", "heart", "club", "diamond")
+
+    def __init__(self, x, owner):
+        self.x      = float(x)
+        self.y      = float(GROUND_Y)
+        self.owner  = owner
+        self.suit   = random.choice(self.SUITS)
+        self.alive  = True
+        self.life   = self.LIFE
+        self.cd     = 0
+        self.facing = 1
+        self.t      = 0
+        self.swing  = 0
+
+    def update(self, target):
+        self.t += 1
+        self.life -= 1
+        if self.cd > 0:
+            self.cd -= 1
+        if self.swing > 0:
+            self.swing -= 1
+        if self.life <= 0:
+            self.alive = False
+            return
+        if target is None or target.hp <= 0:
+            return
+        _dx = target.x - self.x
+        self.facing = 1 if _dx > 0 else -1
+        if abs(_dx) > self.REACH - 8:
+            self.x += self.facing * self.SPEED
+        elif self.cd == 0:
+            self.cd    = self.SWING_CD
+            self.swing = 12
+            target.take_proj_dmg(self.DMG)
+            target.knockback = self.facing * 7
+        self.x = max(24.0, min(float(WIDTH - 24), self.x))
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        _fade = 255 if self.life > 60 else int(255 * (self.life / 60.0))
+        _card = pygame.Surface((40, 76), pygame.SRCALPHA)
+        pygame.draw.rect(_card, (244, 242, 236, _fade), (0, 0, 40, 76), border_radius=5)
+        pygame.draw.rect(_card, (60, 56, 70, _fade), (0, 0, 40, 76), 2, border_radius=5)
+        _red = self.suit in ("heart", "diamond")
+        _sc  = (206, 52, 60, _fade) if _red else (40, 38, 46, _fade)
+        if self.suit == "heart":
+            pygame.draw.polygon(_card, _sc, [(20, 30), (9, 18), (14, 12),
+                                             (20, 17), (26, 12), (31, 18)])
+        elif self.suit == "diamond":
+            pygame.draw.polygon(_card, _sc, [(20, 10), (30, 21), (20, 32), (10, 21)])
+        elif self.suit == "spade":
+            pygame.draw.polygon(_card, _sc, [(20, 9), (31, 22), (20, 30), (9, 22)])
+            pygame.draw.rect(_card, _sc, (18, 28, 4, 7))
+        else:
+            for _ox, _oy in ((20, 14), (13, 24), (27, 24)):
+                pygame.draw.circle(_card, _sc, (_ox, _oy), 6)
+            pygame.draw.rect(_card, _sc, (18, 26, 4, 7))
+        surface.blit(_card, (cx - 20, cy - 86))
+        # Head above the card, with a feather in a headband
+        pygame.draw.circle(surface, (196, 142, 102), (cx, cy - 98), 11)
+        pygame.draw.line(surface, (150, 60, 50), (cx - 11, cy - 101),
+                         (cx + 11, cy - 101), 3)
+        pygame.draw.polygon(surface, (230, 190, 90), [
+            (cx + 4, cy - 106), (cx + 12, cy - 126), (cx + 9, cy - 104)])
+        for _sg in (-1, 1):               # legs under the card
+            pygame.draw.line(surface, (196, 142, 102), (cx + _sg * 5, cy - 12),
+                             (cx + _sg * 10, cy), 3)
+        # Arm, out when it swings
+        _ax = cx + self.facing * (30 if self.swing else 18)
+        pygame.draw.line(surface, (196, 142, 102), (cx + self.facing * 14, cy - 54),
+                         (_ax, cy - (40 if self.swing else 44)), 4)
+
+
+class BigApple:
+    """Izic Newt's punch: an apple that keeps falling towards whoever he hit."""
+    RADIUS = 17
+    DMG    = 16
+    LIFE   = FPS * 5
+    ACCEL  = 0.42
+    MAXV   = 7.5
+
+    def __init__(self, x, y, facing, owner, target=None):
+        self.x      = float(x)
+        self.y      = float(y)
+        self.vx     = 4.5 * facing
+        self.vy     = -2.0
+        self.owner  = owner
+        self.target = target
+        self.alive  = True
+        self.life   = self.LIFE
+        self.spin   = 0.0
+
+    def update(self):
+        self.life -= 1
+        self.spin += 5.0
+        if self.life <= 0:
+            self.alive = False
+            return
+        _t = self.target
+        if _t is not None and _t.hp > 0:
+            _dx = _t.x - self.x
+            _dy = (_t.y - 60) - self.y
+            _d  = max(1.0, math.hypot(_dx, _dy))
+            self.vx += (_dx / _d) * self.ACCEL
+            self.vy += (_dy / _d) * self.ACCEL
+            _sp = math.hypot(self.vx, self.vy)
+            if _sp > self.MAXV:
+                self.vx *= self.MAXV / _sp
+                self.vy *= self.MAXV / _sp
+        self.x += self.vx
+        self.y += self.vy
+        if self.x < -40 or self.x > WIDTH + 40 or self.y > HEIGHT + 40:
+            self.alive = False
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x,
+                          self.y - (fighter.y - 60)) < self.RADIUS + 28
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        pygame.draw.circle(surface, (188, 40, 42), (cx, cy), self.RADIUS)
+        pygame.draw.circle(surface, (224, 72, 66), (cx - 5, cy - 4),
+                           self.RADIUS - 7)
+        pygame.draw.circle(surface, (250, 190, 180), (cx - 7, cy - 7), 3)
+        pygame.draw.line(surface, (110, 78, 40), (cx + 1, cy - self.RADIUS),
+                         (cx + 4, cy - self.RADIUS - 8), 3)
+        pygame.draw.ellipse(surface, (90, 170, 80),
+                            (cx + 4, cy - self.RADIUS - 10, 13, 7))
+
+
+class FallingAnimal:
+    """Darvin's weather: assorted creatures, raining steadily, all match."""
+    GRAVITY = 0.3
+    DMG     = 9
+    HIT_CD  = 44
+    LIFE    = FPS * 3
+
+    # kind -> how big it comes down. A beetle is a nuisance; an elephant is
+    # a different sort of afternoon.
+    KINDS = {
+        "beetle":   0.45,
+        "finch":    0.7,
+        "frog":     0.85,
+        "iguana":   1.1,
+        "tortoise": 1.4,
+        "capybara": 1.9,
+        "elephant": 2.8,
+    }
+
+    def __init__(self):
+        self.kind   = random.choice(list(self.KINDS))
+        self.scale  = self.KINDS[self.kind] * random.uniform(0.85, 1.2)
+        self.x      = float(random.randint(50, WIDTH - 50))
+        self.y      = -20.0
+        # the big ones come down harder and hurt more
+        self.vy     = random.uniform(1.2, 2.6) + self.scale * 0.5
+        self.vx     = random.uniform(-0.8, 0.8) / max(0.5, self.scale)
+        self.alive  = True
+        self.hit_cd = 0
+        self.landed = False
+        self.life   = self.LIFE
+        self.t      = random.uniform(0, 6.28)
+
+    def update(self):
+        self.t += 0.2
+        if self.hit_cd > 0:
+            self.hit_cd -= 1
+        if self.landed:
+            self.life -= 1
+            if self.life <= 0:
+                self.alive = False
+            return
+        self.vy += self.GRAVITY
+        self.y  += self.vy
+        self.x  += self.vx
+        if self.y >= GROUND_Y - 10:
+            self.y = GROUND_Y - 10
+            self.landed = True
+
+    @property
+    def dmg(self):
+        return max(3, int(self.DMG * self.scale))
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x,
+                          self.y - (fighter.y - 60)) < 22 + 16 * self.scale
+
+    def draw(self, surface):
+        _sc = self.scale
+        _tmp = pygame.Surface((int(120 * _sc) + 8, int(90 * _sc) + 8), pygame.SRCALPHA)
+        self._draw_body(_tmp, _tmp.get_width() // 2, _tmp.get_height() // 2, _sc)
+        surface.blit(_tmp, (int(self.x) - _tmp.get_width() // 2,
+                            int(self.y) - _tmp.get_height() // 2))
+
+    def _draw_body(self, surface, cx, cy, _sc=1.0):
+        """Each animal at whatever size it happens to be."""
+        def S(v):
+            return max(1, int(v * _sc))
+
+        _flap = math.sin(self.t) * 5 * _sc
+
+        if self.kind == "beetle":
+            pygame.draw.ellipse(surface, (70, 60, 86),
+                                (cx - S(10), cy - S(7), S(20), S(15)))
+            pygame.draw.line(surface, (40, 34, 50), (cx, cy - S(7)),
+                             (cx, cy + S(8)), S(2))
+            pygame.draw.circle(surface, (50, 44, 60), (cx, cy - S(9)), S(5))
+            for _sg in (-1, 1):
+                pygame.draw.line(surface, (40, 34, 50),
+                                 (cx + _sg * S(3), cy - S(12)),
+                                 (cx + _sg * S(8), cy - S(18)), S(2))
+
+        elif self.kind == "finch":
+            pygame.draw.ellipse(surface, (226, 180, 70),
+                                (cx - S(9), cy - S(6), S(18), S(13)))
+            pygame.draw.polygon(surface, (196, 148, 50), [
+                (cx - S(2), cy - S(4)),
+                (cx - S(12), cy - S(4) - int(_flap)),
+                (cx - S(2), cy + S(3))])
+            pygame.draw.circle(surface, (236, 198, 90), (cx + S(7), cy - S(6)), S(5))
+            pygame.draw.polygon(surface, (240, 160, 60), [
+                (cx + S(11), cy - S(6)), (cx + S(17), cy - S(4)),
+                (cx + S(11), cy - S(2))])
+            pygame.draw.circle(surface, (30, 26, 24), (cx + S(8), cy - S(8)), S(1))
+
+        elif self.kind == "frog":
+            pygame.draw.ellipse(surface, (110, 190, 90),
+                                (cx - S(11), cy - S(6), S(22), S(14)))
+            for _sg in (-1, 1):
+                pygame.draw.circle(surface, (150, 215, 120),
+                                   (cx + _sg * S(6), cy - S(8)), S(5))
+                pygame.draw.circle(surface, (26, 24, 30),
+                                   (cx + _sg * S(6), cy - S(8)), S(2))
+                pygame.draw.line(surface, (90, 165, 76),
+                                 (cx + _sg * S(9), cy + S(3)),
+                                 (cx + _sg * S(15), cy + S(8)), S(3))
+
+        elif self.kind == "iguana":
+            pygame.draw.ellipse(surface, (96, 180, 110),
+                                (cx - S(12), cy - S(4), S(22), S(10)))
+            pygame.draw.line(surface, (96, 180, 110), (cx - S(11), cy),
+                             (cx - S(24), cy + S(5)), S(3))
+            pygame.draw.circle(surface, (120, 200, 130), (cx + S(11), cy - S(3)), S(5))
+            pygame.draw.circle(surface, (26, 24, 30), (cx + S(13), cy - S(4)), S(1))
+            for _k in range(4):
+                pygame.draw.polygon(surface, (60, 140, 80), [
+                    (cx - S(8) + _k * S(5), cy - S(4)),
+                    (cx - S(6) + _k * S(5), cy - S(10)),
+                    (cx - S(4) + _k * S(5), cy - S(4))])
+
+        elif self.kind == "tortoise":
+            pygame.draw.ellipse(surface, (110, 140, 80),
+                                (cx - S(13), cy - S(9), S(26), S(17)))
+            for _ox in (-7, 0, 7):
+                pygame.draw.line(surface, (74, 100, 56),
+                                 (cx + S(_ox), cy - S(7)),
+                                 (cx + S(_ox), cy + S(6)), S(2))
+            pygame.draw.circle(surface, (150, 170, 110), (cx + S(15), cy + S(2)), S(5))
+            pygame.draw.circle(surface, (26, 24, 30), (cx + S(17), cy + S(1)), S(1))
+            for _ox in (-9, 7):
+                pygame.draw.line(surface, (150, 170, 110),
+                                 (cx + S(_ox), cy + S(7)),
+                                 (cx + S(_ox), cy + S(13)), S(4))
+
+        elif self.kind == "capybara":
+            pygame.draw.ellipse(surface, (150, 112, 70),
+                                (cx - S(20), cy - S(10), S(40), S(23)))
+            pygame.draw.ellipse(surface, (166, 126, 82),
+                                (cx + S(12), cy - S(14), S(18), S(16)))
+            for _sg in (-1, 1):
+                pygame.draw.circle(surface, (150, 112, 70),
+                                   (cx + S(17) + _sg * S(4), cy - S(14)), S(3))
+            pygame.draw.circle(surface, (36, 30, 28), (cx + S(25), cy - S(9)), S(2))
+            pygame.draw.circle(surface, (90, 66, 48), (cx + S(29), cy - S(6)), S(2))
+            for _ox in (-12, -2, 8):
+                pygame.draw.line(surface, (128, 94, 58),
+                                 (cx + S(_ox), cy + S(10)),
+                                 (cx + S(_ox), cy + S(19)), S(5))
+
+        else:                                      # elephant
+            pygame.draw.ellipse(surface, (138, 138, 150),
+                                (cx - S(26), cy - S(14), S(50), S(30)))
+            pygame.draw.circle(surface, (150, 150, 162), (cx + S(22), cy - S(8)), S(14))
+            pygame.draw.ellipse(surface, (122, 122, 136),
+                                (cx + S(10), cy - S(22), S(16), S(26)))
+            # the trunk, swinging
+            _tr = int(math.sin(self.t * 0.8) * 4 * _sc)
+            pygame.draw.lines(surface, (150, 150, 162), False, [
+                (cx + S(32), cy - S(6)), (cx + S(37), cy + S(6) + _tr),
+                (cx + S(33), cy + S(17) + _tr)], S(6))
+            pygame.draw.polygon(surface, (238, 236, 228), [
+                (cx + S(28), cy + S(1)), (cx + S(39), cy + S(9)),
+                (cx + S(27), cy + S(5))])
+            pygame.draw.circle(surface, (32, 30, 34), (cx + S(27), cy - S(11)), S(2))
+            for _ox in (-18, -6, 6, 16):
+                pygame.draw.rect(surface, (126, 126, 140),
+                                 (cx + S(_ox) - S(4), cy + S(12), S(9), S(16)))
+
+class UraniumBomb:
+    """Old Mr. Eyeingstine's punch, and what the maths turned out to mean."""
+    RADIUS         = 13
+    SPEED_X        = 7.5
+    LAUNCH_VY      = -7.0
+    GRAVITY        = 0.42
+    EXPLODE_RADIUS = 132
+    EXPLODE_DMG    = 38
+    EXPLODE_DUR    = 34
+
+    def __init__(self, x, y, facing, owner):
+        self.x        = float(x)
+        self.y        = float(y)
+        self.vx       = self.SPEED_X * facing
+        self.vy       = self.LAUNCH_VY
+        self.owner    = owner
+        self.alive    = True
+        self.exploded = False
+        self.timer    = 0
+        self.t        = 0
+
+    def update(self):
+        self.t += 1
+        if self.exploded:
+            self.timer += 1
+            if self.timer > self.EXPLODE_DUR:
+                self.alive = False
+            return
+        self.vy += self.GRAVITY
+        self.x  += self.vx
+        self.y  += self.vy
+        if self.y >= GROUND_Y - 8 or self.x < 6 or self.x > WIDTH - 6:
+            self.y = min(self.y, GROUND_Y - 8)
+            self.explode()
+
+    def explode(self):
+        if not self.exploded:
+            self.exploded = True
+            self.timer    = 0
+
+    def hits(self, fighter):
+        """True the frame it goes off, for anyone inside the blast."""
+        if not self.exploded or self.timer != 1:
+            return False
+        return math.hypot(self.x - fighter.x,
+                          self.y - (fighter.y - 60)) < self.EXPLODE_RADIUS
+
+    def collides(self, fighter):
+        if self.exploded:
+            return False
+        return math.hypot(self.x - fighter.x,
+                          self.y - (fighter.y - 60)) < self.RADIUS + 26
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        if self.exploded:
+            _p = self.timer / float(self.EXPLODE_DUR)
+            _r = int(self.EXPLODE_RADIUS * min(1.0, _p * 1.7))
+            _bl = pygame.Surface((_r * 2 + 4, _r * 2 + 4), pygame.SRCALPHA)
+            for _i, (_rr, _c) in enumerate(((1.0, (120, 240, 140, int(120 * (1 - _p)))),
+                                            (0.68, (210, 255, 170, int(170 * (1 - _p)))),
+                                            (0.36, (255, 255, 230, int(230 * (1 - _p)))))):
+                pygame.draw.circle(_bl, _c, (_r + 2, _r + 2), max(1, int(_r * _rr)))
+            surface.blit(_bl, (cx - _r - 2, cy - _r - 2))
+            # the cloud going up
+            _sh = int(_p * 70)
+            pygame.draw.circle(surface, (170, 220, 150),
+                               (cx, cy - _sh - 20), max(2, int(26 * (1 - _p * 0.4))))
+            pygame.draw.rect(surface, (150, 200, 140),
+                             (cx - 7, cy - _sh - 16, 14, _sh + 16))
+            return
+        pygame.draw.ellipse(surface, (86, 102, 74),
+                            (cx - self.RADIUS, cy - self.RADIUS + 3,
+                             self.RADIUS * 2, self.RADIUS * 2 - 6))
+        pygame.draw.ellipse(surface, (60, 74, 52),
+                            (cx - self.RADIUS, cy - self.RADIUS + 3,
+                             self.RADIUS * 2, self.RADIUS * 2 - 6), 2)
+        # the trefoil, turning
+        for _k in range(3):
+            _a = self.t * 0.12 + _k * 2.094
+            pygame.draw.polygon(surface, (240, 220, 60), [
+                (cx, cy),
+                (cx + int(math.cos(_a - 0.42) * self.RADIUS * 0.85),
+                 cy + int(math.sin(_a - 0.42) * self.RADIUS * 0.85)),
+                (cx + int(math.cos(_a + 0.42) * self.RADIUS * 0.85),
+                 cy + int(math.sin(_a + 0.42) * self.RADIUS * 0.85))])
+        pygame.draw.circle(surface, (40, 44, 36), (cx, cy), 3)
+
+
 def _draw_star(surface, cx, cy, r, col):
     """A tiny five-pointed sparkle."""
     _pts = []

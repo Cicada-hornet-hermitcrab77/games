@@ -273,4 +273,59 @@ assert '_target.hp = max(0, _target.hp - 10)' in _g2, "the loser hat costs them 
 print("Took the L: L platforms, shirts that loser you, and Sickman Stickman's "
       "eight-item bag")
 
+# 12. The ghost clan
+_GHOST = ["Da Sik Worm", "Pokerhauntus", "Izic Newt",
+          "Darvin de Bread&butterfly", "Old Mr. Eyeingstine"]
+_want = {"Da Sik Worm": 10, "Pokerhauntus": 50, "Izic Newt": 100,
+         "Darvin de Bread&butterfly": 200, "Old Mr. Eyeingstine": 500}
+for _nm2, _n2 in _want.items():
+    _c3 = CONDS[_nm2]
+    assert _c3[0] == "ghost_snake_kills" and _c3[2] == _n2, (_nm2, _c3)
+    _ch3 = next(c for c in D.CHARACTERS if c["name"] == _nm2)
+    assert _ch3.get("ghost_float"), _nm2
+    assert "ghost" in W.categories_of(_ch3, CONDS), _nm2
+assert W.CATEGORY_COLOR.get("ghost"), "the clan needs a colour again"
+# the kills are counted and banked
+_g3 = open("fight_game.py").read()
+assert "_ghost_kills_flag[0] += _prev_gs - len(ghost_snakes)" in _g3
+assert _g3.count("_ghost_kills_flag[0] += _prev_gs - len(ghost_snakes)") == 2
+assert 'stats["ghost_snake_kills"]' in _g3
+# each of the five has its own weapon, and it fires from the right button
+_kickers = {"Da Sik Worm": ("sik_laser_kick", "pending_sik_laser"),
+            "Pokerhauntus": ("poker_ally_kick", "pending_poker_ally")}
+_punchers = {"Izic Newt": ("big_apple_punch", "pending_big_apple"),
+             "Old Mr. Eyeingstine": ("uranium_punch", "pending_uranium")}
+for _nm2, (_flag, _pend) in _kickers.items():
+    _f3 = Fighter(400, next(c for c in D.CHARACTERS if c["name"] == _nm2), 1, CTRL)
+    _f3._trigger_kick_abilities(None)
+    assert getattr(_f3, _pend), _nm2
+    _f4 = Fighter(400, next(c for c in D.CHARACTERS if c["name"] == _nm2), 1, CTRL)
+    _f4._trigger_punch_abilities()
+    assert not getattr(_f4, _pend), f"{_nm2} should not fire on punch"
+for _nm2, (_flag, _pend) in _punchers.items():
+    _f3 = Fighter(400, next(c for c in D.CHARACTERS if c["name"] == _nm2), 1, CTRL)
+    _f3._trigger_punch_abilities()
+    assert getattr(_f3, _pend), _nm2
+    _f4 = Fighter(400, next(c for c in D.CHARACTERS if c["name"] == _nm2), 1, CTRL)
+    _f4._trigger_kick_abilities(None)
+    assert not getattr(_f4, _pend), f"{_nm2} should not fire on kick"
+assert next(c for c in D.CHARACTERS
+            if c["name"] == "Darvin de Bread&butterfly").get("animal_rain")
+# the animals come in seven sizes, and the big ones hurt more
+from fight_projectiles import FallingAnimal as _FA
+assert len(_FA.KINDS) == 7, _FA.KINDS
+_sizes = sorted(_FA.KINDS.values())
+assert _sizes[0] < 0.6 and _sizes[-1] > 2.0, _sizes
+_small = _FA(); _small.kind, _small.scale = "beetle", _FA.KINDS["beetle"]
+_big = _FA(); _big.kind, _big.scale = "elephant", _FA.KINDS["elephant"]
+assert _big.dmg > _small.dmg * 4, (_small.dmg, _big.dmg)
+_surf2 = pygame.Surface((900, 550))
+for _k2 in _FA.KINDS:
+    _a3 = _FA(); _a3.kind, _a3.scale = _k2, _FA.KINDS[_k2]
+    _a3.x, _a3.y = 450, 300
+    _a3.draw(_surf2)
+print(f"ghost clan: five fighters at 10/50/100/200/500 banishments, each with "
+      f"its own weapon, and {len(_FA.KINDS)} sizes of animal "
+      f"({_small.dmg}-{_big.dmg} damage)")
+
 print("ALL OK")
