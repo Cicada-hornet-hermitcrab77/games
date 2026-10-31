@@ -331,8 +331,8 @@ print(f"ghost clan: five fighters at 10/50/100/200/500 banishments, each with "
 # 13. Halloween extras: the sticky note, no costumes in special modes,
 #     and ten wins to a roll
 _ui2 = open("fight_ui.py").read()
-assert "[] if char_filter is not None else enumerate(CHARACTERS)" in _ui2, \
-    "a special mode must not offer costumes"
+assert 'if char_filter is not None and _cc0["name"] not in char_filter' in _ui2, \
+    "a special mode must only offer the costumes its own roster names"
 assert '_sick_note' in _ui2 and '"sick"' in _ui2, "the Feasterween note"
 assert "_sick_note[3] = FPS * 5" in _ui2, "pressing it should summon him"
 _g4 = open("fight_game.py").read()
