@@ -370,4 +370,23 @@ assert 'if c["name"] in char_filter and not c.get("costume_variant")' in _ui2, \
 print(f"Halloween: {len(_hall)} costumes on the rack, the sick note on the "
       f"title, ten wins to a roll, and Sickman Stickman in Cornucopia's box")
 
+# 14. Halloween easter eggs, and all three gated to the event
+for _needle, _what in (
+        ('_hallow     = bool(_ev_mode_ev and', "the Halloween gate"),
+        ('_boo_buf.endswith("boo")', "typing boo"),
+        ('if _bat[0] and math.hypot(', "swatting the bat"),
+        ('if _pumpkin[1] and _pumpkin[1].collidepoint(_mp):', "pressing the pumpkin"),
+        ('_bats_hit[0] += 1', "the bat counter"),
+        ('"stop that" if _pumpkin[0] >= 5 else', "the pumpkin getting fed up")):
+    assert _needle in _ui2, f"MISSING: {_what}"
+# every one of them sits inside the `if _hallow:` block or its key handler
+_h_at = _ui2.index("        if _hallow:")
+_h_end = _ui2.index("        # Achievements button", _h_at)
+_block = _ui2[_h_at:_h_end]
+for _needle in ("_bat[0] = [float(", "_pk = pygame.Rect(", "_boo[0] -= 1"):
+    assert _needle in _block, _needle
+assert "if _hallow and hasattr(event, 'unicode')" in _ui2, "boo is event-gated too"
+print("Halloween eggs: a bat to swat, a pumpkin to press, and boo for the "
+      "lights — none of them outside the event")
+
 print("ALL OK")

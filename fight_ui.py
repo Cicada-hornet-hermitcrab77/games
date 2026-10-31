@@ -816,6 +816,14 @@ def mode_select(unlocked=None, stats=None):
     STORY_SECRET  = "...Fine. ONE thing: the train leaves when the last stone falls. Now shoo."
     STORY_SECRET_AT = 12
 
+    # ── Halloween easter eggs, all only during Echoes of the Undying ──────
+    _boo_buf   = ""        # type "boo" and the lights go out
+    _boo       = [0]       # frames of darkness left
+    _bat       = [None]    # a bat crossing the screen, now and then
+    _bat_cd    = [FPS * 7]
+    _bats_hit  = [0]       # how many you have swatted
+    _pumpkin   = [0, None] # presses, and where it is on screen
+
     _type42_buf = ""
     _secret_seq = "all_the_secrets_of_the_world"
     _secret_buf = ""
@@ -858,6 +866,8 @@ def mode_select(unlocked=None, stats=None):
         clock.tick(FPS)
         preview_t = (preview_t + 0.02) % 1.0
         _ev_mode_ev = get_active_event()
+        _hallow     = bool(_ev_mode_ev and
+                           _ev_mode_ev.get("name") == "Echoes of the Undying")
         _ev_mode    = _ev_mode_ev.get("special_mode") if _ev_mode_ev else None
         _ev_label   = _ev_mode_ev.get("special_mode_label", "Event Mode") if _ev_mode_ev and _ev_mode else None
         _ev_cost    = _ev_mode_ev.get("special_mode_cost") if _ev_mode_ev and _ev_mode else None
@@ -999,6 +1009,17 @@ def mode_select(unlocked=None, stats=None):
                     for _oi in range(2):
                         if pygame.Rect(_lx2, 405 + _oi * 30, 120, 26).collidepoint(_mp):
                             survival_players = _oi
+                # A bat crossing the screen — swat it
+                if _bat[0] and math.hypot(_bat[0][0] - _mp[0],
+                                          _bat[0][1] - _mp[1]) < 28:
+                    _bats_hit[0] += 1
+                    _bat[0] = None
+                    _bat_cd[0] = FPS * 4
+                    continue
+                # The pumpkin sitting in the corner
+                if _pumpkin[1] and _pumpkin[1].collidepoint(_mp):
+                    _pumpkin[0] += 1
+                    continue
                 # The sticky note over STICK — press it and he turns up
                 if _sick_note[2] and _sick_note[2].collidepoint(_mp):
                     _sick_note[0] += 1
@@ -1016,6 +1037,11 @@ def mode_select(unlocked=None, stats=None):
                     touch_p2_enabled[0] = touch_p1_enabled[0]
             if event.type == pygame.KEYDOWN:
                 # Track "42" typed anywhere on main menu
+                if _hallow and hasattr(event, 'unicode') and event.unicode:
+                    _boo_buf = (_boo_buf + event.unicode.lower())[-4:]
+                    if _boo_buf.endswith("boo"):
+                        _boo[0] = FPS * 2
+                        _boo_buf = ""
                 if hasattr(event, 'unicode') and event.unicode in ('4', '2'):
                     _type42_buf += event.unicode
                     if _type42_buf.endswith('42'):
@@ -1513,6 +1539,107 @@ def mode_select(unlocked=None, stats=None):
                     (_sn_x - 7, _by11 + 22), (_sn_x + 7, _by11 + 22),
                     (_sn_x - 2, _by11 + 32)])
                 screen.blit(_sl, (_bx11 + 9, _by11 + 5))
+
+        # ── Halloween easter eggs ─────────────────────────────────────────
+        if _hallow:
+            # A bat crosses every so often. Swat it and it screeches off.
+            if _bat[0] is None:
+                _bat_cd[0] -= 1
+                if _bat_cd[0] <= 0:
+                    _bdir = random.choice((1, -1))
+                    _bat[0] = [float(-40 if _bdir > 0 else WIDTH + 40),
+                               float(random.randint(120, HEIGHT - 190)), _bdir, 0.0]
+                    _bat_cd[0] = random.randint(FPS * 5, FPS * 11)
+            else:
+                _bx12, _by12, _bd12, _bt12 = _bat[0]
+                _bx12 += _bd12 * 2.6
+                _bt12 += 0.26
+                _by12 += math.sin(_bt12) * 2.2
+                _bat[0] = [_bx12, _by12, _bd12, _bt12]
+                if _bx12 < -60 or _bx12 > WIDTH + 60:
+                    _bat[0] = None
+                else:
+                    _bw5 = 13 + abs(math.sin(_bt12)) * 10
+                    _bcx, _bcy = int(_bx12), int(_by12)
+                    pygame.draw.circle(screen, (34, 28, 40), (_bcx, _bcy), 7)
+                    for _sg in (-1, 1):
+                        pygame.draw.polygon(screen, (44, 36, 54), [
+                            (_bcx + _sg * 5, _bcy - 2),
+                            (_bcx + _sg * int(_bw5), _bcy - 9),
+                            (_bcx + _sg * int(_bw5 * 0.8), _bcy + 5),
+                            (_bcx + _sg * 6, _bcy + 4)])
+                        pygame.draw.polygon(screen, (28, 22, 34), [
+                            (_bcx + _sg * 3, _bcy - 8),
+                            (_bcx + _sg * 6, _bcy - 14),
+                            (_bcx + _sg * 7, _bcy - 7)])
+                    for _sg in (-1, 1):
+                        pygame.draw.circle(screen, (240, 140, 50),
+                                           (_bcx + _sg * 3, _bcy - 2), 2)
+
+            # A pumpkin sitting in the corner, which lights up as you press it
+            _pk = pygame.Rect(WIDTH - 72, HEIGHT - 56, 56, 48)
+            _pumpkin[1] = _pk
+            _lit = min(4, _pumpkin[0])
+            _pcol = ((214, 118, 34), (230, 134, 38), (244, 152, 44),
+                     (250, 176, 60), (255, 202, 90))[_lit]
+            pygame.draw.circle(screen, (92, 136, 60), (_pk.centerx, _pk.y + 4), 5)
+            pygame.draw.ellipse(screen, _pcol, _pk)
+            for _ox2 in (-14, 0, 14):
+                pygame.draw.arc(screen, tuple(max(0, c - 44) for c in _pcol),
+                                (_pk.centerx + _ox2 - 9, _pk.y, 18, _pk.height),
+                                1.4, 4.9, 2)
+            _fcol = (255, 226, 120) if _pumpkin[0] else (120, 72, 26)
+            for _sg in (-1, 1):
+                pygame.draw.polygon(screen, _fcol, [
+                    (_pk.centerx + _sg * 6, _pk.centery - 8),
+                    (_pk.centerx + _sg * 16, _pk.centery - 2),
+                    (_pk.centerx + _sg * 6, _pk.centery + 1)])
+            pygame.draw.polygon(screen, _fcol, [
+                (_pk.centerx - 13, _pk.centery + 7),
+                (_pk.centerx - 6, _pk.centery + 14),
+                (_pk.centerx, _pk.centery + 7),
+                (_pk.centerx + 6, _pk.centery + 14),
+                (_pk.centerx + 13, _pk.centery + 7),
+                (_pk.centerx + 8, _pk.centery + 18),
+                (_pk.centerx - 8, _pk.centery + 18)])
+            if _pumpkin[0]:
+                _pm = font_tiny.render(
+                    "stop that" if _pumpkin[0] >= 5 else
+                    ("hm.", "again?", "…", "fine.")[(_pumpkin[0] - 1) % 4],
+                    True, (255, 200, 120) if _pumpkin[0] >= 5 else (200, 150, 90))
+                screen.blit(_pm, (_pk.x - _pm.get_width() - 8, _pk.centery - 6))
+            if _bats_hit[0]:
+                _bh2 = font_tiny.render(f"bats swatted: {_bats_hit[0]}", True,
+                                        (150, 130, 170))
+                screen.blit(_bh2, (_pk.x - _bh2.get_width() - 8, _pk.centery + 8))
+
+            # "boo" puts the lights out, and leaves something behind
+            if _boo[0] > 0:
+                _boo[0] -= 1
+                _bp3 = 1.0 - abs((_boo[0] / float(FPS * 2)) - 0.5) * 2
+                _dark = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+                _dark.fill((0, 0, 0, int(238 * min(1.0, _bp3 * 2.5))))
+                _gx7, _gy7 = WIDTH // 2, HEIGHT // 2
+                _gr7 = int(46 + 10 * math.sin(_boo[0] * 0.18))
+                pygame.draw.circle(_dark, (0, 0, 0, 0), (_gx7, _gy7), _gr7 + 26)
+                screen.blit(_dark, (0, 0))
+                _gh3 = pygame.Surface((_gr7 * 2, int(_gr7 * 2.6)), pygame.SRCALPHA)
+                pygame.draw.ellipse(_gh3, (236, 238, 250, 210),
+                                    (0, 0, _gr7 * 2, int(_gr7 * 1.7)))
+                pygame.draw.rect(_gh3, (236, 238, 250, 210),
+                                 (0, _gr7, _gr7 * 2, int(_gr7 * 1.1)))
+                for _k4 in range(4):
+                    pygame.draw.circle(_gh3, (236, 238, 250, 210),
+                                       (int(_gr7 * 0.5 * (_k4 + 0.5)),
+                                        int(_gr7 * 2.1)), int(_gr7 * 0.26))
+                surface_eyes = ((0.33, 0.62), (0.67, 0.62))
+                for _ex2, _ey2 in surface_eyes:
+                    pygame.draw.ellipse(_gh3, (24, 22, 32, 230),
+                                        (int(_gr7 * 2 * _ex2) - 6,
+                                         int(_gr7 * _ey2) - 2, 12, 17))
+                pygame.draw.ellipse(_gh3, (24, 22, 32, 230),
+                                    (_gr7 - 9, int(_gr7 * 1.12), 18, 14))
+                screen.blit(_gh3, (_gx7 - _gr7, _gy7 - _gr7))
 
         # Achievements button
         _ac_have = len(_ach.earned(stats))
