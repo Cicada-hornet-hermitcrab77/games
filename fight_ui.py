@@ -1877,13 +1877,18 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
 
     # Seasonal costumes: one generic family per base fighter, built from the
     # COSTUMES table rather than hand-wired like the older variant families.
-    # A special event mode hands in its own roster. You fight as the fighter,
-    # not as a coat — no costumes in there.
+    # A special event mode hands in its own roster, and only what that roster
+    # names may be worn inside it — no outside costumes leak in. A mode that
+    # does name one (Took the L puts Sickman Stickman in Cornucopia's box)
+    # still gets its box.
     _cos_fam = {}          # base name -> [base index, costume indices…]
-    for _ci0, _cc0 in ([] if char_filter is not None else enumerate(CHARACTERS)):
+    for _ci0, _cc0 in enumerate(CHARACTERS):
         _cb0 = _cc0.get("costume_of")
-        if _cb0:
-            _cos_fam.setdefault(_cb0, []).append(_ci0)
+        if not _cb0:
+            continue
+        if char_filter is not None and _cc0["name"] not in char_filter:
+            continue
+        _cos_fam.setdefault(_cb0, []).append(_ci0)
     for _cb0 in list(_cos_fam):
         _bi0 = next((i for i, c in enumerate(CHARACTERS) if c["name"] == _cb0), None)
         if _bi0 is None:
@@ -1919,7 +1924,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
         # An explicit char_filter is a curated roster (e.g. Booked wanting
         # "Graduated Bookzworm" shown directly) — trust it outright rather
         # than also applying the general variant-exclusion filters below.
-        _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS) if c["name"] in char_filter]
+        # The one exception is a costume: those belong in their owner's box,
+        # not in the grid, so Sickman Stickman is reached through Cornucopia.
+        _cf_pairs = [(i, c) for i, c in enumerate(CHARACTERS)
+                     if c["name"] in char_filter and not c.get("costume_variant")]
         _CHARS    = [c for _, c in _cf_pairs]
         _orig_idx = [i for i, _ in _cf_pairs]
         COLS      = min(4, max(1, len(_CHARS)))

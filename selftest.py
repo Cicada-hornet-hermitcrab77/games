@@ -348,7 +348,26 @@ for _nm4 in ("Crankystein", "Which witch is which", "Witch's cooldron",
     _c4 = next(c for c in D.COSTUMES if c["name"] == _nm4)
     assert _c4["event"] == "Echoes of the Undying"
     assert _c4["base"] in names, _c4["base"]
+# A special mode keeps the boxes its own roster names, and nothing else.
+# Sickman Stickman has no card; he is reached through Cornucopia's box.
+def _fam_for(_filt):
+    _f = {}
+    for _i4, _c5 in enumerate(D.CHARACTERS):
+        _b4 = _c5.get("costume_of")
+        if not _b4:
+            continue
+        if _filt is not None and _c5["name"] not in _filt:
+            continue
+        _f.setdefault(_b4, []).append(_c5["name"])
+    return _f
+_TLF = frozenset({"Clown", "Hardy", "Impossible", "Mime", "Joker", "Jester",
+                  "Rage Quitter", "Cornucopia", "Sickman Stickman"})
+assert _fam_for(_TLF) == {"Cornucopia": ["Sickman Stickman"]}, _fam_for(_TLF)
+assert _fam_for(frozenset({"Ghost", "Vampire"})) == {}, "no outside costumes"
+assert len(_fam_for(None)) > 50, "the normal select still has all its boxes"
+assert 'if c["name"] in char_filter and not c.get("costume_variant")' in _ui2, \
+    "a costume belongs in its owner's box, not in the grid"
 print(f"Halloween: {len(_hall)} costumes on the rack, the sick note on the "
-      f"title, no costumes inside a special mode, ten wins to a roll")
+      f"title, ten wins to a roll, and Sickman Stickman in Cornucopia's box")
 
 print("ALL OK")
