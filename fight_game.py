@@ -8130,7 +8130,7 @@ def main():
                                              font_small,  (226, 150, 150),  -20),
                 ("Only the clowns and the hard-luck cases fight here.",
                                              font_small,  (255, 180,  70),   20),
-                ("Every win is a chance at a rare fighter:",
+                ("Every ten wins is one roll for a rare fighter:",
                                              font_small,  (255, 180,  70),   60),
                 ("1% Cornucopia   -   0.1% Sickman Stickman",
                                              font_small,  (255, 220, 120),   80),
@@ -8181,13 +8181,14 @@ def main():
                 p1_won = info[0] if isinstance(info, tuple) else False
                 if p1_won:
                     stats["took_the_l_wins"] = stats.get("took_the_l_wins", 0) + 1
-                    # Flat per-win odds, rarest first: 0.1% then 1%
-                    _tl_roll = random.random()
+                    # Ten wins buys one roll, rarest first: 0.1% then 1%
                     _tl_reward = None
-                    if _tl_roll < 0.001:
-                        _tl_reward = "Sickman Stickman"
-                    elif _tl_roll < 0.011:
-                        _tl_reward = "Cornucopia"
+                    if stats["took_the_l_wins"] % 10 == 0:
+                        _tl_roll = random.random()
+                        if _tl_roll < 0.001:
+                            _tl_reward = "Sickman Stickman"
+                        elif _tl_roll < 0.011:
+                            _tl_reward = "Cornucopia"
                     if _tl_reward and _tl_reward not in unlocked:
                         unlocked.add(_tl_reward)
                         _save_data(unlocked, stats)
@@ -8215,7 +8216,7 @@ def main():
                                              font_small,  (215, 200, 225),  -20),
                 ("Only the Halloween dead may fight here.",
                                              font_small,  (255, 180,  70),   20),
-                ("Every win is a chance at a rare fighter:",
+                ("Every ten wins is one roll for a rare fighter:",
                                              font_small,  (255, 180,  70),   60),
                 ("1% Jack O' Slash   -   0.1% Broken Jak 0' Lash",
                                              font_small,  (255, 220, 120),   80),
@@ -8271,13 +8272,14 @@ def main():
                 p1_won = info[0] if isinstance(info, tuple) else False
                 if p1_won:
                     stats["crooking_glass_wins"] = stats.get("crooking_glass_wins", 0) + 1
-                    # Flat per-win odds, rarest first: 0.1% then 1%
-                    _cg_roll = random.random()
+                    # Ten wins buys one roll, rarest first: 0.1% then 1%
                     _cg_reward = None
-                    if _cg_roll < 0.001:
-                        _cg_reward = "Broken Jak 0' Lash"
-                    elif _cg_roll < 0.011:
-                        _cg_reward = "Jack O' Slash"
+                    if stats["crooking_glass_wins"] % 10 == 0:
+                        _cg_roll = random.random()
+                        if _cg_roll < 0.001:
+                            _cg_reward = "Broken Jak 0' Lash"
+                        elif _cg_roll < 0.011:
+                            _cg_reward = "Jack O' Slash"
                     if _cg_reward and _cg_reward not in unlocked:
                         unlocked.add(_cg_reward)
                         _save_data(unlocked, stats)

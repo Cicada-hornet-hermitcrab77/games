@@ -746,6 +746,9 @@ def mode_select(unlocked=None, stats=None):
     GAP   = 7
     START = WIDTH // 2 - (8 * card_w + 7 * GAP) // 2
     card_xs = [START + i * (card_w + GAP) for i in range(8)]
+    # Feasterween: the sticky note over STICK, how long it is wobbling, where
+    # it is on screen, and how long Sickman Stickman has been standing there
+    _sick_note   = [0, 0, None, 0]
     _story_teaser = [0]   # frames left showing the nudge
     _story_rattle = [0]   # frames left on the chain rattle (decays to still)
     _story_slide  = [0]   # 0..STORY_SLIDE — how far Tombstone has risen
@@ -996,6 +999,12 @@ def mode_select(unlocked=None, stats=None):
                     for _oi in range(2):
                         if pygame.Rect(_lx2, 405 + _oi * 30, 120, 26).collidepoint(_mp):
                             survival_players = _oi
+                # The sticky note over STICK — press it and he turns up
+                if _sick_note[2] and _sick_note[2].collidepoint(_mp):
+                    _sick_note[0] += 1
+                    _sick_note[1] = 26          # it wobbles when poked
+                    _sick_note[3] = FPS * 5     # and he stays five seconds
+                    continue
                 # Touch device toggles
                 if pygame.Rect(WIDTH - 186, HEIGHT - 88, 178, 26).collidepoint(_mp):
                     achievements_screen(stats, _net.load_userdata())
@@ -1106,11 +1115,41 @@ def mode_select(unlocked=None, stats=None):
 
         screen.fill(DARK)
         draw_seasonal_decos(screen)
+        _active_ev_now = get_active_event()
         title = font_large.render("STICKMAN FIGHTER", True, YELLOW)
-        screen.blit(title, (WIDTH//2 - title.get_width()//2, 58))
+        _ttl_x = WIDTH // 2 - title.get_width() // 2
+        screen.blit(title, (_ttl_x, 58))
+
+        # ── Feasterween: somebody has stuck a note over the word STICK ─────
+        _note_rect = None
+        if _active_ev_now and _active_ev_now.get("name") == "Feasterween":
+            _pre_w = font_large.size("")[0]
+            _stk_w = font_large.size("STICK")[0]
+            _nx2 = _ttl_x - 4
+            _ny2 = 58 + 6
+            _note_rect = pygame.Rect(_nx2, _ny2, _stk_w + 8, title.get_height() - 12)
+            _tilt = math.sin(_sick_note[1] * 0.25) * 3 if _sick_note[1] > 0 else 0
+            _nt = pygame.Surface((_note_rect.width + 10, _note_rect.height + 10),
+                                 pygame.SRCALPHA)
+            pygame.draw.rect(_nt, (250, 232, 120),
+                             (5, 5, _note_rect.width, _note_rect.height))
+            pygame.draw.polygon(_nt, (226, 206, 90), [
+                (5 + _note_rect.width - 14, 5 + _note_rect.height),
+                (5 + _note_rect.width, 5 + _note_rect.height - 14),
+                (5 + _note_rect.width, 5 + _note_rect.height)])
+            _sw2 = pygame.font.SysFont("Arial", int(_note_rect.height * 0.74),
+                                       bold=True).render("sick", True, (54, 48, 40))
+            _nt.blit(_sw2, (5 + _note_rect.width // 2 - _sw2.get_width() // 2,
+                            5 + _note_rect.height // 2 - _sw2.get_height() // 2))
+            if _tilt:
+                _nt = pygame.transform.rotate(_nt, _tilt)
+            screen.blit(_nt, (_nx2 - 5, _ny2 - 5))
+            if _sick_note[1] > 0:
+                _sick_note[1] -= 1
+        _sick_note[2] = _note_rect
 
         # Show active event name if any
-        _active_ev = get_active_event()
+        _active_ev = _active_ev_now
         if _active_ev:
             _sm, _sd = _active_ev['start']
             _em, _ed = _active_ev['end']
@@ -1442,6 +1481,38 @@ def mode_select(unlocked=None, stats=None):
                          (_wk_rect.x + 16, _wk_rect.centery + 6), 1)
         _wk_lbl = font_tiny.render("WIKI  ·  the whole game  (B)", True, (190, 220, 255))
         screen.blit(_wk_lbl, (_wk_rect.x + 30, _wk_rect.centery - _wk_lbl.get_height() // 2))
+
+        # Sickman Stickman, summoned by his own note, and in no hurry
+        if _sick_note[3] > 0:
+            _sick_note[3] -= 1
+            _sn_t  = _sick_note[3]
+            _sn_in = min(1.0, (FPS * 5 - _sn_t) / 22.0)      # slides in
+            _sn_out = min(1.0, _sn_t / 22.0)                  # and back out
+            _sn_p  = min(_sn_in, _sn_out)
+            _sn_x  = int(WIDTH + 90 - _sn_p * 330)
+            try:
+                draw_stickman(screen, _sn_x, HEIGHT - 150,
+                              (238, 238, 244), -1, "idle", 0.3, scale=1.15,
+                              char_name="Sickman Stickman")
+            except Exception:
+                pass
+            if _sn_p > 0.9:
+                _says = ("that's my note.", "made in collaboration with AK47.",
+                         "you found the note.",
+                         "i am not feeling well, thank you for asking.")
+                _sl = font_tiny.render(_says[_sick_note[0] % len(_says)], True,
+                                       (226, 226, 236))
+                _bw4 = _sl.get_width() + 18
+                _bx11 = max(8, min(WIDTH - _bw4 - 8, _sn_x - _bw4 // 2))
+                _by11 = HEIGHT - 268
+                pygame.draw.rect(screen, (34, 32, 42), (_bx11, _by11, _bw4, 24),
+                                 border_radius=7)
+                pygame.draw.rect(screen, (150, 150, 170), (_bx11, _by11, _bw4, 24),
+                                 1, border_radius=7)
+                pygame.draw.polygon(screen, (34, 32, 42), [
+                    (_sn_x - 7, _by11 + 22), (_sn_x + 7, _by11 + 22),
+                    (_sn_x - 2, _by11 + 32)])
+                screen.blit(_sl, (_bx11 + 9, _by11 + 5))
 
         # Achievements button
         _ac_have = len(_ach.earned(stats))
@@ -1806,8 +1877,10 @@ def character_select(vs_ai=False, unlocked=None, unlock_hints=None, unlock_progr
 
     # Seasonal costumes: one generic family per base fighter, built from the
     # COSTUMES table rather than hand-wired like the older variant families.
+    # A special event mode hands in its own roster. You fight as the fighter,
+    # not as a coat — no costumes in there.
     _cos_fam = {}          # base name -> [base index, costume indices…]
-    for _ci0, _cc0 in enumerate(CHARACTERS):
+    for _ci0, _cc0 in ([] if char_filter is not None else enumerate(CHARACTERS)):
         _cb0 = _cc0.get("costume_of")
         if _cb0:
             _cos_fam.setdefault(_cb0, []).append(_ci0)

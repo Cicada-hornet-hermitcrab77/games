@@ -16462,34 +16462,36 @@ def _draw_rack_costume(surface, costume, hx, hy, sx, sy, wx, wy, fx, fy,
 
     elif costume == "Witch's cooldron":
         # The pot, but everything coming out of it is freezing
-        _px6, _py6 = wx - f * int(r * 1.3), wy + int(r * 0.5)
+        # Under him, standing on the ground, not off to one side
+        _px6, _py6 = wx, wy + int(r * 1.9)
+        _cr2 = 1.45                      # big enough to read at a glance
         pygame.draw.ellipse(surface, (44, 52, 60),
-                            (_px6 - int(r * 1.1), _py6 - int(r * 0.4),
-                             max(5, int(r * 2.2)), max(4, int(r * 1.5))))
+                            (_px6 - int(r * 1.1 * _cr2), _py6 - int(r * 0.4 * _cr2),
+                             max(5, int(r * 2.2 * _cr2)), max(4, int(r * 1.5 * _cr2))))
         pygame.draw.ellipse(surface, (30, 36, 44),
-                            (_px6 - int(r * 1.25), _py6 - int(r * 0.6),
-                             max(5, int(r * 2.5)), max(3, int(r * 0.6))))
+                            (_px6 - int(r * 1.25 * _cr2), _py6 - int(r * 0.6 * _cr2),
+                             max(5, int(r * 2.5 * _cr2)), max(3, int(r * 0.6 * _cr2))))
         pygame.draw.ellipse(surface, (140, 220, 236),
-                            (_px6 - int(r * 1.0), _py6 - int(r * 0.5),
-                             max(4, int(r * 2.0)), max(2, int(r * 0.42))))
+                            (_px6 - int(r * 1.0 * _cr2), _py6 - int(r * 0.5 * _cr2),
+                             max(4, int(r * 2.0 * _cr2)), max(2, int(r * 0.4 * _cr22))))
         for _sg in (-1, 1):            # the legs it stands on
             pygame.draw.line(surface, (30, 36, 44),
-                             (_px6 + _sg * int(r * 0.7), _py6 + int(r * 1.0)),
-                             (_px6 + _sg * int(r * 0.95), _py6 + int(r * 1.5)),
+                             (_px6 + _sg * int(r * 0.7 * _cr2), _py6 + int(r * 1.0 * _cr2)),
+                             (_px6 + _sg * int(r * 0.95 * _cr2), _py6 + int(r * 1.5 * _cr2)),
                              max(2, int(s * 2)))
         for _k in range(4):            # cold coming off it, not steam
             _cp2 = ((t * 0.55 + _k * 0.25) % 1.0)
-            _fog = pygame.Surface((int(r * 1.5), int(r * 1.5)), pygame.SRCALPHA)
+            _fog = pygame.Surface((int(r * 1.5 * _cr2), int(r * 1.5 * _cr2)), pygame.SRCALPHA)
             pygame.draw.circle(_fog, (196, 236, 246, int(150 * (1 - _cp2))),
-                               (int(r * 0.75), int(r * 0.75)),
+                               (int(r * 0.7 * _cr25), int(r * 0.7 * _cr25)),
                                max(2, int(r * (0.3 + _cp2 * 0.35))))
-            surface.blit(_fog, (_px6 + int((_k - 1.5) * r * 0.5) - int(r * 0.75),
+            surface.blit(_fog, (_px6 + int((_k - 1.5) * r * 0.5 * _cr2) - int(r * 0.7 * _cr25),
                                 _py6 - int(r * (0.8 + _cp2 * 2.0))))
         for _k in range(3):            # and icicles off the rim
             pygame.draw.polygon(surface, (214, 242, 250), [
-                (_px6 + int((_k - 1) * r * 0.75) - int(r * 0.12), _py6 - int(r * 0.22)),
-                (_px6 + int((_k - 1) * r * 0.75) + int(r * 0.12), _py6 - int(r * 0.22)),
-                (_px6 + int((_k - 1) * r * 0.75), _py6 + int(r * 0.35))])
+                (_px6 + int((_k - 1) * r * 0.7 * _cr25) - int(r * 0.12 * _cr2), _py6 - int(r * 0.22 * _cr2)),
+                (_px6 + int((_k - 1) * r * 0.7 * _cr25) + int(r * 0.12 * _cr2), _py6 - int(r * 0.22 * _cr2)),
+                (_px6 + int((_k - 1) * r * 0.7 * _cr25), _py6 + int(r * 0.35 * _cr2))])
 
     elif costume == "Thriller biller":
         # Red jacket with black chevrons, one glove, and the money

@@ -392,8 +392,8 @@ def ways_to_get(name, conditions, default_set, ch=None):
                      False))
     _mode = MODE_REWARDS.get(name)
     if _mode:
-        ways.append((f"{_mode[0]} — every win rolls for one, and this one "
-                     f"comes up {_mode[1]}% of the time", False))
+        ways.append((f"{_mode[0]} — every ten wins buys one roll, and this "
+                     f"one comes up {_mode[1]}% of the time", False))
     _odds = _casino_odds().get(name)
     if _odds is not None:
         ways.append((f"The Casino — every tenth win rolls for one, and this "
@@ -1028,7 +1028,11 @@ PAGES = [
               "Jack O' Slash at one in a hundred and Broken Jak 0' Lash at one "
               "in a thousand.",
               ("h", "Rewards"),
-              "Special-mode rewards roll every tenth win, not every win."]},
+              "Special-mode rewards roll every tenth win, not every win — ten "
+              "wins buys you one roll, and the roll is still mostly nothing.",
+              ("h", "Costumes"),
+              "You cannot wear one in here. A special mode hands you its own "
+              "roster and you fight as the fighter, not as a coat."]},
     {"section": "lore", "title": "About this wiki",
      "subtitle": "and how to add to it",
      "body": [

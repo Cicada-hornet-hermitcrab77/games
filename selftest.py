@@ -328,4 +328,27 @@ print(f"ghost clan: five fighters at 10/50/100/200/500 banishments, each with "
       f"its own weapon, and {len(_FA.KINDS)} sizes of animal "
       f"({_small.dmg}-{_big.dmg} damage)")
 
+# 13. Halloween extras: the sticky note, no costumes in special modes,
+#     and ten wins to a roll
+_ui2 = open("fight_ui.py").read()
+assert "[] if char_filter is not None else enumerate(CHARACTERS)" in _ui2, \
+    "a special mode must not offer costumes"
+assert '_sick_note' in _ui2 and '"sick"' in _ui2, "the Feasterween note"
+assert "_sick_note[3] = FPS * 5" in _ui2, "pressing it should summon him"
+_g4 = open("fight_game.py").read()
+for _k3 in ("crooking_glass_wins", "took_the_l_wins"):
+    assert f'if stats["{_k3}"] % 10 == 0:' in _g4, _k3
+assert "Every ten wins is one roll for a rare fighter:" in _g4
+assert _g4.count("Every ten wins is one roll for a rare fighter:") == 2
+# the four new Halloween costumes
+_hall = [c for c in D.COSTUMES_FOR_SALE if c["event"] == "Echoes of the Undying"]
+assert len(_hall) == 12, len(_hall)
+for _nm4 in ("Crankystein", "Which witch is which", "Witch's cooldron",
+             "Thriller biller"):
+    _c4 = next(c for c in D.COSTUMES if c["name"] == _nm4)
+    assert _c4["event"] == "Echoes of the Undying"
+    assert _c4["base"] in names, _c4["base"]
+print(f"Halloween: {len(_hall)} costumes on the rack, the sick note on the "
+      f"title, no costumes inside a special mode, ten wins to a roll")
+
 print("ALL OK")
