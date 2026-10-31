@@ -2466,6 +2466,14 @@ COSTUMES = [
      "color": (236,  90, 140), "emblem": "heart", "source": "rack", "cost": 30},
     {"name": "Mummy mommy",       "base": "Medic",       "event": "Echoes of the Undying",
      "color": (228, 214, 182), "emblem": "egg",   "source": "rack", "cost": 35},
+    {"name": "Crankystein",       "base": "Rage Quitter", "event": "Echoes of the Undying",
+     "color": (124, 176, 110), "emblem": "star",  "source": "rack", "cost": 40},
+    {"name": "Which witch is which", "base": "Storm Witch", "event": "Echoes of the Undying",
+     "color": (108,  82, 160), "emblem": "clover", "source": "rack", "cost": 45},
+    {"name": "Witch's cooldron",  "base": "Crytrap",     "event": "Echoes of the Undying",
+     "color": ( 96, 182, 196), "emblem": "snow",  "source": "rack", "cost": 40},
+    {"name": "Thriller biller",   "base": "High Roller", "event": "Echoes of the Undying",
+     "color": (186,  58,  72), "emblem": "heart", "source": "rack", "cost": 45},
 
     # Feasterween — mostly said backwards
     {"name": "Yumbo jumbo",       "base": "Giant",       "event": "Feasterween",

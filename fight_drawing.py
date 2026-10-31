@@ -16395,6 +16395,138 @@ def _draw_rack_costume(surface, costume, hx, hy, sx, sy, wx, wy, fx, fy,
                              (sx + int(r * 1.0), sy + int(r * (0.15 + 0.32 * _k))),
                              max(2, int(r * 0.22)))
 
+    elif costume == "Crankystein":
+        # Flat head, bolts, stitches, and in a filthy mood about all of it
+        pygame.draw.rect(surface, (74, 112, 66),
+                         (hx - int(r * 1.15), hy - int(r * 1.5),
+                          max(4, int(r * 2.3)), max(3, int(r * 0.7))))
+        for _sg in (-1, 1):
+            pygame.draw.rect(surface, (176, 176, 186),
+                             (hx + _sg * int(r * 1.15) - int(r * 0.18),
+                              hy - int(r * 0.2),
+                              max(2, int(r * 0.36)), max(2, int(r * 0.5))))
+            pygame.draw.circle(surface, (208, 208, 216),
+                               (hx + _sg * int(r * 1.3), hy + int(r * 0.05)),
+                               max(1, int(r * 0.17)))
+        for _k, (_sx6, _sy6) in enumerate(((-0.55, -0.7), (0.35, -0.45))):
+            pygame.draw.line(surface, (46, 70, 40),
+                             (hx + int(_sx6 * r), hy + int(_sy6 * r)),
+                             (hx + int((_sx6 + 0.35) * r), hy + int((_sy6 + 0.2) * r)),
+                             max(1, int(s)))
+            for _j in range(3):
+                pygame.draw.line(surface, (46, 70, 40),
+                                 (hx + int((_sx6 + 0.1 * _j) * r),
+                                  hy + int((_sy6 + 0.06 * _j - 0.12) * r)),
+                                 (hx + int((_sx6 + 0.1 * _j) * r),
+                                  hy + int((_sy6 + 0.06 * _j + 0.12) * r)),
+                                 max(1, int(s)))
+        for _sg in (-1, 1):            # a thunderous brow
+            pygame.draw.line(surface, (40, 60, 36),
+                             (hx + _sg * int(r * 0.2), hy - int(r * 0.45)),
+                             (hx + _sg * int(r * 0.7), hy - int(r * 0.2)),
+                             max(2, int(s * 2)))
+        pygame.draw.arc(surface, (40, 60, 36),
+                        (hx - int(r * 0.6), hy + int(r * 0.5),
+                         max(3, int(r * 1.2)), max(3, int(r * 0.7))), 3.3, 6.1,
+                        max(1, int(s * 2)))
+        for _k in range(3):            # steam out of the ears, still cross
+            _a = t * 2.4 + _k * 1.4
+            pygame.draw.circle(surface, (150, 200, 150),
+                               (hx + int(r * 1.5) + int(math.cos(_a) * r * 0.3),
+                                hy - int(r * (0.6 + 0.5 * _k))),
+                               max(1, int(r * 0.2)))
+
+    elif costume == "Which witch is which":
+        # Two hats, and you cannot tell which is the real one
+        for _sg, _ph in ((-1, 0.0), (1, 2.6)):
+            _wx4 = hx + _sg * int(r * 1.5) + int(math.sin(t * 1.4 + _ph) * r * 0.3)
+            _wy4 = hy - int(r * 1.0)
+            pygame.draw.polygon(surface, (98, 72, 150) if _sg < 0 else (122, 92, 176), [
+                (_wx4, _wy4 - int(r * 1.9)),
+                (_wx4 + int(r * 0.6), _wy4),
+                (_wx4 - int(r * 0.6), _wy4)])
+            pygame.draw.ellipse(surface, (84, 60, 132),
+                                (_wx4 - int(r * 0.95), _wy4 - int(r * 0.2),
+                                 max(4, int(r * 1.9)), max(3, int(r * 0.5))))
+            pygame.draw.line(surface, (226, 196, 90),
+                             (_wx4 - int(r * 0.45), _wy4 - int(r * 0.25)),
+                             (_wx4 + int(r * 0.45), _wy4 - int(r * 0.35)),
+                             max(1, int(s * 2)))
+            # a faint second self under each hat
+            _gh2 = pygame.Surface((int(r * 1.6), int(r * 2.2)), pygame.SRCALPHA)
+            pygame.draw.ellipse(_gh2, (210, 200, 230, 70),
+                                (0, 0, int(r * 1.6), int(r * 2.2)))
+            surface.blit(_gh2, (_wx4 - int(r * 0.8), _wy4 + int(r * 0.2)))
+        _q2 = _get_font(max(8, int(r * 1.3))).render("?", True, (226, 206, 250))
+        surface.blit(_q2, (hx - _q2.get_width() // 2, hy - int(r * 3.4)))
+
+    elif costume == "Witch's cooldron":
+        # The pot, but everything coming out of it is freezing
+        _px6, _py6 = wx - f * int(r * 1.3), wy + int(r * 0.5)
+        pygame.draw.ellipse(surface, (44, 52, 60),
+                            (_px6 - int(r * 1.1), _py6 - int(r * 0.4),
+                             max(5, int(r * 2.2)), max(4, int(r * 1.5))))
+        pygame.draw.ellipse(surface, (30, 36, 44),
+                            (_px6 - int(r * 1.25), _py6 - int(r * 0.6),
+                             max(5, int(r * 2.5)), max(3, int(r * 0.6))))
+        pygame.draw.ellipse(surface, (140, 220, 236),
+                            (_px6 - int(r * 1.0), _py6 - int(r * 0.5),
+                             max(4, int(r * 2.0)), max(2, int(r * 0.42))))
+        for _sg in (-1, 1):            # the legs it stands on
+            pygame.draw.line(surface, (30, 36, 44),
+                             (_px6 + _sg * int(r * 0.7), _py6 + int(r * 1.0)),
+                             (_px6 + _sg * int(r * 0.95), _py6 + int(r * 1.5)),
+                             max(2, int(s * 2)))
+        for _k in range(4):            # cold coming off it, not steam
+            _cp2 = ((t * 0.55 + _k * 0.25) % 1.0)
+            _fog = pygame.Surface((int(r * 1.5), int(r * 1.5)), pygame.SRCALPHA)
+            pygame.draw.circle(_fog, (196, 236, 246, int(150 * (1 - _cp2))),
+                               (int(r * 0.75), int(r * 0.75)),
+                               max(2, int(r * (0.3 + _cp2 * 0.35))))
+            surface.blit(_fog, (_px6 + int((_k - 1.5) * r * 0.5) - int(r * 0.75),
+                                _py6 - int(r * (0.8 + _cp2 * 2.0))))
+        for _k in range(3):            # and icicles off the rim
+            pygame.draw.polygon(surface, (214, 242, 250), [
+                (_px6 + int((_k - 1) * r * 0.75) - int(r * 0.12), _py6 - int(r * 0.22)),
+                (_px6 + int((_k - 1) * r * 0.75) + int(r * 0.12), _py6 - int(r * 0.22)),
+                (_px6 + int((_k - 1) * r * 0.75), _py6 + int(r * 0.35))])
+
+    elif costume == "Thriller biller":
+        # Red jacket with black chevrons, one glove, and the money
+        _tw5 = int(r * 1.25)
+        _th5 = max(6, (wy - sy) + int(r * 0.8))
+        pygame.draw.polygon(surface, (186, 42, 54), [
+            (sx - _tw5, sy - int(r * 0.25)), (sx + _tw5, sy - int(r * 0.25)),
+            (sx + int(_tw5 * 0.8), sy + _th5), (sx - int(_tw5 * 0.8), sy + _th5)])
+        for _k in range(3):
+            _yy5 = sy + int(_th5 * (0.2 + 0.26 * _k))
+            pygame.draw.lines(surface, (32, 30, 36), False, [
+                (sx - int(_tw5 * 0.9), _yy5),
+                (sx, _yy5 + int(r * 0.34)),
+                (sx + int(_tw5 * 0.9), _yy5)], max(2, int(s * 2)))
+        pygame.draw.line(surface, (32, 30, 36), (sx, sy - int(r * 0.2)),
+                         (sx, sy + _th5), max(1, int(s)))
+        pygame.draw.circle(surface, (244, 244, 250), (int(fx), int(fy)),
+                           max(2, int(r * 0.42)))       # the one glove
+        for _k in range(4):            # bills going up
+            _bp2 = ((t * 0.6 + _k * 0.28) % 1.0)
+            _bx10 = hx + f * int(r * (1.2 + 0.6 * _k))
+            _by10 = hy + int(r * 0.4) - int(_bp2 * r * 3.2)
+            pygame.draw.rect(surface, (118, 176, 112),
+                             (_bx10 - int(r * 0.3), _by10,
+                              max(3, int(r * 0.6)), max(2, int(r * 0.32))))
+            pygame.draw.rect(surface, (80, 134, 80),
+                             (_bx10 - int(r * 0.3), _by10,
+                              max(3, int(r * 0.6)), max(2, int(r * 0.32))),
+                             max(1, int(s)))
+        for _sg in (-1, 1):            # and the eyes have gone
+            pygame.draw.circle(surface, (236, 232, 214),
+                               (hx + f * int(r * 0.2) + _sg * int(r * 0.4),
+                                hy - int(r * 0.1)), max(1, int(r * 0.2)))
+            pygame.draw.circle(surface, (40, 36, 40),
+                               (hx + f * int(r * 0.2) + _sg * int(r * 0.4),
+                                hy - int(r * 0.1)), max(1, int(r * 0.09)))
+
     else:
         return False
     return True
