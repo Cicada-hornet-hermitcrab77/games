@@ -1662,6 +1662,24 @@ CHARACTERS = [
      "desc": "Punch rains seeds over the enemy; kick fires Eeeby's ultra laser straight at them",
      "double_jump": False, "seed_rain_punch": True, "eeeby_laser_kick": True,
      "shop_only": True},
+    {"name": "Plato & Dookus", "color": (236, 232, 222), "speed": 6, "jump": -13,
+     "punch_dmg": 9, "kick_dmg": 10, "max_hp": 110, "block": 4,
+     "desc": "Punch: Plato skims a plate, which comes back; kick: Dookus "
+             "spits a jet of water",
+     "double_jump": True, "plate_punch": True, "duck_spit_kick": True,
+     "shop_only": True, "water_breathing": True},
+    {"name": "Staticzap & Hibercup", "color": (242, 198, 220), "speed": 4, "jump": -11,
+     "punch_dmg": 7, "kick_dmg": 13, "max_hp": 145, "block": 6,
+     "desc": "Punch: five bolts at once; kick: Hibercup rams them, untouchable, "
+             "and leaves them poisoned",
+     "double_jump": False, "five_bolt_punch": True, "hibercup_ram": True,
+     "shop_only": True},
+    {"name": "Pepper & Kettlechip", "color": (206, 42, 40), "speed": 5, "jump": -12,
+     "punch_dmg": 8, "kick_dmg": 11, "max_hp": 125, "block": 5,
+     "desc": "Punch: Kettlechip lobs a smoke bomb that poisons; "
+             "kick: the fire off Pepper's tail, which burns what it hits",
+     "double_jump": False, "smoke_bomb_punch": True, "pepper_flame_kick": True,
+     "shop_only": True, "lava_immune": True, "water_breathing": True},
     {"name": "Blazex & Torrti", "color": (150, 120, 95), "speed": 3, "jump": -10,
      "punch_dmg": 9, "kick_dmg": 6, "max_hp": 150, "block": 7,
      "desc": "Punch scatters Blazex's burning mines; kick rams the enemy — untouchable mid-charge",
@@ -1743,6 +1761,9 @@ FUSER_RECIPES = {
     frozenset({"air", "rock"}):      {"name": "Happi & Racker",      "fail_chance": 0.36},
     frozenset({"plant", "air"}):     {"name": "Dandibell & Eeeby",   "fail_chance": 0.46},
     frozenset({"fire", "rock"}):     {"name": "Blazex & Torrti",     "fail_chance": 0.50},
+    frozenset({"fire", "water"}):    {"name": "Pepper & Kettlechip", "fail_chance": 0.38},
+    frozenset({"electric", "plant"}): {"name": "Staticzap & Hibercup", "fail_chance": 0.56},
+    frozenset({"water", "air"}):     {"name": "Plato & Dookus",      "fail_chance": 0.20},
 }
 
 # Characters purchasable directly in the Fuser shop, like SEASONAL_SHOP_CHARS
@@ -1755,6 +1776,9 @@ FUSER_SHOP_CHARS = [
     {"name": "Happi & Racker",     "cost": 225},
     {"name": "Dandibell & Eeeby",  "cost": 275},
     {"name": "Blazex & Torrti",    "cost": 325},
+    {"name": "Pepper & Kettlechip", "cost": 250},
+    {"name": "Staticzap & Hibercup", "cost": 350},
+    {"name": "Plato & Dookus",      "cost": 150},
 ]
 
 POWERUPS = [
@@ -2486,6 +2510,8 @@ COSTUMES = [
      "color": (122, 132, 162), "emblem": "star",  "source": "rack", "cost": 25},
     {"name": "What does the fox say?", "base": "Kitsune", "event": "Feasterween",
      "color": (236, 140,  60), "emblem": "star",  "source": "rack", "cost": 35},
+    {"name": "Turkeybrain",       "base": "Plato & Dookus", "event": "Feasterween",
+     "color": (178, 118,  70), "emblem": "leaf",  "source": "rack", "cost": 40},
 
     # Aura of Menorah
     {"name": "7 candles, 7 colors", "base": "Rainbow Man", "event": "Aura of Menorah",
@@ -2506,6 +2532,9 @@ COSTUMES = [
      "color": (150, 196, 220), "emblem": "snow",  "source": "rack", "cost": 40},
     {"name": "Handy cane",        "base": "Hooker",      "event": "Yuletide Gatherings",
      "color": (240, 240, 246), "emblem": "heart", "source": "rack", "cost": 30},
+    {"name": "Gift and Stockin'", "base": "Pepper & Kettlechip",
+     "event": "Yuletide Gatherings",
+     "color": (208,  56,  62), "emblem": "star",  "source": "rack", "cost": 45},
 ]
 
 COSTUMES_EARNED = [c for c in COSTUMES if c.get("source") != "rack"]

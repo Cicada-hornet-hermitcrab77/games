@@ -396,4 +396,64 @@ assert "if _wiki_wait[0] == 0:\n                wiki_screen(unlocked, stats)" in
 print("Halloween eggs: a bat to swat, a pumpkin to press, and boo for the "
       "lights — none of them outside the event")
 
+# 15. The new fuser group
+import fight_projectiles as _FP2
+_NEWF = {
+    "Pepper & Kettlechip":  ({"fire", "water"},     0.38, 250,
+                             ("smoke_bomb_punch", "pepper_flame_kick")),
+    "Staticzap & Hibercup": ({"electric", "plant"}, 0.56, 350,
+                             ("five_bolt_punch", "hibercup_ram")),
+    "Plato & Dookus":       ({"water", "air"},      0.20, 150,
+                             ("plate_punch", "duck_spit_kick")),
+}
+for _nm5, (_els, _fail, _cost, _flags) in _NEWF.items():
+    _rec = D.FUSER_RECIPES[frozenset(_els)]
+    assert _rec["name"] == _nm5, (_nm5, _rec)
+    assert abs(_rec["fail_chance"] - _fail) < 1e-9, (_nm5, _rec)
+    assert next(c["cost"] for c in D.FUSER_SHOP_CHARS if c["name"] == _nm5) == _cost
+    _ch5 = next(c for c in D.CHARACTERS if c["name"] == _nm5)
+    for _fl in _flags:
+        assert _ch5.get(_fl), (_nm5, _fl)
+# punch flags fire on punch, kick flags on kick, and never the other way
+for _nm5, (_e, _f, _c, (_pflag, _kflag)) in _NEWF.items():
+    _ch5 = next(c for c in D.CHARACTERS if c["name"] == _nm5)
+    _pend = {"smoke_bomb_punch": "pending_smoke_bomb",
+             "five_bolt_punch": "pending_five_bolts",
+             "plate_punch": "pending_plate",
+             "pepper_flame_kick": "pending_pepper_flame",
+             "duck_spit_kick": "pending_duck_spit"}
+    if _pflag in _pend:
+        _f5 = Fighter(400, _ch5, 1, CTRL); _f5._trigger_punch_abilities()
+        assert getattr(_f5, _pend[_pflag]), (_nm5, _pflag)
+        _f6 = Fighter(400, _ch5, 1, CTRL); _f6._trigger_kick_abilities(None)
+        assert not getattr(_f6, _pend[_pflag]), f"{_pflag} fired on a kick"
+    if _kflag in _pend:
+        _f5 = Fighter(400, _ch5, 1, CTRL); _f5._trigger_kick_abilities(None)
+        assert getattr(_f5, _pend[_kflag]), (_nm5, _kflag)
+        _f6 = Fighter(400, _ch5, 1, CTRL); _f6._trigger_punch_abilities()
+        assert not getattr(_f6, _pend[_kflag]), f"{_kflag} fired on a punch"
+# Hibercup shares Torrti's ram but poisons instead of burning
+_hib = Fighter(300, next(c for c in D.CHARACTERS if c["name"] == "Staticzap & Hibercup"),
+               1, CTRL)
+_hib._trigger_kick_abilities(None)
+assert _hib.ram_frames > 0, "the ram should start on a kick"
+_vic = Fighter(340, next(c for c in D.CHARACTERS if c["name"] == "Brawler"), 1, CTRL)
+for _ in range(10):
+    _hib._tick_ram(_vic)
+assert _vic.poison_frames > 0, "Hibercup's ram should poison"
+assert _vic.fire_frames == 0, "and must not burn"
+# every new projectile builds, moves and draws
+_surf3 = pygame.Surface((900, 550))
+for _cls in (_FP2.SmokeBomb, _FP2.PepperFlame, _FP2.FrisbeePlate, _FP2.DuckSpit):
+    _pr = _cls(300, 300, 1, _hib)
+    for _ in range(40):
+        _pr.update()
+    _pr.draw(_surf3)
+# one costume on Pepper, not two, and one on Plato
+assert [c["name"] for c in D.COSTUMES if c["base"] == "Pepper & Kettlechip"] \
+    == ["Gift and Stockin'"]
+assert [c["name"] for c in D.COSTUMES if c["base"] == "Plato & Dookus"] == ["Turkeybrain"]
+print(f"fuser group: {len(_NEWF)} new recipes ({len(D.FUSER_RECIPES)} of 15 now), "
+      f"each with its own punch, kick and art")
+
 print("ALL OK")

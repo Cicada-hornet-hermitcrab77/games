@@ -265,6 +265,11 @@ class Fighter:
         self.nian_breath_timer   = 0      # Nian: frames since last breath shot
         self.smoochie_revivals   = 0      # Smoochie: revivals used (max 5)
         self.pending_burning_mines = False # Blazex & Torrti: scatter burning mines this frame
+        self.pending_smoke_bomb   = False # Kettlechip: lob a smoke bomb
+        self.pending_five_bolts   = False # Staticzap: five at once
+        self.pending_plate        = False # Plato: skim a plate
+        self.pending_duck_spit    = False # Dookus: spit water
+        self.pending_pepper_flame = False # Pepper: the fire off her tail
         self.ram_frames            = 0     # Blazex & Torrti: frames left in the ram charge
         self.ram_returning         = False # Blazex & Torrti: heading back to where the charge started
         self.ram_home_x            = 0.0   # Blazex & Torrti: spot to return to after the ram
@@ -1176,6 +1181,12 @@ class Fighter:
             self.pending_seed_rain = True
         if self.char.get("burning_mine_punch"):
             self.pending_burning_mines = True
+        if self.char.get("smoke_bomb_punch"):
+            self.pending_smoke_bomb = True
+        if self.char.get("five_bolt_punch"):
+            self.pending_five_bolts = True
+        if self.char.get("plate_punch"):
+            self.pending_plate = True
         if self.char.get("bounce_punch"):
             self.pending_bounce = True
         if self.char.get("whip_punch") and self.whip_cooldown == 0:
@@ -1223,6 +1234,10 @@ class Fighter:
         if self.char.get("bbboomerang_kick") and self.bbboomerang_timer == 0 and self.bbboomerang_cooldown == 0:
             self.bbboomerang_timer = 300   # 5 seconds
             self.bbboomerang_angle = 0.0
+        if self.char.get("pepper_flame_kick"):
+            self.pending_pepper_flame = True
+        if self.char.get("duck_spit_kick"):
+            self.pending_duck_spit = True
         if self.char.get("sik_laser_kick"):
             self.pending_sik_laser = True
         if self.char.get("poker_ally_kick"):
@@ -1287,7 +1302,8 @@ class Fighter:
             self.rockball_tick  = 0
         if self.char.get("eeeby_laser_kick"):
             self.pending_eeeby_laser = True
-        if self.char.get("torrti_ram") and self.ram_frames == 0:
+        if (self.char.get("torrti_ram") or self.char.get("hibercup_ram")) \
+                and self.ram_frames == 0:
             self.ram_frames    = 26
             self.ram_returning = False
             self.ram_home_x    = self.x
@@ -1401,6 +1417,9 @@ class Fighter:
                 other.flash_timer = 14
                 other.attacking   = False
                 other.knockback   = _dir * 26
+                if self.char.get("hibercup_ram"):
+                    # No burn off this one — it leaves them poisoned instead
+                    other.poison_frames = max(other.poison_frames, FPS * 6)
                 self.ram_frames   = 0
             if self.ram_frames <= 0:
                 self.ram_returning = True

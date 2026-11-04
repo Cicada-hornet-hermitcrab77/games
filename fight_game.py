@@ -26,6 +26,7 @@ from fight_entities import (Fighter, AIFighter, Powerup, Platform, StagePencil,
                             SandSpit, SlimeBomb, TentaMissile, ExplodingTire,
                             Muskshroom, Cutlass, WormMine, RockBall, DandiSeed, EeebyLaser,
                             SickItem, SikLaser, PokerAlly, BigApple,
+                            SmokeBomb, PepperFlame, FrisbeePlate, DuckSpit,
                             FallingAnimal, UraniumBomb,
                             BurningMine, Car, RollingStone)
 import fight_network as _net
@@ -1143,6 +1144,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     if _is_took_l else [])
     _l_respawn   = 0
     sick_items   = []          # Sickman Stickman's eight-item bag
+    plates       = []          # Plato's dinner service
+    duck_spit    = []          # Dookus, expressing himself
+    smoke_bombs  = []          # Kettlechip's smoke
+    pepper_fire  = []          # Pepper's tail flame
     sik_lasers   = []          # Da Sik Worm's eye beams
     poker_allies = []          # Pokerhauntus's summons
     big_apples   = []          # Izic Newt's apples
@@ -2817,6 +2822,22 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     for _sd_dy in ((0, -20) if shooter.char.get("broken_jack") else (0,)):
                         jack_seeds.append(PumpkinSeed(shooter.x + shooter.facing * 24,
                                                       shooter.y - 60 + _sd_dy, shooter.facing, shooter))
+                if shooter.pending_plate:
+                    shooter.pending_plate = False
+                    plates.append(FrisbeePlate(shooter.x + shooter.facing * 28,
+                                               shooter.y - 64, shooter.facing, shooter))
+                if shooter.pending_duck_spit:
+                    shooter.pending_duck_spit = False
+                    duck_spit.append(DuckSpit(shooter.x + shooter.facing * 30,
+                                              shooter.y - 74, shooter.facing, shooter))
+                if shooter.pending_smoke_bomb:
+                    shooter.pending_smoke_bomb = False
+                    smoke_bombs.append(SmokeBomb(shooter.x + shooter.facing * 26,
+                                                 shooter.y - 72, shooter.facing, shooter))
+                if shooter.pending_pepper_flame:
+                    shooter.pending_pepper_flame = False
+                    pepper_fire.append(PepperFlame(shooter.x + shooter.facing * 30,
+                                                   shooter.y - 56, shooter.facing, shooter))
                 if shooter.pending_sik_laser:
                     shooter.pending_sik_laser = False
                     sik_lasers.append(SikLaser(shooter.x + shooter.facing * 18,
@@ -2866,6 +2887,45 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                         coal_projs.append(CoalProj(_fx, _fy, shooter.facing, shooter, fa[1]))
                     else:
                         fruit_projs.append(FruitProj(_fx, _fy, shooter.facing, shooter, fa[0]))
+            for _pl2 in plates:
+                _pl2.update()
+                if _pl2.alive:
+                    _vic4 = _foe_of(_pl2.owner)
+                    if _vic4 is not None and _vic4.hp > 0 and _pl2.collides(_vic4):
+                        _vic4.take_proj_dmg(_pl2.DMG)
+                        _pl2.hit += 1
+            plates = [_pl2 for _pl2 in plates if _pl2.alive]
+            for _ds in duck_spit:
+                _ds.update()
+                if _ds.alive:
+                    _vic4 = _foe_of(_ds.owner)
+                    if _vic4 is not None and _vic4.hp > 0 and _ds.collides(_vic4):
+                        _vic4.take_proj_dmg(_ds.DMG)
+                        _ds.on_hit(_vic4)
+                        _ds.alive = False
+            duck_spit = [_ds for _ds in duck_spit if _ds.alive]
+            for _sb3 in smoke_bombs:
+                _sb3.update()
+                if _sb3.alive:
+                    _vic3 = _foe_of(_sb3.owner)
+                    if _vic3 is not None and _vic3.hp > 0:
+                        if _sb3.collides(_vic3):
+                            _vic3.take_proj_dmg(7)
+                            _sb3.pop()
+                        if _sb3.in_smoke(_vic3):
+                            _vic3.take_proj_dmg(_sb3.TICK_DMG, flash=False)
+                            _vic3.poison_frames = max(_vic3.poison_frames, FPS * 4)
+                            _sb3.tick = _sb3.TICK
+            smoke_bombs = [_sb3 for _sb3 in smoke_bombs if _sb3.alive]
+            for _pf in pepper_fire:
+                _pf.update()
+                if _pf.alive:
+                    _vic3 = _foe_of(_pf.owner)
+                    if _vic3 is not None and _vic3.hp > 0 and _pf.collides(_vic3):
+                        _vic3.take_proj_dmg(_pf.DMG)
+                        _pf.on_hit(_vic3)
+                        _pf.alive = False
+            pepper_fire = [_pf for _pf in pepper_fire if _pf.alive]
             for _bm in sik_lasers:
                 _bm.update()
                 if _bm.alive and not _bm.hit:
@@ -3436,6 +3496,13 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
                     shooter.pending_ultralightning = False
                     for _ulx in (victim.x - 30, victim.x, victim.x + 30):
                         thunder_bolts.append(ThunderBolt(_ulx, shooter))
+                if shooter.pending_five_bolts:
+                    shooter.pending_five_bolts = False
+                    # Five at once, fanned out across where they are standing
+                    for _fbx in (victim.x - 96, victim.x - 48, victim.x,
+                                 victim.x + 48, victim.x + 96):
+                        thunder_bolts.append(
+                            ThunderBolt(max(40, min(WIDTH - 40, _fbx)), shooter))
             # Quaker shockwave — landing deals area damage
             for attacker, victim in [(p1, p2), (p2, p1)]:
                 if attacker.quake_pending:
@@ -4087,6 +4154,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
         for _pa in poker_allies: _pa.draw(screen)
         for _ba in big_apples:   _ba.draw(screen)
         for _ub in uranium:      _ub.draw(screen)
+        for _pl2 in plates:      _pl2.draw(screen)
+        for _ds in duck_spit:    _ds.draw(screen)
+        for _pf in pepper_fire:  _pf.draw(screen)
+        for _sb3 in smoke_bombs: _sb3.draw(screen)
         for _bm in sik_lasers:   _bm.draw(screen)
         for _si6 in sick_items:
             _si6.draw(screen)
@@ -4532,6 +4603,10 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     if _is_took_l else [])
     _l_respawn   = 0
     sick_items   = []          # Sickman Stickman's eight-item bag
+    plates       = []          # Plato's dinner service
+    duck_spit    = []          # Dookus, expressing himself
+    smoke_bombs  = []          # Kettlechip's smoke
+    pepper_fire  = []          # Pepper's tail flame
     sik_lasers   = []          # Da Sik Worm's eye beams
     poker_allies = []          # Pokerhauntus's summons
     big_apples   = []          # Izic Newt's apples
@@ -5155,6 +5230,12 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                         _ultgt = target.x if living else en.x
                         for _ulx in (_ultgt - 30, _ultgt, _ultgt + 30):
                             en_ultralightning_bolts.append(ThunderBolt(_ulx, en))
+                    if en.pending_five_bolts:
+                        en.pending_five_bolts = False
+                        _fbt = target.x if living else en.x
+                        for _fbx in (_fbt - 96, _fbt - 48, _fbt, _fbt + 48, _fbt + 96):
+                            en_ultralightning_bolts.append(
+                                ThunderBolt(max(40, min(WIDTH - 40, _fbx)), en))
                     if en.pending_lava_pools:
                         en.pending_lava_pools = False
                         for _lpi in range(3):
@@ -5292,6 +5373,13 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     _ultgt = min(enemies, key=lambda e: abs(e.x - shooter.x)).x if enemies else shooter.x
                     for _ulx in (_ultgt - 30, _ultgt, _ultgt + 30):
                         ultralightning_bolts.append(ThunderBolt(_ulx, shooter))
+                if shooter.pending_five_bolts:
+                    shooter.pending_five_bolts = False
+                    _fbt = (min(enemies, key=lambda e: abs(e.x - shooter.x)).x
+                            if enemies else shooter.x)
+                    for _fbx in (_fbt - 96, _fbt - 48, _fbt, _fbt + 48, _fbt + 96):
+                        ultralightning_bolts.append(
+                            ThunderBolt(max(40, min(WIDTH - 40, _fbx)), shooter))
                 if shooter.pending_lava_pools:
                     shooter.pending_lava_pools = False
                     for _lpi in range(3):
@@ -6336,6 +6424,45 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
                     for _jdy in ((0, -20) if _jdbl else (0,)):
                         (en_jack_seeds if _jen else jack_seeds).append(
                             PumpkinSeed(_jf.x + _jf.facing * 24, _jf.y - 60 + _jdy, _jf.facing, _jf))
+            for _pl2 in plates:
+                _pl2.update()
+                if _pl2.alive:
+                    _vic4 = _foe_of(_pl2.owner)
+                    if _vic4 is not None and _vic4.hp > 0 and _pl2.collides(_vic4):
+                        _vic4.take_proj_dmg(_pl2.DMG)
+                        _pl2.hit += 1
+            plates = [_pl2 for _pl2 in plates if _pl2.alive]
+            for _ds in duck_spit:
+                _ds.update()
+                if _ds.alive:
+                    _vic4 = _foe_of(_ds.owner)
+                    if _vic4 is not None and _vic4.hp > 0 and _ds.collides(_vic4):
+                        _vic4.take_proj_dmg(_ds.DMG)
+                        _ds.on_hit(_vic4)
+                        _ds.alive = False
+            duck_spit = [_ds for _ds in duck_spit if _ds.alive]
+            for _sb3 in smoke_bombs:
+                _sb3.update()
+                if _sb3.alive:
+                    _vic3 = _foe_of(_sb3.owner)
+                    if _vic3 is not None and _vic3.hp > 0:
+                        if _sb3.collides(_vic3):
+                            _vic3.take_proj_dmg(7)
+                            _sb3.pop()
+                        if _sb3.in_smoke(_vic3):
+                            _vic3.take_proj_dmg(_sb3.TICK_DMG, flash=False)
+                            _vic3.poison_frames = max(_vic3.poison_frames, FPS * 4)
+                            _sb3.tick = _sb3.TICK
+            smoke_bombs = [_sb3 for _sb3 in smoke_bombs if _sb3.alive]
+            for _pf in pepper_fire:
+                _pf.update()
+                if _pf.alive:
+                    _vic3 = _foe_of(_pf.owner)
+                    if _vic3 is not None and _vic3.hp > 0 and _pf.collides(_vic3):
+                        _vic3.take_proj_dmg(_pf.DMG)
+                        _pf.on_hit(_vic3)
+                        _pf.alive = False
+            pepper_fire = [_pf for _pf in pepper_fire if _pf.alive]
             for _bm in sik_lasers:
                 _bm.update()
                 if _bm.alive and not _bm.hit:
@@ -6413,6 +6540,22 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             en_jack_seeds = [js for js in en_jack_seeds if js.alive]
             # Fruit projectiles + coal + thunder (survival, both sides)
             for shooter in _sv_actors():
+                if shooter.pending_plate:
+                    shooter.pending_plate = False
+                    plates.append(FrisbeePlate(shooter.x + shooter.facing * 28,
+                                               shooter.y - 64, shooter.facing, shooter))
+                if shooter.pending_duck_spit:
+                    shooter.pending_duck_spit = False
+                    duck_spit.append(DuckSpit(shooter.x + shooter.facing * 30,
+                                              shooter.y - 74, shooter.facing, shooter))
+                if shooter.pending_smoke_bomb:
+                    shooter.pending_smoke_bomb = False
+                    smoke_bombs.append(SmokeBomb(shooter.x + shooter.facing * 26,
+                                                 shooter.y - 72, shooter.facing, shooter))
+                if shooter.pending_pepper_flame:
+                    shooter.pending_pepper_flame = False
+                    pepper_fire.append(PepperFlame(shooter.x + shooter.facing * 30,
+                                                   shooter.y - 56, shooter.facing, shooter))
                 if shooter.pending_sik_laser:
                     shooter.pending_sik_laser = False
                     sik_lasers.append(SikLaser(shooter.x + shooter.facing * 18,
@@ -7063,6 +7206,10 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
         for _pa in poker_allies:   _pa.draw(screen)
         for _ba in big_apples:     _ba.draw(screen)
         for _ub in uranium:        _ub.draw(screen)
+        for _pl2 in plates:        _pl2.draw(screen)
+        for _ds in duck_spit:      _ds.draw(screen)
+        for _pf in pepper_fire:    _pf.draw(screen)
+        for _sb3 in smoke_bombs:   _sb3.draw(screen)
         for _bm in sik_lasers:     _bm.draw(screen)
         for _si6 in sick_items:    _si6.draw(screen)
         for cp   in coal_projs:    cp.draw(screen)

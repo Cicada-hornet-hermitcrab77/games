@@ -16529,6 +16529,55 @@ def _draw_rack_costume(surface, costume, hx, hy, sx, sy, wx, wy, fx, fy,
                                (hx + f * int(r * 0.2) + _sg * int(r * 0.4),
                                 hy - int(r * 0.1)), max(1, int(r * 0.09)))
 
+    elif costume == "Gift and Stockin'":
+        # She is in the stocking; the kettle on her head is the present
+        _sx7, _sy7 = hx, hy + int(r * 3.3)
+        _stw = int(r * 1.45)
+        _boot = [
+            (_sx7 - _stw, _sy7 - int(r * 1.2)),
+            (_sx7 + _stw, _sy7 - int(r * 1.2)),
+            (_sx7 + int(_stw * 0.85), _sy7 + int(r * 1.2)),
+            (_sx7 + int(_stw * 1.95), _sy7 + int(r * 1.35)),
+            (_sx7 + int(_stw * 2.05), _sy7 + int(r * 2.1)),
+            (_sx7 - int(_stw * 0.9), _sy7 + int(r * 2.1))]
+        pygame.draw.polygon(surface, (196, 44, 50), _boot)
+        pygame.draw.polygon(surface, (150, 26, 34), _boot, max(1, int(s)))
+        pygame.draw.rect(surface, (244, 246, 250),
+                         (_sx7 - _stw - int(r * 0.14), _sy7 - int(r * 1.62),
+                          max(3, int(_stw * 2 + r * 0.28)), max(3, int(r * 0.6))),
+                         border_radius=max(1, int(r * 0.1)))
+        for _k in range(5):                 # fluff along the cuff
+            pygame.draw.circle(surface, (250, 252, 255),
+                               (_sx7 - _stw + int(r * 0.4 * _k * 1.1),
+                                _sy7 - int(r * 1.64)), max(1, int(r * 0.2)))
+        # The kettle, wrapped: a small box with a bow where she carries it
+        _gx8, _gy8 = hx, hy + int(r * 1.35)
+        _gw = int(r * 0.95)
+        pygame.draw.rect(surface, (58, 120, 80),
+                         (_gx8 - _gw, _gy8 - _gw, _gw * 2, int(_gw * 1.8)),
+                         border_radius=max(1, int(r * 0.1)))
+        pygame.draw.rect(surface, (36, 88, 58),
+                         (_gx8 - _gw, _gy8 - _gw, _gw * 2, int(_gw * 1.8)),
+                         max(1, int(s)), border_radius=max(1, int(r * 0.1)))
+        pygame.draw.rect(surface, (236, 212, 118),
+                         (_gx8 - int(r * 0.16), _gy8 - _gw,
+                          max(2, int(r * 0.32)), int(_gw * 1.8)))
+        pygame.draw.rect(surface, (236, 212, 118),
+                         (_gx8 - _gw, _gy8 - int(r * 0.1),
+                          _gw * 2, max(2, int(r * 0.3))))
+        for _sg in (-1, 1):                 # the bow on the lid
+            pygame.draw.ellipse(surface, (244, 222, 132),
+                                (_gx8 + _sg * int(r * 0.18) - int(r * 0.44),
+                                 _gy8 - _gw - int(r * 0.52),
+                                 max(3, int(r * 0.76)), max(3, int(r * 0.56))))
+        pygame.draw.circle(surface, (250, 234, 160),
+                           (_gx8, _gy8 - _gw - int(r * 0.24)), max(1, int(r * 0.18)))
+        for _k in range(4):                 # snow settling on the pair of them
+            pygame.draw.circle(surface, (244, 248, 252),
+                               (_sx7 - _stw + int(r * 0.9 * _k),
+                                _sy7 - int(r * 2.1) + int(math.sin(t * 1.2 + _k) * r * 0.14)),
+                               max(1, int(r * 0.13)))
+
     else:
         return False
     return True
@@ -17265,6 +17314,308 @@ def _draw_stickman(surface, x, y, color, facing, action, action_t, flash=False,
             pygame.draw.circle(surface, (200, 230, 250), (_stamp_x, int(y)), _dsurf_r, max(1, int(s)))
 
         return (int(x + facing * 40 * s), int(y - 100 * s))
+
+    # ── Plato & Dookus: a plate of water, with a duck sitting in it ───────
+    if char_name == "Plato & Dookus":
+        _dt2  = pygame.time.get_ticks() / 1000.0
+        _s12  = scale
+        _base = int(y)
+        _dead12 = (action == 'dead')
+        _cx12 = int(x)
+        if action == 'punch':
+            _cx12 += int(facing * 10 * _s12)
+        elif action == 'kick':
+            _cx12 += int(facing * 6 * _s12 * action_t)
+        _bob12 = 0 if _dead12 else int(math.sin(_dt2 * 2.0) * 3 * _s12)
+
+        # Plato: a wide dinner plate, held level, with water sitting in it
+        _ply = _base - int(26 * _s12) - _bob12
+        _plw = int(54 * _s12)
+        if _dead12:
+            _ply = _base - int(8 * _s12)
+            _plw = int(60 * _s12)
+        pygame.draw.ellipse(surface, (240, 238, 232),
+                            (_cx12 - _plw, _ply - int(10 * _s12),
+                             _plw * 2, max(5, int(22 * _s12))))
+        pygame.draw.ellipse(surface, (176, 174, 170),
+                            (_cx12 - _plw, _ply - int(10 * _s12),
+                             _plw * 2, max(5, int(22 * _s12))), max(1, int(s)))
+        # the water, wobbling
+        _wob = math.sin(_dt2 * 3.1) * 2 * _s12
+        pygame.draw.ellipse(surface, (104, 176, 226),
+                            (_cx12 - int(_plw * 0.78), _ply - int(7 * _s12) + int(_wob),
+                             max(4, int(_plw * 1.56)), max(4, int(14 * _s12))))
+        pygame.draw.ellipse(surface, (168, 214, 244),
+                            (_cx12 - int(_plw * 0.5), _ply - int(6 * _s12) + int(_wob),
+                             max(3, int(_plw * 0.6)), max(3, int(7 * _s12))))
+        # three little legs under the plate
+        if not _dead12:
+            for _lx8 in (-int(_plw * 0.6), 0, int(_plw * 0.6)):
+                pygame.draw.line(surface, (210, 208, 202),
+                                 (_cx12 + _lx8, _ply + int(9 * _s12)),
+                                 (_cx12 + _lx8, _base), max(2, int(3 * _s12)))
+        # and a face on the rim of the plate
+        for _sg in (-1, 1):
+            pygame.draw.circle(surface, (60, 58, 62),
+                               (_cx12 + facing * int(_plw * 0.4) + _sg * int(6 * _s12),
+                                _ply - int(4 * _s12)), max(1, int(2 * _s12)))
+
+        # Dookus: a duck, sitting in the water on the plate
+        _dx2 = _cx12 - facing * int(8 * _s12)
+        _dy2 = _ply - int(16 * _s12) - _bob12 // 2
+        pygame.draw.ellipse(surface, (248, 244, 232),
+                            (_dx2 - int(17 * _s12), _dy2 - int(2 * _s12),
+                             max(5, int(34 * _s12)), max(4, int(20 * _s12))))
+        _wing = math.sin(_dt2 * 4.0) * 3 * _s12
+        pygame.draw.ellipse(surface, (228, 222, 206),
+                            (_dx2 - facing * int(12 * _s12) - int(6 * _s12),
+                             _dy2 + int(2 * _s12) + int(_wing),
+                             max(4, int(18 * _s12)), max(3, int(10 * _s12))))
+        pygame.draw.ellipse(surface, (248, 244, 232),
+                            (_dx2 + facing * int(10 * _s12) - int(9 * _s12),
+                             _dy2 - int(20 * _s12),
+                             max(4, int(18 * _s12)), max(4, int(20 * _s12))))
+        pygame.draw.polygon(surface, (242, 176, 56), [
+            (_dx2 + facing * int(17 * _s12), _dy2 - int(12 * _s12)),
+            (_dx2 + facing * int(30 * _s12), _dy2 - int(9 * _s12)),
+            (_dx2 + facing * int(17 * _s12), _dy2 - int(6 * _s12))])
+        pygame.draw.circle(surface, (36, 32, 34),
+                           (_dx2 + facing * int(14 * _s12), _dy2 - int(14 * _s12)),
+                           max(1, int(2.2 * _s12)))
+        if not _dead12:
+            for _k8 in range(2):            # drips off the duck
+                _dp2 = ((_dt2 * 1.3 + _k8 * 0.5) % 1.0)
+                pygame.draw.circle(surface, (150, 206, 240),
+                                   (_dx2 - facing * int((14 + 7 * _k8) * _s12),
+                                    _dy2 + int(14 * _s12) + int(_dp2 * 12 * _s12)),
+                                   max(1, int((2.6 - _dp2) * _s12)))
+
+        if action == 'punch':
+            return (_cx12 + facing * int(34 * _s12), _dy2 - int(6 * _s12))
+        if action == 'kick':
+            return (_cx12 + facing * int(action_t * 76 * _s12), _ply - int(10 * _s12))
+        return None
+
+    # ── Staticzap & Hibercup: a flower with feet, and a volt on top of it ──
+    if char_name == "Staticzap & Hibercup":
+        _ht2  = pygame.time.get_ticks() / 1000.0
+        _s11  = scale
+        _base = int(y)
+        _dead11 = (action == 'dead')
+        _cx11 = int(x)
+        if action == 'punch':
+            _cx11 += int(facing * 8 * _s11)
+        elif action == 'kick':
+            _cx11 += int(facing * 6 * _s11 * action_t)
+        _sway = 0 if _dead11 else int(math.sin(_ht2 * 1.5) * 3 * _s11)
+
+        # Stem, and the four legs he walks on
+        _sty = _base - int(34 * _s11)
+        _hy11 = _base - int(78 * _s11)
+        if _dead11:
+            _hy11 = _base - int(24 * _s11)
+            _sty  = _base - int(8 * _s11)
+        if not _dead11:
+            pygame.draw.line(surface, (92, 160, 86), (_cx11, _hy11 + int(16 * _s11)),
+                             (_cx11 + _sway, _sty), max(3, int(5 * _s11)))
+            for _k7, _lx7 in enumerate((-15, -6, 6, 15)):
+                _step = math.sin(_ht2 * 2.6 + _k7 * 1.6) * 3 * _s11
+                pygame.draw.line(surface, (92, 160, 86), (_cx11 + _sway, _sty),
+                                 (_cx11 + int(_lx7 * _s11) + int(_step),
+                                  _base - int(6 * _s11)), max(2, int(3.4 * _s11)))
+                pygame.draw.ellipse(surface, (118, 190, 104),
+                                    (_cx11 + int(_lx7 * _s11) + int(_step)
+                                     - int(7 * _s11), _base - int(8 * _s11),
+                                     max(3, int(14 * _s11)), max(3, int(7 * _s11))))
+            for _sg in (-1, 1):            # a leaf either side of the stem
+                pygame.draw.ellipse(surface, (104, 178, 96),
+                                    (_cx11 + _sway + (0 if _sg > 0 else -int(22 * _s11)),
+                                     _sty - int(22 * _s11),
+                                     max(3, int(22 * _s11)), max(3, int(11 * _s11))))
+
+        # The head: a hibiscus — five broad petals and a long stamen
+        _pr2 = int(31 * _s11)
+        for _k6 in range(5):
+            _a6 = -math.pi / 2 + _k6 * (2 * math.pi / 5) + math.sin(_ht2 * 0.6) * 0.05
+            _px11 = _cx11 + int(math.cos(_a6) * _pr2 * 0.66)
+            _py11 = _hy11 + int(math.sin(_a6) * _pr2 * 0.66)
+            pygame.draw.ellipse(surface, (250, 232, 240),
+                                (_px11 - int(_pr2 * 0.58), _py11 - int(_pr2 * 0.5),
+                                 max(4, int(_pr2 * 1.16)), max(4, int(_pr2 * 1.0))))
+            pygame.draw.ellipse(surface, (244, 184, 212),
+                                (_px11 - int(_pr2 * 0.4), _py11 - int(_pr2 * 0.34),
+                                 max(3, int(_pr2 * 0.8)), max(3, int(_pr2 * 0.68))))
+            pygame.draw.line(surface, (236, 150, 190), (_cx11, _hy11), (_px11, _py11),
+                             max(1, int(s)))
+        pygame.draw.circle(surface, (238, 126, 176), (_cx11, _hy11),
+                           max(3, int(_pr2 * 0.44)))
+        pygame.draw.circle(surface, (226, 86, 140), (_cx11, _hy11),
+                           max(2, int(_pr2 * 0.26)))
+        # the stamen, out the front the way a hibiscus has
+        _stx = _cx11 + facing * int(_pr2 * 0.9)
+        _sty2 = _hy11 + int(_pr2 * 0.45)
+        pygame.draw.line(surface, (240, 206, 110), (_cx11, _hy11),
+                         (_stx, _sty2), max(2, int(2.6 * _s11)))
+        for _k7 in range(4):
+            pygame.draw.circle(surface, (250, 226, 120),
+                               (_stx + facing * int(_k7 * 2 * _s11)
+                                - facing * int(6 * _s11),
+                                _sty2 - int(_k7 * 3 * _s11) + int(6 * _s11)),
+                               max(1, int(2.2 * _s11)))
+        pygame.draw.circle(surface, (252, 238, 170), (_stx, _sty2), max(2, int(3.4 * _s11)))
+        for _sg in (-1, 1):
+            pygame.draw.circle(surface, (40, 34, 40),
+                               (_cx11 + facing * int(3 * _s11) + _sg * int(7 * _s11),
+                                _hy11 - int(3 * _s11)), max(1, int(2.6 * _s11)))
+        pygame.draw.arc(surface, (40, 34, 40),
+                        (_cx11 - int(7 * _s11), _hy11 + int(2 * _s11),
+                         max(3, int(14 * _s11)), max(3, int(9 * _s11))), 3.4, 6.0,
+                        max(1, int(2 * _s11)))
+
+        # Staticzap: a volt skittering about above him, never still
+        if not _dead11:
+            _zx = _cx11 + int(math.sin(_ht2 * 5.1) * 26 * _s11)
+            _zy = _hy11 - int(40 * _s11) + int(math.cos(_ht2 * 6.7) * 10 * _s11)
+            _pts2 = [(_zx, _zy - int(13 * _s11))]
+            for _k6 in range(5):
+                _pts2.append((_zx + int((-1 if _k6 % 2 else 1) * (5 + _k6) * _s11),
+                              _zy - int((9 - _k6 * 4) * _s11)))
+            pygame.draw.lines(surface, (252, 240, 140), False, _pts2, max(2, int(3 * _s11)))
+            pygame.draw.lines(surface, (150, 220, 255), False,
+                              [(px + int(2 * _s11), py) for px, py in _pts2],
+                              max(1, int(1.5 * _s11)))
+            for _k6 in range(3):
+                _a6 = _ht2 * 9 + _k6 * 2.1
+                pygame.draw.circle(surface, (210, 240, 255),
+                                   (_zx + int(math.cos(_a6) * 13 * _s11),
+                                    _zy + int(math.sin(_a6) * 9 * _s11)),
+                                   max(1, int(2 * _s11)))
+            # an arc of static down to the flower now and then
+            if int(_ht2 * 3) % 4 == 0:
+                pygame.draw.lines(surface, (190, 230, 255), False, [
+                    (_zx, _zy + int(6 * _s11)),
+                    (_zx + int(6 * _s11), _zy + int(18 * _s11)),
+                    (_cx11, _hy11 - _pr2)], max(1, int(2 * _s11)))
+
+        if action == 'punch':
+            return (_cx11 + facing * int(32 * _s11), _hy11 + int(8 * _s11))
+        if action == 'kick':
+            return (_cx11 + facing * int(action_t * 78 * _s11), _base - int(24 * _s11))
+        return None
+
+    # ── Pepper & Kettlechip: a pepper split in two, tail-first, alight ────
+    if char_name == "Pepper & Kettlechip":
+        _pt2  = pygame.time.get_ticks() / 1000.0
+        _s10  = scale
+        _base = int(y)
+        _dead10 = (action == 'dead')
+        _bob10 = 0 if _dead10 else int(math.sin(_pt2 * 2.4) * 2 * _s10)
+        _cx10 = int(x)
+        if action == 'punch':
+            _cx10 += int(facing * 9 * _s10)
+        elif action == 'kick':
+            _cx10 += int(facing * 6 * _s10 * action_t)
+        _red  = WHITE if flash else (206, 42, 40)
+        _lit  = WHITE if flash else (232, 78, 62)
+        _drk  = WHITE if flash else (150, 24, 28)
+
+        # She stands on her tail, so the body sits well clear of the floor
+        _bw6  = int(30 * _s10)
+        _topY = _base - int(104 * _s10) - _bob10
+        _botY = _base - int(44 * _s10) - _bob10
+        if _dead10:
+            _topY = _base - int(34 * _s10)
+            _botY = _base - int(12 * _s10)
+
+        # ── The tail: out of the bottom of her, curling down, and alight ──
+        _tipx = _cx10 - facing * int(10 * _s10)
+        _tipy = _base - int(6 * _s10)
+        pygame.draw.lines(surface, (96, 150, 70), False, [
+            (_cx10, _botY), (_cx10 + facing * int(7 * _s10), _botY + int(18 * _s10)),
+            (_tipx, _tipy)], max(2, int(5 * _s10)))
+        if not _dead10:
+            for _k5 in range(4):
+                _fh2 = int((17 - _k5 * 3) * (0.8 + 0.3 * math.sin(_pt2 * 7 + _k5)) * _s10)
+                _fc2 = ((255, 242, 190), (255, 204, 74), (248, 146, 42),
+                        (208, 66, 28))[_k5]
+                pygame.draw.polygon(surface, _fc2, [
+                    (_tipx - int(6 * _s10), _tipy),
+                    (_tipx, _tipy + _fh2),
+                    (_tipx + int(6 * _s10), _tipy)])
+
+        # ── Her head, in two pieces, with the tongue between them ─────────
+        _gap = int((5 + 2 * math.sin(_pt2 * 3.2)) * _s10) if not _dead10 else int(7 * _s10)
+        _half = (_botY - _topY) // 2
+        # upper piece
+        pygame.draw.ellipse(surface, _red,
+                            (_cx10 - _bw6 // 2, _topY, _bw6, _half))
+        pygame.draw.ellipse(surface, _lit,
+                            (_cx10 - _bw6 // 2 + int(3 * _s10), _topY + int(4 * _s10),
+                             max(2, int(_bw6 * 0.28)), max(3, int(_half * 0.55))))
+        # lower piece
+        pygame.draw.ellipse(surface, _red,
+                            (_cx10 - _bw6 // 2, _topY + _half + _gap, _bw6, _half))
+        pygame.draw.ellipse(surface, _drk,
+                            (_cx10 - _bw6 // 2, _topY + _half + _gap, _bw6, _half),
+                            max(1, int(s)))
+        # the dark between, and a forked tongue coming out of it
+        pygame.draw.rect(surface, (74, 14, 18),
+                         (_cx10 - _bw6 // 2 + int(2 * _s10), _topY + _half,
+                          max(2, _bw6 - int(4 * _s10)), max(2, _gap)))
+        if not _dead10:
+            _flick = math.sin(_pt2 * 6.5)
+            _tgx = _cx10 + facing * int((_bw6 // 2 + 6 + _flick * 7) * _s10)
+            _tgy = _topY + _half + _gap // 2
+            pygame.draw.line(surface, (226, 54, 92),
+                             (_cx10 + facing * int(_bw6 * 0.3), _tgy),
+                             (_tgx, _tgy), max(1, int(2.4 * _s10)))
+            for _sg in (-1, 1):
+                pygame.draw.line(surface, (226, 54, 92), (_tgx, _tgy),
+                                 (_tgx + facing * int(8 * _s10),
+                                  _tgy + _sg * int(5 * _s10)), max(1, int(2 * _s10)))
+        # her eyes, up in the top piece
+        for _sg in (-1, 1):
+            pygame.draw.circle(surface, (250, 250, 252),
+                               (_cx10 + facing * int(2 * _s10) + _sg * int(6 * _s10),
+                                _topY + int(_half * 0.45)), max(2, int(4 * _s10)))
+            pygame.draw.circle(surface, (36, 24, 24),
+                               (_cx10 + facing * int(3 * _s10) + _sg * int(6 * _s10),
+                                _topY + int(_half * 0.45)), max(1, int(2 * _s10)))
+
+        # ── Kettlechip: a tiny tea kettle, sitting on her head ────────────
+        _kx, _ky = _cx10 + facing * int(3 * _s10), _topY - int(13 * _s10)
+        _kw, _kh = int(20 * _s10), int(15 * _s10)
+        pygame.draw.ellipse(surface, (176, 184, 196), (_kx - _kw // 2, _ky, _kw, _kh))
+        pygame.draw.ellipse(surface, (124, 132, 148), (_kx - _kw // 2, _ky, _kw, _kh),
+                            max(1, int(s)))
+        pygame.draw.arc(surface, (124, 132, 148),
+                        (_kx - int(7 * _s10), _ky - int(9 * _s10),
+                         max(3, int(14 * _s10)), max(3, int(12 * _s10))),
+                        0.25, 2.9, max(1, int(2 * _s10)))
+        pygame.draw.circle(surface, (90, 96, 112), (_kx, _ky - int(1 * _s10)),
+                           max(1, int(2 * _s10)))
+        pygame.draw.polygon(surface, (176, 184, 196), [
+            (_kx + facing * int(_kw * 0.4), _ky + int(_kh * 0.25)),
+            (_kx + facing * int(_kw * 0.88), _ky - int(_kh * 0.1)),
+            (_kx + facing * int(_kw * 0.5), _ky + int(_kh * 0.6))])
+        for _sg in (-1, 1):
+            pygame.draw.circle(surface, (30, 28, 34),
+                               (_kx + facing * int(2 * _s10) + _sg * int(3 * _s10),
+                                _ky + int(_kh * 0.45)), max(1, int(1.4 * _s10)))
+        if not _dead10:
+            for _k5 in range(3):
+                _sp4 = ((_pt2 * 1.1 + _k5 * 0.33) % 1.0)
+                pygame.draw.circle(surface, (226, 232, 240),
+                                   (_kx + facing * int((11 + 4 * _k5) * _s10)
+                                    + int(math.sin(_pt2 * 3 + _k5) * 3 * _s10),
+                                    _ky - int(_sp4 * 26 * _s10)),
+                                   max(1, int((3.2 - _sp4 * 1.6) * _s10)))
+
+        if action == 'punch':
+            return (_cx10 + facing * int(32 * _s10), _topY + int(_half * 0.9))
+        if action == 'kick':
+            return (_cx10 + facing * int(action_t * 76 * _s10), _base - int(22 * _s10))
+        return None
 
     # ── The ghost clan: all five float, none of them have legs ────────────
     if char_name in ("Da Sik Worm", "Pokerhauntus", "Izic Newt",

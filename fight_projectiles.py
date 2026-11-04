@@ -490,6 +490,257 @@ class UraniumBomb:
         pygame.draw.circle(surface, (40, 44, 36), (cx, cy), 3)
 
 
+class FrisbeePlate:
+    """Plato's punch: a dinner plate skimmed flat. It goes out, turns, and
+    comes back — and it can hit on both legs of the trip."""
+    RADIUS = 15
+    SPEED  = 9.5
+    DMG    = 10
+    OUT    = 34               # frames before it turns round
+
+    def __init__(self, x, y, facing, owner):
+        self.x      = float(x)
+        self.y      = float(y)
+        self.facing = facing
+        self.owner  = owner
+        self.alive  = True
+        self.t      = 0
+        self.back   = False
+        self.hit    = 0        # how many times it has connected
+
+    def update(self):
+        self.t += 1
+        if not self.back and self.t > self.OUT:
+            self.back = True
+            self.hit  = 0      # it may hit again on the way home
+        _dir = -self.facing if self.back else self.facing
+        self.x += self.SPEED * _dir
+        self.y += math.sin(self.t * 0.2) * 1.4
+        if self.back and abs(self.x - self.owner.x) < 26:
+            self.alive = False
+        if self.x < -40 or self.x > WIDTH + 40 or self.t > 140:
+            self.alive = False
+
+    def collides(self, fighter):
+        if self.hit:
+            return False
+        return math.hypot(self.x - fighter.x,
+                          self.y - (fighter.y - 60)) < self.RADIUS + 26
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        _sq = abs(math.cos(self.t * 0.35))          # it spins as it goes
+        _w  = max(4, int(self.RADIUS * 2 * (0.3 + 0.7 * _sq)))
+        pygame.draw.ellipse(surface, (240, 238, 232),
+                            (cx - _w // 2, cy - 7, _w, 14))
+        pygame.draw.ellipse(surface, (176, 174, 170),
+                            (cx - _w // 2, cy - 7, _w, 14), 2)
+        pygame.draw.ellipse(surface, (210, 208, 202),
+                            (cx - _w // 4, cy - 4, max(2, _w // 2), 8))
+        for _k in range(2):                          # a little water on it
+            pygame.draw.circle(surface, (120, 190, 230),
+                               (cx + (-4 if _k else 4), cy - 1), 2)
+
+
+class DuckSpit:
+    """Dookus's kick: a jet of water, straight and wet."""
+    RADIUS = 11
+    SPEED  = 11.0
+    DMG    = 9
+    LIFE   = FPS * 2
+
+    def __init__(self, x, y, facing, owner):
+        self.x      = float(x)
+        self.y      = float(y)
+        self.vx     = self.SPEED * facing
+        self.vy     = -1.6
+        self.facing = facing
+        self.owner  = owner
+        self.alive  = True
+        self.t      = 0
+        self.life   = self.LIFE
+
+    def update(self):
+        self.t += 1
+        self.life -= 1
+        self.vy += 0.17
+        self.x  += self.vx
+        self.y  += self.vy
+        if self.life <= 0 or self.y > GROUND_Y - 4 or self.x < -30 or self.x > WIDTH + 30:
+            self.alive = False
+
+    def on_hit(self, victim):
+        victim.knockback = self.facing * 9
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x,
+                          self.y - (fighter.y - 60)) < self.RADIUS + 26
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        for _k, (_rr, _c) in enumerate(((1.0, (108, 176, 226)),
+                                        (0.68, (150, 206, 240)),
+                                        (0.36, (216, 240, 252)))):
+            pygame.draw.circle(surface, _c, (cx, cy), max(2, int(self.RADIUS * _rr)))
+        for _k in range(3):                          # a trail of droplets
+            pygame.draw.circle(surface, (150, 206, 240),
+                               (cx - self.facing * (12 + _k * 9),
+                                cy - int(self.vy * (_k + 1) * 0.8)),
+                               max(1, 4 - _k))
+
+
+class SmokeBomb:
+    """Kettlechip's punch: a little bomb that lands and fills the place with
+    smoke. The smoke poisons whoever is standing in it, and there is a great
+    deal more smoke than there needs to be."""
+    RADIUS      = 9
+    SPEED_X     = 7.0
+    LAUNCH_VY   = -8.0
+    GRAVITY     = 0.4
+    SMOKE_DUR   = FPS * 5
+    SMOKE_R     = 96
+    TICK        = 34          # frames between coughs
+    TICK_DMG    = 3
+
+    def __init__(self, x, y, facing, owner):
+        self.x      = float(x)
+        self.y      = float(y)
+        self.vx     = self.SPEED_X * facing
+        self.vy     = self.LAUNCH_VY
+        self.owner  = owner
+        self.alive  = True
+        self.popped = False
+        self.timer  = 0
+        self.t      = 0
+        self.tick   = 0
+        self.puffs  = []
+
+    def update(self):
+        self.t += 1
+        if self.popped:
+            self.timer += 1
+            if self.tick > 0:
+                self.tick -= 1
+            for _p in self.puffs:
+                _p[0] += _p[2]
+                _p[1] += _p[3]
+                _p[3] -= 0.03
+                _p[4] += 0.45
+            if self.timer > self.SMOKE_DUR:
+                self.alive = False
+            elif self.timer % 3 == 0 and len(self.puffs) < 70:
+                self._puff()
+            return
+        self.vy += self.GRAVITY
+        self.x  += self.vx
+        self.y  += self.vy
+        if self.y >= GROUND_Y - 6 or self.x < 8 or self.x > WIDTH - 8:
+            self.y = min(self.y, GROUND_Y - 6)
+            self.pop()
+
+    def _puff(self):
+        self.puffs.append([self.x + random.uniform(-26, 26),
+                           self.y + random.uniform(-10, 10),
+                           random.uniform(-0.7, 0.7),
+                           random.uniform(-1.1, -0.2),
+                           random.uniform(10, 24)])
+
+    def pop(self):
+        if not self.popped:
+            self.popped = True
+            self.timer  = 0
+            for _ in range(26):
+                self._puff()
+
+    def in_smoke(self, fighter):
+        """Standing in it, and it is time for another lungful."""
+        if not self.popped or self.tick > 0:
+            return False
+        return math.hypot(self.x - fighter.x,
+                          self.y - (fighter.y - 50)) < self.SMOKE_R
+
+    def collides(self, fighter):
+        if self.popped:
+            return False
+        return math.hypot(self.x - fighter.x,
+                          self.y - (fighter.y - 60)) < self.RADIUS + 26
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        if not self.popped:
+            pygame.draw.circle(surface, (48, 46, 54), (cx, cy), self.RADIUS)
+            pygame.draw.circle(surface, (90, 88, 100), (cx - 3, cy - 3), 3)
+            pygame.draw.line(surface, (160, 140, 110), (cx, cy - self.RADIUS),
+                             (cx + 5, cy - self.RADIUS - 7), 2)
+            _sp = (250, 220, 120) if (self.t // 4) % 2 else (250, 160, 60)
+            pygame.draw.circle(surface, _sp, (cx + 5, cy - self.RADIUS - 8), 3)
+            return
+        _fade = max(0.0, 1.0 - self.timer / float(self.SMOKE_DUR))
+        _sm = pygame.Surface((self.SMOKE_R * 3, self.SMOKE_R * 3), pygame.SRCALPHA)
+        _ox = self.SMOKE_R * 3 // 2
+        for _p in self.puffs:
+            _a = int(130 * _fade * max(0.0, 1.0 - _p[4] / 70.0))
+            if _a <= 0:
+                continue
+            pygame.draw.circle(_sm, (104, 128, 92, _a),
+                               (_ox + int(_p[0] - self.x), _ox + int(_p[1] - self.y)),
+                               int(_p[4]))
+        surface.blit(_sm, (cx - _ox, cy - _ox))
+
+
+class PepperFlame:
+    """The fire off the thin end of Pepper, thrown. It burns what it hits."""
+    RADIUS = 12
+    SPEED  = 8.5
+    DMG    = 12
+    LIFE   = FPS * 3
+
+    def __init__(self, x, y, facing, owner):
+        self.x      = float(x)
+        self.y      = float(y)
+        self.vx     = self.SPEED * facing
+        self.facing = facing
+        self.owner  = owner
+        self.alive  = True
+        self.t      = 0
+        self.life   = self.LIFE
+
+    def update(self):
+        self.t += 1
+        self.life -= 1
+        self.x += self.vx
+        self.y += math.sin(self.t * 0.22) * 1.1
+        if self.life <= 0 or self.x < -30 or self.x > WIDTH + 30:
+            self.alive = False
+
+    def on_hit(self, victim):
+        victim.fire_frames = max(victim.fire_frames, FPS * 3)
+
+    def collides(self, fighter):
+        return math.hypot(self.x - fighter.x,
+                          self.y - (fighter.y - 60)) < self.RADIUS + 26
+
+    def draw(self, surface):
+        cx, cy = int(self.x), int(self.y)
+        # The pepper itself, nose first, with the tail alight behind it
+        pygame.draw.ellipse(surface, (196, 36, 38),
+                            (cx - self.facing * 14 - 8, cy - 7, 24, 14))
+        pygame.draw.circle(surface, (226, 72, 64),
+                           (cx + self.facing * 4, cy - 2), 5)
+        pygame.draw.line(surface, (96, 150, 70),
+                         (cx - self.facing * 14, cy),
+                         (cx - self.facing * 19, cy - 5), 3)
+        for _k in range(4):
+            _w = 1.0 - _k * 0.22
+            _h = int((16 - _k * 3) * (0.8 + 0.3 * math.sin(self.t * 0.6 + _k)))
+            _c = ((255, 240, 180), (255, 200, 70), (248, 142, 40), (210, 70, 30))[_k]
+            pygame.draw.polygon(surface, _c, [
+                (cx - self.facing * (17 + _k * 5), cy),
+                (cx - self.facing * (17 + _k * 5 + _h), cy - int(6 * _w)),
+                (cx - self.facing * (17 + _k * 5 + _h // 2), cy),
+                (cx - self.facing * (17 + _k * 5 + _h), cy + int(6 * _w))])
+
+
 def _draw_star(surface, cx, cy, r, col):
     """A tiny five-pointed sparkle."""
     _pts = []
