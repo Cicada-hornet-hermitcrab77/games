@@ -1179,6 +1179,10 @@ def run_fight(p1_idx, p2_idx, vs_ai=False, ai_difficulty='medium', stage_idx=0, 
     else:
         p2 = Fighter(700, CHARACTERS[p2_idx], -1, P2_CTRL)
 
+    # Each knows who he is up against, so anything thrown lands with the
+    # right element behind it even when the thrower is long gone.
+    p1.opponent, p2.opponent = p2, p1
+
     _touch  = TouchControls(P1_CTRL, player=1, two_player=not vs_ai) if touch_p1_enabled[0] else None
     _touch2 = TouchControls(P2_CTRL, player=2, two_player=True) if (not vs_ai and touch_p2_enabled[0]) else None
 
@@ -5159,6 +5163,8 @@ def run_survival(p1_idx, p2_idx=None, two_player=False, stage_idx=0):
             for en in enemies:
                 if living:
                     target = min(living, key=lambda p: abs(p.x - en.x))
+                    en.opponent    = target
+                    target.opponent = en
                     en.update(None, target, platforms)
                     if en.pending_ball:
                         en.pending_ball = False

@@ -1781,6 +1781,122 @@ FUSER_SHOP_CHARS = [
     {"name": "Plato & Dookus",      "cost": 150},
 ]
 
+# ---------------------------------------------------------------------------
+# Elements, and which of them beats which
+# ---------------------------------------------------------------------------
+# Every fighter who can do something elemental has an element, taken from the
+# same flags the wiki sorts the kins by — fire is pyrokin, water is fishikin,
+# and so on. A fused fighter carries the two elements he was fused out of
+# instead, which is the only way to meet plant, air or rock in a fight.
+#
+# The ring: fire burns plant, plant drinks water, water puts fire out. Fire
+# also melts ice; water rots poison; poison kills plants; electricity runs
+# through water and through anything growing. Everything else is even — air,
+# confusion and a hammer to the head care nothing for what you are made of.
+ELEMENT_ORDER = ("fire", "water", "plant", "ice", "electric", "poison",
+                 "air", "rock", "confuse", "hammerhead")
+
+ELEMENT_BEATS = {
+    "fire":       ("plant", "ice"),
+    "water":      ("fire", "poison"),
+    "plant":      ("water",),
+    "ice":        (),
+    "electric":   ("water", "plant"),
+    "poison":     ("plant",),
+    "air":        (),
+    "rock":       (),
+    "confuse":    (),
+    "hammerhead": (),
+}
+
+ELEMENT_LABEL = {
+    "fire": "Fire", "water": "Water", "plant": "Plant", "ice": "Ice",
+    "electric": "Electric", "poison": "Poison", "air": "Air", "rock": "Rock",
+    "confuse": "Confusion", "hammerhead": "Hammerhead",
+}
+
+ELEMENT_COLOR = {
+    "fire":     (236,  92,  44),
+    "water":    ( 58, 140, 232),
+    "plant":    ( 70, 170,  70),
+    "ice":      (150, 226, 246),
+    "electric": (242, 214,  62),
+    "poison":   (128, 206,  70),
+    "air":      (210, 230, 240),
+    "rock":     (150, 126,  96),
+    "confuse":  (226, 102, 210),
+    "hammerhead": (154, 162, 178),
+}
+
+# The flags that make a fighter that element. These are the kin families the
+# wiki already sorts by, under the names the elements go by in a fight.
+ELEMENT_FLAGS = {
+    "fire":       ("fire_punch", "fire_aura", "flame_trail", "wildfire",
+                   "summer_wildfire", "burning_mine_punch", "lava_immune",
+                   "phoenix_revive", "nian_breath", "saint_nix_coal"),
+    "water":      ("water_kick", "water_breathing", "bubble_kick", "bubble_shield",
+                   "river_pull", "ink_kick", "red_herring"),
+    "ice":        ("freeze_kick", "freeze_laser", "freeze_on_melee_hit", "snow_aura",
+                   "glacier_punch", "ice_yellowstone_kick", "wind_mace_punch"),
+    "electric":   ("shock_aura", "shock_kick", "shock_punch", "thunder_punch",
+                   "ultralightning_kick", "storm_punch", "overload"),
+    "poison":     ("poison_kick", "toxic_aura", "venom_kick", "plague_punch",
+                   "flower_trail_poison", "widow_kick", "sap_kick", "decay_punch",
+                   "cursed_drain"),
+    "confuse":    ("confuse_kick", "confuse_punch", "hypno_kick", "disorientated",
+                   "vex_debuff", "marionette_kick", "mirage", "hex_kick"),
+    "hammerhead": ("hammer_punch", "hammer_slam_kick", "quake_punch", "quake_land",
+                   "slam_kick", "stomp_punch", "titan_grip"),
+}
+
+# element -> the wiki family that wears it
+ELEMENT_KIN = {
+    "fire": "pyrokin", "water": "fishikin", "ice": "cryokin",
+    "electric": "shockkin", "poison": "venomskin", "confuse": "jokkin",
+    "hammerhead": "hammerhead",
+}
+
+# Having the advantage is worth half again; being on the wrong end costs a
+# quarter. It is a thumb on the scale, not the whole fight.
+ELEMENT_BONUS   = 1.5
+ELEMENT_PENALTY = 0.75
+
+_FUSED_ELEMENTS = {_r["name"]: tuple(sorted(_combo))
+                   for _combo, _r in FUSER_RECIPES.items()}
+
+
+def elements_of(char):
+    """The elements a fighter fights with, in ELEMENT_ORDER.
+
+    A costume fights like the fighter underneath it — it carries his kit, so
+    it carries his element too.
+    """
+    found = {e for e, flags in ELEMENT_FLAGS.items()
+             if any(char.get(f) for f in flags)}
+    found.update(_FUSED_ELEMENTS.get(char.get("costume_of") or char.get("name"), ()))
+    return [e for e in ELEMENT_ORDER if e in found]
+
+
+def element_matchup(attacker, defender):
+    """1 if the attacker has the advantage, -1 if the defender does, else 0.
+
+    Takes either character dicts or ready-made element lists. A fused fighter
+    brings two elements, so both sides can hold an advantage at once — when
+    they do it is a wash.
+    """
+    a = attacker if isinstance(attacker, (list, tuple)) else elements_of(attacker)
+    d = defender if isinstance(defender, (list, tuple)) else elements_of(defender)
+    a_wins = any(x in ELEMENT_BEATS.get(e, ()) for e in a for x in d)
+    d_wins = any(x in ELEMENT_BEATS.get(e, ()) for e in d for x in a)
+    return 0 if a_wins == d_wins else (1 if a_wins else -1)
+
+
+def element_damage_mult(attacker, defender):
+    """What the matchup does to a hit's damage."""
+    m = element_matchup(attacker, defender)
+    return ELEMENT_BONUS if m > 0 else (ELEMENT_PENALTY if m < 0 else 1.0)
+
+
 POWERUPS = [
     # --- existing ---
     {'name': 'Swiftness',     'type': 'speed',     'mult': 1.6,  'duration': 360, 'color': (80, 200, 250)},

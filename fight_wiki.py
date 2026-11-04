@@ -39,7 +39,9 @@ import re
 
 from fight_data import (CHARACTERS, STAGES, STAGE_MATCHUPS, POWERUPS,
                         FUSER_ELEMENTS, FUSER_RECIPES, FUSER_SHOP_CHARS,
-                        COSTUMES)
+                        COSTUMES, ELEMENT_ORDER, ELEMENT_BEATS, ELEMENT_LABEL,
+                        ELEMENT_COLOR, ELEMENT_FLAGS, ELEMENT_KIN,
+                        ELEMENT_BONUS, ELEMENT_PENALTY, elements_of)
 from fight_seasonal import SEASONAL_EVENTS, SEASONAL_SHOP_CHARS
 import fight_achievements as _ach
 
@@ -179,23 +181,11 @@ CATEGORY_LABEL = {c[0]: c[1] for c in CATEGORIES}
 
 # Which flags put a fighter in which family. A fighter with none of them has
 # no ability worth the name, and falls through to where it came from instead.
-_CAT_FLAGS = {
-    "pyrokin":    ("fire_punch", "fire_aura", "flame_trail", "wildfire",
-                   "summer_wildfire", "burning_mine_punch", "lava_immune",
-                   "phoenix_revive", "nian_breath", "saint_nix_coal"),
-    "fishikin":   ("water_kick", "water_breathing", "bubble_kick", "bubble_shield",
-                   "river_pull", "ink_kick", "red_herring"),
-    "cryokin":    ("freeze_kick", "freeze_laser", "freeze_on_melee_hit", "snow_aura",
-                   "glacier_punch", "ice_yellowstone_kick", "wind_mace_punch"),
-    "shockkin":   ("shock_aura", "shock_kick", "shock_punch", "thunder_punch",
-                   "ultralightning_kick", "storm_punch", "overload"),
-    "venomskin":  ("poison_kick", "toxic_aura", "venom_kick", "plague_punch",
-                   "flower_trail_poison", "widow_kick", "sap_kick", "decay_punch",
-                   "cursed_drain"),
-    "jokkin":     ("confuse_kick", "confuse_punch", "hypno_kick", "disorientated",
-                   "vex_debuff", "marionette_kick", "mirage", "hex_kick"),
-    "hammerhead": ("hammer_punch", "hammer_slam_kick", "quake_punch", "quake_land",
-                   "slam_kick", "stomp_punch", "titan_grip"),
+# The kins are elements by another name — fire is pyrokin, ice is cryokin.
+# fight_data owns that table so a fight and the wiki can never disagree about
+# what a fighter is made of.
+_CAT_FLAGS = {ELEMENT_KIN[_e]: _f for _e, _f in ELEMENT_FLAGS.items()}
+_CAT_FLAGS.update({
     "gunners":    ("sniper_shot", "rapid_fire", "auto_fire", "shoot_kick",
                    "orb_shooter", "laser_eyes", "sniper_multiply_kick",
                    "arcane_orb", "cobra_orb", "rockball_kick", "seed_rain_punch"),
@@ -204,7 +194,7 @@ _CAT_FLAGS = {
                    "bazooka_kick", "worm_mine_punch", "black_hole_kick"),
     "copycats":   ("copycat", "copy_punch", "mimic_move", "mimic_stats", "chameleon",
                    "bloob_shapeshift", "possess_kick", "swap_kick"),
-}
+})
 
 # A clan is not something a fighter can do, it is what you had to do to earn
 # him. Snakes in the Jungle, bugs in the Computer, projectiles blocked.
@@ -473,6 +463,14 @@ def _character_pages(unlocked):
         if abil:
             body.append(("h", "Abilities"))
             body += [("b", a) for a in abil]
+        _els = elements_of(ch)
+        if _els:
+            body.append(("h", "Made of"))
+            for _e in _els:
+                _b = ELEMENT_BEATS.get(_e, ())
+                body.append(("kv", ELEMENT_LABEL[_e],
+                             "beats " + ", ".join(ELEMENT_LABEL[x] for x in _b)
+                             if _b else "even against everything"))
         ways = ways_to_get(name, conditions, default_set, ch)
         body.append(("h", "How to get"))
         if len(ways) > 1:
@@ -774,6 +772,80 @@ def _fuser_pages(unlocked):
                      ("h", "Abilities")] +
                     [("b", x) for x in (abilities_of(ch) if ch else [])],
         })
+    return out
+
+
+def _element_pages(unlocked):
+    """The matchup chart, and a page for each element in it."""
+    out = []
+    _beaten_by = {e: [a for a in ELEMENT_ORDER
+                      if e in ELEMENT_BEATS.get(a, ())] for e in ELEMENT_ORDER}
+    _who = {e: [] for e in ELEMENT_ORDER}
+    for ch in CHARACTERS:
+        if ch.get("costume_variant"):
+            continue          # a costume fights as whatever is under it
+        for e in elements_of(ch):
+            _who[e].append(ch["name"])
+
+    _up = int(round((ELEMENT_BONUS - 1) * 100))
+    _dn = int(round((1 - ELEMENT_PENALTY) * 100))
+    body = ["What a fighter is made of changes what his hits are worth. "
+            f"Land one on something your element beats and it does {_up}% "
+            f"more; land it on something that beats you and it does {_dn}% "
+            "less. It counts for punches, kicks and anything thrown.",
+            "Fire burns plant, plant drinks water, water puts fire out — and "
+            "round it goes. Fire melts ice as well, water rots poison, poison "
+            "kills what grows, and electricity runs through water and through "
+            "anything green.",
+            ("h", "Who beats whom")]
+    for e in ELEMENT_ORDER:
+        _b = ELEMENT_BEATS.get(e, ())
+        body.append(("kv", ELEMENT_LABEL[e],
+                     ", ".join(ELEMENT_LABEL[x] for x in _b) if _b
+                     else "nothing — even against everything"))
+    body += [("h", "Where an element comes from"),
+             "Most fighters get theirs from their kin — a pyrokin is fire, a "
+             "cryokin is ice, a venomskin is poison. Plant, air and rock "
+             "belong to nobody, so the only way to meet one is to fuse it. A "
+             "fused fighter carries both of the elements he was made from, "
+             "and can hold the advantage and be on the wrong end of it at the "
+             "same time — when that happens the two cancel and it is an even "
+             "fight.",
+             "A costume fights as whatever is underneath it."]
+    out.append({"section": "characters", "title": "Elemental advantages",
+                "subtitle": "what beats what, and by how much",
+                "color": (236, 92, 44), "art": ("badge", "double_o"),
+                "tags": [], "body": body})
+
+    for e in ELEMENT_ORDER:
+        _b  = [ELEMENT_LABEL[x] for x in ELEMENT_BEATS.get(e, ())]
+        _bb = [ELEMENT_LABEL[x] for x in _beaten_by[e]]
+        _kin = ELEMENT_KIN.get(e)
+        ebody = [("h", "Matchups"),
+                 ("kv", "Strong against", ", ".join(_b) if _b else "nothing"),
+                 ("kv", "Weak against",   ", ".join(_bb) if _bb else "nothing"),
+                 ("kv", "Worth", f"+{_up}% dealing, -{_dn}% taking")]
+        if _kin:
+            ebody += [("h", "The kin"),
+                      f"Fighters who carry it are the "
+                      f"{CATEGORY_LABEL.get(_kin, _kin)}.",
+                      ("h", "What marks one")]
+            ebody += [("b", ABILITY_NAMES.get(fl, fl.replace("_", " ").capitalize()))
+                      for fl in ELEMENT_FLAGS.get(e, ())]
+        else:
+            ebody += [("h", "The kin"),
+                      "Nobody wears this one. It only turns up on a fused "
+                      "fighter, out of the element you bought to make him."]
+        _mine = sorted(_who[e])
+        ebody += [("h", f"Who is made of it ({len(_mine)})")]
+        ebody += [("b", n + ("" if n in unlocked else "  — locked"))
+                  for n in _mine[:40]]
+        if len(_mine) > 40:
+            ebody.append(f"...and {len(_mine) - 40} more.")
+        out.append({"section": "characters", "title": ELEMENT_LABEL[e],
+                    "subtitle": "element", "color": ELEMENT_COLOR[e],
+                    "art": ("swatch", ELEMENT_COLOR[e]),
+                    "tags": [], "body": ebody})
     return out
 
 
@@ -1265,6 +1337,7 @@ def build(unlocked=(), stats=None):
     pages += _world_pages(unlocked)
     pages += _event_pages(unlocked)
     pages += _costume_pages(unlocked)
+    pages += _element_pages(unlocked)
     pages += _fuser_pages(unlocked)
     pages += _powerup_pages(unlocked)
     pages += _achievement_pages(unlocked, stats)

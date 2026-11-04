@@ -3,7 +3,10 @@ import math
 import random
 import constants
 from constants import *
-from fight_data import CHARACTERS, POWERUPS, STAGES, STAGE_MATCHUPS
+from fight_data import (CHARACTERS, POWERUPS, STAGES, STAGE_MATCHUPS,
+                        elements_of, element_matchup,
+                        ELEMENT_BONUS as ELEM_BONUS,
+                        ELEMENT_PENALTY as ELEM_PENALTY)
 from fight_drawing import draw_stickman
 from fight_stage import ConveyorBelt, SlantedConveyorBelt
 
@@ -74,6 +77,10 @@ class Fighter:
         self._drown_tick        = 0 # frames until next drowning damage tick
         self.is_crit          = False  # current punch is a critical hit
         self.crit_display_timer = 0   # frames to show CRIT! popup
+        self.elements         = elements_of(self.char)  # what he is made of
+        self.opponent         = None  # set by the fight loop, for matchups
+        self.elem_hit_timer   = 0   # frames to show the matchup popup
+        self.elem_hit_up      = False # True when that hit was the strong one
         self.ducking          = False  # currently ducking (immune to punches)
         self.blocking         = False  # currently holding block
         self.shock_frames     = 0   # frames of speed-halving shock remaining
@@ -1679,6 +1686,13 @@ class Fighter:
             # Took the L: whoever is wearing the shirt hits like one
             if self.losered_timer > 0 and dmg > 0:
                 dmg = max(1, dmg // 2)
+            # What he is made of against what the other one is made of. Last
+            # word on the number, after every other thumb on the scale.
+            _em = element_matchup(self.elements, other.elements)
+            if _em and dmg > 0:
+                dmg = max(1, int(dmg * (ELEM_BONUS if _em > 0 else ELEM_PENALTY)))
+                other.elem_hit_timer = 50
+                other.elem_hit_up    = _em > 0
             if dmg < 0:
                 other.hp = min(other.max_hp, other.hp - dmg)
             else:
@@ -1928,8 +1942,12 @@ class Fighter:
         else:
             self.pending_fruit_attack = (fruit, None)
 
-    def take_proj_dmg(self, dmg, flash=True):
-        """Apply damage from projectiles/chomps/contact — respects mega_unhittable and immune."""
+    def take_proj_dmg(self, dmg, flash=True, src=None):
+        """Apply damage from projectiles/chomps/contact — respects mega_unhittable and immune.
+
+        `src` is whoever threw it, when the caller knows; otherwise the man
+        opposite is the only one it can have come from.
+        """
         if self.dash_frames > 0:
             return  # invincible during dash
         if self.char.get("immune"):
@@ -1943,6 +1961,13 @@ class Fighter:
             dmg = max(1, dmg // 2)
             PROJ_BLOCKS[0] += 1
             self.flash_timer = max(self.flash_timer, 6)
+        _thrower = src if src is not None else self.opponent
+        if _thrower is not None and _thrower is not self and dmg > 0:
+            _em = element_matchup(getattr(_thrower, "elements", []), self.elements)
+            if _em:
+                dmg = max(1, int(dmg * (ELEM_BONUS if _em > 0 else ELEM_PENALTY)))
+                self.elem_hit_timer = 50
+                self.elem_hit_up    = _em > 0
         self.hp = max(0, self.hp - dmg)
         if flash:
             self.flash_timer = max(self.flash_timer, 8)
@@ -2177,6 +2202,17 @@ class Fighter:
                                 [(sx, sy - 28), (sx + self.facing * 18, sy - 14),
                                  (sx + self.facing * 18, sy + 14), (sx, sy + 28),
                                  (sx - self.facing * 4, sy + 22), (sx - self.facing * 4, sy - 22)], 2)
+        if self.elem_hit_timer > 0:
+            self.elem_hit_timer -= 1
+            _erise = (50 - self.elem_hit_timer) // 3
+            _ey = (int(self.y) - LEG_LEN - BODY_LEN - NECK_LEN - HEAD_R * 2
+                   - 44 - _erise)
+            _etxt = "SUPER!" if self.elem_hit_up else "resisted"
+            _ecol = (255, 190, 60) if self.elem_hit_up else (130, 150, 180)
+            _es = font_small.render(_etxt, True, _ecol)
+            if self.elem_hit_timer < 14:        # fade out at the end
+                _es.set_alpha(int(255 * self.elem_hit_timer / 14))
+            surface.blit(_es, (int(self.x) - _es.get_width() // 2, _ey))
         if self.crit_display_timer > 0:
             self.crit_display_timer -= 1
             rise = (70 - self.crit_display_timer) // 2

@@ -60,6 +60,14 @@ for c in D.COSTUMES:
     if not seen:
         plain.append(c["name"])
 assert not plain, plain
+# Calling the hook is not proof of anything — the fallback calls it too. A
+# costume has art of its own when fight_drawing names it.
+_dsrc = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          "fight_drawing.py")).read()
+_nobranch = [c["name"] for c in D.COSTUMES
+             if f'costume == "{c["name"]}"' not in _dsrc
+             and f"costume == '{c['name']}'" not in _dsrc]
+assert not _nobranch, _nobranch
 print(f"all {len(D.COSTUMES)} costumes have art of their own")
 
 # 4. Costume pricing and the rack
@@ -99,7 +107,9 @@ print(f"{len(A.ACHIEVEMENTS)} achievements: coins pay, earned costumes hand over
 
 # 7. The wiki builds and covers the roster
 w = W.build(unlocked={"Ninja"}, stats={"wins_total": 1})
-assert {p["title"] for p in w["characters"] if not p.get("secret")} <= names | {"Taxonomy"}
+_elem_titles = {D.ELEMENT_LABEL[e] for e in D.ELEMENT_ORDER} | {"Elemental advantages"}
+assert ({p["title"] for p in w["characters"] if not p.get("secret")}
+        <= names | {"Taxonomy"} | _elem_titles)
 assert any(p["title"] == "The world" for p in w["maps"])
 assert any(p["title"] == "Taxonomy" for p in w["characters"])
 for n in WATER:
@@ -455,5 +465,82 @@ assert [c["name"] for c in D.COSTUMES if c["base"] == "Pepper & Kettlechip"] \
 assert [c["name"] for c in D.COSTUMES if c["base"] == "Plato & Dookus"] == ["Turkeybrain"]
 print(f"fuser group: {len(_NEWF)} new recipes ({len(D.FUSER_RECIPES)} of 15 now), "
       f"each with its own punch, kick and art")
+
+# 16. Elements, and which of them beats which
+_WANT_BEATS = {
+    "fire": {"plant", "ice"}, "water": {"fire", "poison"}, "plant": {"water"},
+    "electric": {"water", "plant"}, "poison": {"plant"},
+    "ice": set(), "air": set(), "rock": set(), "confuse": set(),
+    "hammerhead": set(),
+}
+for _e, _want in _WANT_BEATS.items():
+    assert set(D.ELEMENT_BEATS[_e]) == _want, (_e, D.ELEMENT_BEATS[_e])
+assert set(D.ELEMENT_BEATS) == set(D.ELEMENT_ORDER) == set(_WANT_BEATS)
+# nothing beats itself, and no pair beats each other both ways
+for _a in D.ELEMENT_ORDER:
+    assert _a not in D.ELEMENT_BEATS[_a], _a
+    for _b in D.ELEMENT_BEATS[_a]:
+        assert _a not in D.ELEMENT_BEATS[_b], (_a, _b)
+# air, confusion, rock and a hammer care about nothing and nothing is strong
+# against them either
+for _n in ("air", "confuse", "hammerhead", "rock"):
+    assert not D.ELEMENT_BEATS[_n]
+    assert not any(_n in _v for _v in D.ELEMENT_BEATS.values()), _n
+# the ring closes
+assert D.element_matchup(["fire"], ["plant"]) == 1
+assert D.element_matchup(["plant"], ["water"]) == 1
+assert D.element_matchup(["water"], ["fire"]) == 1
+assert D.element_matchup(["fire"], ["water"]) == -1
+assert D.element_matchup(["air"], ["fire"]) == 0
+# two elements that pull opposite ways cancel: fire burns his plant, his
+# water puts the fire out, so neither of them gets anything out of it
+assert D.element_matchup(["fire"], ["water", "plant"]) == 0
+assert D.element_matchup(["water", "plant"], ["fire"]) == 0
+# but one that only pulls one way still counts
+assert D.element_matchup(["fire", "water"], ["fire"]) == 1
+# the kins and the elements are one table, so they can never drift apart
+assert set(D.ELEMENT_KIN.values()) <= {c[0] for c in W.CATEGORIES}
+for _e, _kin in D.ELEMENT_KIN.items():
+    assert W._CAT_FLAGS[_kin] == D.ELEMENT_FLAGS[_e], _e
+# a fused fighter carries what he was fused out of; a costume what is under it
+_pk = next(c for c in D.CHARACTERS if c["name"] == "Pepper & Kettlechip")
+assert D.elements_of(_pk) == ["fire", "water"], D.elements_of(_pk)
+_gs = next(c for c in D.CHARACTERS if c["name"] == "Gift and Stockin'")
+assert D.elements_of(_gs) == D.elements_of(_pk)
+assert D.elements_of({"name": "Nobody"}) == []
+# and it reaches the damage, both in melee and off a projectile
+_arson = next(c for c in D.CHARACTERS if c["name"] == "Arsonist")
+_hib   = next(c for c in D.CHARACTERS if c["name"] == "Staticzap & Hibercup")
+_brawl = next(c for c in D.CHARACTERS if c["name"] == "Brawler")
+def _melee(att, dfn):
+    _a = Fighter(300, att, 1, CTRL); _d = Fighter(340, dfn, -1, CTRL)
+    _a.opponent, _d.opponent = _d, _a
+    _a.action, _a.attack_hit = "punch", False
+    _before = _d.hp
+    _a.check_hit((_d.x, _d.y - 70 * _d.draw_scale), _d)
+    return _before - _d.hp, _d.elem_hit_timer > 0, _d.elem_hit_up
+_base, _f0, _ = _melee(_arson, _brawl)
+assert not _f0, "a fighter made of nothing should not light the badge"
+_strong, _f1, _up1 = _melee(_arson, _hib)
+_weak,   _f2, _up2 = _melee(_hib, _arson)
+assert _strong == int(_base * D.ELEMENT_BONUS) and _f1 and _up1, (_base, _strong)
+assert _weak < _hib["punch_dmg"] and _f2 and not _up2, _weak
+_v = Fighter(300, _hib, 1, CTRL); _v.opponent = Fighter(340, _arson, -1, CTRL)
+_b4 = _v.hp; _v.take_proj_dmg(20)
+assert _b4 - _v.hp == 30, _b4 - _v.hp
+_s4 = Fighter(300, _arson, 1, CTRL)
+_b5 = _s4.hp; _s4.take_proj_dmg(20, src=_v)
+assert _b5 - _s4.hp == 15, _b5 - _s4.hp
+# his own shot never turns on him
+_b6 = _v.hp; _v.take_proj_dmg(10, src=_v)
+assert _v.hp == _b6 - 10
+# the wiki writes the chart up
+_wpages = {_p["title"] for _p in W.build(unlocked=())["characters"]}
+assert "Elemental advantages" in _wpages
+for _e in D.ELEMENT_ORDER:
+    assert D.ELEMENT_LABEL[_e] in _wpages, _e
+print(f"elements: {len(D.ELEMENT_ORDER)} of them, "
+      f"{sum(len(_v) for _v in D.ELEMENT_BEATS.values())} advantages, "
+      f"x{D.ELEMENT_BONUS} dealing and x{D.ELEMENT_PENALTY} taking")
 
 print("ALL OK")

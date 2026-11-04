@@ -3,7 +3,11 @@ import math
 import random
 import constants
 from constants import *
-from fight_data import STAGES, STAGE_MATCHUPS, POWERUPS, COSTUME_BASE, COSTUME_EMBLEM
+from fight_data import (STAGES, STAGE_MATCHUPS, POWERUPS, COSTUME_BASE,
+                        COSTUME_EMBLEM,
+                        ELEMENT_COLOR as _ELEMENT_COLOR,
+                        elements_of as _elements_of,
+                        element_matchup as _element_matchup)
 
 _font_cache = {}  # size → Font, avoids recreating fonts every frame
 
@@ -16578,6 +16582,55 @@ def _draw_rack_costume(surface, costume, hx, hy, sx, sy, wx, wy, fx, fy,
                                 _sy7 - int(r * 2.1) + int(math.sin(t * 1.2 + _k) * r * 0.14)),
                                max(1, int(r * 0.13)))
 
+    elif costume == "Turkeybrain":
+        # Dookus has a turkey on the brain: a tail fan behind the pair of
+        # them, a snood off the beak, and a little turkey riding his head.
+        hy += int(r * 3.4)        # down onto the duck, off the stand-in frame
+        _fan = (hx - f * int(r * 2.3), hy + int(r * 0.5))
+        for _k in range(7):
+            _a9 = -2.55 + _k * 0.42
+            _fl = r * (2.2 + 0.3 * math.sin(_k * 1.1))
+            _tipx9 = _fan[0] - f * int(math.cos(_a9) * _fl)
+            _tipy9 = _fan[1] + int(math.sin(_a9) * _fl)
+            _fc9 = ((132,  78,  44), (168, 104,  52), (196, 142,  70),
+                    (150,  58,  46), (196, 142,  70), (168, 104,  52),
+                    (132,  78,  44))[_k]
+            pygame.draw.line(surface, _fc9, _fan, (_tipx9, _tipy9),
+                             max(2, int(r * 0.42)))
+            pygame.draw.circle(surface, (238, 212, 150), (_tipx9, _tipy9),
+                               max(1, int(r * 0.24)))
+        pygame.draw.ellipse(surface, (110, 66, 38),
+                            (_fan[0] - int(r * 0.55), _fan[1] - int(r * 0.42),
+                             max(3, int(r * 1.1)), max(3, int(r * 0.84))))
+
+        # The turkey itself, sat on top of him
+        _hx9, _hy9 = hx - f * int(r * 0.3), hy - int(r * 1.15)
+        pygame.draw.line(surface, (146, 92, 50),
+                         (_fan[0] + f * int(r * 0.3), _fan[1] - int(r * 0.2)),
+                         (_hx9 + f * int(r * 0.35), _hy9 - int(r * 0.35)),
+                         max(2, int(r * 0.4)))
+        pygame.draw.circle(surface, (168, 112, 64),
+                           (_hx9 + f * int(r * 0.4), _hy9 - int(r * 0.55)),
+                           max(2, int(r * 0.44)))
+        pygame.draw.polygon(surface, (238, 180,  60), [          # its beak
+            (_hx9 + f * int(r * 0.78), _hy9 - int(r * 0.62)),
+            (_hx9 + f * int(r * 1.3),  _hy9 - int(r * 0.48)),
+            (_hx9 + f * int(r * 0.78), _hy9 - int(r * 0.32))])
+        pygame.draw.circle(surface, (16, 14, 18),                # and its eye
+                           (_hx9 + f * int(r * 0.5), _hy9 - int(r * 0.68)),
+                           max(1, int(r * 0.11)))
+        # the snood, wobbling off the beak
+        _wob = int(math.sin(t * 3.4) * r * 0.12)
+        pygame.draw.line(surface, (212,  52,  58),
+                         (_hx9 + f * int(r * 0.8), _hy9 - int(r * 0.52)),
+                         (_hx9 + f * int(r * 0.72) + _wob, _hy9 + int(r * 0.12)),
+                         max(2, int(r * 0.22)))
+        for _sg in (-1, 1):                 # the wattle under its chin
+            pygame.draw.circle(surface, (196,  44,  52),
+                               (_hx9 + f * int(r * 0.52),
+                                _hy9 - int(r * 0.1) + _sg * int(r * 0.16)),
+                               max(1, int(r * 0.17)))
+
     else:
         return False
     return True
@@ -17527,22 +17580,26 @@ def _draw_stickman(surface, x, y, color, facing, action, action_t, flash=False,
             _topY = _base - int(34 * _s10)
             _botY = _base - int(12 * _s10)
 
-        # ── The tail: out of the bottom of her, curling down, and alight ──
-        _tipx = _cx10 - facing * int(10 * _s10)
-        _tipy = _base - int(6 * _s10)
+        # ── The tail: out of the bottom of her, down into a U, and alight ──
+        # She stands on the bend of it; the far arm comes back up and that is
+        # the end that burns.
+        _ul = _cx10 - facing * int(26 * _s10)      # arm she hangs off
+        _ur = _cx10 + facing * int(26 * _s10)      # arm that comes back up
+        _ub = _base - int(5 * _s10)                # the bend, on the floor
+        _tipx = _ur
+        _tipy = _botY + int(4 * _s10)     # level with the arm she hangs off
+        if _dead10:
+            _ub   = _base - int(3 * _s10)
+            _tipy = _botY + int(2 * _s10)
+        _uc = int(13 * _s10)                       # how round the bend is
         pygame.draw.lines(surface, (96, 150, 70), False, [
-            (_cx10, _botY), (_cx10 + facing * int(7 * _s10), _botY + int(18 * _s10)),
-            (_tipx, _tipy)], max(2, int(5 * _s10)))
-        if not _dead10:
-            for _k5 in range(4):
-                _fh2 = int((17 - _k5 * 3) * (0.8 + 0.3 * math.sin(_pt2 * 7 + _k5)) * _s10)
-                _fc2 = ((255, 242, 190), (255, 204, 74), (248, 146, 42),
-                        (208, 66, 28))[_k5]
-                pygame.draw.polygon(surface, _fc2, [
-                    (_tipx - int(6 * _s10), _tipy),
-                    (_tipx, _tipy + _fh2),
-                    (_tipx + int(6 * _s10), _tipy)])
-
+            (_cx10, _botY),
+            (_ul, _tipy),
+            (_ul, _ub - _uc),
+            (_ul + facing * _uc, _ub),
+            (_ur - facing * _uc, _ub),
+            (_ur, _ub - _uc),
+            (_tipx, _tipy)], max(2, int(6 * _s10)))
         # ── Her head, in two pieces, with the tongue between them ─────────
         _gap = int((5 + 2 * math.sin(_pt2 * 3.2)) * _s10) if not _dead10 else int(7 * _s10)
         _half = (_botY - _topY) // 2
@@ -17610,6 +17667,18 @@ def _draw_stickman(surface, x, y, color, facing, action, action_t, flash=False,
                                     + int(math.sin(_pt2 * 3 + _k5) * 3 * _s10),
                                     _ky - int(_sp4 * 26 * _s10)),
                                    max(1, int((3.2 - _sp4 * 1.6) * _s10)))
+
+        # The flame on the end of the U, drawn last so nothing covers it.
+        if not _dead10:
+            for _k5 in range(4):
+                _fh2 = int((26 - _k5 * 4.5) * (0.8 + 0.3 * math.sin(_pt2 * 7 + _k5)) * _s10)
+                _fc2 = ((208, 66, 28), (248, 146, 42), (255, 204, 74),
+                        (255, 242, 190))[_k5]
+                _fw2 = max(2, int((9 - _k5 * 1.8) * _s10))
+                pygame.draw.polygon(surface, _fc2, [
+                    (_tipx - _fw2, _tipy),
+                    (_tipx, _tipy - _fh2),
+                    (_tipx + _fw2, _tipy)])
 
         if action == 'punch':
             return (_cx10 + facing * int(32 * _s10), _topY + int(_half * 0.9))
@@ -20608,6 +20677,38 @@ def draw_health_bars_labeled(surface, p1, p2, p2_label):
     bar(WIDTH-bar_w-20, 40, p2.hp, p2.max_hp, p2.char["color"], p2_label, flip=True)
     vs = font_medium.render("VS", True, YELLOW)
     surface.blit(vs, (WIDTH//2 - vs.get_width()//2, 35))
+
+    # What each of them is made of, in a row of pips under his bar, and a
+    # chevron under the VS pointing at whoever the matchup favours.
+    _e1 = getattr(p1, "elements", None) or _elements_of(p1.char)
+    _e2 = getattr(p2, "elements", None) or _elements_of(p2.char)
+
+    def _pips(elems, x, y, right=False):
+        for i, e in enumerate(elems):
+            cx = (x - i * 20) if right else (x + i * 20)
+            pygame.draw.circle(surface, _ELEMENT_COLOR.get(e, (150, 150, 150)),
+                               (cx, y), 7)
+            pygame.draw.circle(surface, (20, 20, 26), (cx, y), 7, 1)
+
+    _pips(_e1, 27, 74)
+    _pips(_e2, WIDTH - 27, 74, right=True)
+
+    _m = _element_matchup(_e1, _e2)
+    if _m:
+        # The badge sits by whoever the matchup favours — the middle of the
+        # screen is the clock's, and nobody wants to read the two of them
+        # on top of each other.
+        _lbl = font_tiny.render("TYPE ADVANTAGE", True, (255, 190, 60))
+        if _m > 0:
+            _bx = 27 + len(_e1) * 20 + 6
+            _tri = [(_bx, 74), (_bx + 11, 68), (_bx + 11, 80)]
+            _tx  = _bx + 16
+        else:
+            _bx = WIDTH - 27 - len(_e2) * 20 - 6
+            _tri = [(_bx, 74), (_bx - 11, 68), (_bx - 11, 80)]
+            _tx  = _bx - 16 - _lbl.get_width()
+        pygame.draw.polygon(surface, (255, 190, 60), _tri)
+        surface.blit(_lbl, (_tx, 67))
 
 
 def draw_win_screen(surface, winner, p1, p2, vs_ai=False):
