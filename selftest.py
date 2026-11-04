@@ -386,6 +386,13 @@ _block = _ui2[_h_at:_h_end]
 for _needle in ("_bat[0] = [float(", "_pk = pygame.Rect(", "_boo[0] -= 1"):
     assert _needle in _block, _needle
 assert "if _hallow and hasattr(event, 'unicode')" in _ui2, "boo is event-gated too"
+# B is the wiki key, so during the event it waits to see whether "oo" follows
+assert "_wiki_wait[0] = 20" in _ui2, "b must not open the wiki instantly in October"
+assert "_wiki_wait[0] = 0       # it was a boo, not the wiki" in _ui2
+assert """                    if _hallow:
+                        _wiki_wait[0] = 20""" in _ui2
+assert "if _wiki_wait[0] == 0:\n                wiki_screen(unlocked, stats)" in _ui2, \
+    "and it must still open when nothing follows"
 print("Halloween eggs: a bat to swat, a pumpkin to press, and boo for the "
       "lights — none of them outside the event")
 

@@ -823,6 +823,8 @@ def mode_select(unlocked=None, stats=None):
     _bat_cd    = [FPS * 7]
     _bats_hit  = [0]       # how many you have swatted
     _pumpkin   = [0, None] # presses, and where it is on screen
+    _wiki_wait = [0]       # B is the wiki key, so during the event it waits a
+                           # third of a second to see if "oo" follows
 
     _type42_buf = ""
     _secret_seq = "all_the_secrets_of_the_world"
@@ -1042,6 +1044,7 @@ def mode_select(unlocked=None, stats=None):
                     if _boo_buf.endswith("boo"):
                         _boo[0] = FPS * 2
                         _boo_buf = ""
+                        _wiki_wait[0] = 0       # it was a boo, not the wiki
                 if hasattr(event, 'unicode') and event.unicode in ('4', '2'):
                     _type42_buf += event.unicode
                     if _type42_buf.endswith('42'):
@@ -1124,7 +1127,10 @@ def mode_select(unlocked=None, stats=None):
                 if event.key == pygame.K_v:
                     achievements_screen(stats, _net.load_userdata())
                 if event.key == pygame.K_b:
-                    wiki_screen(unlocked, stats)
+                    if _hallow:
+                        _wiki_wait[0] = 20      # might be the start of "boo"
+                    else:
+                        wiki_screen(unlocked, stats)
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE) and not _feast[0]:
                     if not (selected == 6 and not _fuser_unlocked):
                         if _home_lobby: _home_lobby.close()
@@ -1539,6 +1545,13 @@ def mode_select(unlocked=None, stats=None):
                     (_sn_x - 7, _by11 + 22), (_sn_x + 7, _by11 + 22),
                     (_sn_x - 2, _by11 + 32)])
                 screen.blit(_sl, (_bx11 + 9, _by11 + 5))
+
+        # B during the event might be the start of "boo", so the wiki waits
+        # a third of a second to find out
+        if _wiki_wait[0] > 0:
+            _wiki_wait[0] -= 1
+            if _wiki_wait[0] == 0:
+                wiki_screen(unlocked, stats)
 
         # ── Halloween easter eggs ─────────────────────────────────────────
         if _hallow:
