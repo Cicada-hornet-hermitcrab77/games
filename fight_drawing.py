@@ -16756,13 +16756,17 @@ def draw_world_map(surface, rect, font=None, label_font=None):
 # which here means the fighters you can only get on one day of the year. Two
 # places are still empty; there are eighteen apostles and only sixteen of them
 # have names so far.
-# Two of the eighteen are at the table without being in the game: Holi, who
-# has no event yet, and the one who sells him out, who has no name yet. They
-# get drawn by hand rather than out of the roster.
-_SUPPER_LEFT = ["Nian", "Smoochie", "#judas", "Clover", "Baddit",
-                "Eartha", "Tombstone", "Solara", "Stickman of Liberty"]
-_SUPPER_RIGHT = ["Bookzworm", "Yellowstone", "Jack O' Slash", "Cornucopia", "#holi",
-                 "Nun-Gimel-Hei-Shin", "Saint Nix", "Amberk", "Crystallion"]
+# Seated the way the Seasonals came apart afterwards: the seven majors down
+# one side, the seven minors down the other, and at the far end of each the
+# one who answers to a single square of the calendar instead of a shelf.
+# Nearest Birthalomeu, one on each hand, the two who were not there again —
+# the one who sells them out, and Holi. Neither is in the game, so neither
+# can be pulled out of the roster; they are drawn by hand.
+# Both lists run from the middle of the table outward.
+_SUPPER_LEFT = ["#judas", "Nian", "Smoochie", "Baddit", "Stickman of Liberty",
+                "Jack O' Slash", "Cornucopia", "Saint Nix", "Amberk"]
+_SUPPER_RIGHT = ["#holi", "Clover", "Eartha", "Tombstone", "Solara",
+                 "Bookzworm", "Yellowstone", "Nun-Gimel-Hei-Shin", "Crystallion"]
 
 
 def draw_last_supper(surface, rect, label_font=None):

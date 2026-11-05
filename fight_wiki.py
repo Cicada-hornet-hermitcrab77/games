@@ -896,69 +896,84 @@ def _achievement_pages(unlocked, stats):
 # Append to this list to add a page. Nothing else needs to change.
 PAGES = [
     {"section": "lore", "title": "The Last Supper",
-     "subtitle": "the one night all eighteen of them sat down",
+     "subtitle": "the night the Seasonals were still one thing",
      "color": (214, 196, 160),
      "body": [
-         "They only ever meet one at a time. Each of them comes round once — "
-         "once a year, or once in four — and by the time the next one is due "
-         "the last one is long gone. This is the night that did not happen "
-         "that way.",
-         "Birthalomeu sat at the middle of the table and the other eighteen "
-         "sat down the length of it, and for the one evening the whole "
-         "calendar was in the same room.",
+         "There was a time before the majors and the minors. They were all "
+         "just Seasonals then, nineteen of them, and the Sea o' Seasons was "
+         "one sea with one crossing and nobody had to pick a side of it.",
+         "A Seasonal is only ever awake for his own week. Nian wakes in "
+         "January and is gone before Smoochie opens her eyes; Saint Nix has "
+         "never once met Solara. This is the night the calendar folded over "
+         "on itself and put the whole year in one room. It happened once. It "
+         "has not happened since, and after what came of it nobody has tried.",
          ("photo", "last-supper.jpg"),
-         ("h", "He is in it twice"),
-         "Once at the table: a cake of two tiers, two candles lit, both arms "
-         "laid out along the cloth. Once overhead, far bigger, in the recess "
-         "above the middle arch, reaching down over the hall with both hands. "
-         "Whichever way you look you are looking at him.",
-         ("h", "Who else is in the room"),
-         "The ceiling. Every fighter who does not get a day of his own is up "
-         "there watching, painted across the vaults, and one of them is "
-         "saying something nobody has been able to read since.",
-         "SICKMAN is cut into the left pier and SOFTBALL into the right. The "
-         "stone on the right reads LOV and nothing more — the rest of it "
-         "either wore away or was never finished.",
-         ("h", "What it is"),
-         "Pencil on paper. It is the only picture of that night there is.",
+         ("h", "Birthalomeu, twice"),
+         "He is at the middle of the table — two tiers, two candles, both "
+         "arms out along the cloth — and he is above the middle arch as well, "
+         "far bigger, reaching down over the hall with both hands. Seasonals "
+         "do not agree on which of the two is the real one. The ones who were "
+         "there say that is the wrong question.",
+         ("h", "The ceiling"),
+         "Everybody who does not get a day of his own is up on the vaults "
+         "watching it happen. One of them is saying something. It has been "
+         "copied out four times and read four different ways, and the only "
+         "thing anyone agrees on is that it was not a toast.",
+         ("h", "The writing on the piers"),
+         "SICKMAN is cut into the left-hand pier and SOFTBALL into the right. "
+         "Neither was there when the table was laid.",
+         "The stone at the right end reads LOV. The rest of the word is "
+         "missing. Tombstone has never said whether it wore away or whether "
+         "somebody stopped carving.",
+         ("h", "What is left of it"),
+         "One picture, in pencil, drawn from memory by somebody who was at "
+         "the table and will not say which one he was.",
      ]},
     {"section": "lore", "title": "The eighteen apostles",
-     "subtitle": "the table, painted, and who sat where",
+     "subtitle": "who sat where, and what it cost them",
      "color": (238, 198, 120),
      "body": [
-         "The same night with the colour put back in. Everyone at the table "
-         "is drawn as he comes to a fight, because that is the only way "
-         "anyone has ever seen them.",
+         "Seating tells you how it ended. Seven down one side, seven down the "
+         "other, and the line between them is the line the Seasonals tore "
+         "along.",
          ("supper",),
-         ("h", "Down the left, from the middle out"),
+         ("h", "Seven on his left — the majors"),
+         "They took the west route through the Sea o' Seasons and they have "
+         "held it ever since. Big weeks, full shelves, the events everybody "
+         "plans around.",
          ("b", "Nian — New Dynasties"),
          ("b", "Smoochie — Hearts and Harmonies"),
-         ("b", "the one who sells them out — leaning back out of the light, "
-               "purse under his arm, no name recorded"),
-         ("b", "Clover — Emerald Echoes"),
          ("b", "Baddit — April Rain"),
+         ("b", "Stickman of Liberty — Red White and Boom"),
+         ("b", "Jack O' Slash — Echoes of the Undying"),
+         ("b", "Cornucopia — Feasterween"),
+         ("b", "Saint Nix — Yuletide Gatherings"),
+         ("h", "Seven on his right — the minors"),
+         "They did not get the west. They got the long way round and a week "
+         "each that most of the world sleeps through.",
+         ("b", "Clover — Emerald Echoes"),
          ("b", "Eartha — Bound to the Ground"),
          ("b", "Tombstone — Legacy of Valor"),
          ("b", "Solara — Summer Solstice"),
-         ("b", "Stickman of Liberty — Red White and Boom"),
-         ("h", "Down the right, from the middle out"),
          ("b", "Bookzworm — Novel Beginnings"),
          ("b", "Yellowstone — Project Yellowstone"),
-         ("b", "Jack O' Slash — Echoes of the Undying"),
-         ("b", "Cornucopia — Feasterween"),
-         ("b", "Holi — arms up, still throwing the colour"),
          ("b", "Nun-Gimel-Hei-Shin — Aura of Menorah"),
-         ("b", "Saint Nix — Yuletide Gatherings"),
-         ("b", "Amberk — Dinosaur Day, the 11th of July"),
-         ("b", "Crystallion — Leap Day, once in four years"),
-         ("h", "The two you cannot fight"),
-         "Sixteen of them you can have. Fourteen come off a seasonal shelf, "
-         "one to an event, and Amberk and Crystallion off a single square of "
-         "the calendar each.",
-         "Holi is the other kind. He was at the table and he has never been "
-         "in a fight — there is no Holi event in the year and no Holi to "
-         "pick. The one next to Smoochie is worse off than that: nobody "
-         "wrote down what he was called.",
+         ("h", "One at each far end"),
+         "These two never belonged to a shelf and never picked a side. They "
+         "hold a single square of the calendar instead, and when it comes "
+         "round they take it.",
+         ("b", "Amberk — the 11th of July, and old bones"),
+         ("b", "Crystallion — the 29th of February, once in four years"),
+         ("h", "The two beside him"),
+         "Birthalomeu had one on each hand and neither of them left the "
+         "table the way they sat down at it.",
+         ("b", "Holi, on his right — arms up, still throwing the colour. He "
+               "had the shortest week of all of them and he lost it that "
+               "night. There is no Holi in the year now and nobody to pick."),
+         ("b", "The one on his left — leaning back out of the light with the "
+               "purse under his arm. He is the reason there are majors and "
+               "minors. Every Seasonal who was there agreed afterwards that "
+               "his name should go nowhere, and it did not."),
      ]},
     {"section": "basics", "title": "Controls",
      "subtitle": "what every key does",

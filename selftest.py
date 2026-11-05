@@ -572,6 +572,17 @@ _seasonal14 = {_c["name"] for _c in D.CHARACTERS
                if W.seasonal_only(_c["name"], _cond7) and not _c.get("costume_variant")}
 assert _seasonal14 <= set(_seated), _seasonal14 - set(_seated)
 assert {"Amberk", "Crystallion"} <= set(_seated)
+# the seating is the split: majors down one side, minors down the other, and
+# the two who hold a day rather than a shelf at the far ends
+_ev7 = {_c["name"]: _c["event"] for _c in SEASONAL_SHOP_CHARS}
+_rank7 = {_n: W.event_rank(_ev7[_n]) for _n in _seasonal14}
+assert sorted(_rank7.values()).count("major") == 7, _rank7
+for _side, _want in ((DR._SUPPER_LEFT, "major"), (DR._SUPPER_RIGHT, "minor")):
+    _ranked = [_rank7[_n] for _n in _side if _n in _rank7]
+    assert len(_ranked) == 7 and set(_ranked) == {_want}, (_want, _ranked)
+assert DR._SUPPER_LEFT[0] == "#judas" and DR._SUPPER_RIGHT[0] == "#holi", \
+    "those two sit on Birthalomeu's hands, nearest the middle"
+assert DR._SUPPER_LEFT[-1] == "Amberk" and DR._SUPPER_RIGHT[-1] == "Crystallion"
 # it draws at any size without falling over
 for _sz in ((680, 250), (960, 440), (300, 120)):
     _ss = pygame.Surface(_sz)
