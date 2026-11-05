@@ -895,6 +895,61 @@ def _achievement_pages(unlocked, stats):
 # ── Written pages ───────────────────────────────────────────────────────────
 # Append to this list to add a page. Nothing else needs to change.
 PAGES = [
+    {"section": "lore", "title": "The Last Supper",
+     "subtitle": "drawn on paper, in pencil",
+     "color": (214, 196, 160),
+     "body": [
+         "Birthalomeu at the middle of a long table with the apostles either "
+         "side of him — and the apostles are the fighters you can only get on "
+         "one day of the year.",
+         ("photo", "last-supper.jpg"),
+         ("h", "What is in it"),
+         "He is in it twice. Once at the table, a birthday cake with two "
+         "candles and his arms out along the cloth. Once again above the "
+         "middle arch, much bigger, with both hands reaching down over the "
+         "hall.",
+         "The ceiling is covered edge to edge with ordinary stickmen, painted "
+         "on like a fresco. SICKMAN is written down the left pier and SOFTBALL "
+         "down the right. The gravestone on the right has LOV cut into it.",
+         ("h", "Not finished"),
+         "Eighteen apostles were planned and not all of them are in yet. One "
+         "of them is Holi, who is not in the game at all — there is no Holi "
+         "event and no Holi fighter. The painted version of this page lays a "
+         "place for the two who have no name yet.",
+     ]},
+    {"section": "lore", "title": "The Last Supper, in colour",
+     "subtitle": "the same table, painted",
+     "color": (238, 198, 120),
+     "body": [
+         "The scene again, this time with everyone drawn as they are in a "
+         "fight. Birthalomeu is at the centre and above the middle arch; the "
+         "ceiling is the ordinary roster looking down.",
+         ("supper",),
+         ("h", "Down the left"),
+         ("b", "Nian — New Dynasties"),
+         ("b", "Smoochie — Hearts and Harmonies"),
+         ("b", "Clover — Emerald Echoes"),
+         ("b", "Baddit — April Rain"),
+         ("b", "a place laid, and nobody to sit in it"),
+         ("b", "Eartha — Bound to the Ground"),
+         ("b", "Tombstone — Legacy of Valor"),
+         ("b", "Solara — Summer Solstice"),
+         ("b", "Stickman of Liberty — Red White and Boom"),
+         ("h", "Down the right"),
+         ("b", "Bookzworm — Novel Beginnings"),
+         ("b", "Yellowstone — Project Yellowstone"),
+         ("b", "Jack O' Slash — Echoes of the Undying"),
+         ("b", "Cornucopia — Feasterween"),
+         ("b", "a place laid, and nobody to sit in it"),
+         ("b", "Nun-Gimel-Hei-Shin — Aura of Menorah"),
+         ("b", "Saint Nix — Yuletide Gatherings"),
+         ("b", "Amberk — Dinosaur Day, the 11th of July"),
+         ("b", "Crystallion — Leap Day, once every four years"),
+         ("h", "The two empty places"),
+         "Fourteen of them come off a seasonal shelf, one for each event. "
+         "Amberk and Crystallion come off a single day in the calendar "
+         "instead. That is sixteen. The last two are still being drawn.",
+     ]},
     {"section": "basics", "title": "Controls",
      "subtitle": "what every key does",
      "body": [

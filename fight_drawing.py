@@ -3,7 +3,7 @@ import math
 import random
 import constants
 from constants import *
-from fight_data import (STAGES, STAGE_MATCHUPS, POWERUPS, COSTUME_BASE,
+from fight_data import (CHARACTERS, STAGES, STAGE_MATCHUPS, POWERUPS, COSTUME_BASE,
                         COSTUME_EMBLEM,
                         ELEMENT_COLOR as _ELEMENT_COLOR,
                         elements_of as _elements_of,
@@ -16749,6 +16749,209 @@ def draw_world_map(surface, rect, font=None, label_font=None):
         _tx = max(x0 + 2, min(x0 + w - _t.get_width() - 2, _tx))
         surface.blit(_t, (_tx, _py + 6))
     pygame.draw.rect(surface, (120, 140, 160), rect, 2)
+
+
+# ── The Last Supper, in colour ──────────────────────────────────────────────
+# Birthalomeu at the middle of the table with the apostles either side of him,
+# which here means the fighters you can only get on one day of the year. Two
+# places are still empty; there are eighteen apostles and only sixteen of them
+# have names so far.
+# None is a place laid for an apostle who has not been named yet.
+_SUPPER_LEFT = ["Nian", "Smoochie", "Clover", "Baddit", None,
+                "Eartha", "Tombstone", "Solara", "Stickman of Liberty"]
+_SUPPER_RIGHT = ["Bookzworm", "Yellowstone", "Jack O' Slash", "Cornucopia", None,
+                 "Nun-Gimel-Hei-Shin", "Saint Nix", "Amberk", "Crystallion"]
+
+
+def draw_last_supper(surface, rect, label_font=None):
+    """The scene, inside rect. Everything scales off the height."""
+    x0, y0, w, h = rect
+    S = h / 240.0
+    def P(v):
+        return int(v * S)
+    clip_old = surface.get_clip()
+    surface.set_clip(pygame.Rect(x0, y0, w, h))
+
+    cx = x0 + w // 2
+    wall_top = y0 + P(54)          # where the ceiling meets the back wall
+    table_y  = y0 + P(162)         # the tabletop
+    floor_y  = y0 + h
+
+    # ── The hall ──────────────────────────────────────────────────────────
+    pygame.draw.rect(surface, (58, 42, 34), (x0, y0, w, h))
+    pygame.draw.rect(surface, (86, 64, 48), (x0, wall_top, w, table_y - wall_top))
+    # the ceiling, running back to the far wall
+    _ceil = [(x0, y0), (x0 + w, y0),
+             (x0 + w - P(70), wall_top), (x0 + P(70), wall_top)]
+    pygame.draw.polygon(surface, (44, 32, 28), _ceil)
+    for _i in range(1, 6):          # coffers, converging on the middle
+        _fx = x0 + w * _i / 6.0
+        pygame.draw.line(surface, (66, 50, 42), (_fx, y0),
+                         (x0 + P(70) + (w - P(140)) * _i / 6.0, wall_top), 1)
+    for _i in range(1, 3):
+        _fy = y0 + (wall_top - y0) * _i / 3.0
+        _in = P(70) * _i / 3.0
+        pygame.draw.line(surface, (66, 50, 42), (x0 + _in, _fy),
+                         (x0 + w - _in, _fy), 1)
+
+    # the side walls, angled in
+    for _sgn in (-1, 1):
+        _ex = cx + _sgn * w // 2
+        pygame.draw.polygon(surface, (70, 52, 42), [
+            (_ex, y0), (_ex, floor_y),
+            (cx + _sgn * (w // 2 - P(70)), table_y + P(26)),
+            (cx + _sgn * (w // 2 - P(70)), wall_top)])
+
+    # ── Three openings, with the evening outside ──────────────────────────
+    for _sgn, _wd, _ht in ((-1, P(46), P(58)), (0, P(62), P(76)), (1, P(46), P(58))):
+        _ax = cx + _sgn * P(100)
+        _ay = table_y - _ht
+        _r  = pygame.Rect(_ax - _wd // 2, _ay, _wd, _ht)
+        pygame.draw.rect(surface, (118, 146, 178), _r)
+        pygame.draw.ellipse(surface, (118, 146, 178),
+                            (_r.x, _r.y - _wd // 2, _wd, _wd))
+        for _k in range(6):          # the sky going down to the hills
+            _c = (118 + _k * 14, 146 + _k * 10, 178 - _k * 6)
+            pygame.draw.rect(surface, _c,
+                             (_r.x, _r.y + _ht * _k // 8, _wd, _ht // 8 + 1))
+        pygame.draw.ellipse(surface, (74, 104, 80),
+                            (_r.x - P(6), _r.bottom - P(16), _wd + P(12), P(24)))
+        pygame.draw.arc(surface, (46, 34, 28),
+                        (_r.x - 2, _r.y - _wd // 2 - 2, _wd + 4, _wd + 4),
+                        0.0, 3.1416, max(2, P(3)))
+        pygame.draw.rect(surface, (46, 34, 28), _r, max(1, P(2)))
+
+    # ── The fresco: a crowd of ordinary stickmen over the ceiling ─────────
+    _fh = max(1, P(2))
+    for _i in range(54):
+        _row = _i // 18
+        _fy  = y0 + P(9) + _row * P(14) + ((_i * 5) % 3)
+        _tuck = P(70) * (_fy - y0) / float(max(1, wall_top - y0))
+        _span = w - 2 * _tuck - P(20)
+        _fx  = int(x0 + _tuck + P(10) + _span * ((_i % 18) + 0.5) / 18.0)
+        if cx - P(46) < _fx < cx + P(46) and _row < 2:
+            continue                     # the middle is Birthalomeu's
+        _c = (150, 132, 112)
+        pygame.draw.circle(surface, _c, (_fx, _fy), _fh)
+        pygame.draw.line(surface, _c, (_fx, _fy + _fh), (_fx, _fy + P(6)), 1)
+        pygame.draw.line(surface, _c, (_fx - P(3), _fy + P(3)),
+                         (_fx + P(3), _fy + P(3)), 1)
+        pygame.draw.line(surface, _c, (_fx, _fy + P(6)),
+                         (_fx - P(2), _fy + P(10)), 1)
+        pygame.draw.line(surface, _c, (_fx, _fy + P(6)),
+                         (_fx + P(2), _fy + P(10)), 1)
+
+    # Birthalomeu again over the middle arch, reaching down over the hall
+    _vy = y0 + P(32)
+    pygame.draw.rect(surface, (34, 25, 22),
+                     (cx - P(42), y0 + P(2), P(84), P(44)),
+                     border_radius=P(6))
+    pygame.draw.rect(surface, (96, 76, 60),
+                     (cx - P(42), y0 + P(2), P(84), P(44)),
+                     max(1, P(2)), border_radius=P(6))
+    _draw_birthalomeu(surface, cx, _vy, S * 0.62, reaching=True)
+
+    # ── The apostles, eight a side ────────────────────────────────────────
+    _seat_y = table_y + P(6)
+    _scale  = S * 0.46
+    places = []            # (x, taken) for each seat, laid once the cloth is on
+    def _seat(names, side):
+        _n = len(names)
+        for _i, _nm in enumerate(names):
+            _gap = (w // 2 - P(34)) / float(_n)
+            _sx  = int(cx + side * (P(30) + _gap * (_i + 0.5)))
+            _ch  = next((c for c in CHARACTERS if c["name"] == _nm), None)
+            places.append((_sx, _ch is not None))
+            if _ch is None:
+                continue
+            _lift = P(4) if _i % 2 else 0      # a little life in the row
+            try:
+                draw_stickman(surface, _sx, _seat_y + _lift, _ch["color"],
+                              -side, "idle", 0.3 + 0.1 * _i, scale=_scale,
+                              char_name=_nm)
+            except Exception:
+                pass
+    _seat(_SUPPER_LEFT, -1)
+    _seat(_SUPPER_RIGHT, 1)
+
+    # ── Birthalomeu at the head of the table ──────────────────────────────
+    _draw_birthalomeu(surface, cx, table_y - P(4), S)
+
+    # ── The table ─────────────────────────────────────────────────────────
+    _cloth = [(x0 - P(10), table_y + P(46)), (x0 + P(16), table_y),
+              (x0 + w - P(16), table_y), (x0 + w + P(10), table_y + P(46))]
+    pygame.draw.polygon(surface, (226, 222, 210), _cloth)
+    pygame.draw.polygon(surface, (188, 182, 168), _cloth, max(1, P(2)))
+    pygame.draw.line(surface, (206, 200, 186), (x0 + P(16), table_y + P(10)),
+                     (x0 + w - P(16), table_y + P(10)), max(1, P(1)))
+    # a place laid for every apostle, named or not
+    for _i, (_px, _taken) in enumerate(sorted(places)):
+        _py = table_y + P(20) + (P(4) if _i % 2 else 0)
+        pygame.draw.ellipse(surface, (240, 238, 230),
+                            (_px - P(9), _py - P(4), P(18), P(9)))
+        pygame.draw.ellipse(surface, (198, 192, 178),
+                            (_px - P(9), _py - P(4), P(18), P(9)), 1)
+        if not _taken:
+            continue                       # nobody behind this one yet
+        pygame.draw.rect(surface, (214, 206, 190),
+                         (_px + P(10), _py - P(8), P(7), P(9)),
+                         border_radius=max(1, P(2)))
+        if _i % 3 == 0:
+            pygame.draw.ellipse(surface, (196, 158, 100),
+                                (_px - P(6), _py - P(7), P(12), P(7)))
+    pygame.draw.rect(surface, (74, 54, 42), (x0, table_y + P(46), w, h), 0)
+    pygame.draw.rect(surface, (140, 150, 170), rect, 2)
+    surface.set_clip(clip_old)
+
+
+def _draw_birthalomeu(surface, cx, by, S, reaching=False):
+    """A two-tier birthday cake with a face, two candles, and arms."""
+    def P(v):
+        return max(1, int(v * S))
+    _top_w, _bot_w = P(36), P(50)
+    _t_h,  _b_h   = P(20), P(22)
+    _ty = by - _b_h - _t_h
+    if reaching:                       # the long arms down over the arch
+        for _sgn in (-1, 1):
+            _hx, _hy = cx + _sgn * P(64), by + P(26)
+            pygame.draw.lines(surface, (236, 226, 206), False, [
+                (cx + _sgn * _bot_w // 2, by - _b_h // 2),
+                (cx + _sgn * P(54), by + P(4)), (_hx, _hy)], P(4))
+            pygame.draw.circle(surface, (236, 226, 206), (_hx, _hy), P(6))
+            for _f in range(4):
+                pygame.draw.line(surface, (236, 226, 206), (_hx, _hy),
+                                 (_hx + _sgn * P(2 + _f * 3), _hy + P(13)), P(2))
+    else:                              # arms out along the tabletop
+        for _sgn in (-1, 1):
+            pygame.draw.line(surface, (236, 226, 206),
+                             (cx + _sgn * _bot_w // 2, by - _b_h // 2),
+                             (cx + _sgn * P(54), by + P(6)), P(4))
+    # the cake
+    for _w9, _h9, _y9, _c in ((_bot_w, _b_h, by - _b_h, (238, 226, 206)),
+                              (_top_w, _t_h, _ty, (244, 234, 216))):
+        pygame.draw.rect(surface, _c, (cx - _w9 // 2, _y9, _w9, _h9),
+                         border_radius=P(3))
+        pygame.draw.rect(surface, (198, 170, 138), (cx - _w9 // 2, _y9, _w9, _h9),
+                         max(1, P(2)), border_radius=P(3))
+        # icing dripping over the edge
+        pygame.draw.rect(surface, (198, 92, 110), (cx - _w9 // 2, _y9, _w9, P(5)),
+                         border_radius=P(2))
+        for _k in range(5):
+            _dx = cx - _w9 // 2 + _w9 * (_k + 0.5) / 5.0
+            pygame.draw.circle(surface, (198, 92, 110), (int(_dx), _y9 + P(6)), P(3))
+    # his face, on the top tier
+    for _sgn in (-1, 1):
+        pygame.draw.circle(surface, (40, 34, 32),
+                           (cx + _sgn * P(8), _ty + P(9)), P(3))
+    pygame.draw.arc(surface, (40, 34, 32),
+                    (cx - P(11), _ty + P(10), P(22), P(10)), 3.4, 6.0, max(1, P(2)))
+    # two candles
+    for _sgn in (-1, 1):
+        _kx = cx + _sgn * P(9)
+        pygame.draw.rect(surface, (242, 240, 232),
+                         (_kx - P(2), _ty - P(16), P(4), P(16)))
+        pygame.draw.circle(surface, (250, 198, 70), (_kx, _ty - P(19)), P(4))
+        pygame.draw.circle(surface, (252, 240, 190), (_kx, _ty - P(20)), P(2))
 
 
 _COSTUME_DRAWN = [False]

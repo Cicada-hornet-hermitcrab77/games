@@ -1,5 +1,6 @@
 import pygame
 import sys
+import os
 import math
 import random
 import socket
@@ -12,7 +13,7 @@ import fight_wiki as _wiki
 from constants import *
 from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS, FUSER_ELEMENTS, FUSER_RECIPES, FUSER_SHOP_CHARS
 from fight_drawing import (draw_bg, draw_stickman, draw_jawke_legacy, _draw_emblem,
-                           draw_world_map)
+                           draw_world_map, draw_last_supper)
 from fight_seasonal import (SEASONAL_EVENTS, SEASONAL_SHOP_CHARS, get_active_event, draw_seasonal_decos,
                             is_solar_eclipse_today, is_lunar_eclipse_today)
 
@@ -3660,6 +3661,20 @@ def _wiki_stage_thumb(idx, w, h):
     return _wiki_stage_thumbs[key]
 
 
+_wiki_photos = {}
+
+
+def _wiki_photo(fname):
+    """A picture out of the wiki folder, loaded once. None if it is not there."""
+    if fname not in _wiki_photos:
+        path = os.path.join(_wiki.WIKI_DIR, fname)
+        try:
+            _wiki_photos[fname] = pygame.image.load(path).convert()
+        except Exception:
+            _wiki_photos[fname] = None
+    return _wiki_photos[fname]
+
+
 def _wiki_draw_art(art, rect, col):
     """Whatever picture a page carries, inside rect."""
     if not art:
@@ -4166,6 +4181,10 @@ def wiki_screen(unlocked=(), stats=None):
                     lines.append(("cats", item[1]))
                 elif item[0] == "worldmap":
                     lines.append(("worldmap",))
+                elif item[0] == "photo":
+                    lines.append(("photo", item[1]))
+                elif item[0] == "supper":
+                    lines.append(("supper",))
                 elif item[0] == "tree":
                     _prev = None
                     for _d, _txt in item[1]:
@@ -4176,7 +4195,7 @@ def wiki_screen(unlocked=(), stats=None):
                         _prev = _d
         _lh = {"title": 30, "sub": 18, "tags": 20, "gap": 0, "p": 19, "head": 24,
                "bullet": 19, "bullet2": 19, "kv": 19, "bar": 20, "tree": 20,
-               "cats": 24, "worldmap": 232}
+               "cats": 24, "worldmap": 232, "photo": 268, "supper": 252}
         art_h = sum(l[1] if l[0] == "gap" else _lh[l[0]] for l in lines)
         _has_art = bool(page and page.get("art"))
         if _has_art:
@@ -4398,6 +4417,24 @@ def wiki_screen(unlocked=(), stats=None):
                     elif _k == "worldmap":
                         draw_world_map(screen, (ARTX + 12, _y + 4, _tw, 220),
                                        label_font=font_tiny)
+                    elif _k == "photo":
+                        _ph = _wiki_photo(_ln[1])
+                        if _ph:
+                            _pw, _phh = _ph.get_size()
+                            _sc = min(_tw / _pw, 256 / _phh)
+                            _ph2 = pygame.transform.smoothscale(
+                                _ph, (max(1, int(_pw * _sc)), max(1, int(_phh * _sc))))
+                            _px = ARTX + 12 + (_tw - _ph2.get_width()) // 2
+                            screen.blit(_ph2, (_px, _y + 4))
+                            pygame.draw.rect(screen, (90, 92, 110),
+                                             (_px - 1, _y + 3, _ph2.get_width() + 2,
+                                              _ph2.get_height() + 2), 1)
+                        else:
+                            screen.blit(font_tiny.render(
+                                f"[{_ln[1]} is missing]", True, (150, 100, 100)),
+                                (ARTX + 12, _y + 8))
+                    elif _k == "supper":
+                        draw_last_supper(screen, (ARTX + 12, _y + 4, _tw, 240))
                     elif _k == "cats":
                         _cr = pygame.Rect(ARTX + 12, _y + 3, 76, 14)
                         _wiki_cat_chip(_cr, _ln[1])

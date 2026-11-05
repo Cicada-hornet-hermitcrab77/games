@@ -543,4 +543,35 @@ print(f"elements: {len(D.ELEMENT_ORDER)} of them, "
       f"{sum(len(_v) for _v in D.ELEMENT_BEATS.values())} advantages, "
       f"x{D.ELEMENT_BONUS} dealing and x{D.ELEMENT_PENALTY} taking")
 
+# 17. The Last Supper — the photo and the painted one
+_lore = {_p["title"]: _p for _p in W.build(unlocked=())["lore"]}
+assert "The Last Supper" in _lore and "The Last Supper, in colour" in _lore
+_photo = [_i for _i in _lore["The Last Supper"]["body"]
+          if isinstance(_i, tuple) and _i[0] == "photo"]
+assert len(_photo) == 1, _photo
+_ppath = os.path.join(W.WIKI_DIR, _photo[0][1])
+assert os.path.exists(_ppath), _ppath
+assert pygame.image.load(_ppath).get_width() > 200
+assert any(isinstance(_i, tuple) and _i[0] == "supper"
+           for _i in _lore["The Last Supper, in colour"]["body"])
+# everybody at the table is a real fighter, and two places are left empty
+_seated = DR._SUPPER_LEFT + DR._SUPPER_RIGHT
+assert len(_seated) == 18, len(_seated)
+assert _seated.count(None) == 2, "two apostles still have no name"
+_roster = {_c["name"] for _c in D.CHARACTERS}
+for _nm7 in _seated:
+    assert _nm7 is None or _nm7 in _roster, _nm7
+# and the seasonal fourteen are all at it
+_cond7, _, _ = W._unlock_tables()
+_seasonal14 = {_c["name"] for _c in D.CHARACTERS
+               if W.seasonal_only(_c["name"], _cond7) and not _c.get("costume_variant")}
+assert _seasonal14 <= set(_seated), _seasonal14 - set(_seated)
+assert {"Amberk", "Crystallion"} <= set(_seated)
+# it draws at any size without falling over
+for _sz in ((680, 250), (960, 440), (300, 120)):
+    _ss = pygame.Surface(_sz)
+    DR.draw_last_supper(_ss, (0, 0, _sz[0], _sz[1]))
+print(f"the Last Supper: the photo, and {len(_seated) - 2} apostles painted "
+      f"with two places still laid empty")
+
 print("ALL OK")
