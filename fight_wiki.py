@@ -60,7 +60,7 @@ SECTIONS = [
     {"id": "modes",        "title": "Modes",        "color": (100, 220, 230)},
     {"id": "powerups",     "title": "Power-ups",    "color": (255, 150,  80)},
     {"id": "achievements", "title": "Achievements", "color": (255, 206,  70)},
-    {"id": "lore",         "title": "Lore",         "color": (175, 165, 205)},
+    {"id": "lore",         "title": "Hiss-tory",    "color": (175, 165, 205)},
 ]
 SECTION_TITLE = {s["id"]: s["title"] for s in SECTIONS}
 
@@ -896,59 +896,69 @@ def _achievement_pages(unlocked, stats):
 # Append to this list to add a page. Nothing else needs to change.
 PAGES = [
     {"section": "lore", "title": "The Last Supper",
-     "subtitle": "drawn on paper, in pencil",
+     "subtitle": "the one night all eighteen of them sat down",
      "color": (214, 196, 160),
      "body": [
-         "Birthalomeu at the middle of a long table with the apostles either "
-         "side of him — and the apostles are the fighters you can only get on "
-         "one day of the year.",
+         "They only ever meet one at a time. Each of them comes round once — "
+         "once a year, or once in four — and by the time the next one is due "
+         "the last one is long gone. This is the night that did not happen "
+         "that way.",
+         "Birthalomeu sat at the middle of the table and the other eighteen "
+         "sat down the length of it, and for the one evening the whole "
+         "calendar was in the same room.",
          ("photo", "last-supper.jpg"),
-         ("h", "What is in it"),
-         "He is in it twice. Once at the table, a birthday cake with two "
-         "candles and his arms out along the cloth. Once again above the "
-         "middle arch, much bigger, with both hands reaching down over the "
-         "hall.",
-         "The ceiling is covered edge to edge with ordinary stickmen, painted "
-         "on like a fresco. SICKMAN is written down the left pier and SOFTBALL "
-         "down the right. The gravestone on the right has LOV cut into it.",
-         ("h", "Not finished"),
-         "Eighteen apostles were planned and not all of them are in yet. One "
-         "of them is Holi, who is not in the game at all — there is no Holi "
-         "event and no Holi fighter. The painted version of this page lays a "
-         "place for the two who have no name yet.",
+         ("h", "He is in it twice"),
+         "Once at the table: a cake of two tiers, two candles lit, both arms "
+         "laid out along the cloth. Once overhead, far bigger, in the recess "
+         "above the middle arch, reaching down over the hall with both hands. "
+         "Whichever way you look you are looking at him.",
+         ("h", "Who else is in the room"),
+         "The ceiling. Every fighter who does not get a day of his own is up "
+         "there watching, painted across the vaults, and one of them is "
+         "saying something nobody has been able to read since.",
+         "SICKMAN is cut into the left pier and SOFTBALL into the right. The "
+         "stone on the right reads LOV and nothing more — the rest of it "
+         "either wore away or was never finished.",
+         ("h", "What it is"),
+         "Pencil on paper. It is the only picture of that night there is.",
      ]},
-    {"section": "lore", "title": "The Last Supper, in colour",
-     "subtitle": "the same table, painted",
+    {"section": "lore", "title": "The eighteen apostles",
+     "subtitle": "the table, painted, and who sat where",
      "color": (238, 198, 120),
      "body": [
-         "The scene again, this time with everyone drawn as they are in a "
-         "fight. Birthalomeu is at the centre and above the middle arch; the "
-         "ceiling is the ordinary roster looking down.",
+         "The same night with the colour put back in. Everyone at the table "
+         "is drawn as he comes to a fight, because that is the only way "
+         "anyone has ever seen them.",
          ("supper",),
-         ("h", "Down the left"),
+         ("h", "Down the left, from the middle out"),
          ("b", "Nian — New Dynasties"),
          ("b", "Smoochie — Hearts and Harmonies"),
+         ("b", "the one who sells them out — leaning back out of the light, "
+               "purse under his arm, no name recorded"),
          ("b", "Clover — Emerald Echoes"),
          ("b", "Baddit — April Rain"),
-         ("b", "a place laid, and nobody to sit in it"),
          ("b", "Eartha — Bound to the Ground"),
          ("b", "Tombstone — Legacy of Valor"),
          ("b", "Solara — Summer Solstice"),
          ("b", "Stickman of Liberty — Red White and Boom"),
-         ("h", "Down the right"),
+         ("h", "Down the right, from the middle out"),
          ("b", "Bookzworm — Novel Beginnings"),
          ("b", "Yellowstone — Project Yellowstone"),
          ("b", "Jack O' Slash — Echoes of the Undying"),
          ("b", "Cornucopia — Feasterween"),
-         ("b", "a place laid, and nobody to sit in it"),
+         ("b", "Holi — arms up, still throwing the colour"),
          ("b", "Nun-Gimel-Hei-Shin — Aura of Menorah"),
          ("b", "Saint Nix — Yuletide Gatherings"),
          ("b", "Amberk — Dinosaur Day, the 11th of July"),
-         ("b", "Crystallion — Leap Day, once every four years"),
-         ("h", "The two empty places"),
-         "Fourteen of them come off a seasonal shelf, one for each event. "
-         "Amberk and Crystallion come off a single day in the calendar "
-         "instead. That is sixteen. The last two are still being drawn.",
+         ("b", "Crystallion — Leap Day, once in four years"),
+         ("h", "The two you cannot fight"),
+         "Sixteen of them you can have. Fourteen come off a seasonal shelf, "
+         "one to an event, and Amberk and Crystallion off a single square of "
+         "the calendar each.",
+         "Holi is the other kind. He was at the table and he has never been "
+         "in a fight — there is no Holi event in the year and no Holi to "
+         "pick. The one next to Smoochie is worse off than that: nobody "
+         "wrote down what he was called.",
      ]},
     {"section": "basics", "title": "Controls",
      "subtitle": "what every key does",

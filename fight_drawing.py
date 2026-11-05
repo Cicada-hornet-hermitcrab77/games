@@ -16756,10 +16756,12 @@ def draw_world_map(surface, rect, font=None, label_font=None):
 # which here means the fighters you can only get on one day of the year. Two
 # places are still empty; there are eighteen apostles and only sixteen of them
 # have names so far.
-# None is a place laid for an apostle who has not been named yet.
-_SUPPER_LEFT = ["Nian", "Smoochie", "Clover", "Baddit", None,
+# Two of the eighteen are at the table without being in the game: Holi, who
+# has no event yet, and the one who sells him out, who has no name yet. They
+# get drawn by hand rather than out of the roster.
+_SUPPER_LEFT = ["Nian", "Smoochie", "#judas", "Clover", "Baddit",
                 "Eartha", "Tombstone", "Solara", "Stickman of Liberty"]
-_SUPPER_RIGHT = ["Bookzworm", "Yellowstone", "Jack O' Slash", "Cornucopia", None,
+_SUPPER_RIGHT = ["Bookzworm", "Yellowstone", "Jack O' Slash", "Cornucopia", "#holi",
                  "Nun-Gimel-Hei-Shin", "Saint Nix", "Amberk", "Crystallion"]
 
 
@@ -16860,11 +16862,17 @@ def draw_last_supper(surface, rect, label_font=None):
         for _i, _nm in enumerate(names):
             _gap = (w // 2 - P(34)) / float(_n)
             _sx  = int(cx + side * (P(30) + _gap * (_i + 0.5)))
-            _ch  = next((c for c in CHARACTERS if c["name"] == _nm), None)
-            places.append((_sx, _ch is not None))
+            _lift = P(4) if _i % 2 else 0      # a little life in the row
+            places.append((_sx, True))
+            if _nm == "#holi":
+                _draw_holi(surface, _sx, _seat_y + _lift, S * 0.46, -side)
+                continue
+            if _nm == "#judas":
+                _draw_judas(surface, _sx, _seat_y + _lift, S * 0.46, -side)
+                continue
+            _ch = next((c for c in CHARACTERS if c["name"] == _nm), None)
             if _ch is None:
                 continue
-            _lift = P(4) if _i % 2 else 0      # a little life in the row
             try:
                 draw_stickman(surface, _sx, _seat_y + _lift, _ch["color"],
                               -side, "idle", 0.3 + 0.1 * _i, scale=_scale,
@@ -16902,6 +16910,70 @@ def draw_last_supper(surface, rect, label_font=None):
     pygame.draw.rect(surface, (74, 54, 42), (x0, table_y + P(46), w, h), 0)
     pygame.draw.rect(surface, (140, 150, 170), rect, 2)
     surface.set_clip(clip_old)
+
+
+def _draw_holi(surface, x, by, S, facing):
+    """Holi — not a fighter yet, so he is drawn here and nowhere else: a white
+    stickman the colour has been thrown at."""
+    def P(v):
+        return max(1, int(v * S))
+    _white = (244, 244, 248)
+    _head = by - P(96)
+    pygame.draw.circle(surface, _white, (x, _head), P(15))
+    pygame.draw.circle(surface, (188, 190, 200), (x, _head), P(15), max(1, P(2)))
+    pygame.draw.line(surface, _white, (x, _head + P(15)), (x, by - P(38)), P(5))
+    for _sgn in (-1, 1):                       # arms thrown up, mid-handful
+        pygame.draw.lines(surface, _white, False, [
+            (x, by - P(74)), (x + _sgn * P(20), by - P(84)),
+            (x + _sgn * P(26), by - P(104))], P(4))
+        pygame.draw.line(surface, _white, (x, by - P(38)),
+                         (x + _sgn * P(13), by), P(5))
+    _POW = ((236,  60, 130), (250, 206,  40), (70, 190, 110),
+            (60, 150, 230), (180,  90, 220))
+    for _k, _c in enumerate(_POW):             # powder on him
+        _a = 0.9 + _k * 1.27
+        pygame.draw.circle(surface, _c,
+                           (x + int(math.cos(_a) * P(13)),
+                            by - P(64) + int(math.sin(_a) * P(26))), P(6))
+    for _k, _c in enumerate(_POW):             # and powder in the air
+        _a = 0.4 + _k * 1.19
+        pygame.draw.circle(surface, _c,
+                           (x + int(math.cos(_a) * P(34)),
+                            by - P(96) + int(math.sin(_a) * P(30))), P(4))
+    pygame.draw.circle(surface, (236, 60, 130), (x - P(5), _head - P(3)), P(5))
+    pygame.draw.circle(surface, (250, 206, 40), (x + P(7), _head + P(4)), P(4))
+
+
+def _draw_judas(surface, x, by, S, facing):
+    """The one who sells the rest of them out. No name yet, so: in shadow,
+    leaning away from the table, holding the purse."""
+    def P(v):
+        return max(1, int(v * S))
+    _dark = (62, 66, 74)
+    _lean = facing * P(7)                      # pulling back out of the light
+    _head = by - P(92)
+    pygame.draw.circle(surface, _dark, (x - _lean, _head), P(15))
+    pygame.draw.circle(surface, (34, 36, 42), (x - _lean, _head), P(15), max(1, P(2)))
+    for _sgn in (-1, 1):                       # eyes, and nothing else
+        pygame.draw.circle(surface, (226, 206, 120),
+                           (x - _lean + facing * P(3) + _sgn * P(5),
+                            _head - P(2)), P(2))
+    pygame.draw.line(surface, _dark, (x - _lean, _head + P(15)), (x, by - P(38)), P(5))
+    # the arm that holds the purse, tucked in behind the elbow
+    _px, _py = x - _lean - facing * P(17), by - P(52)
+    pygame.draw.lines(surface, _dark, False, [
+        (x - _lean + P(1), by - P(72)), (x - _lean - facing * P(14), by - P(60)),
+        (_px, _py)], P(4))
+    pygame.draw.ellipse(surface, (122,  96,  48),
+                        (_px - P(8), _py, P(16), P(17)))
+    pygame.draw.line(surface, (74, 58, 30), (_px - P(5), _py + P(2)),
+                     (_px + P(5), _py + P(2)), max(1, P(3)))
+    # the other hand flat on the cloth, and a cup gone over beside it
+    pygame.draw.line(surface, _dark, (x - _lean, by - P(72)),
+                     (x + facing * P(19), by - P(34)), P(4))
+    pygame.draw.line(surface, _dark, (x, by - P(38)), (x - P(12), by), P(5))
+    pygame.draw.line(surface, _dark, (x, by - P(38)),
+                     (x + P(13) + _lean, by), P(5))
 
 
 def _draw_birthalomeu(surface, cx, by, S, reaching=False):
