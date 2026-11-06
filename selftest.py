@@ -586,7 +586,7 @@ assert DR._DESSERT_LEFT[-1] == "Amberk" and DR._DESSERT_RIGHT[-1] == "Crystallio
 # the ceiling is the war dead, five of them still recognisable
 assert "The Great War" in _lore
 _dead5 = [_d[0] for _d in DR._DESSERT_DEAD]
-assert _dead5 == ["Pi Day", "Diwali", "Twin Day", "Volcanis", "Umbrazzer"], _dead5
+assert _dead5 == ["Pi Day", "Diwali", "Twin Day", "Volcanis", "Umbra"], _dead5
 for _nm8, _frac, _char in DR._DESSERT_DEAD:
     assert 0.0 < _frac < 1.0
     assert _char is None or _char in _roster, _char

@@ -930,14 +930,14 @@ PAGES = [
          ("b", "Diwali — he lit the lamps along the whole vault"),
          ("b", "Twin Day — the two of them count as one week"),
          ("b", "Volcanis — both hammers, still up"),
-         ("b", "Umbrazzer — nearest the corner, where the light stops"),
+         ("b", "Umbra — nearest the corner, where the light stops"),
          "One of the nameless ones is saying something. It has been copied "
          "out four times and read four different ways, and the only thing "
          "anyone agrees on is that it was not a toast.",
          ("h", "Two of them you can still fight"),
          "The dead stay on the ceiling except when the sky goes out. "
          "Volcanis comes down when the stars line up for a solar eclipse. "
-         "Umbrazzer comes down when the moon goes dark. Pi Day, Diwali and "
+         "Umbra comes down when the moon goes dark. Pi Day, Diwali and "
          "Twin Day have no door like that and have never used one.",
          ("h", "The writing on the piers"),
          "SICKMAN is cut into the left-hand pier and SOFTBALL into the right. "
@@ -989,7 +989,7 @@ PAGES = [
          ("b", "Nun-Gimel-Hei-Shin — Aura of Menorah"),
          "These seven are the ones who came through the war. Look up at the "
          "ceiling for the ones who did not: Pi Day, Diwali, Twin Day, "
-         "Volcanis and Umbrazzer are still recognisable up there, and the "
+         "Volcanis and Umbra are still recognisable up there, and the "
          "rest have worn down to a shape and a pair of arms.",
          ("h", "One at each far end"),
          "These two never belonged to a shelf and never picked a side. They "
@@ -1033,7 +1033,7 @@ PAGES = [
          ("b", "Diwali"),
          ("b", "Twin Day"),
          ("b", "Volcanis"),
-         ("b", "Umbrazzer"),
+         ("b", "Umbra"),
          "Those five you can still put a name to. The others on the vaults "
          "have worn down to a shape and a pair of arms.",
          ("h", "Who came through it"),
@@ -1043,7 +1043,7 @@ PAGES = [
          ("kv", "Kirin Adler", "was not at the dessert at all"),
          ("h", "The two who come back"),
          "The dead stay dead except when the sky goes out. Volcanis comes "
-         "down when the stars line up for a solar eclipse; Umbrazzer when "
+         "down when the stars line up for a solar eclipse; Umbra when "
          "the moon goes dark. Nobody has worked out why those two and not "
          "the rest.",
          ("h", "What it settled"),

@@ -16772,7 +16772,7 @@ _DESSERT_DEAD = [
     ("Diwali",     0.27, None),
     ("Twin Day",   0.38, None),
     ("Volcanis",   0.68, "Volcanis"),
-    ("Umbrazzer",  0.84, "Umbra"),
+    ("Umbra",      0.84, "Umbra"),
 ]
 
 _DESSERT_LEFT = ["#judas", "Nian", "Smoochie", "Baddit", "Stickman of Liberty",
