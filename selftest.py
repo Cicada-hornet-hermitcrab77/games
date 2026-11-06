@@ -543,20 +543,20 @@ print(f"elements: {len(D.ELEMENT_ORDER)} of them, "
       f"{sum(len(_v) for _v in D.ELEMENT_BEATS.values())} advantages, "
       f"x{D.ELEMENT_BONUS} dealing and x{D.ELEMENT_PENALTY} taking")
 
-# 17. The Last Supper — the photo and the painted one
+# 17. The Last Dessert — the photo and the painted one
 _lore = {_p["title"]: _p for _p in W.build(unlocked=())["lore"]}
-assert "The Last Supper" in _lore and "The eighteen apostles" in _lore
+assert "The Last Dessert" in _lore and "The eighteen apostles" in _lore
 assert W.SECTION_TITLE["lore"] == "Hiss-tory"
-_photo = [_i for _i in _lore["The Last Supper"]["body"]
+_photo = [_i for _i in _lore["The Last Dessert"]["body"]
           if isinstance(_i, tuple) and _i[0] == "photo"]
 assert len(_photo) == 1, _photo
 _ppath = os.path.join(W.WIKI_DIR, _photo[0][1])
 assert os.path.exists(_ppath), _ppath
 assert pygame.image.load(_ppath).get_width() > 200
-assert any(isinstance(_i, tuple) and _i[0] == "supper"
+assert any(isinstance(_i, tuple) and _i[0] == "dessert"
            for _i in _lore["The eighteen apostles"]["body"])
 # everybody at the table is a real fighter, and two places are left empty
-_seated = DR._SUPPER_LEFT + DR._SUPPER_RIGHT
+_seated = DR._DESSERT_LEFT + DR._DESSERT_RIGHT
 assert len(_seated) == 18, len(_seated)
 # Holi and the one who sells them out are at the table but not in the game,
 # so they are drawn by hand rather than pulled out of the roster
@@ -577,17 +577,17 @@ assert {"Amberk", "Crystallion"} <= set(_seated)
 _ev7 = {_c["name"]: _c["event"] for _c in SEASONAL_SHOP_CHARS}
 _rank7 = {_n: W.event_rank(_ev7[_n]) for _n in _seasonal14}
 assert sorted(_rank7.values()).count("major") == 7, _rank7
-for _side, _want in ((DR._SUPPER_LEFT, "major"), (DR._SUPPER_RIGHT, "minor")):
+for _side, _want in ((DR._DESSERT_LEFT, "major"), (DR._DESSERT_RIGHT, "minor")):
     _ranked = [_rank7[_n] for _n in _side if _n in _rank7]
     assert len(_ranked) == 7 and set(_ranked) == {_want}, (_want, _ranked)
-assert DR._SUPPER_LEFT[0] == "#judas" and DR._SUPPER_RIGHT[0] == "#holi", \
+assert DR._DESSERT_LEFT[0] == "#judas" and DR._DESSERT_RIGHT[0] == "#holi", \
     "those two sit on Birthalomeu's hands, nearest the middle"
-assert DR._SUPPER_LEFT[-1] == "Amberk" and DR._SUPPER_RIGHT[-1] == "Crystallion"
+assert DR._DESSERT_LEFT[-1] == "Amberk" and DR._DESSERT_RIGHT[-1] == "Crystallion"
 # the ceiling is the war dead, five of them still recognisable
 assert "The Great War" in _lore
-_dead5 = [_d[0] for _d in DR._SUPPER_DEAD]
+_dead5 = [_d[0] for _d in DR._DESSERT_DEAD]
 assert _dead5 == ["Pi Day", "Diwali", "Twin Day", "Volcanis", "Umbrazzer"], _dead5
-for _nm8, _frac, _char in DR._SUPPER_DEAD:
+for _nm8, _frac, _char in DR._DESSERT_DEAD:
     assert 0.0 < _frac < 1.0
     assert _char is None or _char in _roster, _char
 # the two who come back do it on an eclipse, which is still how you get them
@@ -604,7 +604,7 @@ for _surv in ("Tombstone", "Red Herring", "Kirin Adler"):
 # it draws at any size without falling over
 for _sz in ((680, 250), (960, 440), (300, 120)):
     _ss = pygame.Surface(_sz)
-    DR.draw_last_supper(_ss, (0, 0, _sz[0], _sz[1]))
+    DR.draw_last_dessert(_ss, (0, 0, _sz[0], _sz[1]))
 print(f"Hiss-tory: the photo, and all {len(_seated)} apostles painted — "
       f"{len(_seated) - 2} out of the roster, Holi and the betrayer by hand")
 

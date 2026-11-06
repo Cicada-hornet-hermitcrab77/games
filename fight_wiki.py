@@ -895,7 +895,7 @@ def _achievement_pages(unlocked, stats):
 # ── Written pages ───────────────────────────────────────────────────────────
 # Append to this list to add a page. Nothing else needs to change.
 PAGES = [
-    {"section": "lore", "title": "The Last Supper",
+    {"section": "lore", "title": "The Last Dessert",
      "subtitle": "the night the Seasonals were still one thing",
      "color": (214, 196, 160),
      "body": [
@@ -907,7 +907,10 @@ PAGES = [
          "never once met Solara. This is the night the calendar folded over "
          "on itself and put the whole year in one room. It happened once. It "
          "has not happened since, and after what came of it nobody has tried.",
-         ("photo", "last-supper.jpg"),
+         ("photo", "last-dessert.jpg"),
+         ("h", "Why it is called that"),
+         "Because of what was at the middle of the table. Nobody ate him. "
+         "That was rather the point of the evening.",
          ("h", "Birthalomeu, twice"),
          "He is at the middle of the table — two tiers, two candles, both "
          "arms out along the cloth — and he is above the middle arch as well, "
@@ -918,7 +921,7 @@ PAGES = [
          "The vaults are crowded with minor Seasonals and not one of them "
          "was in the room. They are the ones who did not come back from the "
          "Great War, and the Great War came long after this night. Whoever "
-         "drew the supper drew it from memory, years late, and put the dead "
+         "drew the dessert drew it from memory, years late, and put the dead "
          "up where the ceiling was — so the picture shows a dinner that "
          "happened and a crowd that could not have been watching it.",
          "Most of them are a shape and nothing else by now. Five can still "
@@ -962,7 +965,7 @@ PAGES = [
          "Seven a side is all that was left of them. There were more minors "
          "than that once — the ceiling is full of the rest — but the Great "
          "War came after the split and it went hardest on the small weeks.",
-         ("supper",),
+         ("dessert",),
          ("h", "Seven on his left — the majors"),
          "They took the west route through the Sea o' Seasons and they have "
          "held it ever since. Big weeks, full shelves, the events everybody "
@@ -1014,7 +1017,7 @@ PAGES = [
          "and Kirin Adler, who was not.",
      ]},
     {"section": "lore", "title": "The Great War",
-     "subtitle": "what the supper turned into",
+     "subtitle": "what the dessert turned into",
      "color": (196, 110, 96),
      "body": [
          "He-Who-Shall-Not-Be-Named murdered Birthalomeu, and the world went "
@@ -1025,7 +1028,7 @@ PAGES = [
          "The minor Seasonals, mostly. They had the smallest weeks and the "
          "fewest to call on, and there were a great many more of them before "
          "the war than the seven who are left. The rest are on the ceiling "
-         "of the supper, painted in by somebody who had seen them.",
+         "of the dessert, painted in by somebody who had seen them.",
          ("b", "Pi Day"),
          ("b", "Diwali"),
          ("b", "Twin Day"),
@@ -1035,9 +1038,9 @@ PAGES = [
          "have worn down to a shape and a pair of arms.",
          ("h", "Who came through it"),
          "Three are known by name.",
-         ("kv", "Tombstone", "was at the supper, down the minor side"),
-         ("kv", "Red Herring", "was at the supper, under the table"),
-         ("kv", "Kirin Adler", "was not at the supper at all"),
+         ("kv", "Tombstone", "was at the dessert, down the minor side"),
+         ("kv", "Red Herring", "was at the dessert, under the table"),
+         ("kv", "Kirin Adler", "was not at the dessert at all"),
          ("h", "The two who come back"),
          "The dead stay dead except when the sky goes out. Volcanis comes "
          "down when the stars line up for a solar eclipse; Umbrazzer when "

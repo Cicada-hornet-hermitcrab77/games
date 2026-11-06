@@ -16751,7 +16751,7 @@ def draw_world_map(surface, rect, font=None, label_font=None):
     pygame.draw.rect(surface, (120, 140, 160), rect, 2)
 
 
-# ── The Last Supper, in colour ──────────────────────────────────────────────
+# ── The Last Dessert, in colour ──────────────────────────────────────────────
 # Birthalomeu at the middle of the table with the apostles either side of him,
 # which here means the fighters you can only get on one day of the year. Two
 # places are still empty; there are eighteen apostles and only sixteen of them
@@ -16767,7 +16767,7 @@ def draw_world_map(surface, rect, font=None, label_font=None):
 # not come back from the Great War, painted in afterwards by whoever drew
 # the night from memory. Two of them can still be reached, and only on an
 # eclipse, so those two get their own faces off the roster.
-_SUPPER_DEAD = [
+_DESSERT_DEAD = [
     ("Pi Day",     0.14, None),
     ("Diwali",     0.27, None),
     ("Twin Day",   0.38, None),
@@ -16775,13 +16775,13 @@ _SUPPER_DEAD = [
     ("Umbrazzer",  0.84, "Umbra"),
 ]
 
-_SUPPER_LEFT = ["#judas", "Nian", "Smoochie", "Baddit", "Stickman of Liberty",
+_DESSERT_LEFT = ["#judas", "Nian", "Smoochie", "Baddit", "Stickman of Liberty",
                 "Jack O' Slash", "Cornucopia", "Saint Nix", "Amberk"]
-_SUPPER_RIGHT = ["#holi", "Clover", "Eartha", "Tombstone", "Solara",
+_DESSERT_RIGHT = ["#holi", "Clover", "Eartha", "Tombstone", "Solara",
                  "Bookzworm", "Yellowstone", "Nun-Gimel-Hei-Shin", "Crystallion"]
 
 
-def draw_last_supper(surface, rect, label_font=None):
+def draw_last_dessert(surface, rect, label_font=None):
     """The scene, inside rect. Everything scales off the height."""
     x0, y0, w, h = rect
     S = h / 240.0
@@ -16861,7 +16861,7 @@ def draw_last_supper(surface, rect, label_font=None):
 
     # The five of them anybody can still put a name to
     _dy = y0 + P(40)
-    for _nm8, _frac, _char in _SUPPER_DEAD:
+    for _nm8, _frac, _char in _DESSERT_DEAD:
         _dx = int(x0 + w * _frac)
         if _char:
             _tmp = pygame.Surface((P(70), P(70)), pygame.SRCALPHA)
@@ -16911,8 +16911,8 @@ def draw_last_supper(surface, rect, label_font=None):
                               char_name=_nm)
             except Exception:
                 pass
-    _seat(_SUPPER_LEFT, -1)
-    _seat(_SUPPER_RIGHT, 1)
+    _seat(_DESSERT_LEFT, -1)
+    _seat(_DESSERT_RIGHT, 1)
 
     # ── Birthalomeu at the head of the table ──────────────────────────────
     _draw_birthalomeu(surface, cx, table_y - P(4), S)

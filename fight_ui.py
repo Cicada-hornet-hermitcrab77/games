@@ -13,7 +13,7 @@ import fight_wiki as _wiki
 from constants import *
 from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS, FUSER_ELEMENTS, FUSER_RECIPES, FUSER_SHOP_CHARS
 from fight_drawing import (draw_bg, draw_stickman, draw_jawke_legacy, _draw_emblem,
-                           draw_world_map, draw_last_supper)
+                           draw_world_map, draw_last_dessert)
 from fight_seasonal import (SEASONAL_EVENTS, SEASONAL_SHOP_CHARS, get_active_event, draw_seasonal_decos,
                             is_solar_eclipse_today, is_lunar_eclipse_today)
 
@@ -4183,8 +4183,8 @@ def wiki_screen(unlocked=(), stats=None):
                     lines.append(("worldmap",))
                 elif item[0] == "photo":
                     lines.append(("photo", item[1]))
-                elif item[0] == "supper":
-                    lines.append(("supper",))
+                elif item[0] == "dessert":
+                    lines.append(("dessert",))
                 elif item[0] == "tree":
                     _prev = None
                     for _d, _txt in item[1]:
@@ -4195,7 +4195,7 @@ def wiki_screen(unlocked=(), stats=None):
                         _prev = _d
         _lh = {"title": 30, "sub": 18, "tags": 20, "gap": 0, "p": 19, "head": 24,
                "bullet": 19, "bullet2": 19, "kv": 19, "bar": 20, "tree": 20,
-               "cats": 24, "worldmap": 232, "photo": 268, "supper": 252}
+               "cats": 24, "worldmap": 232, "photo": 268, "dessert": 252}
         art_h = sum(l[1] if l[0] == "gap" else _lh[l[0]] for l in lines)
         _has_art = bool(page and page.get("art"))
         if _has_art:
@@ -4433,8 +4433,8 @@ def wiki_screen(unlocked=(), stats=None):
                             screen.blit(font_tiny.render(
                                 f"[{_ln[1]} is missing]", True, (150, 100, 100)),
                                 (ARTX + 12, _y + 8))
-                    elif _k == "supper":
-                        draw_last_supper(screen, (ARTX + 12, _y + 4, _tw, 240))
+                    elif _k == "dessert":
+                        draw_last_dessert(screen, (ARTX + 12, _y + 4, _tw, 240))
                     elif _k == "cats":
                         _cr = pygame.Rect(ARTX + 12, _y + 3, 76, 14)
                         _wiki_cat_chip(_cr, _ln[1])
