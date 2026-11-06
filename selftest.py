@@ -583,6 +583,24 @@ for _side, _want in ((DR._SUPPER_LEFT, "major"), (DR._SUPPER_RIGHT, "minor")):
 assert DR._SUPPER_LEFT[0] == "#judas" and DR._SUPPER_RIGHT[0] == "#holi", \
     "those two sit on Birthalomeu's hands, nearest the middle"
 assert DR._SUPPER_LEFT[-1] == "Amberk" and DR._SUPPER_RIGHT[-1] == "Crystallion"
+# the ceiling is the war dead, five of them still recognisable
+assert "The Great War" in _lore
+_dead5 = [_d[0] for _d in DR._SUPPER_DEAD]
+assert _dead5 == ["Pi Day", "Diwali", "Twin Day", "Volcanis", "Umbrazzer"], _dead5
+for _nm8, _frac, _char in DR._SUPPER_DEAD:
+    assert 0.0 < _frac < 1.0
+    assert _char is None or _char in _roster, _char
+# the two who come back do it on an eclipse, which is still how you get them
+_ucond = G.UNLOCK_CONDITIONS if hasattr(G, "UNLOCK_CONDITIONS") else {}
+for _eclipse in ("Volcanis", "Umbra"):
+    assert _eclipse in _roster, _eclipse
+# Red Herring was under the table and lived; so did Tombstone and Kirin Adler
+for _surv in ("Red Herring", "Tombstone", "Kirin Adler"):
+    assert _surv in _roster, _surv
+_war = " ".join(_i if isinstance(_i, str) else " ".join(str(_x) for _x in _i[1:])
+                for _i in _lore["The Great War"]["body"])
+for _surv in ("Tombstone", "Red Herring", "Kirin Adler"):
+    assert _surv in _war, _surv
 # it draws at any size without falling over
 for _sz in ((680, 250), (960, 440), (300, 120)):
     _ss = pygame.Surface(_sz)

@@ -914,20 +914,43 @@ PAGES = [
          "far bigger, reaching down over the hall with both hands. Seasonals "
          "do not agree on which of the two is the real one. The ones who were "
          "there say that is the wrong question.",
-         ("h", "The ceiling"),
-         "Everybody who does not get a day of his own is up on the vaults "
-         "watching it happen. One of them is saying something. It has been "
-         "copied out four times and read four different ways, and the only "
-         "thing anyone agrees on is that it was not a toast.",
+         ("h", "The ceiling is the dead"),
+         "The vaults are crowded with minor Seasonals and not one of them "
+         "was in the room. They are the ones who did not come back from the "
+         "Great War, and the Great War came long after this night. Whoever "
+         "drew the supper drew it from memory, years late, and put the dead "
+         "up where the ceiling was — so the picture shows a dinner that "
+         "happened and a crowd that could not have been watching it.",
+         "Most of them are a shape and nothing else by now. Five can still "
+         "be put a name to.",
+         ("b", "Pi Day — the twenty-second of July, and a pie"),
+         ("b", "Diwali — he lit the lamps along the whole vault"),
+         ("b", "Twin Day — the two of them count as one week"),
+         ("b", "Volcanis — both hammers, still up"),
+         ("b", "Umbrazzer — nearest the corner, where the light stops"),
+         "One of the nameless ones is saying something. It has been copied "
+         "out four times and read four different ways, and the only thing "
+         "anyone agrees on is that it was not a toast.",
+         ("h", "Two of them you can still fight"),
+         "The dead stay on the ceiling except when the sky goes out. "
+         "Volcanis comes down when the stars line up for a solar eclipse. "
+         "Umbrazzer comes down when the moon goes dark. Pi Day, Diwali and "
+         "Twin Day have no door like that and have never used one.",
          ("h", "The writing on the piers"),
          "SICKMAN is cut into the left-hand pier and SOFTBALL into the right. "
          "Neither was there when the table was laid.",
          "The stone at the right end reads LOV. The rest of the word is "
          "missing. Tombstone has never said whether it wore away or whether "
          "somebody stopped carving.",
+         ("h", "What came of it"),
+         "He-Who-Shall-Not-Be-Named murdered Birthalomeu. The Great War "
+         "started more or less the moment the news did, and it was fought "
+         "everywhere there was ground to fight on.",
          ("h", "What is left of it"),
          "One picture, in pencil, drawn from memory by somebody who was at "
-         "the table and will not say which one he was.",
+         "the table and will not say which one he was. The ceiling gives him "
+         "away a little: you have to have seen the war to know who to put up "
+         "there.",
      ]},
     {"section": "lore", "title": "The eighteen apostles",
      "subtitle": "who sat where, and what it cost them",
@@ -936,6 +959,9 @@ PAGES = [
          "Seating tells you how it ended. Seven down one side, seven down the "
          "other, and the line between them is the line the Seasonals tore "
          "along.",
+         "Seven a side is all that was left of them. There were more minors "
+         "than that once — the ceiling is full of the rest — but the Great "
+         "War came after the split and it went hardest on the small weeks.",
          ("supper",),
          ("h", "Seven on his left — the majors"),
          "They took the west route through the Sea o' Seasons and they have "
@@ -958,6 +984,10 @@ PAGES = [
          ("b", "Bookzworm — Novel Beginnings"),
          ("b", "Yellowstone — Project Yellowstone"),
          ("b", "Nun-Gimel-Hei-Shin — Aura of Menorah"),
+         "These seven are the ones who came through the war. Look up at the "
+         "ceiling for the ones who did not: Pi Day, Diwali, Twin Day, "
+         "Volcanis and Umbrazzer are still recognisable up there, and the "
+         "rest have worn down to a shape and a pair of arms.",
          ("h", "One at each far end"),
          "These two never belonged to a shelf and never picked a side. They "
          "hold a single square of the calendar instead, and when it comes "
@@ -970,10 +1000,53 @@ PAGES = [
          ("b", "Holi, on his right — arms up, still throwing the colour. He "
                "had the shortest week of all of them and he lost it that "
                "night. There is no Holi in the year now and nobody to pick."),
-         ("b", "The one on his left — leaning back out of the light with the "
-               "purse under his arm. He is the reason there are majors and "
-               "minors. Every Seasonal who was there agreed afterwards that "
-               "his name should go nowhere, and it did not."),
+         ("b", "On his left — He-Who-Shall-Not-Be-Named, leaning back out "
+               "of the light with the purse under his arm. He is the reason "
+               "there are majors and minors, and before the year was out he "
+               "was the reason there is no Birthalomeu. Every Seasonal who "
+               "was at that table agreed his name should go nowhere. It did "
+               "not."),
+         ("h", "And one under it"),
+         "Red Herring spent the whole evening under the table and was still "
+         "there when it was over, which is how anyone knows what was said. "
+         "He is one of three who came through the Great War with a name "
+         "still attached — the others being Tombstone, who was at the table, "
+         "and Kirin Adler, who was not.",
+     ]},
+    {"section": "lore", "title": "The Great War",
+     "subtitle": "what the supper turned into",
+     "color": (196, 110, 96),
+     "body": [
+         "He-Who-Shall-Not-Be-Named murdered Birthalomeu, and the world went "
+         "to war over it. Not one battle in one place — every stage, every "
+         "sea, every ring of ground a tribe holds. The map in the Maps "
+         "section is a list of where it happened.",
+         ("h", "Who it killed"),
+         "The minor Seasonals, mostly. They had the smallest weeks and the "
+         "fewest to call on, and there were a great many more of them before "
+         "the war than the seven who are left. The rest are on the ceiling "
+         "of the supper, painted in by somebody who had seen them.",
+         ("b", "Pi Day"),
+         ("b", "Diwali"),
+         ("b", "Twin Day"),
+         ("b", "Volcanis"),
+         ("b", "Umbrazzer"),
+         "Those five you can still put a name to. The others on the vaults "
+         "have worn down to a shape and a pair of arms.",
+         ("h", "Who came through it"),
+         "Three are known by name.",
+         ("kv", "Tombstone", "was at the supper, down the minor side"),
+         ("kv", "Red Herring", "was at the supper, under the table"),
+         ("kv", "Kirin Adler", "was not at the supper at all"),
+         ("h", "The two who come back"),
+         "The dead stay dead except when the sky goes out. Volcanis comes "
+         "down when the stars line up for a solar eclipse; Umbrazzer when "
+         "the moon goes dark. Nobody has worked out why those two and not "
+         "the rest.",
+         ("h", "What it settled"),
+         "Nothing anybody wanted. The Seasonals were already majors and "
+         "minors by then — that split happened at the table. What the war "
+         "did was decide how many of each there would be.",
      ]},
     {"section": "basics", "title": "Controls",
      "subtitle": "what every key does",

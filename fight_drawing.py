@@ -16763,6 +16763,18 @@ def draw_world_map(surface, rect, font=None, label_font=None):
 # the one who sells them out, and Holi. Neither is in the game, so neither
 # can be pulled out of the roster; they are drawn by hand.
 # Both lists run from the middle of the table outward.
+# The ceiling is not the living roster. It is the minor Seasonals who did
+# not come back from the Great War, painted in afterwards by whoever drew
+# the night from memory. Two of them can still be reached, and only on an
+# eclipse, so those two get their own faces off the roster.
+_SUPPER_DEAD = [
+    ("Pi Day",     0.14, None),
+    ("Diwali",     0.27, None),
+    ("Twin Day",   0.38, None),
+    ("Volcanis",   0.68, "Volcanis"),
+    ("Umbrazzer",  0.84, "Umbra"),
+]
+
 _SUPPER_LEFT = ["#judas", "Nian", "Smoochie", "Baddit", "Stickman of Liberty",
                 "Jack O' Slash", "Cornucopia", "Saint Nix", "Amberk"]
 _SUPPER_RIGHT = ["#holi", "Clover", "Eartha", "Tombstone", "Solara",
@@ -16780,7 +16792,7 @@ def draw_last_supper(surface, rect, label_font=None):
 
     cx = x0 + w // 2
     wall_top = y0 + P(54)          # where the ceiling meets the back wall
-    table_y  = y0 + P(162)         # the tabletop
+    table_y  = y0 + P(152)         # the tabletop
     floor_y  = y0 + h
 
     # ── The hall ──────────────────────────────────────────────────────────
@@ -16847,6 +16859,22 @@ def draw_last_supper(surface, rect, label_font=None):
         pygame.draw.line(surface, _c, (_fx, _fy + P(6)),
                          (_fx + P(2), _fy + P(10)), 1)
 
+    # The five of them anybody can still put a name to
+    _dy = y0 + P(40)
+    for _nm8, _frac, _char in _SUPPER_DEAD:
+        _dx = int(x0 + w * _frac)
+        if _char:
+            _tmp = pygame.Surface((P(70), P(70)), pygame.SRCALPHA)
+            try:
+                draw_stickman(_tmp, P(35), P(64), (200, 200, 200), 1, "idle", 0.3,
+                              scale=S * 0.27, char_name=_char)
+            except Exception:
+                pass
+            _tmp.set_alpha(165)
+            surface.blit(_tmp, (_dx - P(35), _dy - P(58)))
+        else:
+            _draw_ceiling_dead(surface, _dx, _dy, S, _nm8)
+
     # Birthalomeu again over the middle arch, reaching down over the hall
     _vy = y0 + P(32)
     pygame.draw.rect(surface, (34, 25, 22),
@@ -16912,8 +16940,63 @@ def draw_last_supper(surface, rect, label_font=None):
             pygame.draw.ellipse(surface, (196, 158, 100),
                                 (_px - P(6), _py - P(7), P(12), P(7)))
     pygame.draw.rect(surface, (74, 54, 42), (x0, table_y + P(46), w, h), 0)
+
+    # Red Herring, under the table, where he was the whole evening and where
+    # he still was when it was over. One of three known to come through the
+    # war that followed.
+    _rhx = cx - P(150)
+    _hem = table_y + P(46)
+    pygame.draw.polygon(surface, (212, 206, 192), [     # the hem, lifted
+        (_rhx - P(30), _hem - P(2)), (_rhx + P(30), _hem - P(2)),
+        (_rhx + P(16), _hem + P(13)), (_rhx - P(16), _hem + P(13))])
+    _tmp2 = pygame.Surface((P(90), P(90)), pygame.SRCALPHA)
+    try:
+        draw_stickman(_tmp2, P(45), P(84), (196, 60, 54), 1, "duck", 0.3,
+                      scale=S * 0.3, char_name="Red Herring")
+    except Exception:
+        pass
+    surface.blit(_tmp2, (_rhx - P(45), y0 + h - P(94)))
+
     pygame.draw.rect(surface, (140, 150, 170), rect, 2)
     surface.set_clip(clip_old)
+
+
+def _draw_ceiling_dead(surface, x, by, S, who):
+    """One of the minor Seasonals on the vaults, painted the way the rest of
+    the ceiling is: pale, flat, and holding the one thing he was known for."""
+    def P(v):
+        return max(1, int(v * S))
+    _pale = (198, 180, 156)
+    def _man(mx, scale=1.0):
+        _hy = by - int(P(20) * scale)
+        pygame.draw.circle(surface, _pale, (mx, _hy), max(1, int(P(4) * scale)))
+        pygame.draw.line(surface, _pale, (mx, _hy + int(P(4) * scale)),
+                         (mx, by - int(P(8) * scale)), max(1, P(2)))
+        pygame.draw.line(surface, _pale, (mx - int(P(5) * scale), _hy + int(P(8) * scale)),
+                         (mx + int(P(5) * scale), _hy + int(P(8) * scale)), max(1, P(1)))
+        for _sg in (-1, 1):
+            pygame.draw.line(surface, _pale, (mx, by - int(P(8) * scale)),
+                             (mx + _sg * int(P(4) * scale), by), max(1, P(2)))
+    if who == "Twin Day":
+        _man(x - P(7))
+        _man(x + P(7))
+        pygame.draw.line(surface, _pale, (x - P(7), by - P(14)),
+                         (x + P(7), by - P(14)), max(1, P(2)))
+        return
+    _man(x)
+    if who == "Pi Day":
+        pygame.draw.line(surface, _pale, (x - P(7), by - P(30)),
+                         (x + P(7), by - P(30)), max(1, P(2)))
+        for _sg in (-1, 1):
+            pygame.draw.line(surface, _pale, (x + _sg * P(4), by - P(29)),
+                             (x + _sg * P(5), by - P(22)), max(1, P(2)))
+        pygame.draw.ellipse(surface, _pale, (x + P(5), by - P(15), P(11), P(6)))
+    elif who == "Diwali":
+        pygame.draw.ellipse(surface, _pale, (x + P(5), by - P(16), P(10), P(5)))
+        pygame.draw.circle(surface, (246, 206, 110), (x + P(10), by - P(19)), P(3))
+        for _k in range(4):           # a row of lamps set out along the vault
+            pygame.draw.circle(surface, (246, 206, 110),
+                               (x - P(14) + _k * P(9), by + P(5)), max(1, P(2)))
 
 
 def _draw_holi(surface, x, by, S, facing):
