@@ -930,15 +930,16 @@ PAGES = [
          ("b", "Diwali — he lit the lamps along the whole vault"),
          ("b", "Twin Day — the two of them count as one week"),
          ("b", "Volcanis — both hammers, still up"),
-         ("b", "Umbra — nearest the corner, where the light stops"),
+         ("b", "Umbra — she is nearest the corner, where the light stops"),
          "One of the nameless ones is saying something. It has been copied "
          "out four times and read four different ways, and the only thing "
          "anyone agrees on is that it was not a toast.",
          ("h", "Two of them you can still fight"),
          "The dead stay on the ceiling except when the sky goes out. "
          "Volcanis comes down when the stars line up for a solar eclipse. "
-         "Umbra comes down when the moon goes dark. Pi Day, Diwali and "
-         "Twin Day have no door like that and have never used one.",
+         "Umbra comes down when the moon goes dark, and she comes down for "
+         "nothing else. Pi Day, Diwali and Twin Day have no door like that "
+         "and have never used one.",
          ("h", "The writing on the piers"),
          "SICKMAN is cut into the left-hand pier and SOFTBALL into the right. "
          "Neither was there when the table was laid.",
@@ -1043,9 +1044,9 @@ PAGES = [
          ("kv", "Kirin Adler", "was not at the dessert at all"),
          ("h", "The two who come back"),
          "The dead stay dead except when the sky goes out. Volcanis comes "
-         "down when the stars line up for a solar eclipse; Umbra when "
-         "the moon goes dark. Nobody has worked out why those two and not "
-         "the rest.",
+         "down when the stars line up for a solar eclipse. Umbra comes down "
+         "when the moon goes dark, and she comes down for nothing else. "
+         "Nobody has worked out why those two and not the rest.",
          ("h", "What it settled"),
          "Nothing anybody wanted. The Seasonals were already majors and "
          "minors by then — that split happened at the table. What the war "
