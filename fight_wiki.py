@@ -136,6 +136,8 @@ ABILITY_NAMES = {
     "feedback": "Feedback",               "buffer_char": "Buffering",
     "stillness_regen": "Heals by standing still",
     "desperation_speed": "Faster when hurt",
+    "ngs_dreidel": "Spins the dreidel",
+    "chaos_nghs": "Chaotic damage — 200, 25, 0, or heals you 2",
     "titan_grip": "Titan grip",           "quake_land": "Quake landing",
     "smoke_trail": "Smoke trail",         "flame_trail": "Flame trail",
     "wildfire": "Wildfire",               "chaos_strike": "Chaos strike",
@@ -1502,6 +1504,12 @@ def build(unlocked=(), stats=None):
     pages += folder_pages()
 
     out = {s["id"]: [] for s in SECTIONS}
+    # Maps keep their map order and events their calendar order, but five
+    # hundred fighters in the order they happened to be written is a list
+    # nobody can find anything in. Secrets stay together at the end.
+    pages.sort(key=lambda _p: (_p.get("section") == "characters"
+                               and (_p.get("title") == "???",
+                                    _p.get("title", "").lower())) or (0, ""))
     notes = [p for p in pages if p.get("attach")]
     pages = [p for p in pages if not p.get("attach")]
     for p in pages:

@@ -608,4 +608,25 @@ for _sz in ((680, 250), (960, 440), (300, 120)):
 print(f"Hiss-tory: the photo, and all {len(_seated)} apostles painted — "
       f"{len(_seated) - 2} out of the roster, Holi and the betrayer by hand")
 
+# 18. The Characters section is findable, and no ability reads as a flag
+_cw = W.build(unlocked=())["characters"]
+_ct = [_p["title"] for _p in _cw]
+assert _ct[0] == "Taxonomy", _ct[0]          # pinned, then alphabetical
+_rest = [_t for _t in _ct[1:] if _t != "???"]
+assert _rest == sorted(_rest, key=str.lower), "the roster list must be A-Z"
+assert _ct[-1] == "???", "secrets sit together at the end"
+# maps and events keep the order they are meant to have
+assert W.build(unlocked=())["maps"][0]["title"] == "The world"
+import re as _re8
+_ugly = set()
+for _ch8 in D.CHARACTERS:
+    for _ab8 in W.abilities_of(_ch8):
+        if _re8.search(r"\b(nghs|ngs|dmg|proj|cd|npc)\b", _ab8.lower()):
+            _ugly.add(_ab8)
+assert not _ugly, _ugly
+_cn = next(_p for _p in _cw if _p["title"] == "Chaos Nun-Gimel-Hei-Shin")
+assert "Spins the dreidel" in str(_cn["body"]), _cn["body"]
+print(f"wiki characters: {len(_ct)} pages A-Z behind Taxonomy, "
+      f"every ability named in words")
+
 print("ALL OK")
