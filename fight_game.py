@@ -35,6 +35,7 @@ from fight_chat import ChatBox as _ChatBox, EasterEggs as _EasterEggs
 import fight_achievements as _ach
 import fight_fighter as _fighter_mod
 from fight_ui import achievement_popup as _ach_popup
+import fight_story as _story
 from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
 
 # ---------------------------------------------------------------------------
@@ -480,6 +481,7 @@ UNLOCK_CONDITIONS = {
     "Chronomancer":        ("win_with",       "Time Warden",     3,  "Win 3 matches as Time Warden"),
     "Behemoth":            ("wins_total",     None,            200,  "Win 200 matches"),
     "Boom-Boom-Boomerang": ("secret_chars",   None,             12,  "Unlock 12 secret characters"),
+    "He-Who-Shall-Not-Be-Named": ("story_complete", None,        1,  "Finish Story Mode",                        True),
     "Red Herring":         ("secret_chars",   None,             15,  "Unlock 15 secret characters"),
     "Kirin Adler":         ("secret_chars",   None,             27,  "Unlock 27 secret characters"),
     "Jawke":               ("secret_chars",   None,             20,  "Unlock 20 secret characters"),
@@ -808,6 +810,8 @@ def _meets_condition(cond, stats):
         return stats.get("died_by_powerup", False)
     if kind == "type42":
         return stats.get("type42_done", False)
+    if kind == "story_complete":
+        return bool(stats.get("story_done"))
     if kind == "volcanis_unlock":
         return stats.get("volcanis_unlocked", False)
     if kind == "umbra_unlock":
@@ -7717,6 +7721,48 @@ def _show_intro():
         pygame.display.flip()
 
 
+def story_mode(unlocked, stats):
+    """Play the Hiss-tory. One chapter is a page of story, a fight you have
+    to win, and a page of what came of it."""
+    _names = [c["name"] for c in CHARACTERS]
+    while True:
+        idx = _story.chapter_select(stats)
+        if idx is None:
+            return
+        ch = _story.CHAPTERS[idx]
+        if ch["you"] not in _names or ch["foe"] not in _names:
+            continue                      # a chapter that cannot be cast
+        if not _story.narration(ch["before"], ch["title"], ch["act"],
+                                "press any key to fight"):
+            continue
+        while True:
+            res = run_fight(_names.index(ch["you"]), _names.index(ch["foe"]),
+                            vs_ai=True, ai_difficulty=ch["difficulty"],
+                            stage_idx=_story._stage_idx(ch["stage"]))
+            _action, _info = res if isinstance(res, tuple) else ("select", (False,))
+            _won = bool(_info[0]) if _info else False
+            if _won:
+                _finished = _story.mark_done(stats, idx)
+                _save_data(unlocked, stats)
+                _story.narration(ch["after"], ch["title"], "and then",
+                                 "press any key")
+                if _finished:
+                    _story.narration(
+                        ["Twelve chapters, and every one of them is now "
+                         "written down where somebody can read it.",
+                         "He has no name and he never will. He has a page.",
+                         f"{_story.STORY_REWARD} is yours to pick."],
+                        "Hiss-tory", "the end of it", "press any key")
+                    _new = check_and_unlock(unlocked, stats)
+                    if _new:
+                        _save_data(unlocked, stats)
+                        _show_unlocks(_new)
+                break
+            if _action == 'rematch':
+                continue                  # R on the loss screen tries again
+            break
+
+
 def main():
     unlocked, stats = load_save()
     hints = {name: ("???" if (len(cond) > 4 and cond[4]) else cond[3])
@@ -7744,7 +7790,8 @@ def main():
         mode = mode_select(unlocked, stats)
         _mode_tag = {"1p": "1p", "2p": "2p", "survival_1p": "survival",
                      "survival_2p": "survival", "online": "online",
-                     "seasonal_shop": "shop", "fuser": "fuser"}.get(
+                     "seasonal_shop": "shop", "fuser": "fuser",
+                     "story": "story"}.get(
             mode[0] if isinstance(mode, tuple) else mode)
         if _mode_tag:
             _tried = stats.setdefault("modes_played", [])
@@ -7805,6 +7852,12 @@ def main():
         # --- The Fuser path (requires Deco & Emoj) ---
         if mode == 'fuser':
             fuser_mode(screen, clock, stats, unlocked)
+            _save_data(unlocked, stats)
+            continue
+
+        # --- Story Mode ---
+        if mode == 'story':
+            story_mode(unlocked, stats)
             _save_data(unlocked, stats)
             continue
 

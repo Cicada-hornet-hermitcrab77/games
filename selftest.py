@@ -629,4 +629,57 @@ assert "Spins the dreidel" in str(_cn["body"]), _cn["body"]
 print(f"wiki characters: {len(_ct)} pages A-Z behind Taxonomy, "
       f"every ability named in words")
 
+# 19. Story Mode
+import fight_story as ST
+assert len(ST.CHAPTERS) == 12, len(ST.CHAPTERS)
+_stage_names = {_s["name"] for _s in D.STAGES}
+_diffs = {"easy", "medium", "hard", "super_hard", "super_super_hard", "mega_hard"}
+_seen_titles = set()
+for _i9, _ch9 in enumerate(ST.CHAPTERS):
+    assert _ch9["you"] in _roster, _ch9["you"]
+    assert _ch9["foe"] in _roster, _ch9["foe"]
+    assert _ch9["stage"] in _stage_names, _ch9["stage"]
+    assert _ch9["difficulty"] in _diffs, _ch9["difficulty"]
+    assert _ch9["before"] and _ch9["after"], _ch9["title"]
+    assert _ch9["title"] not in _seen_titles, _ch9["title"]
+    _seen_titles.add(_ch9["title"])
+    assert ST._stage_idx(_ch9["stage"]) == [_s["name"] for _s in D.STAGES].index(_ch9["stage"])
+assert ST.ACTS == ["The Last Dessert", "The Great War", "What Was Left"], ST.ACTS
+# it gets harder on the way through, and never gets easier twice running
+_order = ["easy", "medium", "hard", "super_hard", "super_super_hard", "mega_hard"]
+_curve = [_order.index(_c["difficulty"]) for _c in ST.CHAPTERS]
+assert _curve == sorted(_curve), _curve
+# progress only moves forward, and finishing it sets the flag the unlock reads
+_st9 = {}
+assert ST.progress(_st9) == 0 and not ST.is_done(_st9)
+assert ST.mark_done(_st9, 0) is False and ST.progress(_st9) == 1
+ST.mark_done(_st9, 0)
+assert ST.progress(_st9) == 1, "replaying chapter 1 must not undo progress"
+for _i9 in range(1, len(ST.CHAPTERS) - 1):
+    assert ST.mark_done(_st9, _i9) is False
+assert ST.mark_done(_st9, len(ST.CHAPTERS) - 1) is True
+assert _st9.get("story_done") and ST.is_done(_st9)
+# and the reward really unlocks off it
+assert ST.STORY_REWARD in _roster, ST.STORY_REWARD
+_cond9 = G.UNLOCK_CONDITIONS[ST.STORY_REWARD]
+assert _cond9[0] == "story_complete" and _cond9[4] is True, _cond9
+assert G._meets_condition(_cond9, {"story_done": True})
+assert not G._meets_condition(_cond9, {})
+# he draws, in every pose, facing both ways
+for _f9 in (1, -1):
+    for _act9 in ("idle", "walk", "punch", "kick", "dead"):
+        DR.draw_stickman(surf, 450, 500, (44, 46, 58), _f9, _act9, 0.5,
+                         char_name=ST.STORY_REWARD)
+assert DR.draw_stickman(surf, 450, 500, (44, 46, 58), 1, "punch", 0.6,
+                        char_name=ST.STORY_REWARD) is not None
+assert DR.draw_stickman(surf, 450, 500, (44, 46, 58), 1, "idle", 0.3,
+                        char_name=ST.STORY_REWARD) is None
+# the menu card and the wiki page exist
+import fight_ui as _UI9
+assert _UI9._STORY_CHAPTERS == len(ST.CHAPTERS)
+assert any(_p["title"] == "Story Mode" for _p in W.build(unlocked=())["modes"])
+print(f"story mode: {len(ST.CHAPTERS)} chapters over {len(ST.ACTS)} acts, "
+      f"{len({_c['you'] for _c in ST.CHAPTERS})} fighters lent out, "
+      f"{ST.STORY_REWARD} at the end")
+
 print("ALL OK")

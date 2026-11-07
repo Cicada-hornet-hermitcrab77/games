@@ -1190,6 +1190,35 @@ PAGES = [
          "to think about a roster this size, and how to guess what a fighter "
          "you have never seen is going to do to you.",
      ]},
+    {"section": "modes", "title": "Story Mode",
+     "subtitle": "the Hiss-tory, fought out",
+     "color": (196, 110, 96),
+     "body": [
+         "Tombstone guarded that card for a long time and the chain is off "
+         "it now. Twelve chapters, in order, start to finish: the Last "
+         "Dessert, the murder, the Great War the murder started, and what "
+         "was left of the Seasonals afterwards.",
+         ("h", "How it plays"),
+         "You do not pick your fighter. Each chapter already knows who you "
+         "were that day and puts you in him, on the stage it happened on, "
+         "against whoever you were facing. You get a page of story before "
+         "the fight and a page of what came of it after.",
+         ("b", "Win to move on — a chapter will not unlock the next one "
+               "until you take it"),
+         ("b", "R on the loss screen puts you straight back in"),
+         ("b", "Cleared chapters stay open, so any of them can be replayed"),
+         ("b", "The story lends you fighters you have not unlocked"),
+         ("h", "The three acts"),
+         ("kv", "The Last Dessert", "3 chapters, as Red Herring, under the table"),
+         ("kv", "The Great War",    "6 chapters, one minor Seasonal at a time"),
+         ("kv", "What Was Left",    "3 chapters, ending back at the same gate"),
+         ("h", "What it pays"),
+         "Finish all twelve and the one at the end of it is yours to pick. "
+         "He still has no name.",
+         ("h", "The padlock"),
+         "Still hanging off the gate post, still open, and Tombstone still "
+         "has opinions if you poke it.",
+     ]},
     {"section": "modes", "title": "1 Player",
      "subtitle": "versus the computer",
      "body": ["Pick a fighter, pick a map, fight the computer. The difficulty "

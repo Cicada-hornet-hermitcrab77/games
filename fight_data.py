@@ -1569,6 +1569,12 @@ CHARACTERS = [
      "punch_dmg": 25, "kick_dmg": 25, "max_hp": 90, "block": 5,
      "desc": "Attacks deal 200, 25, 0, or -2 damage — good luck",
      "double_jump": False, "nghs_variant": True, "chaos_nghs": True, "ngs_dreidel": True},
+    {"name": "He-Who-Shall-Not-Be-Named", "color": (44, 46, 58), "speed": 6,
+     "jump": -14, "punch_dmg": 14, "kick_dmg": 16, "max_hp": 160, "block": 6,
+     "desc": "He killed Birthalomeu and took what was on the table. "
+             "Hits from behind, vanishes out of a block, finishes the hurt",
+     "double_jump": True, "backstab": True, "execute": True,
+     "first_strike": True, "shadow_teleport_block": True, "nameless": True},
     {"name": "Red Herring", "color": (220, 55, 55), "speed": 5, "jump": -13,
      "punch_dmg": 8, "kick_dmg": 10, "max_hp": 100, "block": 4,
      "desc": "???",

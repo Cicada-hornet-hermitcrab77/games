@@ -17918,6 +17918,93 @@ def _draw_stickman(surface, x, y, color, facing, action, action_t, flash=False,
             return (_cx11 + facing * int(action_t * 78 * _s11), _base - int(24 * _s11))
         return None
 
+    # ── He-Who-Shall-Not-Be-Named: a hood, two eyes, and the purse ───────
+    if char_name == "He-Who-Shall-Not-Be-Named":
+        _s13  = scale
+        _b13  = int(y)
+        _t13  = pygame.time.get_ticks() / 1000.0
+        _dead13 = (action == 'dead')
+        _cx13 = int(x)
+        if action == 'punch':
+            _cx13 += int(facing * 12 * _s13)
+        elif action == 'kick':
+            _cx13 += int(facing * 8 * _s13 * action_t)
+        _drift = 0 if _dead13 else int(math.sin(_t13 * 1.7) * 3 * _s13)
+        _cloak = WHITE if flash else (44, 46, 58)
+        _deep  = WHITE if flash else (24, 25, 34)
+        _hy13  = _b13 - int(118 * _s13) - _drift
+        if _dead13:
+            _hy13 = _b13 - int(34 * _s13)
+
+        # the cloak: wide at the floor, no feet showing
+        _hem = _b13 if not _dead13 else _b13 - int(4 * _s13)
+        _cl = [(_cx13, _hy13 + int(6 * _s13)),
+               (_cx13 + facing * int(30 * _s13), _hy13 + int(54 * _s13)),
+               (_cx13 + facing * int(40 * _s13), _hem),
+               (_cx13 - facing * int(38 * _s13), _hem),
+               (_cx13 - facing * int(28 * _s13), _hy13 + int(52 * _s13))]
+        pygame.draw.polygon(surface, _cloak, _cl)
+        pygame.draw.polygon(surface, _deep, _cl, max(1, int(2 * _s13)))
+        for _k13 in range(3):           # folds, moving as he does
+            _fx = _cx13 + (_k13 - 1) * int(16 * _s13)
+            pygame.draw.line(surface, _deep,
+                             (_fx, _hy13 + int(40 * _s13)),
+                             (_fx + int(math.sin(_t13 * 2 + _k13) * 4 * _s13),
+                              _hem - int(4 * _s13)), max(1, int(2 * _s13)))
+
+        # the hood, pulled forward, and the two things inside it
+        _hd = [(_cx13 - facing * int(20 * _s13), _hy13 + int(26 * _s13)),
+               (_cx13 - facing * int(16 * _s13), _hy13 - int(16 * _s13)),
+               (_cx13 + facing * int(8 * _s13),  _hy13 - int(26 * _s13)),
+               (_cx13 + facing * int(26 * _s13), _hy13 - int(4 * _s13)),
+               (_cx13 + facing * int(22 * _s13), _hy13 + int(26 * _s13))]
+        pygame.draw.polygon(surface, _cloak, _hd)
+        pygame.draw.polygon(surface, _deep, _hd, max(1, int(2 * _s13)))
+        pygame.draw.polygon(surface, (12, 12, 18), [
+            (_cx13 + facing * int(2 * _s13),  _hy13 - int(12 * _s13)),
+            (_cx13 + facing * int(22 * _s13), _hy13 - int(2 * _s13)),
+            (_cx13 + facing * int(20 * _s13), _hy13 + int(18 * _s13)),
+            (_cx13 + facing * int(1 * _s13),  _hy13 + int(14 * _s13))])
+        if not _dead13:
+            for _sg13 in (-1, 1):
+                pygame.draw.circle(surface, (226, 206, 120),
+                                   (_cx13 + facing * int(14 * _s13),
+                                    _hy13 + int(2 * _s13) + _sg13 * int(6 * _s13)),
+                                   max(1, int(3 * _s13)))
+
+        # the arm that throws, and the arm that never lets go of the purse
+        _arm = WHITE if flash else (104, 106, 124)
+        _rx = _cx13 + facing * int((30 + (34 if action == 'punch' else 0)) * _s13)
+        _ry = _hy13 + int(30 * _s13) - (int(6 * _s13) if action == 'punch' else 0)
+        pygame.draw.line(surface, _arm,
+                         (_cx13 + facing * int(12 * _s13), _hy13 + int(34 * _s13)),
+                         (_rx, _ry), max(2, int(6 * _s13)))
+        pygame.draw.circle(surface, _arm, (_rx, _ry), max(2, int(6 * _s13)))
+        pygame.draw.circle(surface, _deep, (_rx, _ry), max(2, int(6 * _s13)), 1)
+        _px13 = _cx13 - facing * int(28 * _s13)
+        _py13 = _hy13 + int(44 * _s13)
+        pygame.draw.line(surface, _arm,
+                         (_cx13 - facing * int(10 * _s13), _hy13 + int(32 * _s13)),
+                         (_px13, _py13 - int(4 * _s13)), max(2, int(6 * _s13)))
+        pygame.draw.ellipse(surface, (122, 96, 48),
+                            (_px13 - int(11 * _s13), _py13,
+                             max(3, int(22 * _s13)), max(3, int(24 * _s13))))
+        pygame.draw.line(surface, (70, 54, 28),
+                         (_px13 - int(7 * _s13), _py13 + int(3 * _s13)),
+                         (_px13 + int(7 * _s13), _py13 + int(3 * _s13)),
+                         max(1, int(4 * _s13)))
+        if action == 'kick' and not _dead13:
+            pygame.draw.line(surface, _arm,
+                             (_cx13, _hem - int(14 * _s13)),
+                             (_cx13 + facing * int(62 * _s13),
+                              _hem - int(34 * _s13)), max(2, int(7 * _s13)))
+
+        if action == 'punch':
+            return (_rx + facing * int(10 * _s13), _ry)
+        if action == 'kick':
+            return (_cx13 + facing * int(64 * _s13), _hem - int(34 * _s13))
+        return None
+
     # ── Pepper & Kettlechip: a pepper split in two, tail-first, alight ────
     if char_name == "Pepper & Kettlechip":
         _pt2  = pygame.time.get_ticks() / 1000.0
