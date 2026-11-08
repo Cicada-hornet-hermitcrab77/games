@@ -7721,46 +7721,231 @@ def _show_intro():
         pygame.display.flip()
 
 
+def run_story_level(level, player_name, stats):
+    """One map of Story Mode. Returns True if the door got opened.
+
+    Not a duel — a yard with things in it. The player is a real fighter so
+    everything he can normally do still works; the things on the map are
+    their own small creatures, drawn the way the map draws them.
+    """
+    _mx, _my = _story.mx, _story.my
+    P1_CTRL = dict(left=pygame.K_a, right=pygame.K_d, jump=pygame.K_w,
+                   punch=pygame.K_f, kick=pygame.K_g, duck=pygame.K_s,
+                   block=pygame.K_r)
+    _ch = next((c for c in CHARACTERS if c["name"] == player_name), CHARACTERS[0])
+    plats = [Platform(_mx(px), _my(py), _mx(pw)) for px, py, pw in level["platforms"]]
+    walls = [(_mx(a), _my(b), _mx(c), _my(d)) for a, b, c, d in level.get("walls", ())]
+    biters   = [_story.Biter(_mx(bx), _my(by)) for bx, by in level.get("biters", ())]
+    guards   = [_story.Guarder(_mx(gx), _my(gy)) for gx, gy in level.get("guards", ())]
+    floaters = [_story.Floater(_mx(a), _my(b), _mx(c), _my(d))
+                for a, b, c, d in level.get("floaters", ())]
+    portals  = [((_mx(a), _my(b)), (_mx(c), _my(d)))
+                for (a, b), (c, d) in level.get("portals", ())]
+    springs  = [(_mx(sx), _my(sy), sdx, sdy)
+                for sx, sy, sdx, sdy in level.get("springs", ())]
+    door     = (_mx(level["door"][0]), _my(level["door"][1]))
+    coffin   = level.get("coffin")
+    if coffin:
+        coffin = (_mx(coffin[0]), _my(coffin[1]), _mx(coffin[2]), _my(coffin[3]))
+    stones = [(_mx(a), _my(b)) for a, b in level.get("stones", ())]
+    slabs  = [(_mx(a), _my(b), _mx(c), _my(d)) for a, b, c, d in level.get("slabs", ())]
+
+    p = Fighter(_mx(level["start"][0]), _ch, 1, P1_CTRL)
+    p.y = float(_my(level["start"][1]))
+    p.opponent = None
+    _dummy = Fighter(-900, _ch, -1, P1_CTRL)    # update() wants somebody to face
+
+    coffin_open = False
+    _port_cd = 0
+    _msg, _msg_t = "", 0
+    _touch = TouchControls(P1_CTRL, player=1, two_player=False) if touch_p1_enabled[0] else None
+
+    while True:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if _touch:
+                _touch.handle_event(event)
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return False
+                if event.key == pygame.K_e:
+                    if abs(p.x - door[0]) < 40 and abs(p.y - door[1]) < 90:
+                        return True
+                    _msg, _msg_t = "nothing here opens", 70
+        keys = pygame.key.get_pressed()
+        if _touch:
+            keys = _touch.inject(keys)
+
+        # The player is just a fighter, facing whatever is nearest.
+        _alive = [e for e in biters + guards + floaters if e.hp > 0]
+        if _alive:
+            _near = min(_alive, key=lambda e: abs(e.x - p.x))
+            _dummy.x, _dummy.y = float(_near.x), float(_near.y)
+        else:
+            _dummy.x = p.x + p.facing * 200
+        p.update(keys, _dummy, plats)
+
+        # Springs throw him, portals move him, and the floor is the floor.
+        for sx, sy, sdx, sdy in springs:
+            if abs(p.x - sx) < 34 and abs(p.y - sy) < 30:
+                p.vy = float(sdy)
+                p.knockback = float(sdx)
+                p.on_ground = False
+        if _port_cd:
+            _port_cd -= 1
+        else:
+            for a, b in portals:
+                for _src, _dst in ((a, b), (b, a)):
+                    if abs(p.x - _src[0]) < 26 and abs(p.y - 30 - _src[1]) < 40:
+                        p.x, p.y = float(_dst[0]), float(_dst[1] + 30)
+                        _port_cd = 40
+                        break
+        p.x = max(20.0, min(float(WIDTH - 20), p.x))
+
+        for e in _alive:
+            e.update(p.x, p.y)
+
+        screen.fill((26, 24, 30))
+        # the yard behind everything: stones, slabs, the coffin
+        for _sx2, _sy2 in stones:
+            pygame.draw.rect(screen, (182, 180, 186), (_sx2 - 24, _sy2 - 48, 48, 48))
+            pygame.draw.circle(screen, (182, 180, 186), (_sx2, _sy2 - 48), 24)
+            pygame.draw.line(screen, (120, 118, 126), (_sx2, _sy2 - 66), (_sx2, _sy2 - 34), 3)
+            pygame.draw.line(screen, (120, 118, 126), (_sx2 - 11, _sy2 - 56), (_sx2 + 11, _sy2 - 56), 3)
+        for _ax, _ay, _aw, _ah in slabs:
+            pygame.draw.rect(screen, (176, 174, 182), (_ax, _ay, _aw, _ah), border_radius=10)
+            pygame.draw.rect(screen, (118, 116, 124), (_ax, _ay, _aw, _ah), 2, border_radius=10)
+        pygame.draw.rect(screen, (46, 42, 36), (0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y))
+        pygame.draw.line(screen, (92, 86, 74), (0, GROUND_Y), (WIDTH, GROUND_Y), 3)
+        for _wx, _wy, _ww, _wh in walls:
+            pygame.draw.rect(screen, (40, 38, 44), (_wx, _wy, _ww, _wh))
+            pygame.draw.rect(screen, (78, 74, 84), (_wx, _wy, _ww, _wh), 2)
+        for pl in plats:
+            pygame.draw.rect(screen, (96, 90, 82),
+                             (pl.x, pl.y, pl.w, Platform.H), border_radius=3)
+            pygame.draw.rect(screen, (52, 48, 44),
+                             (pl.x, pl.y, pl.w, Platform.H), 2, border_radius=3)
+        for a, b in portals:
+            for _pt in (a, b):
+                _pr = 15 + int(math.sin(pygame.time.get_ticks() * 0.004) * 3)
+                pygame.draw.circle(screen, (60, 90, 240), _pt, _pr, 4)
+                pygame.draw.circle(screen, (130, 160, 255), _pt, max(2, _pr - 7), 2)
+        for sx, sy, sdx, sdy in springs:
+            pygame.draw.rect(screen, (236, 110, 200), (sx - 15, sy - 6, 30, 8),
+                             border_radius=3)
+            pygame.draw.line(screen, (236, 110, 200), (sx, sy),
+                             (sx + sdx * 2, sy + sdy * 2), 3)
+        if coffin:
+            _cx3, _cy3, _cw3, _ch3 = coffin
+            pygame.draw.rect(screen, (60, 190, 210) if not coffin_open else (120, 110, 60),
+                             (_cx3, _cy3, _cw3, _ch3), border_radius=6)
+            pygame.draw.rect(screen, (20, 90, 110), (_cx3, _cy3, _cw3, _ch3), 3,
+                             border_radius=6)
+            pygame.draw.line(screen, (20, 90, 110), (_cx3 + _cw3 // 2, _cy3 + 8),
+                             (_cx3 + _cw3 // 2, _cy3 + _ch3 - 8), 3)
+            pygame.draw.line(screen, (20, 90, 110), (_cx3 + _cw3 // 2 - 14, _cy3 + 24),
+                             (_cx3 + _cw3 // 2 + 14, _cy3 + 24), 3)
+        # the door
+        pygame.draw.rect(screen, (156, 108, 52), (door[0] - 13, door[1] - 78, 26, 78),
+                         border_radius=4)
+        pygame.draw.rect(screen, (92, 62, 28), (door[0] - 13, door[1] - 78, 26, 78), 2,
+                         border_radius=4)
+        pygame.draw.circle(screen, (226, 196, 90), (door[0] + 7, door[1] - 38), 3)
+        if abs(p.x - door[0]) < 40:
+            _dh = font_tiny.render("E", True, (255, 220, 120))
+            screen.blit(_dh, (door[0] - _dh.get_width() // 2, door[1] - 96))
+
+        for e in _alive:
+            e.draw(screen)
+        hit = p.draw(screen)
+
+        # his swings land on them, and walking into them costs him
+        if p.attacking and not p.attack_hit and hit:
+            for e in _alive:
+                if e.rect().collidepoint(hit):
+                    e.hp -= 1
+                    e.hurt = 8
+                    p.attack_hit = True
+                    break
+        if p.hurt_timer == 0:
+            for e in _alive:
+                if e.rect().colliderect(pygame.Rect(int(p.x) - 20, int(p.y) - 76, 40, 76)):
+                    p.hp = max(0, p.hp - e.DMG)
+                    p.hurt_timer = 26
+                    p.action = 'hurt'
+                    p.knockback = (1 if p.x < e.x else -1) * -9
+                    p.flash_timer = 12
+                    break
+        if coffin and not coffin_open and not [g for g in guards if g.hp > 0]:
+            _cx3, _cy3, _cw3, _ch3 = coffin
+            if pygame.Rect(_cx3, _cy3, _cw3, _ch3).collidepoint(int(p.x), int(p.y) - 40):
+                coffin_open = True
+                stats["coins"] = stats.get("coins", 0) + 25
+                _msg, _msg_t = "the coffin was not empty  ·  +25 coins", 140
+
+        # The HUD lives on the floor strip, out of the way of the yard.
+        _hb, _hy = 220, GROUND_Y + 16
+        pygame.draw.rect(screen, (60, 60, 60), (20, _hy, _hb, 18), border_radius=4)
+        pygame.draw.rect(screen, _ch["color"],
+                         (20, _hy, int(_hb * max(0, p.hp) / p.max_hp), 18),
+                         border_radius=4)
+        pygame.draw.rect(screen, WHITE, (20, _hy, _hb, 18), 2, border_radius=4)
+        screen.blit(font_tiny.render(f"{max(0, p.hp)}/{p.max_hp}", True, WHITE),
+                    (26, _hy + 3))
+        screen.blit(font_small.render(level["name"], True, (206, 200, 192)),
+                    (252, _hy - 2))
+        _left = len([e for e in biters + guards + floaters if e.hp > 0])
+        screen.blit(font_tiny.render(
+            f"{_left} still up  ·  find the door  ·  E opens it",
+            True, (150, 146, 140)), (252, _hy + 20))
+        if _msg_t:
+            _msg_t -= 1
+            _ms = font_small.render(_msg, True, (255, 220, 120))
+            screen.blit(_ms, (WIDTH // 2 - _ms.get_width() // 2, HEIGHT - 60))
+        if _touch:
+            _touch.draw(screen)
+        if p.hp <= 0:
+            _ls = font_medium.render("DOWN IN THE YARD", True, (230, 80, 80))
+            screen.blit(_ls, (WIDTH // 2 - _ls.get_width() // 2, HEIGHT // 2 - 20))
+            _ls2 = font_small.render("R to try again   ·   ESC to leave", True, WHITE)
+            screen.blit(_ls2, (WIDTH // 2 - _ls2.get_width() // 2, HEIGHT // 2 + 20))
+            pygame.display.flip()
+            if keys[pygame.K_r]:
+                return run_story_level(level, player_name, stats)
+            continue
+        pygame.display.flip()
+
+
 def story_mode(unlocked, stats):
-    """Play the Hiss-tory. One chapter is a page of story, a fight you have
-    to win, and a page of what came of it."""
-    _names = [c["name"] for c in CHARACTERS]
+    """Play the maps, in order. One map is a page of story, the yard itself,
+    and a page of what came of opening the door."""
     while True:
         idx = _story.chapter_select(stats)
         if idx is None:
             return
-        ch = _story.CHAPTERS[idx]
-        if ch["you"] not in _names or ch["foe"] not in _names:
-            continue                      # a chapter that cannot be cast
-        if not _story.narration(ch["before"], ch["title"], ch["act"],
-                                "press any key to fight"):
+        m = _story.MAPS[idx]
+        if not _story.narration(m["before"], m["name"], m["act"],
+                                "press any key to go in"):
             continue
-        while True:
-            res = run_fight(_names.index(ch["you"]), _names.index(ch["foe"]),
-                            vs_ai=True, ai_difficulty=ch["difficulty"],
-                            stage_idx=_story._stage_idx(ch["stage"]))
-            _action, _info = res if isinstance(res, tuple) else ("select", (False,))
-            _won = bool(_info[0]) if _info else False
-            if _won:
-                _finished = _story.mark_done(stats, idx)
+        if run_story_level(m, _story.player_for(idx), stats):
+            _finished = _story.mark_done(stats, idx)
+            _save_data(unlocked, stats)
+            _story.narration(m["after"], m["name"], "and then", "press any key")
+            _new = check_and_unlock(unlocked, stats)
+            if _new:
                 _save_data(unlocked, stats)
-                _story.narration(ch["after"], ch["title"], "and then",
-                                 "press any key")
-                if _finished:
-                    _story.narration(
-                        ["Twelve chapters, and every one of them is now "
-                         "written down where somebody can read it.",
-                         "He has no name and he never will. He has a page.",
-                         f"{_story.STORY_REWARD} is yours to pick."],
-                        "Hiss-tory", "the end of it", "press any key")
-                    _new = check_and_unlock(unlocked, stats)
-                    if _new:
-                        _save_data(unlocked, stats)
-                        _show_unlocks(_new)
-                break
-            if _action == 'rematch':
-                continue                  # R on the loss screen tries again
-            break
+                _show_unlocks(_new)
+            if _finished:
+                _story.narration(
+                    ["Every door on the road east is open.",
+                     f"{_story.STORY_REWARD} is yours to pick."],
+                    "Story Mode", "the end of the road", "press any key")
+                _new = check_and_unlock(unlocked, stats)
+                if _new:
+                    _save_data(unlocked, stats)
+                    _show_unlocks(_new)
 
 
 def main():

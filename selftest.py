@@ -629,37 +629,52 @@ assert "Spins the dreidel" in str(_cn["body"]), _cn["body"]
 print(f"wiki characters: {len(_ct)} pages A-Z behind Taxonomy, "
       f"every ability named in words")
 
-# 19. Story Mode
+# 19. Story Mode — the maps
 import fight_story as ST
-assert len(ST.CHAPTERS) == 12, len(ST.CHAPTERS)
+assert ST.MAPS, "story mode needs at least one map"
 _stage_names = {_s["name"] for _s in D.STAGES}
-_diffs = {"easy", "medium", "hard", "super_hard", "super_super_hard", "mega_hard"}
-_seen_titles = set()
-for _i9, _ch9 in enumerate(ST.CHAPTERS):
-    assert _ch9["you"] in _roster, _ch9["you"]
-    assert _ch9["foe"] in _roster, _ch9["foe"]
-    assert _ch9["stage"] in _stage_names, _ch9["stage"]
-    assert _ch9["difficulty"] in _diffs, _ch9["difficulty"]
-    assert _ch9["before"] and _ch9["after"], _ch9["title"]
-    assert _ch9["title"] not in _seen_titles, _ch9["title"]
-    _seen_titles.add(_ch9["title"])
-    assert ST._stage_idx(_ch9["stage"]) == [_s["name"] for _s in D.STAGES].index(_ch9["stage"])
-assert ST.ACTS == ["The Last Dessert", "The Great War", "What Was Left"], ST.ACTS
-# it gets harder on the way through, and never gets easier twice running
-_order = ["easy", "medium", "hard", "super_hard", "super_super_hard", "mega_hard"]
-_curve = [_order.index(_c["difficulty"]) for _c in ST.CHAPTERS]
-assert _curve == sorted(_curve), _curve
-# progress only moves forward, and finishing it sets the flag the unlock reads
+for _m9 in ST.MAPS:
+    for _k9 in ("name", "act", "before", "after", "start", "platforms", "door"):
+        assert _m9.get(_k9), (_m9.get("name"), _k9)
+    # everything is drawn in map pixels and has to land on the real screen
+    for _px, _py, _pw in _m9["platforms"]:
+        assert 0 <= ST.mx(_px) < _C.WIDTH and 0 < ST.my(_py) < _C.GROUND_Y, (_px, _py)
+        assert ST.mx(_pw) > 0
+    for _bx, _by in _m9.get("biters", ()) + _m9.get("guards", ()):
+        assert 0 < ST.mx(_bx) < _C.WIDTH and 0 < ST.my(_by) <= _C.GROUND_Y
+    for _f9 in _m9.get("floaters", ()):
+        assert len(_f9) == 4
+    for _p9 in _m9.get("portals", ()):
+        assert len(_p9) == 2 and all(len(_e9) == 2 for _e9 in _p9)
+    for _s9 in _m9.get("springs", ()):
+        assert len(_s9) == 4 and (_s9[2] or _s9[3]), "a spring has to shove"
+    assert 0 < ST.mx(_m9["door"][0]) < _C.WIDTH
+assert ST.mx(ST.MAP_W) == _C.WIDTH and ST.my(ST.MAP_GROUND) == _C.GROUND_Y
+# the creatures take hits, give damage, and have somewhere to be hit
+for _e9 in (ST.Biter(100, 400), ST.Guarder(100, 400), ST.Floater(80, 100, 300, 100)):
+    assert _e9.hp > 0 and _e9.DMG > 0
+    _e9.update(200.0, 400.0)
+    assert _e9.rect().width > 0 and _e9.rect().height > 0
+    _e9.draw(surf)
+# a floater turns round at both ends rather than running off
+_fl9 = ST.Floater(80, 100, 300, 100)
+for _ in range(600):
+    _fl9.update(0, 0)
+    assert 79 <= _fl9.x <= 301, _fl9.x
+# the cast is real, and it is the black and white lunatic
+assert ST._CAST == ["Legacy Jawke"], ST._CAST
+for _n9 in ST._CAST:
+    assert _n9 in _roster, _n9
+assert not any(_c["name"] == "Lunatic" for _c in D.CHARACTERS)
+# progress only moves forward, and finishing sets the flag the unlock reads
 _st9 = {}
 assert ST.progress(_st9) == 0 and not ST.is_done(_st9)
-assert ST.mark_done(_st9, 0) is False and ST.progress(_st9) == 1
-ST.mark_done(_st9, 0)
-assert ST.progress(_st9) == 1, "replaying chapter 1 must not undo progress"
-for _i9 in range(1, len(ST.CHAPTERS) - 1):
+for _i9 in range(len(ST.MAPS) - 1):
     assert ST.mark_done(_st9, _i9) is False
-assert ST.mark_done(_st9, len(ST.CHAPTERS) - 1) is True
+assert ST.mark_done(_st9, len(ST.MAPS) - 1) is True
+ST.mark_done(_st9, 0)
+assert ST.progress(_st9) == len(ST.MAPS), "replaying must not undo progress"
 assert _st9.get("story_done") and ST.is_done(_st9)
-# and the reward really unlocks off it
 assert ST.STORY_REWARD in _roster, ST.STORY_REWARD
 _cond9 = G.UNLOCK_CONDITIONS[ST.STORY_REWARD]
 assert _cond9[0] == "story_complete" and _cond9[4] is True, _cond9
@@ -672,8 +687,6 @@ for _f9 in (1, -1):
                          char_name=ST.STORY_REWARD)
 assert DR.draw_stickman(surf, 450, 500, (44, 46, 58), 1, "punch", 0.6,
                         char_name=ST.STORY_REWARD) is not None
-assert DR.draw_stickman(surf, 450, 500, (44, 46, 58), 1, "idle", 0.3,
-                        char_name=ST.STORY_REWARD) is None
 # Sundays only, and Wombrock Town is a real stage to fight it on
 import datetime as _dt9
 _was9 = _C.DEV_TIME_OFFSET
@@ -693,11 +706,15 @@ assert len(_wt9["platforms"]) == 5, _wt9["platforms"]
 assert not _wt9.get("special_mode_only"), "the town is a normal stage too"
 # the menu card and the wiki page exist
 import fight_ui as _UI9
-assert _UI9._STORY_CHAPTERS == len(ST.CHAPTERS)
+assert _UI9._STORY_MAPS == len(ST.MAPS)
 _sp9 = next(_p for _p in W.build(unlocked=())["modes"] if _p["title"] == "Story Mode")
 assert "Wombrock" in str(_sp9["body"]), "the page must say what the story is"
 assert "Sundays" in _sp9["subtitle"], _sp9["subtitle"]
-print(f"story mode: Sundays only, {len(ST.CHAPTERS)} chapters, "
-      f"Wombrock Town built, {ST.STORY_REWARD} at the end")
+assert "lanalle" not in open(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "fight_wiki.py")).read(), \
+    "he is a lunatic"
+print(f"story mode: Sundays only, {len(ST.MAPS)} map(s) with "
+      f"{sum(len(_m['platforms']) for _m in ST.MAPS)} platforms, "
+      f"walked as {ST._CAST[0]}")
 
 print("ALL OK")

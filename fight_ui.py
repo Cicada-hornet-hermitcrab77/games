@@ -12,7 +12,7 @@ import fight_achievements as _ach
 import fight_wiki as _wiki
 import fight_story as _story_mod
 
-_STORY_CHAPTERS = len(_story_mod.CHAPTERS)
+_STORY_MAPS = len(_story_mod.MAPS)
 from constants import *
 from fight_data import CHARACTERS, STAGES, STAGE_MATCHUPS, FUSER_ELEMENTS, FUSER_RECIPES, FUSER_SHOP_CHARS
 from fight_drawing import (draw_bg, draw_stickman, draw_jawke_legacy, _draw_emblem,
@@ -1448,8 +1448,8 @@ def mode_select(unlocked=None, stats=None):
                     _story_lock_rect[0] = (cx, _lock_rect)
                 _sdone = int((stats or {}).get("story_progress", 0))
                 _soon = font_tiny.render(
-                    ("COMPLETE" if _sdone >= _STORY_CHAPTERS
-                     else (f"{_sdone}/{_STORY_CHAPTERS} chapters" if _sdone
+                    ("COMPLETE" if _sdone >= _STORY_MAPS
+                     else (f"{_sdone}/{_STORY_MAPS} maps" if _sdone
                            else "OPEN TODAY")) if _story_open
                     else "SUNDAYS ONLY", True,
                     (200, 180, 120) if (_st % 1.6) < 0.8 else (120, 108, 80))

@@ -602,7 +602,7 @@ WORLD = [
     ("Wombrock Town", "town", [],
      "Wombrocks have been invading Tombstone lately. That is why Tombstone "
      "sent two people to ask you: a tombstone called Tombstone, and, uh — a "
-     "black and white lanalle?"),
+     "black and white lunatic?"),
     ("Ares Desert", "desert", ["Venomskin"],
      "Dry, eastern, and nobody's idea of a shortcut."),
     ("Dragon Skull Islands", "islands", [],
@@ -1196,7 +1196,8 @@ PAGES = [
      "body": [
          "Wombrocks have been coming over the ridge into Tombstone for a "
          "while now. Tombstone sent two people to ask you about it — a "
-         "tombstone called Tombstone, and a black and white lanalle.",
+         "tombstone called Tombstone, and a black and white lunatic — which "
+         "is Legacy Jawke, the old sketch of him, top hat and all.",
          "They were not asking you to defend anything. They were asking you "
          "to go east and hit the Wombrocks back at home.",
          ("h", "Sundays"),

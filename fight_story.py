@@ -1,15 +1,16 @@
-"""Story Mode — the Hiss-tory, fought out one chapter at a time.
+"""Story Mode — the attack on Wombrock Town, one map at a time.
 
-The chapters follow the wiki: the Last Dessert, the murder, the Great War
-the murder started, and what was left of the Seasonals afterwards. Each one
-puts you in somebody specific, against somebody specific, somewhere
-specific. You do not pick your fighter — the story already knows who you
-were that day.
+Wombrocks have been coming over the ridge into Tombstone, so Tombstone sent
+two people to ask you to go east and hit them at home. A map is a yard with
+things in it, drawn on paper and read off here: platforms, enemies, coffin
+guarders, moving ones, portals, springs and a door you open with E.
 
 This module owns the data and the screens. It never starts a fight itself;
 fight_game does that, because run_fight lives there and importing it back
 would close a loop.
 """
+
+import math
 
 import pygame
 
@@ -18,190 +19,225 @@ from constants import dev_today
 from fight_data import CHARACTERS, STAGES
 from fight_drawing import draw_stickman
 
-# ── The story ───────────────────────────────────────────────────────────────
-# "you" and "foe" are roster names; "stage" is a stage name. Both are
-# checked against the real tables by selftest, so a typo cannot ship.
-CHAPTERS = [
-    # ── Act one: the night itself ──────────────────────────────────────────
-    {"act": "The Last Dessert",
-     "title": "Under the table",
-     "you": "Red Herring", "foe": "Nian",
-     "stage": "Medieval Castle", "difficulty": "easy",
-     "before": [
-         "Nineteen Seasonals sat down at one table, which had never happened "
-         "and has not happened since. Eighteen of them were invited.",
-         "You went in under the cloth before the first of them arrived. It "
-         "is the best seat in the hall if you do not mind the dark.",
-         "Nian smells fish.",
-     ],
-     "after": [
-         "He lets it go. He has a year to get through and only a week to do "
-         "it in.",
-     ]},
-    {"act": "The Last Dessert",
-     "title": "Nobody believes a fish",
-     "you": "Red Herring", "foe": "Smoochie",
-     "stage": "Medieval Castle", "difficulty": "easy",
-     "before": [
-         "You have seen the one on Birthalomeu's left take something off the "
-         "table and put it in a purse. You say so.",
-         "Smoochie points out that you are a red herring, and that this is "
-         "the entire thing you are known for.",
-     ],
-     "after": [
-         "She believes you. She is the only one who ever will.",
-     ]},
-    {"act": "The Last Dessert",
-     "title": "The one who left early",
-     "you": "Red Herring", "foe": "Tombstone",
-     "stage": "Graveyard", "difficulty": "medium",
-     "before": [
-         "He goes out through the yard before the candles are down. You go "
-         "after him and get as far as the gate.",
-         "Tombstone is standing in it. Tombstone is always standing in it.",
-         "\"Nothing has happened,\" he says. \"Go back inside.\"",
-     ],
-     "after": [
-         "By the time he steps aside the yard is empty and Birthalomeu is "
-         "dead. Tombstone does not say sorry. He never does. He does "
-         "remember, though, and it is the reason he fights beside you later.",
-     ]},
+# ── Maps ────────────────────────────────────────────────────────────────────
+# A map is drawn on paper at 1920x1080 with the ground line at y=940, so the
+# numbers below are read straight off the drawing and squashed onto the real
+# screen here. That way a map can be checked against its picture.
+MAP_W, MAP_H, MAP_GROUND = 1920, 1080, 940
 
-    # ── Act two: the war that came of it ───────────────────────────────────
-    {"act": "The Great War",
-     "title": "The west route",
-     "you": "Clover", "foe": "Stickman of Liberty",
-     "stage": "Pirate Ship", "difficulty": "medium",
-     "before": [
-         "Only skilled navigators get past the Sea o' Seasons, and there is "
-         "one good way through it.",
-         "The majors took the west. They took it in the first week of the "
-         "war and they have held it ever since.",
-     ],
-     "after": [
-         "You hold the deck. You do not hold the crossing. Nobody minor ever "
-         "has again.",
-     ]},
-    {"act": "The Great War",
-     "title": "The small weeks",
-     "you": "Solara", "foe": "Cornucopia",
-     "stage": "Desert", "difficulty": "medium",
-     "before": [
-         "A major has a fortnight, a shop and a world that plans around him. "
-         "A minor has seven days and whoever happens to be awake.",
-         "Solara is awake. It is the longest day of the year and she intends "
-         "to use all of it.",
-     ],
-     "after": [
-         "She uses all of it. The sun goes down anyway.",
-     ]},
-    {"act": "The Great War",
-     "title": "The lamps go out",
-     "you": "Nun-Gimel-Hei-Shin", "foe": "Jack O' Slash",
-     "stage": "Haunted House", "difficulty": "hard",
-     "before": [
-         "Diwali lit the lamps along every road the minors held, which was "
-         "how they found each other in the dark.",
-         "They go out one road at a time. This is the road they go out on.",
-     ],
-     "after": [
-         "The dreidel lands on Shin, which means you put in rather than take "
-         "out. There was nothing left to take.",
-     ]},
-    {"act": "The Great War",
-     "title": "Twin Day counts as one",
-     "you": "Bookzworm", "foe": "Baddit",
-     "stage": "Booked", "difficulty": "hard",
-     "before": [
-         "There were two of him and he was one week, which the majors "
-         "thought was funny right up until the fighting started.",
-         "Afterwards there were none of him and he was still one week.",
-     ],
-     "after": [
-         "You write the pair of them down. It is the only thing you are any "
-         "good at and it turns out to be the thing that matters.",
-     ]},
-    {"act": "The Great War",
-     "title": "Hard ground",
-     "you": "Eartha", "foe": "Saint Nix",
-     "stage": "Arctic Tundra", "difficulty": "hard",
-     "before": [
-         "The ground is on your side everywhere except here, where it is "
-         "three feet of ice and belongs to the other lot.",
-     ],
-     "after": [
-         "Something grows out of it. It should not be able to and it does.",
-     ]},
-    {"act": "The Great War",
-     "title": "Everywhere there was ground",
-     "you": "Yellowstone", "foe": "Nian",
-     "stage": "Volcano Core", "difficulty": "super_hard",
-     "before": [
-         "It was not one battle in one place. Every stage, every sea, every "
-         "ring of ground a tribe holds — all of it, at once, for as long as "
-         "it took.",
-         "This is the bit underneath.",
-     ],
-     "after": [
-         "The war ends the way big ones do: not settled, just stopped. "
-         "Seven majors. Seven minors. Everybody else on the ceiling.",
-     ]},
 
-    # ── Act three: what was left ───────────────────────────────────────────
-    {"act": "What Was Left",
-     "title": "The stars line up",
-     "you": "Volcanis", "foe": "Saint Nix",
-     "stage": "Volcano", "difficulty": "super_hard",
-     "before": [
-         "The dead stay dead except when the sky goes out.",
-         "The stars line up for a solar eclipse and Volcanis comes down off "
-         "the ceiling with both hammers still up, exactly as he was painted.",
-     ],
-     "after": [
-         "The eclipse ends. He goes back. Nobody has worked out why he gets "
-         "to do that and Pi Day does not.",
-     ]},
-    {"act": "What Was Left",
-     "title": "The moon goes dark",
-     "you": "Umbra", "foe": "Jack O' Slash",
-     "stage": "The Void", "difficulty": "super_super_hard",
-     "before": [
-         "Hers is the lunar one. She comes down when the moon does and she "
-         "comes down for nothing else.",
-         "She has been on that ceiling a long time and she has had a long "
-         "time to think about who put her there.",
-     ],
-     "after": [
-         "She tells you where he went. Then the moon comes back and so does "
-         "the ceiling.",
-     ]},
-    {"act": "What Was Left",
-     "title": "The purse",
-     "you": "Red Herring", "foe": "He-Who-Shall-Not-Be-Named",
-     "stage": "Graveyard", "difficulty": "mega_hard",
-     "before": [
-         "Same yard. Same gate. Tombstone steps aside this time without "
-         "being asked, which from him is an apology.",
-         "He is still leaning back out of the light and he is still holding "
-         "the purse. Nobody has said his name since the night he earned it "
-         "and nobody is going to start now.",
-         "You were under the table. You are the only one who can say what is "
-         "in there.",
-     ],
-     "after": [
-         "You take the purse off him.",
-         "It settles nothing — the Seasonals are still seven and seven, the "
-         "ceiling is still full, and Birthalomeu is still a cake nobody ate. "
-         "But somebody finally said what happened, out loud, with the proof "
-         "in his hand.",
-         "That is what Hiss-tory is for.",
-     ]},
+def mx(v):
+    return int(v * WIDTH / float(MAP_W))
+
+
+def my(v):
+    return int(v * GROUND_Y / float(MAP_GROUND))
+
+
+# The legend the maps are drawn in:
+#   red    enemies            green  coffin guarders
+#   yellow moving enemies     blue   portals
+#   pink   springs            black  platforms
+#   white  background         brown  a door, opened with E
+MAPS = [
+    {
+        "name": "The yard at Tombstone",
+        "start": (90, 940),
+        "platforms": [            # (x, y, width) — the top face of each
+            (290, 125, 440),      # the long roof the coffin sits over
+            (1050, 130, 240),     # the biter's ledge
+            (900, 290, 90),       # the upright of the middle step
+            (790, 440, 200),      # and its foot
+            (1110, 285, 120),     # the tall pillar
+            (640, 575, 120),      # the lower step, upright
+            (465, 715, 295),      # and its foot
+            (1740, 470, 80),      # the climb to the top right
+            (1800, 400, 80),
+            (1860, 330, 60),
+        ],
+        "walls": [                # drawn as solid blocks under their platform
+            (1110, 285, 120, MAP_GROUND - 285),
+            (900, 290, 90, 150),
+            (640, 575, 120, 140),
+        ],
+        "coffin": (370, 40, 310, 90),
+        "guards": [(305, 125), (715, 125)],
+        "biters": [(1150, 130), (1850, 330), (1315, MAP_GROUND)],
+        "floaters": [             # (x1, y1, x2, y2) — the line it runs
+            (60, 320, 850, 320),
+            (1300, 120, 1690, 120),
+            (1500, 700, 1880, 500),
+        ],
+        "portals": [((525, 600), (1370, 405))],
+        "springs": [              # (x, y, dx, dy) — the shove it gives
+            (925, 290, 0, -19),
+            (1075, 530, 13, -9),
+            (870, 930, 11, -15),
+        ],
+        "door": (1437, MAP_GROUND),
+        "stones": [(360, 935), (710, 580), (1135, 940), (1725, 935)],
+        "slabs": [(1580, 355, 160, 135)],
+    },
 ]
 
-ACTS = []
-for _c in CHAPTERS:
-    if _c["act"] not in ACTS:
-        ACTS.append(_c["act"])
+
+class Biter:
+    """A red one. Walks the ledge it was put on and bites what it reaches."""
+    R, HP, DMG = 18, 3, 7
+
+    def __init__(self, x, y):
+        self.x, self.y = float(x), float(y)
+        self.home = float(x)
+        self.hp = self.HP
+        self.face = -1
+        self.hurt = 0
+
+    def update(self, px, py):
+        if abs(px - self.x) < 190 and abs(py - self.y) < 70:
+            self.face = 1 if px > self.x else -1
+            self.x += self.face * 1.6
+        elif abs(self.x - self.home) > 2:
+            self.face = 1 if self.home > self.x else -1
+            self.x += self.face * 0.9
+        self.x = max(20.0, min(float(WIDTH - 20), self.x))
+        if self.hurt:
+            self.hurt -= 1
+
+    def rect(self):
+        return pygame.Rect(int(self.x) - self.R, int(self.y) - self.R * 2,
+                           self.R * 2, self.R * 2)
+
+    def draw(self, surface):
+        _c = (255, 230, 230) if self.hurt else (214, 54, 40)
+        _x, _y = int(self.x), int(self.y)
+        pygame.draw.polygon(surface, _c, [
+            (_x - self.R, _y), (_x - self.R, _y - self.R),
+            (_x, _y - self.R * 2), (_x + self.R, _y - self.R),
+            (_x + self.R, _y)])
+        for _i in range(4):       # the jagged mouth off the map
+            _tx = _x - self.R + 4 + _i * (self.R * 2 - 8) // 4
+            pygame.draw.polygon(surface, (250, 250, 250), [
+                (_tx, _y - self.R + 2), (_tx + 5, _y - self.R + 2),
+                (_tx + 2, _y - 3)])
+        for _sg in (-1, 1):
+            pygame.draw.circle(surface, (24, 20, 20),
+                               (_x + _sg * 6, _y - self.R - 7), 3)
+        for _lg in (-1, 1):
+            pygame.draw.line(surface, _c, (_x + _lg * 8, _y),
+                             (_x + _lg * 11, _y + 7), 3)
+
+
+class Guarder:
+    """A green one. Stands at the coffin and does not leave it."""
+    R, HP, DMG = 15, 4, 6
+
+    def __init__(self, x, y):
+        self.x, self.y = float(x), float(y)
+        self.hp = self.HP
+        self.hurt = 0
+        self.t = 0.0
+
+    def update(self, px, py):
+        self.t += 0.05
+        if self.hurt:
+            self.hurt -= 1
+
+    def rect(self):
+        return pygame.Rect(int(self.x) - self.R, int(self.y) - 46,
+                           self.R * 2, 46)
+
+    def draw(self, surface):
+        _c = (235, 255, 235) if self.hurt else (46, 196, 62)
+        _x, _y = int(self.x), int(self.y)
+        _sw = int(math.sin(self.t) * 3)
+        pygame.draw.circle(surface, _c, (_x + _sw, _y - 38), 9)
+        pygame.draw.line(surface, _c, (_x + _sw, _y - 30), (_x, _y - 14), 3)
+        for _sg in (-1, 1):       # arms out, holding the ground
+            pygame.draw.line(surface, _c, (_x + _sw, _y - 27),
+                             (_x + _sg * 11 + _sw, _y - 34), 3)
+            pygame.draw.line(surface, _c, (_x, _y - 14),
+                             (_x + _sg * 9, _y), 3)
+        for _sg in (-1, 1):
+            pygame.draw.circle(surface, (16, 70, 22),
+                               (_x + _sw + _sg * 3, _y - 40), 2)
+
+
+class Floater:
+    """A yellow one. Runs its line, there and back, and never lands."""
+    R, HP, DMG = 16, 2, 8
+
+    def __init__(self, x1, y1, x2, y2):
+        self.a, self.b = (float(x1), float(y1)), (float(x2), float(y2))
+        self.p = 0.0
+        self.dir = 1
+        self.hp = self.HP
+        self.hurt = 0
+
+    def update(self, px, py):
+        _len = max(1.0, math.hypot(self.b[0] - self.a[0], self.b[1] - self.a[1]))
+        self.p += self.dir * (1.5 / _len)
+        if self.p >= 1.0:
+            self.p, self.dir = 1.0, -1
+        if self.p <= 0.0:
+            self.p, self.dir = 0.0, 1
+        if self.hurt:
+            self.hurt -= 1
+
+    @property
+    def x(self):
+        return self.a[0] + (self.b[0] - self.a[0]) * self.p
+
+    @property
+    def y(self):
+        return self.a[1] + (self.b[1] - self.a[1]) * self.p
+
+    def rect(self):
+        return pygame.Rect(int(self.x) - self.R, int(self.y) - self.R,
+                           self.R * 2, self.R * 2)
+
+    def draw(self, surface):
+        _c = (255, 255, 230) if self.hurt else (238, 214, 44)
+        _x, _y = int(self.x), int(self.y)
+        pygame.draw.line(surface, (90, 84, 40), (int(self.a[0]), int(self.a[1])),
+                         (int(self.b[0]), int(self.b[1])), 1)
+        pygame.draw.polygon(surface, _c, [
+            (_x, _y - self.R), (_x + self.R, _y),
+            (_x, _y + self.R + 6), (_x - self.R, _y)])
+        pygame.draw.ellipse(surface, (40, 36, 16),
+                            (_x - 7, _y - 5, 14, 9))
+        pygame.draw.circle(surface, _c, (_x, _y - 1), 2)
+
+
+# ── The story ───────────────────────────────────────────────────────────────
+# One entry per map, in order. Each carries what is said before you go in
+# and what is said once the door is open.
+MAPS[0].update({
+    "act": "The ask",
+    "before": [
+        "Wombrocks have been coming over the ridge into Tombstone for the "
+        "best part of a year, and nobody in Tombstone fights.",
+        "So Tombstone sent two people to ask you about it: a tombstone "
+        "called Tombstone, and a black and white lunatic.",
+        "They were not asking you to defend anything. They want you to go "
+        "east and hit the Wombrocks at home.",
+        "First you have to get out of the yard, and the yard is already "
+        "full of them.",
+    ],
+    "after": [
+        "The door gives. Past it is the road east, and the road east ends "
+        "at Wombrock Town.",
+    ],
+})
+
+# Who the story puts you in on each map. Tombstone sent two people to ask
+# you: a tombstone called Tombstone, and a black and white lunatic, who is
+# Legacy Jawke — the old sketch of him, hat and all.
+_CAST = ["Legacy Jawke"]
+
+
+def player_for(idx):
+    return _CAST[idx % len(_CAST)]
+
 
 # What finishing the whole thing is worth.
 STORY_REWARD = "He-Who-Shall-Not-Be-Named"
@@ -219,7 +255,7 @@ def progress(stats):
 
 
 def is_done(stats):
-    return progress(stats) >= len(CHAPTERS)
+    return progress(stats) >= len(MAPS)
 
 
 def mark_done(stats, idx):
@@ -308,10 +344,49 @@ def narration(lines, title, subtitle, cont="press any key"):
         pygame.display.flip()
 
 
+def draw_map_thumb(surface, m, rect):
+    """The map at a glance, in the colours it was drawn in."""
+    rx, ry, rw, rh = rect
+    pygame.draw.rect(surface, (20, 18, 24), rect)
+    pygame.draw.rect(surface, (70, 64, 62), rect, 1)
+    def _tx(v):
+        return rx + int(v * rw / float(MAP_W))
+    def _ty(v):
+        return ry + int(v * rh / float(MAP_H))
+    pygame.draw.line(surface, (92, 86, 74), (rx, _ty(MAP_GROUND)),
+                     (rx + rw, _ty(MAP_GROUND)), 1)
+    for _a, _b, _c in m.get("platforms", ()):
+        pygame.draw.rect(surface, (120, 112, 102),
+                         (_tx(_a), _ty(_b), max(2, _tx(_c) - rx), 2))
+    for _a, _b in m.get("stones", ()):
+        pygame.draw.circle(surface, (150, 148, 156), (_tx(_a), _ty(_b) - 3), 2)
+    if m.get("coffin"):
+        _cf = m["coffin"]
+        pygame.draw.rect(surface, (60, 190, 210),
+                         (_tx(_cf[0]), _ty(_cf[1]),
+                          max(3, _tx(_cf[2]) - rx), max(2, _ty(_cf[3]) - ry)), 1)
+    for _a, _b in m.get("guards", ()):
+        pygame.draw.circle(surface, (46, 196, 62), (_tx(_a), _ty(_b) - 3), 2)
+    for _a, _b in m.get("biters", ()):
+        pygame.draw.circle(surface, (214, 54, 40), (_tx(_a), _ty(_b) - 3), 2)
+    for _a, _b, _c, _d in m.get("floaters", ()):
+        pygame.draw.line(surface, (160, 146, 40),
+                         (_tx(_a), _ty(_b)), (_tx(_c), _ty(_d)), 1)
+        pygame.draw.circle(surface, (238, 214, 44), (_tx(_a), _ty(_b)), 2)
+    for _p1, _p2 in m.get("portals", ()):
+        for _pt in (_p1, _p2):
+            pygame.draw.circle(surface, (70, 100, 240),
+                               (_tx(_pt[0]), _ty(_pt[1])), 3, 1)
+    for _a, _b, _c, _d in m.get("springs", ()):
+        pygame.draw.circle(surface, (236, 110, 200), (_tx(_a), _ty(_b)), 2)
+    pygame.draw.rect(surface, (176, 120, 56),
+                     (_tx(m["door"][0]) - 2, _ty(m["door"][1]) - 8, 4, 8))
+
+
 def chapter_select(stats):
     """Pick a chapter. Returns its index, or None to leave."""
     done = progress(stats)
-    sel  = min(done, len(CHAPTERS) - 1)
+    sel  = min(done, len(MAPS) - 1)
     scroll = 0
     t = 0.0
     ROWH, VISIBLE = 30, 11
@@ -326,7 +401,7 @@ def chapter_select(stats):
                 if ev.key == pygame.K_ESCAPE:
                     return None
                 if ev.key in (pygame.K_DOWN, pygame.K_s):
-                    sel = min(len(CHAPTERS) - 1, sel + 1)
+                    sel = min(len(MAPS) - 1, sel + 1)
                 if ev.key in (pygame.K_UP, pygame.K_w):
                     sel = max(0, sel - 1)
                 if ev.key in (pygame.K_RETURN, pygame.K_SPACE):
@@ -337,7 +412,7 @@ def chapter_select(stats):
                        if ev.type == pygame.FINGERDOWN else ev.pos)
                 for _i in range(VISIBLE):
                     _ci = scroll + _i
-                    if _ci >= len(CHAPTERS):
+                    if _ci >= len(MAPS):
                         break
                     if pygame.Rect(LIST_X, 96 + _i * ROWH, LIST_W,
                                    ROWH - 2).collidepoint(_mp):
@@ -346,14 +421,14 @@ def chapter_select(stats):
                         sel = _ci
                 if pygame.Rect(WIDTH - 130, HEIGHT - 52, 100, 32).collidepoint(_mp):
                     return None
-        scroll = max(0, min(sel - VISIBLE + 2, len(CHAPTERS) - VISIBLE))
+        scroll = max(0, min(sel - VISIBLE + 2, len(MAPS) - VISIBLE))
         scroll = max(0, min(scroll, sel))
 
         screen.fill((20, 18, 24))
         _h = font_medium.render("STORY MODE", True, _ACCENT)
         screen.blit(_h, (40, 30))
         _hs = font_small.render(
-            f"Hiss-tory, fought out  ·  {done} of {len(CHAPTERS)} chapters done",
+            f"the attack on Wombrock Town  ·  {done} of {len(MAPS)} maps open",
             True, _FADED)
         screen.blit(_hs, (40, 62))
 
@@ -361,9 +436,9 @@ def chapter_select(stats):
         _last_act = None
         for _i in range(VISIBLE):
             _ci = scroll + _i
-            if _ci >= len(CHAPTERS):
+            if _ci >= len(MAPS):
                 break
-            ch = CHAPTERS[_ci]
+            ch = MAPS[_ci]
             y  = 96 + _i * ROWH
             locked = _ci > done
             if ch["act"] != _last_act:
@@ -379,14 +454,14 @@ def chapter_select(stats):
             screen.blit(_num, (LIST_X + 8, y + 9))
             _col = (96, 90, 88) if locked else (
                 (150, 200, 150) if _ci < done else (235, 230, 222))
-            _nm = ch["title"] if not locked else "— locked —"
+            _nm = ch["name"] if not locked else "— locked —"
             screen.blit(font_small.render(_nm, True, _col), (LIST_X + 32, y + 5))
             if _ci < done:
                 pygame.draw.circle(screen, (110, 200, 120),
                                    (LIST_X + LIST_W - 16, y + 14), 4)
 
-        # ── the chapter itself ─────────────────────────────────────────────
-        ch = CHAPTERS[sel]
+        # ── the map itself ────────────────────────────────────────────────
+        ch = MAPS[sel]
         locked = sel > done
         PX, PW = LIST_X + LIST_W + 30, WIDTH - (LIST_X + LIST_W + 30) - 40
         pygame.draw.rect(screen, (28, 25, 32), (PX, 96, PW, HEIGHT - 170))
@@ -394,43 +469,32 @@ def chapter_select(stats):
         screen.blit(font_tiny.render(ch["act"].upper(), True, _ACCENT),
                     (PX + 14, 108))
         screen.blit(font_medium.render(
-            ch["title"] if not locked else "???", True,
+            ch["name"] if not locked else "???", True,
             (235, 230, 222) if not locked else (110, 104, 100)), (PX + 14, 124))
-
         if locked:
-            _msg = _wrap("Finish the chapter before it. The Hiss-tory does "
-                         "not go out of order.", font_small, PW - 28)
-            for _k, _ln in enumerate(_msg):
+            for _k, _ln in enumerate(_wrap(
+                    "Open the door on the map before it. The road east only "
+                    "goes one way.", font_small, PW - 28)):
                 screen.blit(font_small.render(_ln, True, _FADED),
                             (PX + 14, 170 + _k * 22))
         else:
-            screen.blit(font_small.render(f"on {ch['stage']}", True, _FADED),
-                        (PX + 14, 158))
-            _you, _foe = _char(ch["you"]), _char(ch["foe"])
-            _gy = 300
-            for _c2, _dx, _face, _lbl in ((_you, PX + 80, 1, "you are"),
-                                          (_foe, PX + PW - 80, -1, "against")):
-                if _c2 is None:
+            _counts = [("enemies", len(ch.get("biters", ()))),
+                       ("coffin guarders", len(ch.get("guards", ()))),
+                       ("moving", len(ch.get("floaters", ()))),
+                       ("portals", len(ch.get("portals", ()))),
+                       ("springs", len(ch.get("springs", ())))]
+            _y9 = 164
+            for _lbl9, _n9 in _counts:
+                if not _n9:
                     continue
-                try:
-                    draw_stickman(screen, _dx, _gy, _c2["color"], _face,
-                                  "idle", 0.3 + 0.1 * _face, scale=0.72,
-                                  char_name=_c2["name"])
-                except Exception:
-                    pass
-                _l1 = font_tiny.render(_lbl, True, _FADED)
-                screen.blit(_l1, (_dx - _l1.get_width() // 2, _gy + 10))
-                _l2 = font_small.render(_c2["name"], True, (226, 220, 212))
-                _l2w = _l2.get_width()
-                screen.blit(_l2, (max(PX + 6, min(PX + PW - _l2w - 6,
-                                                  _dx - _l2w // 2)), _gy + 26))
-            _vs = font_medium.render("vs", True, _ACCENT)
-            screen.blit(_vs, (PX + PW // 2 - _vs.get_width() // 2, _gy - 50))
-            _d = font_tiny.render(ch["difficulty"].replace("_", " "), True,
-                                  (180, 150, 90))
-            screen.blit(_d, (PX + PW // 2 - _d.get_width() // 2, _gy + 12))
-            _state = ("done — play it again" if sel < done
-                      else "press ENTER to begin")
+                screen.blit(font_small.render(_lbl9, True, _FADED), (PX + 14, _y9))
+                _nv = font_small.render(str(_n9), True, (226, 220, 212))
+                screen.blit(_nv, (PX + PW - 20 - _nv.get_width(), _y9))
+                _y9 += 22
+            _thumb = pygame.Rect(PX + 14, _y9 + 12, PW - 28, 118)
+            draw_map_thumb(screen, ch, _thumb)
+            _state = ("open — walk it again" if sel < done
+                      else "press ENTER to go in")
             _s2 = font_small.render(_state, True,
                                     (150, 200, 150) if sel < done else _ACCENT)
             screen.blit(_s2, (PX + PW // 2 - _s2.get_width() // 2, HEIGHT - 110))
