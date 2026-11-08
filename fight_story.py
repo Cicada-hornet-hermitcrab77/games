@@ -62,7 +62,8 @@ MAPS = [
         ],
         "coffin": (370, 40, 310, 90),
         "guards": [(305, 125), (715, 125)],
-        "biters": [(1150, 130), (1850, 330), (1315, MAP_GROUND)],
+        "biters": [(1850, 330), (1315, MAP_GROUND)],
+        "boss": (1150, 130),
         "floaters": [             # (x1, y1, x2, y2) — the line it runs
             (60, 320, 850, 320),
             (1300, 120, 1690, 120),
@@ -74,6 +75,7 @@ MAPS = [
             (1075, 530, 13, -9),
             (870, 930, 11, -15),
         ],
+        "house": (1390, 500, 430, MAP_GROUND - 500),
         "door": (1437, MAP_GROUND),
         "stones": [(360, 935), (710, 580), (1135, 940), (1725, 935)],
         "slabs": [(1580, 355, 160, 135)],
@@ -82,7 +84,8 @@ MAPS = [
 
 
 class Biter:
-    """A red one. Walks the ledge it was put on and bites what it reaches."""
+    """A red one: a headstone that grew a mouth. Walks the ledge it was put
+    on and bites whatever gets close enough."""
     R, HP, DMG = 18, 3, 7
 
     def __init__(self, x, y):
@@ -108,28 +111,60 @@ class Biter:
                            self.R * 2, self.R * 2)
 
     def draw(self, surface):
-        _c = (255, 230, 230) if self.hurt else (214, 54, 40)
+        _c = (255, 230, 230) if self.hurt else (168, 150, 152)
+        _dk = (255, 240, 240) if self.hurt else (104, 92, 98)
+        _vein = (255, 200, 190) if self.hurt else (206, 48, 36)
         _x, _y = int(self.x), int(self.y)
-        pygame.draw.polygon(surface, _c, [
-            (_x - self.R, _y), (_x - self.R, _y - self.R),
-            (_x, _y - self.R * 2), (_x + self.R, _y - self.R),
-            (_x + self.R, _y)])
-        for _i in range(4):       # the jagged mouth off the map
-            _tx = _x - self.R + 4 + _i * (self.R * 2 - 8) // 4
-            pygame.draw.polygon(surface, (250, 250, 250), [
-                (_tx, _y - self.R + 2), (_tx + 5, _y - self.R + 2),
-                (_tx + 2, _y - 3)])
-        for _sg in (-1, 1):
-            pygame.draw.circle(surface, (24, 20, 20),
-                               (_x + _sg * 6, _y - self.R - 7), 3)
-        for _lg in (-1, 1):
-            pygame.draw.line(surface, _c, (_x + _lg * 8, _y),
+        _h = self.R * 2 + 6
+        # the stone: square shoulders, arched top, exactly like the ones it
+        # is standing among — except this one opened
+        pygame.draw.rect(surface, _c, (_x - self.R, _y - _h + self.R,
+                                       self.R * 2, _h - self.R))
+        pygame.draw.circle(surface, _c, (_x, _y - _h + self.R), self.R)
+        pygame.draw.rect(surface, _dk, (_x - self.R, _y - _h + self.R,
+                                        self.R * 2, _h - self.R), 2)
+        pygame.draw.arc(surface, _dk, (_x - self.R, _y - _h, self.R * 2,
+                                       self.R * 2), 0.0, 3.1416, 2)
+        for _k in range(3):        # the cracks it opened along
+            _cy = _y - _h + self.R + 6 + _k * 7
+            pygame.draw.line(surface, _vein, (_x - self.R + 2, _cy),
+                             (_x - 2 + (_k % 2) * 8, _cy + 4), 2)
+        pygame.draw.ellipse(surface, (74, 112, 60),   # moss along the foot
+                            (_x - self.R, _y - 8, self.R * 2, 9))
+        # the mouth, across the face of it, chewing
+        _gape = 5 + int(abs(math.sin(self.x * 0.09)) * 4)
+        _my0 = _y - self.R - 2
+        pygame.draw.rect(surface, (118, 22, 20),
+                         (_x - self.R + 3, _my0 - _gape // 2,
+                          self.R * 2 - 6, _gape))
+        pygame.draw.rect(surface, (210, 70, 46),
+                         (_x - self.R + 3, _my0 - _gape // 2,
+                          self.R * 2 - 6, max(1, _gape // 3)))
+        for _i in range(5):
+            _tx = _x - self.R + 4 + _i * (self.R * 2 - 8) // 5
+            _tw = max(2, (self.R * 2 - 8) // 6)
+            pygame.draw.polygon(surface, (248, 246, 240), [
+                (_tx, _my0 - _gape // 2), (_tx + _tw, _my0 - _gape // 2),
+                (_tx + _tw // 2, _my0 - _gape // 2 + _gape - 1)])
+            pygame.draw.polygon(surface, (248, 246, 240), [
+                (_tx, _my0 + _gape // 2), (_tx + _tw, _my0 + _gape // 2),
+                (_tx + _tw // 2, _my0 + _gape // 2 - _gape + 1)])
+        for _sg in (-1, 1):       # eyes up where the name would be
+            pygame.draw.circle(surface, (252, 236, 150),
+                               (_x + _sg * 7, _y - _h + self.R - 2), 4)
+            pygame.draw.circle(surface, (210, 70, 20),
+                               (_x + _sg * 7 + self.face * 2,
+                                _y - _h + self.R - 2), 2)
+        for _lg in (-1, 1):       # the little legs it walks on
+            pygame.draw.line(surface, _dk, (_x + _lg * 8, _y),
                              (_x + _lg * 11, _y + 7), 3)
 
 
 class Guarder:
-    """A green one. Stands at the coffin and does not leave it."""
+    """A skeleton. It was in the ground by the coffin and it stayed by the
+    coffin. Does not chase, does not leave, does not stop."""
     R, HP, DMG = 15, 4, 6
+    BONE, DARK = (238, 234, 218), (168, 160, 138)
 
     def __init__(self, x, y):
         self.x, self.y = float(x), float(y)
@@ -139,27 +174,163 @@ class Guarder:
 
     def update(self, px, py):
         self.t += 0.05
+        self.face = 1 if px > self.x else -1
         if self.hurt:
             self.hurt -= 1
 
     def rect(self):
-        return pygame.Rect(int(self.x) - self.R, int(self.y) - 46,
-                           self.R * 2, 46)
+        return pygame.Rect(int(self.x) - self.R, int(self.y) - 52,
+                           self.R * 2, 52)
 
     def draw(self, surface):
-        _c = (235, 255, 235) if self.hurt else (46, 196, 62)
+        _b = (255, 120, 120) if self.hurt else self.BONE
+        _d = (210, 90, 90) if self.hurt else self.DARK
         _x, _y = int(self.x), int(self.y)
-        _sw = int(math.sin(self.t) * 3)
-        pygame.draw.circle(surface, _c, (_x + _sw, _y - 38), 9)
-        pygame.draw.line(surface, _c, (_x + _sw, _y - 30), (_x, _y - 14), 3)
-        for _sg in (-1, 1):       # arms out, holding the ground
-            pygame.draw.line(surface, _c, (_x + _sw, _y - 27),
-                             (_x + _sg * 11 + _sw, _y - 34), 3)
-            pygame.draw.line(surface, _c, (_x, _y - 14),
-                             (_x + _sg * 9, _y), 3)
+        _sw = int(math.sin(self.t) * 2)
+        _f = getattr(self, "face", 1)
+        # legs
         for _sg in (-1, 1):
-            pygame.draw.circle(surface, (16, 70, 22),
-                               (_x + _sw + _sg * 3, _y - 40), 2)
+            pygame.draw.line(surface, _b, (_x + _sg * 3, _y - 22),
+                             (_x + _sg * 7, _y - 10), 3)
+            pygame.draw.line(surface, _b, (_x + _sg * 7, _y - 10),
+                             (_x + _sg * 8, _y), 3)
+            pygame.draw.circle(surface, _d, (_x + _sg * 7, _y - 10), 2)
+        # spine and ribs
+        pygame.draw.line(surface, _b, (_x + _sw, _y - 42), (_x, _y - 22), 3)
+        for _k in range(4):
+            _ry = _y - 40 + _k * 5
+            pygame.draw.arc(surface, _b, (_x - 9 + _sw, _ry - 4, 18, 10),
+                            3.34, 6.08, 2)
+        # arms, held out over the ground it is guarding
+        for _sg in (-1, 1):
+            pygame.draw.line(surface, _b, (_x + _sw, _y - 39),
+                             (_x + _sg * 12 + _sw, _y - 33), 3)
+            pygame.draw.line(surface, _b, (_x + _sg * 12 + _sw, _y - 33),
+                             (_x + _sg * 15 + _sw, _y - 42 + (_sg * _sw)), 3)
+            for _fg in range(3):   # finger bones
+                pygame.draw.line(surface, _b,
+                                 (_x + _sg * 15 + _sw, _y - 42 + (_sg * _sw)),
+                                 (_x + _sg * (16 + _fg * 2) + _sw,
+                                  _y - 48 + _fg), 1)
+        # the skull
+        _sx, _sy = _x + _sw, _y - 50
+        pygame.draw.circle(surface, _b, (_sx, _sy), 9)
+        pygame.draw.rect(surface, _b, (_sx - 6, _sy + 5, 12, 7),
+                         border_radius=2)
+        for _sg in (-1, 1):
+            pygame.draw.circle(surface, (24, 22, 26),
+                               (_sx + _sg * 4 + _f, _sy - 1), 3)
+            pygame.draw.circle(surface, (120, 220, 140),
+                               (_sx + _sg * 4 + _f, _sy - 1), 1)
+        pygame.draw.polygon(surface, (24, 22, 26), [
+            (_sx - 1, _sy + 3), (_sx + 1, _sy + 3), (_sx, _sy + 6)])
+        for _k in range(3):        # teeth
+            pygame.draw.line(surface, _d, (_sx - 4 + _k * 4, _sy + 6),
+                             (_sx - 4 + _k * 4, _sy + 11), 1)
+
+
+class Wolf:
+    """The one on top. Wolf-shaped, red, and the only thing in the yard that
+    comes looking for you. The door does not open while it is up."""
+    W, H, HP, DMG = 34, 26, 14, 12
+
+    def __init__(self, x, y, plats=()):
+        self.x, self.y = float(x), float(y)
+        self.hp = self.HP
+        self.face = -1
+        self.hurt = 0
+        self.vy = 0.0
+        self.lunge = 0
+        self.cool = 90
+        self.t = 0.0
+        self.plats = list(plats)
+
+    def _floor_under(self):
+        """The nearest thing it can stand on at or below where it is."""
+        best = float(GROUND_Y)
+        for pl in self.plats:
+            if pl.x - 8 <= self.x <= pl.x + pl.w + 8 and pl.y >= self.y - 6:
+                best = min(best, float(pl.y))
+        return best
+
+    def update(self, px, py):
+        self.t += 0.1
+        self.face = 1 if px > self.x else -1
+        if self.cool:
+            self.cool -= 1
+        if self.lunge:
+            self.lunge -= 1
+            self.x += self.face * 7.0
+        elif not self.cool and abs(px - self.x) < 260:
+            self.lunge, self.cool = 22, 130
+            self.vy = -8.5
+        else:
+            self.x += self.face * 1.9
+        self.vy += 0.5
+        self.y += self.vy
+        _fl = self._floor_under()
+        if self.y >= _fl and self.vy >= 0:
+            self.y, self.vy = _fl, 0.0
+        self.x = max(24.0, min(float(WIDTH - 24), self.x))
+        if self.hurt:
+            self.hurt -= 1
+
+    def rect(self):
+        return pygame.Rect(int(self.x) - self.W, int(self.y) - self.H - 12,
+                           self.W * 2, self.H + 12)
+
+    def draw(self, surface):
+        _c = (255, 226, 226) if self.hurt else (198, 56, 40)
+        _dk = (255, 240, 240) if self.hurt else (116, 24, 22)
+        _lt = (255, 246, 246) if self.hurt else (238, 128, 72)
+        _x, _y = int(self.x), int(self.y)
+        _f = self.face
+        _gait = int(math.sin(self.t * 1.6) * 3)
+        for _lg, _ph in ((-20, 0.0), (-8, 1.6), (10, 0.8), (22, 2.4)):
+            _sw = int(math.sin(self.t * 1.6 + _ph) * 4)
+            pygame.draw.line(surface, _dk, (_x + _lg, _y - 12),
+                             (_x + _lg + _sw, _y), 5)
+        pygame.draw.ellipse(surface, _c, (_x - 30, _y - 32, 60, 24))
+        pygame.draw.ellipse(surface, _lt, (_x - 24, _y - 29, 40, 9))
+        pygame.draw.ellipse(surface, _dk, (_x - 30, _y - 32, 60, 24), 2)
+        for _k in range(5):          # the ridge down its back
+            pygame.draw.polygon(surface, (252, 176, 60), [
+                (_x - 22 + _k * 11, _y - 31),
+                (_x - 16 + _k * 11, _y - 42),
+                (_x - 10 + _k * 11, _y - 31)])
+            pygame.draw.polygon(surface, _dk, [
+                (_x - 22 + _k * 11, _y - 31),
+                (_x - 16 + _k * 11, _y - 42),
+                (_x - 10 + _k * 11, _y - 31)], 1)
+        pygame.draw.line(surface, _c, (_x - _f * 28, _y - 26),
+                         (_x - _f * 44, _y - 38 + _gait), 6)   # the tail
+        _hx = _x + _f * 30
+        _hy = _y - 38
+        pygame.draw.polygon(surface, _c, [
+            (_hx - _f * 12, _hy - 10), (_hx + _f * 20, _hy - 4),
+            (_hx + _f * 18, _hy + 12), (_hx - _f * 12, _hy + 14)])
+        for _sg in (-1, 1):          # ears up
+            pygame.draw.polygon(surface, _c, [
+                (_hx - _f * 8, _hy - 8), (_hx - _f * 2 + _sg * 2, _hy - 24),
+                (_hx + _f * 4, _hy - 8)])
+        _gape = 4 + int(abs(math.sin(self.t * 1.1)) * 7)
+        pygame.draw.polygon(surface, (22, 12, 14), [
+            (_hx + _f * 2, _hy + 4), (_hx + _f * 21, _hy - 1 - _gape // 2),
+            (_hx + _f * 21, _hy + 7 + _gape // 2)])
+        for _k in range(4):
+            _tx = _hx + _f * (6 + _k * 4)
+            pygame.draw.polygon(surface, (248, 246, 240), [
+                (_tx, _hy + 1), (_tx + _f * 3, _hy + 1),
+                (_tx + _f * 1, _hy + 1 + _gape // 2 + 2)])
+        pygame.draw.circle(surface, (252, 220, 90), (_hx + _f * 6, _hy - 4), 4)
+        pygame.draw.circle(surface, (22, 12, 14), (_hx + _f * 7, _hy - 4), 2)
+        # how much of it is left, over its head
+        _bw = 54
+        pygame.draw.rect(surface, (40, 36, 36), (_x - _bw // 2, _y - 58, _bw, 6))
+        pygame.draw.rect(surface, (214, 54, 40),
+                         (_x - _bw // 2, _y - 58,
+                          int(_bw * max(0, self.hp) / self.HP), 6))
+        pygame.draw.rect(surface, (120, 112, 108), (_x - _bw // 2, _y - 58, _bw, 6), 1)
 
 
 class Floater:
@@ -196,16 +367,23 @@ class Floater:
                            self.R * 2, self.R * 2)
 
     def draw(self, surface):
-        _c = (255, 255, 230) if self.hurt else (238, 214, 44)
+        _c = (255, 255, 230) if self.hurt else (246, 206, 48)
         _x, _y = int(self.x), int(self.y)
+        _glow = pygame.Surface((self.R * 5, self.R * 5), pygame.SRCALPHA)
+        pygame.draw.circle(_glow, (246, 206, 48, 46),
+                           (self.R * 2 + 2, self.R * 2 + 2), self.R * 2)
+        surface.blit(_glow, (_x - self.R * 2 - 2, _y - self.R * 2 - 2))
         pygame.draw.line(surface, (90, 84, 40), (int(self.a[0]), int(self.a[1])),
                          (int(self.b[0]), int(self.b[1])), 1)
         pygame.draw.polygon(surface, _c, [
             (_x, _y - self.R), (_x + self.R, _y),
             (_x, _y + self.R + 6), (_x - self.R, _y)])
-        pygame.draw.ellipse(surface, (40, 36, 16),
-                            (_x - 7, _y - 5, 14, 9))
-        pygame.draw.circle(surface, _c, (_x, _y - 1), 2)
+        pygame.draw.polygon(surface, (255, 238, 150), [
+            (_x, _y - self.R), (_x + self.R // 2, _y - self.R // 3),
+            (_x, _y), (_x - self.R // 2, _y - self.R // 3)])
+        pygame.draw.ellipse(surface, (248, 250, 252), (_x - 8, _y - 6, 16, 11))
+        pygame.draw.circle(surface, (40, 110, 180), (_x + 1, _y - 1), 4)
+        pygame.draw.circle(surface, (12, 14, 20), (_x + 1, _y - 1), 2)
 
 
 # ── The story ───────────────────────────────────────────────────────────────
@@ -224,8 +402,10 @@ MAPS[0].update({
         "full of them.",
     ],
     "after": [
-        "The door gives. Past it is the road east, and the road east ends "
-        "at Wombrock Town.",
+        "The wolf is down, and the yard is yours.",
+        "The house on the right has a door in it, and the door opens. What "
+        "is behind it is not the end of anything — it is the way further "
+        "in, and that is for next time.",
     ],
 })
 
@@ -239,8 +419,9 @@ def player_for(idx):
     return _CAST[idx % len(_CAST)]
 
 
-# What finishing the whole thing is worth.
-STORY_REWARD = "He-Who-Shall-Not-Be-Named"
+# What finishing the whole thing is worth, in coins. Tombstone came to ask
+# you for a favour; he is good for it.
+STORY_REWARD = 250
 
 
 def is_open_today():

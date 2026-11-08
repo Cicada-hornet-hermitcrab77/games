@@ -952,6 +952,10 @@ PAGES = [
          "He-Who-Shall-Not-Be-Named murdered Birthalomeu. The Great War "
          "started more or less the moment the news did, and it was fought "
          "everywhere there was ground to fight on.",
+         "He did not see much of it. Nian is the oldest of them — the first "
+         "week of the year, before anybody else is awake — and Nian found "
+         "him and killed him early. You cannot fight him. Nobody can. That "
+         "is what being the oldest is for.",
          ("h", "What is left of it"),
          "One picture, in pencil, drawn from memory by somebody who was at "
          "the table and will not say which one he was. The ceiling gives him "
@@ -1009,9 +1013,9 @@ PAGES = [
          ("b", "On his left — He-Who-Shall-Not-Be-Named, leaning back out "
                "of the light with the purse under his arm. He is the reason "
                "there are majors and minors, and before the year was out he "
-               "was the reason there is no Birthalomeu. Every Seasonal who "
-               "was at that table agreed his name should go nowhere. It did "
-               "not."),
+               "was the reason there is no Birthalomeu. Nian killed him for "
+               "it. Every Seasonal who was at that table agreed his name "
+               "should go nowhere, and it did not."),
          ("h", "And one under it"),
          "Red Herring spent the whole evening under the table and was still "
          "there when it was over, which is how anyone knows what was said. "
@@ -1027,6 +1031,12 @@ PAGES = [
          "to war over it. Not one battle in one place — every stage, every "
          "sea, every ring of ground a tribe holds. The map in the Maps "
          "section is a list of where it happened.",
+         ("h", "He was not in it"),
+         "Nian got to him first. The oldest Seasonal, the first week of the "
+         "year, awake before anybody else — he found the one with the purse "
+         "and finished it before the fighting properly started. There is no "
+         "He-Who-Shall-Not-Be-Named to fight. There is a hole where he was "
+         "and a war that happened anyway.",
          ("h", "Who it killed"),
          "The minor Seasonals, mostly. They had the smallest weeks and the "
          "fewest to call on, and there were a great many more of them before "
@@ -1212,16 +1222,24 @@ PAGES = [
          "the top of the lot. The sky is the colour of the smoke and the "
          "street is mostly rubble.",
          ("h", "How it plays"),
-         "You do not pick your fighter. Each chapter already knows who you "
-         "were and puts you in him, on the ground it happened on.",
-         ("b", "Win to move on — a chapter will not unlock the next one "
-               "until you take it"),
+         "A map is a yard with things in it, not a duel. You do not pick "
+         "your fighter — the story puts you in Legacy Jawke, who is the "
+         "black and white lunatic they sent.",
+         ("b", "Beat the boss and the map is yours. The door is not the "
+               "win — it is a house, and a house has an inside"),
          ("b", "R on the loss screen puts you straight back in"),
-         ("b", "Cleared chapters stay open, so any of them can be replayed"),
+         ("b", "Cleared maps stay open, so any of them can be walked again"),
          ("b", "The story lends you fighters you have not unlocked"),
+         ("h", "What is in a yard"),
+         ("kv", "Headstones with mouths", "they opened, and they walk now"),
+         ("kv", "Skeletons", "two of them, at the coffin, and they stay there"),
+         ("kv", "Floaters", "run a line there and back, and never land"),
+         ("kv", "The wolf", "on top. Beat it and you have won"),
+         ("kv", "Portals, springs", "the way up and the way across"),
+         ("kv", "A coffin", "put both skeletons down and it opens. 25 coins"),
          ("h", "What it pays"),
-         "Finish it and the one at the end of it is yours to pick. He still "
-         "has no name.",
+         "Tombstone came to ask you for a favour and he is good for it — "
+         "250 coins at the end of the road.",
      ]},
     {"section": "modes", "title": "1 Player",
      "subtitle": "versus the computer",

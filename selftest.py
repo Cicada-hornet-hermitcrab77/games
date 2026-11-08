@@ -649,13 +649,22 @@ for _m9 in ST.MAPS:
     for _s9 in _m9.get("springs", ()):
         assert len(_s9) == 4 and (_s9[2] or _s9[3]), "a spring has to shove"
     assert 0 < ST.mx(_m9["door"][0]) < _C.WIDTH
+    assert _m9.get("boss"), "a map is won by beating its boss"
+    assert _m9.get("house"), "the right of this one is a house"
 assert ST.mx(ST.MAP_W) == _C.WIDTH and ST.my(ST.MAP_GROUND) == _C.GROUND_Y
 # the creatures take hits, give damage, and have somewhere to be hit
-for _e9 in (ST.Biter(100, 400), ST.Guarder(100, 400), ST.Floater(80, 100, 300, 100)):
+for _e9 in (ST.Biter(100, 400), ST.Guarder(100, 400),
+            ST.Floater(80, 100, 300, 100), ST.Wolf(100, 400)):
     assert _e9.hp > 0 and _e9.DMG > 0
     _e9.update(200.0, 400.0)
     assert _e9.rect().width > 0 and _e9.rect().height > 0
     _e9.draw(surf)
+# the wolf lands on something rather than hanging in the air
+_wf9 = ST.Wolf(400, 100, [Platform(380, 300, 120)])
+for _ in range(240):
+    _wf9.update(420.0, 300.0)
+assert _wf9.y <= _C.GROUND_Y + 1, _wf9.y
+assert _wf9.hp == _wf9.HP and _wf9.HP > ST.Biter.HP, "the boss is the hard one"
 # a floater turns round at both ends rather than running off
 _fl9 = ST.Floater(80, 100, 300, 100)
 for _ in range(600):
@@ -675,18 +684,13 @@ assert ST.mark_done(_st9, len(ST.MAPS) - 1) is True
 ST.mark_done(_st9, 0)
 assert ST.progress(_st9) == len(ST.MAPS), "replaying must not undo progress"
 assert _st9.get("story_done") and ST.is_done(_st9)
-assert ST.STORY_REWARD in _roster, ST.STORY_REWARD
-_cond9 = G.UNLOCK_CONDITIONS[ST.STORY_REWARD]
-assert _cond9[0] == "story_complete" and _cond9[4] is True, _cond9
-assert G._meets_condition(_cond9, {"story_done": True})
-assert not G._meets_condition(_cond9, {})
-# he draws, in every pose, facing both ways
-for _f9 in (1, -1):
-    for _act9 in ("idle", "walk", "punch", "kick", "dead"):
-        DR.draw_stickman(surf, 450, 500, (44, 46, 58), _f9, _act9, 0.5,
-                         char_name=ST.STORY_REWARD)
-assert DR.draw_stickman(surf, 450, 500, (44, 46, 58), 1, "punch", 0.6,
-                        char_name=ST.STORY_REWARD) is not None
+# the reward is coins; the one at the table never became a fighter because
+# Nian killed him first
+assert isinstance(ST.STORY_REWARD, int) and ST.STORY_REWARD > 0
+assert not any(_c["name"] == "He-Who-Shall-Not-Be-Named" for _c in D.CHARACTERS)
+assert "He-Who-Shall-Not-Be-Named" not in G.UNLOCK_CONDITIONS
+_hiss = " ".join(str(_b) for _p in W.build(unlocked=())["lore"] for _b in _p["body"])
+assert "Nian" in _hiss, "Hiss-tory has to say who got him"
 # Sundays only, and Wombrock Town is a real stage to fight it on
 import datetime as _dt9
 _was9 = _C.DEV_TIME_OFFSET

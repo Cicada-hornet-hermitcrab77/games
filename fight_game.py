@@ -481,7 +481,6 @@ UNLOCK_CONDITIONS = {
     "Chronomancer":        ("win_with",       "Time Warden",     3,  "Win 3 matches as Time Warden"),
     "Behemoth":            ("wins_total",     None,            200,  "Win 200 matches"),
     "Boom-Boom-Boomerang": ("secret_chars",   None,             12,  "Unlock 12 secret characters"),
-    "He-Who-Shall-Not-Be-Named": ("story_complete", None,        1,  "Finish Story Mode",                        True),
     "Red Herring":         ("secret_chars",   None,             15,  "Unlock 15 secret characters"),
     "Kirin Adler":         ("secret_chars",   None,             27,  "Unlock 27 secret characters"),
     "Jawke":               ("secret_chars",   None,             20,  "Unlock 20 secret characters"),
@@ -810,8 +809,6 @@ def _meets_condition(cond, stats):
         return stats.get("died_by_powerup", False)
     if kind == "type42":
         return stats.get("type42_done", False)
-    if kind == "story_complete":
-        return bool(stats.get("story_done"))
     if kind == "volcanis_unlock":
         return stats.get("volcanis_unlocked", False)
     if kind == "umbra_unlock":
@@ -7739,6 +7736,8 @@ def run_story_level(level, player_name, stats):
     guards   = [_story.Guarder(_mx(gx), _my(gy)) for gx, gy in level.get("guards", ())]
     floaters = [_story.Floater(_mx(a), _my(b), _mx(c), _my(d))
                 for a, b, c, d in level.get("floaters", ())]
+    boss = ([_story.Wolf(_mx(level["boss"][0]), _my(level["boss"][1]), plats)]
+            if level.get("boss") else [])
     portals  = [((_mx(a), _my(b)), (_mx(c), _my(d)))
                 for (a, b), (c, d) in level.get("portals", ())]
     springs  = [(_mx(sx), _my(sy), sdx, sdy)
@@ -7747,6 +7746,9 @@ def run_story_level(level, player_name, stats):
     coffin   = level.get("coffin")
     if coffin:
         coffin = (_mx(coffin[0]), _my(coffin[1]), _mx(coffin[2]), _my(coffin[3]))
+    house = level.get("house")
+    if house:
+        house = (_mx(house[0]), _my(house[1]), _mx(house[2]), _my(house[3]))
     stones = [(_mx(a), _my(b)) for a, b in level.get("stones", ())]
     slabs  = [(_mx(a), _my(b), _mx(c), _my(d)) for a, b, c, d in level.get("slabs", ())]
 
@@ -7756,6 +7758,10 @@ def run_story_level(level, player_name, stats):
     _dummy = Fighter(-900, _ch, -1, P1_CTRL)    # update() wants somebody to face
 
     coffin_open = False
+    door_open   = False
+    _STARS = [((i * 137) % WIDTH, (i * 61) % (GROUND_Y - 120), i * 0.7)
+              for i in range(46)]
+    _won        = 0
     _port_cd = 0
     _msg, _msg_t = "", 0
     _touch = TouchControls(P1_CTRL, player=1, two_player=False) if touch_p1_enabled[0] else None
@@ -7771,15 +7777,22 @@ def run_story_level(level, player_name, stats):
                 if event.key == pygame.K_ESCAPE:
                     return False
                 if event.key == pygame.K_e:
-                    if abs(p.x - door[0]) < 40 and abs(p.y - door[1]) < 90:
-                        return True
-                    _msg, _msg_t = "nothing here opens", 70
+                    _at_door = (abs(p.x - door[0]) < 40
+                                and abs(p.y - door[1]) < 90)
+                    if _at_door and not door_open:
+                        door_open = True
+                        _msg, _msg_t = ("it is a house, and the inside of it "
+                                        "is for later"), 120
+                    elif _at_door:
+                        _msg, _msg_t = "already open", 60
+                    else:
+                        _msg, _msg_t = "nothing here opens", 70
         keys = pygame.key.get_pressed()
         if _touch:
             keys = _touch.inject(keys)
 
         # The player is just a fighter, facing whatever is nearest.
-        _alive = [e for e in biters + guards + floaters if e.hp > 0]
+        _alive = [e for e in biters + guards + floaters + boss if e.hp > 0]
         if _alive:
             _near = min(_alive, key=lambda e: abs(e.x - p.x))
             _dummy.x, _dummy.y = float(_near.x), float(_near.y)
@@ -7807,25 +7820,73 @@ def run_story_level(level, player_name, stats):
         for e in _alive:
             e.update(p.x, p.y)
 
-        screen.fill((26, 24, 30))
+        # ── the yard, after dark ──────────────────────────────────────────
+        _nt = pygame.time.get_ticks() / 1000.0
+        for _gy2 in range(GROUND_Y + 2):
+            _f2 = _gy2 / float(GROUND_Y)
+            screen.fill((int(16 + _f2 * 44), int(14 + _f2 * 30), int(38 + _f2 * 30)),
+                        (0, _gy2, WIDTH, 1))
+        for _st2 in _STARS:          # the sky over Tombstone
+            _tw2 = 1 + int((math.sin(_nt * 1.7 + _st2[2]) + 1) * 1.2)
+            pygame.draw.circle(screen, (214, 216, 240), (_st2[0], _st2[1]), _tw2)
+        pygame.draw.circle(screen, (226, 228, 210), (WIDTH - 110, 62), 30)
+        pygame.draw.circle(screen, (196, 200, 186), (WIDTH - 102, 54), 7)
+        pygame.draw.circle(screen, (198, 202, 190), (WIDTH - 120, 70), 5)
+        pygame.draw.polygon(screen, (28, 36, 40),      # hills behind the yard
+                            [(0, GROUND_Y - 36), (120, GROUND_Y - 72),
+                             (280, GROUND_Y - 44), (440, GROUND_Y - 80),
+                             (620, GROUND_Y - 40), (780, GROUND_Y - 68),
+                             (WIDTH, GROUND_Y - 34), (WIDTH, GROUND_Y),
+                             (0, GROUND_Y)])
+        for _fx2 in range(0, WIDTH, 26):   # the railings along the back
+            pygame.draw.line(screen, (40, 46, 52), (_fx2, GROUND_Y - 30),
+                             (_fx2, GROUND_Y), 3)
+        pygame.draw.line(screen, (40, 46, 52), (0, GROUND_Y - 26),
+                         (WIDTH, GROUND_Y - 26), 3)
         # the yard behind everything: stones, slabs, the coffin
-        for _sx2, _sy2 in stones:
-            pygame.draw.rect(screen, (182, 180, 186), (_sx2 - 24, _sy2 - 48, 48, 48))
-            pygame.draw.circle(screen, (182, 180, 186), (_sx2, _sy2 - 48), 24)
-            pygame.draw.line(screen, (120, 118, 126), (_sx2, _sy2 - 66), (_sx2, _sy2 - 34), 3)
-            pygame.draw.line(screen, (120, 118, 126), (_sx2 - 11, _sy2 - 56), (_sx2 + 11, _sy2 - 56), 3)
+        for _si2, (_sx2, _sy2) in enumerate(stones):
+            _sc2 = ((166, 170, 176), (152, 150, 160), (176, 172, 164))[_si2 % 3]
+            _sd2 = tuple(int(c * 0.6) for c in _sc2)
+            pygame.draw.rect(screen, _sc2, (_sx2 - 24, _sy2 - 48, 48, 48))
+            pygame.draw.circle(screen, _sc2, (_sx2, _sy2 - 48), 24)
+            pygame.draw.rect(screen, _sd2, (_sx2 - 24, _sy2 - 48, 48, 48), 2)
+            pygame.draw.line(screen, _sd2, (_sx2, _sy2 - 66), (_sx2, _sy2 - 34), 3)
+            pygame.draw.line(screen, _sd2, (_sx2 - 11, _sy2 - 56), (_sx2 + 11, _sy2 - 56), 3)
+            pygame.draw.ellipse(screen, (56, 92, 50),
+                                (_sx2 - 28, _sy2 - 12, 56, 16))
+        if house:
+            _hx4, _hy4, _hw4, _hh4 = house
+            pygame.draw.rect(screen, (68, 62, 58), (_hx4, _hy4, _hw4, _hh4))
+            pygame.draw.rect(screen, (108, 100, 92), (_hx4, _hy4, _hw4, _hh4), 3)
+            pygame.draw.polygon(screen, (92, 60, 46), [
+                (_hx4 - 14, _hy4), (_hx4 + _hw4 // 2, _hy4 - 34),
+                (_hx4 + _hw4 + 14, _hy4)])
+            for _wx4 in range(_hx4 + 34, _hx4 + _hw4 - 30, 74):
+                pygame.draw.rect(screen, (34, 30, 30), (_wx4, _hy4 + 26, 26, 34))
+                pygame.draw.rect(screen, (118, 110, 100),
+                                 (_wx4, _hy4 + 26, 26, 34), 2)
         for _ax, _ay, _aw, _ah in slabs:
             pygame.draw.rect(screen, (176, 174, 182), (_ax, _ay, _aw, _ah), border_radius=10)
             pygame.draw.rect(screen, (118, 116, 124), (_ax, _ay, _aw, _ah), 2, border_radius=10)
-        pygame.draw.rect(screen, (46, 42, 36), (0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y))
-        pygame.draw.line(screen, (92, 86, 74), (0, GROUND_Y), (WIDTH, GROUND_Y), 3)
+        pygame.draw.rect(screen, (42, 60, 40), (0, GROUND_Y, WIDTH, 14))
+        pygame.draw.rect(screen, (52, 44, 36), (0, GROUND_Y + 14, WIDTH,
+                                                HEIGHT - GROUND_Y - 14))
+        pygame.draw.line(screen, (74, 108, 62), (0, GROUND_Y), (WIDTH, GROUND_Y), 3)
+        for _gx2 in range(0, WIDTH, 11):   # grass along the lip
+            pygame.draw.line(screen, (74, 118, 62), (_gx2, GROUND_Y),
+                             (_gx2 + ((_gx2 // 11) % 3) - 1, GROUND_Y - 6), 2)
         for _wx, _wy, _ww, _wh in walls:
-            pygame.draw.rect(screen, (40, 38, 44), (_wx, _wy, _ww, _wh))
-            pygame.draw.rect(screen, (78, 74, 84), (_wx, _wy, _ww, _wh), 2)
+            pygame.draw.rect(screen, (58, 52, 58), (_wx, _wy, _ww, _wh))
+            for _by2 in range(_wy, _wy + _wh, 18):   # courses of stone
+                pygame.draw.line(screen, (44, 40, 46), (_wx, _by2),
+                                 (_wx + _ww, _by2), 1)
+            pygame.draw.rect(screen, (96, 88, 96), (_wx, _wy, _ww, _wh), 2)
         for pl in plats:
-            pygame.draw.rect(screen, (96, 90, 82),
+            pygame.draw.rect(screen, (132, 118, 96),
                              (pl.x, pl.y, pl.w, Platform.H), border_radius=3)
-            pygame.draw.rect(screen, (52, 48, 44),
+            pygame.draw.rect(screen, (168, 152, 124),
+                             (pl.x, pl.y, pl.w, 4), border_radius=2)
+            pygame.draw.rect(screen, (70, 60, 48),
                              (pl.x, pl.y, pl.w, Platform.H), 2, border_radius=3)
         for a, b in portals:
             for _pt in (a, b):
@@ -7848,12 +7909,18 @@ def run_story_level(level, player_name, stats):
             pygame.draw.line(screen, (20, 90, 110), (_cx3 + _cw3 // 2 - 14, _cy3 + 24),
                              (_cx3 + _cw3 // 2 + 14, _cy3 + 24), 3)
         # the door
-        pygame.draw.rect(screen, (156, 108, 52), (door[0] - 13, door[1] - 78, 26, 78),
-                         border_radius=4)
-        pygame.draw.rect(screen, (92, 62, 28), (door[0] - 13, door[1] - 78, 26, 78), 2,
-                         border_radius=4)
-        pygame.draw.circle(screen, (226, 196, 90), (door[0] + 7, door[1] - 38), 3)
-        if abs(p.x - door[0]) < 40:
+        if door_open:
+            pygame.draw.rect(screen, (16, 14, 18),
+                             (door[0] - 13, door[1] - 78, 26, 78))
+            pygame.draw.rect(screen, (156, 108, 52),
+                             (door[0] - 13, door[1] - 78, 7, 78), border_radius=2)
+        else:
+            pygame.draw.rect(screen, (156, 108, 52),
+                             (door[0] - 13, door[1] - 78, 26, 78), border_radius=4)
+            pygame.draw.rect(screen, (92, 62, 28),
+                             (door[0] - 13, door[1] - 78, 26, 78), 2, border_radius=4)
+            pygame.draw.circle(screen, (226, 196, 90), (door[0] + 7, door[1] - 38), 3)
+        if abs(p.x - door[0]) < 40 and not door_open:
             _dh = font_tiny.render("E", True, (255, 220, 120))
             screen.blit(_dh, (door[0] - _dh.get_width() // 2, door[1] - 96))
 
@@ -7878,6 +7945,12 @@ def run_story_level(level, player_name, stats):
                     p.knockback = (1 if p.x < e.x else -1) * -9
                     p.flash_timer = 12
                     break
+        if boss and not any(b.hp > 0 for b in boss):
+            _won += 1
+            _ws = font_medium.render("THE WOLF IS DOWN", True, (255, 210, 110))
+            screen.blit(_ws, (WIDTH // 2 - _ws.get_width() // 2, 120))
+            if _won > FPS * 2:
+                return True
         if coffin and not coffin_open and not [g for g in guards if g.hp > 0]:
             _cx3, _cy3, _cw3, _ch3 = coffin
             if pygame.Rect(_cx3, _cy3, _cw3, _ch3).collidepoint(int(p.x), int(p.y) - 40):
@@ -7896,10 +7969,11 @@ def run_story_level(level, player_name, stats):
                     (26, _hy + 3))
         screen.blit(font_small.render(level["name"], True, (206, 200, 192)),
                     (252, _hy - 2))
-        _left = len([e for e in biters + guards + floaters if e.hp > 0])
-        screen.blit(font_tiny.render(
-            f"{_left} still up  ·  find the door  ·  E opens it",
-            True, (150, 146, 140)), (252, _hy + 20))
+        _left = len([e for e in biters + guards + floaters + boss if e.hp > 0])
+        _goal = ("beat the wolf" if any(b.hp > 0 for b in boss)
+                 else "find the door  ·  E opens it")
+        screen.blit(font_tiny.render(f"{_left} still up  ·  {_goal}",
+                                     True, (150, 146, 140)), (252, _hy + 20))
         if _msg_t:
             _msg_t -= 1
             _ms = font_small.render(_msg, True, (255, 220, 120))
@@ -7938,14 +8012,13 @@ def story_mode(unlocked, stats):
                 _save_data(unlocked, stats)
                 _show_unlocks(_new)
             if _finished:
+                stats["coins"] = stats.get("coins", 0) + _story.STORY_REWARD
+                _save_data(unlocked, stats)
                 _story.narration(
                     ["Every door on the road east is open.",
-                     f"{_story.STORY_REWARD} is yours to pick."],
+                     f"Tombstone pays what he said he would: "
+                     f"{_story.STORY_REWARD} coins."],
                     "Story Mode", "the end of the road", "press any key")
-                _new = check_and_unlock(unlocked, stats)
-                if _new:
-                    _save_data(unlocked, stats)
-                    _show_unlocks(_new)
 
 
 def main():
