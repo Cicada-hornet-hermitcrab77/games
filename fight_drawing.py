@@ -20268,6 +20268,73 @@ def draw_bg(surface, stage_idx=0):
         surface.blit(_spot, (WIDTH // 2 - 210, 30))
         _ban = font_small.render("TOOK THE L", True, (76, 70, 92))
         surface.blit(_ban, (WIDTH // 2 - _ban.get_width() // 2, GROUND_Y + 56))
+    elif s == 34:  # Wombrock Town — the morning of the attack
+        _wt = pygame.time.get_ticks() / 1000.0
+        # smoke-coloured sky, lighter towards the fires
+        for _gy in range(GROUND_Y + 2):
+            _f = _gy / float(GROUND_Y)
+            pygame.draw.line(surface,
+                             (int(78 + _f * 92), int(68 + _f * 54), int(74 + _f * 30)),
+                             (0, _gy), (WIDTH, _gy))
+        # the ridge the Wombrocks came over
+        pygame.draw.polygon(surface, (64, 58, 62),
+                            [(0, 250), (120, 196), (280, 232), (430, 180),
+                             (600, 228), (760, 188), (WIDTH, 236),
+                             (WIDTH, GROUND_Y), (0, GROUND_Y)])
+        # the town: squat stone houses, most of them open to the sky
+        _HOUSES = [(40, 150, 136, 1), (210, 120, 186, 0), (350, 170, 150, 1),
+                   (520, 130, 166, 0), (660, 160, 210, 1), (820, 110, 150, 0)]
+        for _hx, _hw, _hh, _ruin in _HOUSES:
+            _hy = GROUND_Y - _hh
+            pygame.draw.rect(surface, (116, 104, 92), (_hx, _hy, _hw, _hh))
+            pygame.draw.rect(surface, (78, 68, 60), (_hx, _hy, _hw, _hh), 2)
+            for _wy in range(_hy + 24, GROUND_Y - 20, 44):
+                for _wx in range(_hx + 18, _hx + _hw - 20, 44):
+                    _lit = ((_wx + _wy) // 11) % 3 == 0
+                    pygame.draw.rect(surface, (210, 150, 70) if _lit else (52, 46, 44),
+                                     (_wx, _wy, 18, 24))
+            if _ruin:            # the roof is off and the wall is bitten into
+                pygame.draw.polygon(surface, (78, 68, 60),
+                                    [(_hx, _hy), (_hx + _hw // 3, _hy - 18),
+                                     (_hx + _hw // 2, _hy + 10),
+                                     (_hx + _hw, _hy - 6), (_hx + _hw, _hy)])
+                pygame.draw.polygon(surface, (92, 82, 74),
+                                    [(_hx + _hw - 30, GROUND_Y),
+                                     (_hx + _hw, GROUND_Y - 54),
+                                     (_hx + _hw, GROUND_Y)])
+            else:
+                pygame.draw.polygon(surface, (140, 86, 64),
+                                    [(_hx - 8, _hy), (_hx + _hw // 2, _hy - 30),
+                                     (_hx + _hw + 8, _hy)])
+        # smoke going up off the ruined ones
+        for _si, (_hx, _hw, _hh, _ruin) in enumerate(_HOUSES):
+            if not _ruin:
+                continue
+            for _k in range(5):
+                _sp = ((_wt * 0.26 + _k * 0.2 + _si * 0.11) % 1.0)
+                _sy7 = GROUND_Y - _hh - int(_sp * 180)
+                _sr  = int(8 + _sp * 26)
+                _ssf = pygame.Surface((_sr * 2, _sr * 2), pygame.SRCALPHA)
+                pygame.draw.circle(_ssf, (60, 54, 52, int(110 * (1.0 - _sp))),
+                                   (_sr, _sr), _sr)
+                surface.blit(_ssf, (_hx + _hw // 2 - _sr + int(_sp * 30) - 15,
+                                    _sy7 - _sr))
+        # the street
+        pygame.draw.rect(surface, (96, 86, 74), (0, GROUND_Y + 2, WIDTH, HEIGHT - GROUND_Y - 2))
+        pygame.draw.line(surface, (62, 54, 46), (0, GROUND_Y + 2), (WIDTH, GROUND_Y + 2), 3)
+        for _i in range(16):          # cobbles, half of them turned over
+            pygame.draw.ellipse(surface, (112, 100, 86),
+                                (_i * 60 - (_i % 3) * 9, GROUND_Y + 14 + (_i % 4) * 11,
+                                 42, 14))
+        for _rx, _ry, _rw in ((120, 18, 34), (300, 36, 26), (470, 14, 40),
+                              (650, 40, 30), (820, 22, 36)):
+            pygame.draw.polygon(surface, (84, 74, 64),
+                                [(_rx, GROUND_Y + _ry + 12),
+                                 (_rx + _rw // 2, GROUND_Y + _ry - 6),
+                                 (_rx + _rw, GROUND_Y + _ry + 12)])
+        _wsign = font_small.render("WOMBROCK TOWN", True, (70, 62, 54))
+        surface.blit(_wsign, (WIDTH // 2 - _wsign.get_width() // 2, GROUND_Y + 54))
+
     elif s == 10:  # Ice Cave
         surface.fill((40, 60, 100))
         # Background ice wall gradient

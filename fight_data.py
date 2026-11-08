@@ -2373,6 +2373,16 @@ STAGES = [
         (260, GROUND_Y-300, 380, 0, 0),
     ], "springs": [(200, -20), (680, -20)],
        "conveyors": [], "portals": [], "hazards": []},
+
+    # Wombrock Town, east side of the map, the morning it was attacked.
+    # Rooftops to fight across and a street that is mostly rubble now.
+    {"name": "Wombrock Town", "platforms": [
+        (60,  GROUND_Y-120, 180, 0, 0),   # the low roof by the gate
+        (300, GROUND_Y-190, 150, 0, 0),   # the hall, half of it gone
+        (520, GROUND_Y-120, 170, 0, 0),
+        (740, GROUND_Y-200, 140, 0, 0),   # the watch post
+        (390, GROUND_Y-300, 180, 0, 0),   # the bell tower walkway
+    ], "springs": [], "conveyors": [], "portals": [], "hazards": []},
 ]
 
 # Stage-specific character advantages and disadvantages.
