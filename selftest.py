@@ -674,12 +674,30 @@ assert DR.draw_stickman(surf, 450, 500, (44, 46, 58), 1, "punch", 0.6,
                         char_name=ST.STORY_REWARD) is not None
 assert DR.draw_stickman(surf, 450, 500, (44, 46, 58), 1, "idle", 0.3,
                         char_name=ST.STORY_REWARD) is None
+# Sundays only, and Wombrock Town is a real stage to fight it on
+import datetime as _dt9
+_was9 = _C.DEV_TIME_OFFSET
+try:
+    for _d9, _want9 in (("2026-11-08", True), ("2026-11-09", False),
+                        ("2026-11-14", False), ("2026-11-15", True)):
+        _tgt9 = _dt9.date.fromisoformat(_d9)
+        _C.DEV_TIME_OFFSET = (
+            _dt9.datetime.combine(_tgt9, _dt9.datetime.now().time())
+            - _dt9.datetime.now())
+        assert ST.is_open_today() is _want9, (_d9, _tgt9.strftime("%A"))
+finally:
+    _C.DEV_TIME_OFFSET = _was9
+assert "Wombrock Town" in _stage_names
+_wt9 = next(_s for _s in D.STAGES if _s["name"] == "Wombrock Town")
+assert len(_wt9["platforms"]) == 5, _wt9["platforms"]
+assert not _wt9.get("special_mode_only"), "the town is a normal stage too"
 # the menu card and the wiki page exist
 import fight_ui as _UI9
 assert _UI9._STORY_CHAPTERS == len(ST.CHAPTERS)
-assert any(_p["title"] == "Story Mode" for _p in W.build(unlocked=())["modes"])
-print(f"story mode: {len(ST.CHAPTERS)} chapters over {len(ST.ACTS)} acts, "
-      f"{len({_c['you'] for _c in ST.CHAPTERS})} fighters lent out, "
-      f"{ST.STORY_REWARD} at the end")
+_sp9 = next(_p for _p in W.build(unlocked=())["modes"] if _p["title"] == "Story Mode")
+assert "Wombrock" in str(_sp9["body"]), "the page must say what the story is"
+assert "Sundays" in _sp9["subtitle"], _sp9["subtitle"]
+print(f"story mode: Sundays only, {len(ST.CHAPTERS)} chapters, "
+      f"Wombrock Town built, {ST.STORY_REWARD} at the end")
 
 print("ALL OK")

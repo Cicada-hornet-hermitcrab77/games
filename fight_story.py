@@ -14,6 +14,7 @@ would close a loop.
 import pygame
 
 from constants import *
+from constants import dev_today
 from fight_data import CHARACTERS, STAGES
 from fight_drawing import draw_stickman
 
@@ -204,6 +205,12 @@ for _c in CHAPTERS:
 
 # What finishing the whole thing is worth.
 STORY_REWARD = "He-Who-Shall-Not-Be-Named"
+
+
+def is_open_today():
+    """Story Mode runs on Sundays. Six days a week the chain is back on it
+    and Tombstone is behind it, which is where he would rather be anyway."""
+    return dev_today().weekday() == 6
 
 
 def progress(stats):

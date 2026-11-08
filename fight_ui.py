@@ -876,6 +876,7 @@ def mode_select(unlocked=None, stats=None):
     while True:
         clock.tick(FPS)
         preview_t = (preview_t + 0.02) % 1.0
+        _story_open = _story_mod.is_open_today()
         _ev_mode_ev = get_active_event()
         _hallow     = bool(_ev_mode_ev and
                            _ev_mode_ev.get("name") == "Echoes of the Undying")
@@ -955,7 +956,8 @@ def mode_select(unlocked=None, stats=None):
                 elif stats.get("dev_mode_unlocked") and _dev_exit_rect.collidepoint(_mp):
                     _dev_mode[0] = True
                 if (_confirm_rect.collidepoint(_mp) and not _feast[0]
-                        and not (selected == 5 and not _fuser_unlocked)):
+                        and not (selected == 5 and not _fuser_unlocked)
+                        and not (selected == 7 and not _story_open)):
                     if _home_lobby: _home_lobby.close()
                     return _mode_confirm()
                 for _ci, _cx in enumerate(card_xs):
@@ -963,8 +965,9 @@ def mode_select(unlocked=None, stats=None):
                         continue          # Jawke ate that one
                     if pygame.Rect(_cx, 140, card_w, card_h).collidepoint(_mp):
                         _lk7 = _story_lock_rect[0]
-                        if _ci == 7 and _lk7 and _lk7[0] == _cx \
-                                and _lk7[1].collidepoint(_mp):
+                        _poke7 = (_ci == 7 and (not _story_open or (
+                            _lk7 and _lk7[0] == _cx and _lk7[1].collidepoint(_mp))))
+                        if _poke7:
                             # Story Mode opens from anywhere on the card. The
                             # padlock hanging off the gate post does not open
                             # it — it just gets his attention, same as ever.
@@ -1146,7 +1149,8 @@ def mode_select(unlocked=None, stats=None):
                     else:
                         wiki_screen(unlocked, stats)
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE) and not _feast[0]:
-                    if not (selected == 6 and not _fuser_unlocked):
+                    if not (selected == 6 and not _fuser_unlocked) \
+                            and not (selected == 7 and not _story_open):
                         if _home_lobby: _home_lobby.close()
                         return _mode_confirm()
                 if event.key == pygame.K_e and _ev_mode and not _feast[0]:
@@ -1218,13 +1222,16 @@ def mode_select(unlocked=None, stats=None):
             (card_xs[4], "SHOP",      "seasonal",    (255, 200, 0)),
             (card_xs[5], "RACK",      "costumes",    (250, 190, 210)),
             (card_xs[6], "FUSER",     "elements",     (200, 140, 255) if _fuser_unlocked else GRAY),
-            (card_xs[7], "STORY",     "hiss-tory",    (196, 110, 96)),
+            (card_xs[7], "STORY",     "sundays only",
+             (196, 110, 96) if _story_open else (120, 110, 100)),
         ]
         for ci, (cx, top, sub, col) in enumerate(cards):
             if ci in _eaten:
                 continue                  # swallowed whole
             _fuser_locked = (ci == 6 and not _fuser_unlocked)
-            border = WHITE if (ci == selected and not _fuser_locked) else GRAY
+            _story_locked = (ci == 7 and not _story_open)
+            border = ((90, 82, 70) if _story_locked else
+                      (WHITE if (ci == selected and not _fuser_locked) else GRAY))
             bg_col = ((50, 45, 10) if ci == 4 else (44, 26, 38) if ci == 5
                       else (35, 30, 45) if ci == 6
                       else (26, 24, 22) if ci == 7 else (50, 50, 50))
@@ -1344,40 +1351,113 @@ def mode_select(unlocked=None, stats=None):
                             pygame.draw.ellipse(screen, (30, 70, 28), (_lfx - 7, _vy2 - 5, 14, _lh2), 1)
                         _prev = (_vx2, _vy2)
 
-                # The chain came off the day the story opened. What is
-                # left of it hangs from the gate post, and the padlock
-                # with it — still the thing to poke if you want him.
-                _plx, _ply = _sx0 + 18, _sy0 + card_h - 46
-                _rf   = _story_rattle[0] / float(STORY_RATTLE)
-                _ramp = 4.0 * _rf * _rf
-                _sw   = int(math.sin(_st * 41.0) * _ramp)
-                for _lk in range(4):
-                    _lky = _sy0 + card_h - 76 + _lk * 8
-                    _lkx = _plx + int(_sw * (_lk + 1) / 4.0)
-                    pygame.draw.ellipse(screen, (120, 116, 110),
-                                        (_lkx - 4, _lky, 8, 11), 2)
-                pygame.draw.arc(screen, (170, 150, 70),
-                                (_plx + _sw - 7, _ply - 9, 14, 14),
-                                0.2, 3.0, 3)        # shackle, swung open
-                pygame.draw.rect(screen, (182, 160, 76),
-                                 (_plx + _sw - 8, _ply, 16, 13),
-                                 border_radius=2)
-                pygame.draw.rect(screen, (96, 82, 30),
-                                 (_plx + _sw - 8, _ply, 16, 13), 1,
-                                 border_radius=2)
-                _lock_rect = pygame.Rect(_plx - 14, _ply - 18, 30, 36)
-                _story_lock_rect[0] = (cx, _lock_rect)
+                # Six days a week the chain is on it and Tombstone is
+                # behind it. On a Sunday it comes off.
+                if not _story_open:
+                    # Chains crossing the card, with a padlock at the crossing.
+                    # A click yanks them: every link jitters on its own phase and
+                    # the whole rattle damps back to still over ~half a second,
+                    # hardest in the slack middle and pinned at the anchors.
+                    _rf   = _story_rattle[0] / float(STORY_RATTLE)   # 1 → 0
+                    _ramp = 5.0 * _rf * _rf                          # pixels, eased out
+                    _rt   = _st * 47.0                               # fast shake
+                    for _ch2, (_c1, _c2) in enumerate(
+                            (((_sx0 + 4, _sy0 + 96), (_sx0 + card_w - 4, _sy0 + card_h - 34)),
+                             ((_sx0 + card_w - 4, _sy0 + 96), (_sx0 + 4, _sy0 + card_h - 34)))):
+                        _clen = math.hypot(_c2[0] - _c1[0], _c2[1] - _c1[1])
+                        _steps = max(2, int(_clen // 13))
+                        for _li2 in range(_steps):
+                            if (_ch2, _li2) in _gone_links:
+                                continue                     # that link is on the floor
+                            _lt2 = _li2 / _steps
+                            _lcx = int(_c1[0] + (_c2[0] - _c1[0]) * _lt2)
+                            _lcy = int(_c1[1] + (_c2[1] - _c1[1]) * _lt2)
+                            if _ramp > 0.1:
+                                _slack = math.sin(_lt2 * math.pi)     # ends stay anchored
+                                # Neighbouring links share a travelling wave so the
+                                # chain undulates instead of scattering into beads
+                                _lcx += int(math.sin(_rt + _li2 * 0.8 + _ch2 * 2.0) * _ramp * _slack)
+                                _lcy += int(math.cos(_rt + _li2 * 0.8 + _ch2 * 2.0) * _ramp * 0.6 * _slack)
+                            _lr = (7, 5) if _li2 % 2 == 0 else (5, 7)
+                            pygame.draw.ellipse(screen, (168, 168, 176),
+                                                (_lcx - _lr[0], _lcy - _lr[1], _lr[0] * 2, _lr[1] * 2), 3)
+                            pygame.draw.ellipse(screen, (96, 96, 104),
+                                                (_lcx - _lr[0], _lcy - _lr[1], _lr[0] * 2, _lr[1] * 2), 1)
+                    # One more link shakes loose for every yank he no longer answers
+                    if len(_gone_links) < _story_dmg[0]:
+                        _left = [(_c3, _l3) for _c3 in (0, 1) for _l3 in range(_steps)
+                                 if (_c3, _l3) not in _gone_links]
+                        if _left:
+                            _drop = random.choice(_left)
+                            _gone_links.append(_drop)
+                            _dc1 = ((_sx0 + 4, _sy0 + 96) if _drop[0] == 0
+                                    else (_sx0 + card_w - 4, _sy0 + 96))
+                            _dc2 = ((_sx0 + card_w - 4, _sy0 + card_h - 34) if _drop[0] == 0
+                                    else (_sx0 + 4, _sy0 + card_h - 34))
+                            _dt = _drop[1] / _steps
+                            _fallen.append([_dc1[0] + (_dc2[0] - _dc1[0]) * _dt,
+                                            _dc1[1] + (_dc2[1] - _dc1[1]) * _dt,
+                                            random.uniform(-1.6, 1.6), -1.5,
+                                            random.uniform(-0.3, 0.3), 70])
+                    _plx, _ply = _scx, _sy0 + card_h - 58
+                    if _ramp > 0.1:
+                        # The padlock swings hardest — it is the loose weight
+                        _plx += int(math.sin(_rt * 0.8) * _ramp * 1.5)
+                        _ply += int(abs(math.sin(_rt * 0.8 + 1.0)) * _ramp)
+                    pygame.draw.arc(screen, (180, 180, 190), (_plx - 11, _ply - 22, 22, 24),
+                                    0, math.pi, 4)
+                    pygame.draw.rect(screen, (196, 170, 60), (_plx - 14, _ply - 4, 28, 24), border_radius=4)
+                    pygame.draw.rect(screen, (120, 100, 30), (_plx - 14, _ply - 4, 28, 24), 2, border_radius=4)
+                    pygame.draw.circle(screen, (110, 92, 28), (_plx, _ply + 7), 4)
+                    for _ck in range(int(_wear * 7)):        # hairline cracks spread
+                        _cka = 0.7 + _ck * 1.13
+                        _ckl = 5 + (_ck % 3) * 4
+                        pygame.draw.line(screen, (96, 78, 20),
+                                         (_plx + int(math.cos(_cka) * 3), _ply + 6 + int(math.sin(_cka) * 3)),
+                                         (_plx + int(math.cos(_cka) * _ckl), _ply + 6 + int(math.sin(_cka) * _ckl)), 1)
+                    # Dust shaken loose off the chains
+                    if _ramp > 1.2:
+                        for _dz in range(3):
+                            _dzx = _scx + int(math.sin(_rt * 0.3 + _dz * 2.1) * card_w * 0.3)
+                            _dzy = _sy0 + card_h - 40 + int((1.0 - _rf) * 14) + _dz * 3
+                            pygame.draw.circle(screen, (120, 112, 96), (_dzx, _dzy),
+                                               max(1, int(_ramp * 0.4)))
+                else:
+                    # The chain came off the day the story opened. What is
+                    # left of it hangs from the gate post, and the padlock
+                    # with it — still the thing to poke if you want him.
+                    _plx, _ply = _sx0 + 18, _sy0 + card_h - 46
+                    _rf   = _story_rattle[0] / float(STORY_RATTLE)
+                    _ramp = 4.0 * _rf * _rf
+                    _sw   = int(math.sin(_st * 41.0) * _ramp)
+                    for _lk in range(4):
+                        _lky = _sy0 + card_h - 76 + _lk * 8
+                        _lkx = _plx + int(_sw * (_lk + 1) / 4.0)
+                        pygame.draw.ellipse(screen, (120, 116, 110),
+                                            (_lkx - 4, _lky, 8, 11), 2)
+                    pygame.draw.arc(screen, (170, 150, 70),
+                                    (_plx + _sw - 7, _ply - 9, 14, 14),
+                                    0.2, 3.0, 3)        # shackle, swung open
+                    pygame.draw.rect(screen, (182, 160, 76),
+                                     (_plx + _sw - 8, _ply, 16, 13),
+                                     border_radius=2)
+                    pygame.draw.rect(screen, (96, 82, 30),
+                                     (_plx + _sw - 8, _ply, 16, 13), 1,
+                                     border_radius=2)
+                    _lock_rect = pygame.Rect(_plx - 14, _ply - 18, 30, 36)
+                    _story_lock_rect[0] = (cx, _lock_rect)
                 _sdone = int((stats or {}).get("story_progress", 0))
                 _soon = font_tiny.render(
-                    "COMPLETE" if _sdone >= _STORY_CHAPTERS
-                    else (f"{_sdone}/{_STORY_CHAPTERS} chapters" if _sdone
-                          else "OPEN"), True,
+                    ("COMPLETE" if _sdone >= _STORY_CHAPTERS
+                     else (f"{_sdone}/{_STORY_CHAPTERS} chapters" if _sdone
+                           else "OPEN TODAY")) if _story_open
+                    else "SUNDAYS ONLY", True,
                     (200, 180, 120) if (_st % 1.6) < 0.8 else (120, 108, 80))
                 screen.blit(_soon, (_scx - _soon.get_width() // 2, _sy0 + card_h - 20))
             else:
                 draw_stickman(screen, cx + card_w//2 - 25, 140 + card_h - 30, BLUE, 1, 'walk', preview_t)
                 draw_stickman(screen, cx + card_w//2 + 25, 140 + card_h - 30, RED, -1, 'idle', 0.0)
-            if ci == selected and not _fuser_locked:
+            if ci == selected and not _fuser_locked and not _story_locked:
                 sel_txt = font_tiny.render("ENTER / SPACE to select", True, WHITE)
                 screen.blit(sel_txt, (cx + card_w//2 - sel_txt.get_width()//2, 390))
 
