@@ -241,6 +241,12 @@ def seasonal_only(name, conditions=None):
     """
     if name not in _SEASONAL_BY_NAME:
         return False
+    try:
+        from fight_game import _DEFAULT_UNLOCK
+    except Exception:
+        _DEFAULT_UNLOCK = set()
+    if name in _DEFAULT_UNLOCK:
+        return False          # you already have him; the shelf is a courtesy
     cond = (conditions or {}).get(name)
     return not cond or cond[3].startswith("Buy in Seasonal Shop")
 
@@ -368,7 +374,7 @@ def ways_to_get(name, conditions, default_set, ch=None):
     """
     ways = []
     if name in default_set:
-        ways.append(("Yours from the first match — one of the four you start with", False))
+        ways.append(("Yours from the first match — one of the five you start with", False))
     if name in _COSTUME_BY_NAME:
         c = _COSTUME_BY_NAME[name]
         if c.get("source") == "rack":
@@ -1135,7 +1141,7 @@ PAGES = [
              (2, "Unhittables — blocking projectiles"),
              (2, "Ghost clan — banishing ghost snakes in the Graveyard"),
              (1, "No ability — the fighting is all there is"),
-             (2, "Default — the four you start with"),
+             (2, "Default — the five you start with"),
              (2, "Other"),
              (1, "Abilitizers — the ones with a trick"),
              (2, "Copycats — they use yours"),

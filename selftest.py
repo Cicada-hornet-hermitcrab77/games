@@ -681,7 +681,15 @@ _c9 = ST.Wombrock(400, 400)
 for _ in range(60):                    # near in x, but two floors up
     _c9.update(420.0, 400.0 - ST.Wombrock.REACH - 40)
 assert _c9.x == 400.0 and not _c9.awake, "it cannot see through a floor"
+# the wolf is asleep until it is hit, and then it is not
 _wk9 = ST.Wolf(400, 400)
+assert _wk9.asleep
+for _ in range(240):
+    _wk9.update(410.0, 400.0)          # stand on top of it; it sleeps on
+assert _wk9.asleep and not _wk9.awake and abs(_wk9.x - 400.0) < 1, _wk9.x
+assert not _wk9.unseen, "a sleeping one does not vanish"
+_wk9.wake()
+assert not _wk9.asleep
 for _ in range(60):
     _wk9.update(880.0, 400.0)
 assert not _wk9.awake and abs(_wk9.x - 400.0) < 1, _wk9.x
@@ -713,6 +721,7 @@ for _ in range(400):
 assert 0.0 in _seen9 and 1.0 in _seen9, "it has to reach both ends"
 # the wolf goes completely invisible on a cycle, and keeps moving while gone
 _wv9 = ST.Wolf(400, 400)
+_wv9.wake()
 _gone9 = 0
 _moved9 = False
 _lx9 = _wv9.x
@@ -777,5 +786,17 @@ assert "lanalle" not in open(os.path.join(
 print(f"story mode: Sundays only, {len(ST.MAPS)} map(s) with "
       f"{sum(len(_m['platforms']) for _m in ST.MAPS)} platforms, "
       f"walked as {ST._CAST[0]}")
+
+# 20. Gunner comes free now
+assert "Gunner" in G._DEFAULT_UNLOCK and len(G._DEFAULT_UNLOCK) == 5
+assert "Gunner" not in G.UNLOCK_CONDITIONS, "he cannot be both free and earned"
+_gw = next(_p for _p in W.build(unlocked=())["characters"]
+           if _p["title"] == "Gunner")
+assert "five you start with" in str(_gw["body"]), _gw["body"]
+assert "default" in W.categories_of(
+    next(_c for _c in D.CHARACTERS if _c["name"] == "Gunner"),
+    W._unlock_tables()[0]), "he is a default, not a seasonal"
+print(f"you start with {len(G._DEFAULT_UNLOCK)}: "
+      f"{', '.join(sorted(G._DEFAULT_UNLOCK))}")
 
 print("ALL OK")

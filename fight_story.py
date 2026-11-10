@@ -278,11 +278,19 @@ class Wolf:
         self.t = 0.0
         self.age = 0
         self.awake = False
+        self.asleep = True      # it is having a lie down until you start it
         self.plats = list(plats)
+
+    def wake(self):
+        """Hit it once and it is up, and it does not go back down."""
+        self.asleep = False
+        self.age = 0            # the vanishing clock starts when it does
 
     @property
     def unseen(self):
         """Completely gone — not faded, not a shimmer. Still biting."""
+        if self.asleep:
+            return False        # you can always see a sleeping one
         return (self.age % self.GONE_EVERY) >= (self.GONE_EVERY - self.GONE_FOR)
 
     def _floor_under(self):
@@ -295,6 +303,14 @@ class Wolf:
 
     def update(self, px, py):
         self.t += 0.1
+        if self.asleep:
+            # Nothing. Not a step, not a bite. Wake it yourself.
+            self.awake = False
+            self.vy += 0.5
+            self.y = min(self.y + self.vy, self._floor_under())
+            if self.y >= self._floor_under():
+                self.y, self.vy = self._floor_under(), 0.0
+            return
         self.age += 1
         self.awake = (abs(px - self.x) < self.RANGE
                       and abs(py - self.y) < self.REACH)
@@ -325,6 +341,9 @@ class Wolf:
     def draw(self, surface):
         if self.unseen:
             return                      # you will know where it is soon enough
+        if self.asleep:
+            self._draw_asleep(surface)
+            return
         _c = (255, 226, 226) if self.hurt else (198, 56, 40)
         _dk = (255, 240, 240) if self.hurt else (116, 24, 22)
         _lt = (255, 246, 246) if self.hurt else (238, 128, 72)
@@ -376,6 +395,37 @@ class Wolf:
                          (_x - _bw // 2, _y - 58,
                           int(_bw * max(0, self.hp) / self.HP), 6))
         pygame.draw.rect(surface, (120, 112, 108), (_x - _bw // 2, _y - 58, _bw, 6), 1)
+
+
+    def _draw_asleep(self, surface):
+        """Curled up on the ledge, which is the only time you get a free
+        shot at it."""
+        _c = (255, 226, 226) if self.hurt else (168, 50, 38)
+        _dk = (255, 240, 240) if self.hurt else (104, 22, 20)
+        _x, _y = int(self.x), int(self.y)
+        _br = int(math.sin(self.t * 0.5) * 2)
+        pygame.draw.ellipse(surface, _c, (_x - 34, _y - 24 - _br, 68, 24 + _br))
+        pygame.draw.ellipse(surface, _dk, (_x - 34, _y - 24 - _br, 68, 24 + _br), 2)
+        for _k in range(4):              # the ridge, flat while it sleeps
+            pygame.draw.polygon(surface, (182, 128, 48), [
+                (_x - 20 + _k * 12, _y - 23 - _br),
+                (_x - 15 + _k * 12, _y - 30 - _br),
+                (_x - 10 + _k * 12, _y - 23 - _br)])
+        pygame.draw.ellipse(surface, _c, (_x + 14, _y - 20, 26, 16))   # the head
+        pygame.draw.ellipse(surface, _dk, (_x + 14, _y - 20, 26, 16), 2)
+        pygame.draw.line(surface, _dk, (_x + 22, _y - 13), (_x + 32, _y - 13), 2)
+        for _sg in (-1, 1):              # ears folded back
+            pygame.draw.polygon(surface, _c, [
+                (_x + 16, _y - 18), (_x + 10, _y - 26 + _sg), (_x + 21, _y - 19)])
+        pygame.draw.arc(surface, _c, (_x - 46, _y - 22, 26, 20), 0.6, 2.6, 5)
+        for _k in range(3):              # three Zs, drifting
+            _zp = (self.t * 0.35 + _k * 0.33) % 1.0
+            _zx = _x + 24 + int(_zp * 16)
+            _zy = _y - 26 - int(_zp * 26)
+            _zs = 4 + _k
+            pygame.draw.lines(surface, (236, 230, 240), False, [
+                (_zx, _zy), (_zx + _zs, _zy),
+                (_zx, _zy + _zs), (_zx + _zs, _zy + _zs)], 2)
 
 
 class Cylhost:

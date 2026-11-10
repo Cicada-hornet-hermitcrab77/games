@@ -43,7 +43,9 @@ from fight_seasonal import get_active_event, SEASONAL_SHOP_CHARS
 # ---------------------------------------------------------------------------
 
 _UNLOCK_FILE    = os.path.join(os.path.dirname(__file__), "unlocks.json")
-_DEFAULT_UNLOCK = {"Brawler", "Boxer", "Ninja", "Phantom"}
+# The five you start with. Gunner is in because the first four are all
+# melee, and anything that keeps its distance is a wall without him.
+_DEFAULT_UNLOCK = {"Brawler", "Boxer", "Ninja", "Phantom", "Gunner"}
 _konami_flag      = [False]   # set True when Konami code entered on Computer stage
 _iddqd_flag       = [False]   # set True when IDDQD typed and match won
 _ragequit_flag    = [False]   # set True when @#!#*%$ typed on lose screen
@@ -142,7 +144,6 @@ UNLOCK_CONDITIONS = {
     "Shrink Ray":          ("win_with",       "Mouse",         1,  "Win 1 match as Mouse"),
     "Stalker":             ("win_with",       "Rogue",         3,  "Win 3 matches as Rogue"),
     "Outbacker":           ("win_on_stage",   "Desert",        1,  "Win on Desert stage"),
-    "Gunner":              ("win_hard_ai",    None,            2,  "Win 2 matches vs Hard AI"),
     "Bazooka Man":         ("win_with",       "Tank",          1,  "Win 1 match as Tank"),
     "Pinball":             ("win_on_stage",   "Circus",        2,  "Win on Circus 2 times"),
     "Hammerhead":          ("wins_total",     None,           15,  "Win 15 matches vs AI"),
@@ -7980,6 +7981,8 @@ def run_story_level(level, player_name, stats):
                 if e.rect().collidepoint(hit):
                     e.hp -= _dmg
                     e.hurt = 8
+                    if hasattr(e, "wake"):
+                        e.wake()          # the wolf gets up for the first one
                     p.attack_hit = True
                     break
         if p.hurt_timer == 0:
