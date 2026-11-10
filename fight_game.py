@@ -7733,9 +7733,9 @@ def run_story_level(level, player_name, stats):
     plats = [Platform(_mx(px), _my(py), _mx(pw)) for px, py, pw in level["platforms"]]
     walls = [(_mx(a), _my(b), _mx(c), _my(d)) for a, b, c, d in level.get("walls", ())]
     wombrocks = [_story.Wombrock(_mx(bx), _my(by)) for bx, by in level.get("wombrocks", ())]
-    guards   = [_story.Guarder(_mx(gx), _my(gy)) for gx, gy in level.get("guards", ())]
-    floaters = [_story.Floater(_mx(a), _my(b), _mx(c), _my(d))
-                for a, b, c, d in level.get("floaters", ())]
+    skellamorguards = [_story.Skellamorguard(_mx(gx), _my(gy)) for gx, gy in level.get("skellamorguards", ())]
+    cylhosts = [_story.Cylhost(_mx(a), _my(b), _mx(c), _my(d))
+                for a, b, c, d in level.get("cylhosts", ())]
     boss = ([_story.Wolf(_mx(level["boss"][0]), _my(level["boss"][1]), plats)]
             if level.get("boss") else [])
     portals  = [((_mx(a), _my(b)), (_mx(c), _my(d)))
@@ -7809,7 +7809,7 @@ def run_story_level(level, player_name, stats):
             continue
 
         # The player is just a fighter, facing whatever is nearest.
-        _alive = [e for e in wombrocks + guards + floaters + boss if e.hp > 0]
+        _alive = [e for e in wombrocks + skellamorguards + cylhosts + boss if e.hp > 0]
         if _alive:
             _near = min(_alive, key=lambda e: abs(e.x - p.x))
             _dummy.x, _dummy.y = float(_near.x), float(_near.y)
@@ -7983,7 +7983,8 @@ def run_story_level(level, player_name, stats):
                     p.attack_hit = True
                     break
         if p.hurt_timer == 0:
-            for e in _alive:
+            # Only something that has noticed you can land one on you.
+            for e in [e for e in _alive if getattr(e, "awake", True)]:
                 _pw = int(40 * _story.FIGHTER_SCALE)
                 _ph = int(76 * _story.FIGHTER_SCALE)
                 if e.rect().colliderect(pygame.Rect(int(p.x) - _pw // 2,
@@ -8000,7 +8001,7 @@ def run_story_level(level, player_name, stats):
             screen.blit(_ws, (WIDTH // 2 - _ws.get_width() // 2, 120))
             if _won > FPS * 2:
                 return True
-        if coffin and not coffin_open and not [g for g in guards if g.hp > 0]:
+        if coffin and not coffin_open and not [g for g in skellamorguards if g.hp > 0]:
             _cx3, _cy3, _cw3, _ch3 = coffin
             if pygame.Rect(_cx3, _cy3, _cw3, _ch3).collidepoint(int(p.x), int(p.y) - 40):
                 coffin_open = True
@@ -8018,7 +8019,7 @@ def run_story_level(level, player_name, stats):
                     (26, _hy + 3))
         screen.blit(font_small.render(level["name"], True, (206, 200, 192)),
                     (252, _hy - 2))
-        _left = len([e for e in wombrocks + guards + floaters + boss if e.hp > 0])
+        _left = len([e for e in wombrocks + skellamorguards + cylhosts + boss if e.hp > 0])
         _goal = ("beat the wolf" if any(b.hp > 0 for b in boss)
                  else "find the door  ·  E opens it")
         screen.blit(font_tiny.render(f"{_left} still up  ·  {_goal}",

@@ -1233,18 +1233,26 @@ PAGES = [
          ("b", "The story lends you fighters you have not unlocked"),
          ("h", "What is in a yard"),
          ("kv", "Wombrocks", "80 health, hits for 10, speed 6 — headstones "
-                              "that grew a mouth and got up. They come "
-                              "after you and they never stop. They are only "
-                              "slow"),
-         ("kv", "Skeletons", "60 health, hits for 8 — up out of the ground "
-                             "by the coffin, and that is where they stay"),
-         ("kv", "Floaters", "40 health, hits for 9 — strung on a wire, end "
-                            "to end for ever, and they do not care where "
-                            "you are"),
+                              "that grew a mouth and got up. Come near one "
+                              "and it comes after you and never stops. It "
+                              "is only slow"),
+         ("kv", "Skellamorguards", "210 health, hits for 10 — skeletons up "
+                                   "out of the ground by the coffin, and "
+                                   "that is where they stay. There is a "
+                                   "great deal of one to get through"),
+         ("kv", "Cylhosts", "endless health, hits for 5, speed 8 — strung "
+                            "on a wire and running it end to end for ever. "
+                            "You cannot kill one. Do not be on the wire"),
          ("kv", "The wolf", "100 health, hits for 14, speed 8, and goes "
                             "completely invisible every four seconds. Beat "
                             "it and the map is yours"),
          ("kv", "Portals, springs", "the way up and the way across"),
+         ("h", "Range"),
+         "Nothing in the yard notices you until you are close enough, and "
+         "nothing that has not noticed you can hit you. A Wombrock wakes at "
+         "about a quarter of the screen and cannot see you through a floor; "
+         "the wolf ranges half again as far; a skellamorguard only notices "
+         "what is standing on top of it.",
          ("kv", "A coffin", "put both skeletons down and it opens. 25 coins"),
          ("h", "What it pays"),
          "Tombstone came to ask you for a favour and he is good for it — "

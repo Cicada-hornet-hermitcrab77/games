@@ -64,10 +64,10 @@ MAPS = [
             (640, 575, 120, 140),
         ],
         "coffin": (370, 40, 310, 90),
-        "guards": [(305, 125), (715, 125)],
+        "skellamorguards": [(305, 125), (715, 125)],
         "wombrocks": [(1850, 330), (1315, MAP_GROUND)],
         "boss": (1150, 130),
-        "floaters": [             # (x1, y1, x2, y2) — the line it runs
+        "cylhosts": [             # (x1, y1, x2, y2) — the line it runs
             (60, 320, 850, 320),
             (1300, 120, 1690, 120),
             (1500, 700, 1880, 500),
@@ -91,6 +91,7 @@ class Wombrock:
     you from wherever it is standing, and it never stops — it is only slow.
     This is the thing that has been coming over the ridge into Tombstone."""
     R, HP, DMG, SPEED = 18, 80, 10, 6.0
+    RANGE, REACH = 250, 100      # how far it notices you, how far it leans
 
     def __init__(self, x, y):
         self.x, self.y = float(x), float(y)
@@ -98,9 +99,12 @@ class Wombrock:
         self.hp = self.HP
         self.face = -1
         self.hurt = 0
+        self.awake = False
 
     def update(self, px, py):
-        if abs(px - self.x) > 3:
+        self.awake = (abs(px - self.x) < self.RANGE
+                      and abs(py - self.y) < self.REACH)
+        if self.awake and abs(px - self.x) > 3:
             self.face = 1 if px > self.x else -1
             self.x += self.face * self.SPEED
         self.x = max(20.0, min(float(WIDTH - 20), self.x))
@@ -171,21 +175,25 @@ class Wombrock:
                              (_x + _lg * 11, _y + 7), 3)
 
 
-class Guarder:
-    """A skeleton. It came up out of the ground by the coffin and that is
-    where it stays — it guards, it does not hunt. Walk into it at your own
-    cost."""
-    R, HP, DMG, SPEED = 15, 60, 8, 8.0
+class Skellamorguard:
+    """A skeleton that came up out of the ground by the coffin, and that is
+    where it stays — it guards, it does not hunt. There is a great deal of
+    it to get through."""
+    R, HP, DMG, SPEED = 15, 210, 10, 0.0
+    RANGE, REACH = 90, 70        # it only ever notices what is on top of it
     BONE, DARK = (238, 234, 218), (168, 160, 138)
 
     def __init__(self, x, y):
         self.x, self.y = float(x), float(y)
         self.hp = self.HP
         self.hurt = 0
+        self.awake = False
         self.t = 0.0
 
     def update(self, px, py):
         self.t += 0.06
+        self.awake = (abs(px - self.x) < self.RANGE
+                      and abs(py - self.y) < self.REACH)
         self.face = 1 if px > self.x else -1   # it watches you; it does not follow
         if self.hurt:
             self.hurt -= 1
@@ -256,6 +264,7 @@ class Wolf:
     """The one on top. Wolf-shaped, red, and the only thing in the yard that
     comes looking for you. The door does not open while it is up."""
     W, H, HP, DMG, SPEED = 34, 26, 100, 14, 8.0
+    RANGE, REACH = 340, 170      # it ranges further than anything else here
     GONE_EVERY, GONE_FOR = 240, 90     # vanishes every 4s, for a second and a half
 
     def __init__(self, x, y, plats=()):
@@ -268,6 +277,7 @@ class Wolf:
         self.cool = 90
         self.t = 0.0
         self.age = 0
+        self.awake = False
         self.plats = list(plats)
 
     @property
@@ -286,16 +296,18 @@ class Wolf:
     def update(self, px, py):
         self.t += 0.1
         self.age += 1
+        self.awake = (abs(px - self.x) < self.RANGE
+                      and abs(py - self.y) < self.REACH)
         self.face = 1 if px > self.x else -1
         if self.cool:
             self.cool -= 1
         if self.lunge:
             self.lunge -= 1
             self.x += self.face * (self.SPEED * 1.8)
-        elif not self.cool and abs(px - self.x) < 260:
+        elif self.awake and not self.cool and abs(px - self.x) < 260:
             self.lunge, self.cool = 22, 130
             self.vy = -8.5
-        else:
+        elif self.awake:
             self.x += self.face * (self.SPEED * 0.42)
         self.vy += 0.5
         self.y += self.vy
@@ -366,10 +378,13 @@ class Wolf:
         pygame.draw.rect(surface, (120, 112, 108), (_x - _bw // 2, _y - 58, _bw, 6), 1)
 
 
-class Floater:
-    """A yellow one. Strung on a wire, running it end to end for ever. It
-    does not care where you are — it is your job to not be on the wire."""
-    R, HP, DMG, SPEED = 16, 40, 9, 9.0
+class Cylhost:
+    """Strung on a wire, running it end to end for ever. It does not care
+    where you are — it is your job to not be on the wire. You cannot kill
+    one. Hitting it only tells you that."""
+    R, DMG, SPEED = 16, 5, 8.0
+    HP = float("inf")
+    RANGE, REACH = 70, 60        # it runs its wire; you have to be on it
 
     def __init__(self, x1, y1, x2, y2):
         self.a, self.b = (float(x1), float(y1)), (float(x2), float(y2))
@@ -377,12 +392,15 @@ class Floater:
         self.dir = 1
         self.hp = self.HP
         self.hurt = 0
+        self.awake = False
 
     def __repr__(self):
-        return f"<Floater {self.a}->{self.b}>"
+        return f"<Cylhost {self.a}->{self.b}>"
 
     def update(self, px, py):
         _len = max(1.0, math.hypot(self.b[0] - self.a[0], self.b[1] - self.a[1]))
+        self.awake = (abs(px - self.x) < self.RANGE
+                      and abs(py - self.y) < self.REACH)
         self.p += self.dir * (self.SPEED / _len)
         if self.p >= 1.0:
             self.p, self.dir = 1.0, -1
@@ -404,14 +422,7 @@ class Floater:
                            self.R * 2, self.R * 2)
 
     def hp_bar(self, surface, top):
-        if self.hp >= self.HP:
-            return
-        _w = 34
-        _x = int(self.x) - _w // 2
-        pygame.draw.rect(surface, (36, 32, 34), (_x, top, _w, 5))
-        pygame.draw.rect(surface, (214, 70, 54),
-                         (_x, top, int(_w * max(0, self.hp) / self.HP), 5))
-        pygame.draw.rect(surface, (120, 112, 108), (_x, top, _w, 5), 1)
+        return          # there is no bar to draw for something endless
 
     def draw(self, surface):
         _c = (255, 255, 230) if self.hurt else (246, 206, 48)
@@ -594,11 +605,11 @@ def draw_map_thumb(surface, m, rect):
         pygame.draw.rect(surface, (60, 190, 210),
                          (_tx(_cf[0]), _ty(_cf[1]),
                           max(3, _tx(_cf[2]) - rx), max(2, _ty(_cf[3]) - ry)), 1)
-    for _a, _b in m.get("guards", ()):
+    for _a, _b in m.get("skellamorguards", ()):
         pygame.draw.circle(surface, (46, 196, 62), (_tx(_a), _ty(_b) - 3), 2)
     for _a, _b in m.get("wombrocks", ()):
         pygame.draw.circle(surface, (214, 54, 40), (_tx(_a), _ty(_b) - 3), 2)
-    for _a, _b, _c, _d in m.get("floaters", ()):
+    for _a, _b, _c, _d in m.get("cylhosts", ()):
         pygame.draw.line(surface, (160, 146, 40),
                          (_tx(_a), _ty(_b)), (_tx(_c), _ty(_d)), 1)
         pygame.draw.circle(surface, (238, 214, 44), (_tx(_a), _ty(_b)), 2)
@@ -708,8 +719,8 @@ def chapter_select(stats):
                             (PX + 14, 170 + _k * 22))
         else:
             _counts = [("enemies", len(ch.get("wombrocks", ()))),
-                       ("coffin guarders", len(ch.get("guards", ()))),
-                       ("moving", len(ch.get("floaters", ()))),
+                       ("skellamorguards", len(ch.get("skellamorguards", ()))),
+                       ("cylhosts", len(ch.get("cylhosts", ()))),
                        ("portals", len(ch.get("portals", ()))),
                        ("springs", len(ch.get("springs", ())))]
             _y9 = 164

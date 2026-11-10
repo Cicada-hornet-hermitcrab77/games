@@ -640,9 +640,9 @@ for _m9 in ST.MAPS:
     for _px, _py, _pw in _m9["platforms"]:
         assert 0 <= ST.mx(_px) < _C.WIDTH and 0 < ST.my(_py) < _C.GROUND_Y, (_px, _py)
         assert ST.mx(_pw) > 0
-    for _bx, _by in _m9.get("wombrocks", ()) + _m9.get("guards", ()):
+    for _bx, _by in _m9.get("wombrocks", ()) + _m9.get("skellamorguards", ()):
         assert 0 < ST.mx(_bx) < _C.WIDTH and 0 < ST.my(_by) <= _C.GROUND_Y
-    for _f9 in _m9.get("floaters", ()):
+    for _f9 in _m9.get("cylhosts", ()):
         assert len(_f9) == 4
     for _p9 in _m9.get("portals", ()):
         assert len(_p9) == 2 and all(len(_e9) == 2 for _e9 in _p9)
@@ -653,8 +653,8 @@ for _m9 in ST.MAPS:
     assert _m9.get("house"), "the right of this one is a house"
 assert ST.mx(ST.MAP_W) == _C.WIDTH and ST.my(ST.MAP_GROUND) == _C.GROUND_Y
 # the creatures take hits, give damage, and have somewhere to be hit
-for _e9 in (ST.Wombrock(100, 400), ST.Guarder(100, 400),
-            ST.Floater(80, 100, 300, 100), ST.Wolf(100, 400)):
+for _e9 in (ST.Wombrock(100, 400), ST.Skellamorguard(100, 400),
+            ST.Cylhost(80, 100, 300, 100), ST.Wolf(100, 400)):
     assert _e9.hp > 0 and _e9.DMG > 0
     _e9.update(200.0, 400.0)
     assert _e9.rect().width > 0 and _e9.rect().height > 0
@@ -665,23 +665,46 @@ for _ in range(240):
     _wf9.update(420.0, 300.0)
 assert _wf9.y <= _C.GROUND_Y + 1, _wf9.y
 assert _wf9.hp == _wf9.HP and _wf9.HP > ST.Wombrock.HP, "the boss is the hard one"
-# Wombrocks and the wolf come after you; the skeletons and the wire do not
-for _cls9 in (ST.Wombrock,):
-    _c9 = _cls9(400, 400)
-    for _ in range(30):
-        _c9.update(700.0, 400.0)
-    assert _c9.x > 400, _cls9.__name__
-    _c9 = _cls9(400, 400)
-    for _ in range(30):
-        _c9.update(100.0, 400.0)
-    assert _c9.x < 400, _cls9.__name__
-_gd9 = ST.Guarder(400, 400)
+# Wombrocks and the wolf come after you, but only once you are near enough
+_c9 = ST.Wombrock(400, 400)
+for _ in range(60):
+    _c9.update(880.0, 400.0)          # well outside its range
+assert _c9.x == 400.0 and not _c9.awake, (_c9.x, _c9.awake)
+for _ in range(60):
+    _c9.update(400.0 + ST.Wombrock.RANGE - 20, 400.0)
+assert _c9.x > 400.0 and _c9.awake, (_c9.x, _c9.awake)
+_c9 = ST.Wombrock(400, 400)
+for _ in range(30):
+    _c9.update(300.0, 400.0)
+assert _c9.x < 400.0, _c9.x
+_c9 = ST.Wombrock(400, 400)
+for _ in range(60):                    # near in x, but two floors up
+    _c9.update(420.0, 400.0 - ST.Wombrock.REACH - 40)
+assert _c9.x == 400.0 and not _c9.awake, "it cannot see through a floor"
+_wk9 = ST.Wolf(400, 400)
+for _ in range(60):
+    _wk9.update(880.0, 400.0)
+assert not _wk9.awake and abs(_wk9.x - 400.0) < 1, _wk9.x
+_wk9.update(420.0, 400.0)
+assert _wk9.awake
+# a skellamorguard guards: it never leaves, and it only notices what is on it
+_gd9 = ST.Skellamorguard(400, 400)
 for _tx9 in (900.0, 10.0):
     for _ in range(120):
         _gd9.update(_tx9, 400.0)
     assert _gd9.x == 400.0, "a guarder guards; it does not chase"
+    assert not _gd9.awake, "and it does not reach across the yard"
+_gd9.update(430.0, 400.0)
+assert _gd9.awake
+assert ST.Skellamorguard.HP == 210 and ST.Skellamorguard.DMG == 10
+# a cylhost cannot be killed
+assert ST.Cylhost.HP == float("inf")
+_cy9 = ST.Cylhost(80, 100, 300, 100)
+_cy9.hp -= 10_000
+assert _cy9.hp > 0, "there is no killing one"
+assert ST.Cylhost.DMG == 5 and ST.Cylhost.SPEED == 8.0
 # the wire runs end to end regardless of where you are
-_fl9 = ST.Floater(80, 100, 300, 100)
+_fl9 = ST.Cylhost(80, 100, 300, 100)
 _seen9 = set()
 for _ in range(400):
     _fl9.update(5000.0, 5000.0)
@@ -694,7 +717,7 @@ _gone9 = 0
 _moved9 = False
 _lx9 = _wv9.x
 for _ in range(ST.Wolf.GONE_EVERY * 2):
-    _wv9.update(800.0, 400.0)
+    _wv9.update(520.0, 400.0)          # inside its range, so it is hunting
     if _wv9.unseen:
         _gone9 += 1
         _moved9 = _moved9 or _wv9.x != _lx9
