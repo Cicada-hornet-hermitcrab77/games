@@ -793,9 +793,12 @@ assert "Gunner" not in G.UNLOCK_CONDITIONS, "he cannot be both free and earned"
 _gw = next(_p for _p in W.build(unlocked=())["characters"]
            if _p["title"] == "Gunner")
 assert "five you start with" in str(_gw["body"]), _gw["body"]
-assert "default" in W.categories_of(
-    next(_c for _c in D.CHARACTERS if _c["name"] == "Gunner"),
-    W._unlock_tables()[0]), "he is a default, not a seasonal"
+_gcond = W._unlock_tables()[0]
+assert not W.seasonal_only("Gunner", _gcond), "free fighters are not seasonals"
+_gcats = W.categories_of(
+    next(_c for _c in D.CHARACTERS if _c["name"] == "Gunner"), _gcond)
+assert _gcats == ["gunners"], _gcats
+assert not ({"major", "minor"} & set(_gcats)), _gcats
 print(f"you start with {len(G._DEFAULT_UNLOCK)}: "
       f"{', '.join(sorted(G._DEFAULT_UNLOCK))}")
 
