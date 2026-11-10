@@ -25,6 +25,9 @@ from fight_drawing import draw_stickman
 # screen here. That way a map can be checked against its picture.
 MAP_W, MAP_H, MAP_GROUND = 1920, 1080, 940
 
+# The same squash the maps get, applied to whoever is walking them.
+FIGHTER_SCALE = round(WIDTH / float(MAP_W), 3)
+
 
 def mx(v):
     return int(v * WIDTH / float(MAP_W))
@@ -439,7 +442,8 @@ MAPS[0].update({
         "Wombrocks have been coming over the ridge into Tombstone for the "
         "best part of a year, and nobody in Tombstone fights.",
         "So Tombstone sent two people to ask you about it: a tombstone "
-        "called Tombstone, and a black and white lunatic.",
+        "called Tombstone, and a black and white lunatic. You are the one "
+        "they asked.",
         "They were not asking you to defend anything. They want you to go "
         "east and hit the Wombrocks at home.",
         "First you have to get out of the yard, and the yard is already "
@@ -454,9 +458,9 @@ MAPS[0].update({
 })
 
 # Who the story puts you in on each map. Tombstone sent two people to ask
-# you: a tombstone called Tombstone, and a black and white lunatic, who is
-# Legacy Jawke — the old sketch of him, hat and all.
-_CAST = ["Legacy Jawke"]
+# YOU — a tombstone called Tombstone, and a black and white lunatic, who is
+# Legacy Jawke. You are the one they asked, and you are the Brawler.
+_CAST = ["Brawler"]
 
 
 def player_for(idx):

@@ -702,7 +702,10 @@ for _ in range(ST.Wolf.GONE_EVERY * 2):
 assert _gone9 == ST.Wolf.GONE_FOR * 2, _gone9
 assert _moved9, "invisible is not the same as stopped"
 # the cast is real, and it is the black and white lunatic
-assert ST._CAST == ["Legacy Jawke"], ST._CAST
+assert ST._CAST == ["Brawler"], ST._CAST
+# and he is squashed to the same scale the map is
+assert 0.3 < ST.FIGHTER_SCALE < 0.7, ST.FIGHTER_SCALE
+assert abs(ST.FIGHTER_SCALE - ST.mx(ST.MAP_W) / float(ST.MAP_W)) < 0.01
 for _n9 in ST._CAST:
     assert _n9 in _roster, _n9
 assert not any(_c["name"] == "Lunatic" for _c in D.CHARACTERS)

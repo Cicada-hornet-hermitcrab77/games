@@ -7753,6 +7753,9 @@ def run_story_level(level, player_name, stats):
     slabs  = [(_mx(a), _my(b), _mx(c), _my(d)) for a, b, c, d in level.get("slabs", ())]
 
     p = Fighter(_mx(level["start"][0]), _ch, 1, P1_CTRL)
+    # The map is a 1920x1080 drawing squashed onto a 900x550 screen, so the
+    # fighter gets squashed with it or he stands taller than the houses.
+    p.draw_scale = _story.FIGHTER_SCALE
     p.y = float(_my(level["start"][1]))
     p.opponent = None
     _dummy = Fighter(-900, _ch, -1, P1_CTRL)    # update() wants somebody to face
@@ -7981,7 +7984,10 @@ def run_story_level(level, player_name, stats):
                     break
         if p.hurt_timer == 0:
             for e in _alive:
-                if e.rect().colliderect(pygame.Rect(int(p.x) - 20, int(p.y) - 76, 40, 76)):
+                _pw = int(40 * _story.FIGHTER_SCALE)
+                _ph = int(76 * _story.FIGHTER_SCALE)
+                if e.rect().colliderect(pygame.Rect(int(p.x) - _pw // 2,
+                                                    int(p.y) - _ph, _pw, _ph)):
                     p.hp = max(0, p.hp - e.DMG)
                     p.hurt_timer = 26
                     p.action = 'hurt'

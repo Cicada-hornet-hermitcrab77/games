@@ -1223,8 +1223,9 @@ PAGES = [
          "street is mostly rubble.",
          ("h", "How it plays"),
          "A map is a yard with things in it, not a duel. You do not pick "
-         "your fighter — the story puts you in Legacy Jawke, who is the "
-         "black and white lunatic they sent.",
+         "your fighter — you are the one Tombstone sent for, which means "
+         "you are the Brawler, and the yard is drawn around you at the "
+         "size the map was drawn at.",
          ("b", "Beat the boss and the map is yours. The door is not the "
                "win — it is a house, and a house has an inside"),
          ("b", "R on the loss screen puts you straight back in"),
