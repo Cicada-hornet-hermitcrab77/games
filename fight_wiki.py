@@ -1231,10 +1231,18 @@ PAGES = [
          ("b", "Cleared maps stay open, so any of them can be walked again"),
          ("b", "The story lends you fighters you have not unlocked"),
          ("h", "What is in a yard"),
-         ("kv", "Headstones with mouths", "they opened, and they walk now"),
-         ("kv", "Skeletons", "two of them, at the coffin, and they stay there"),
-         ("kv", "Floaters", "run a line there and back, and never land"),
-         ("kv", "The wolf", "on top. Beat it and you have won"),
+         ("kv", "Wombrocks", "80 health, hits for 10, speed 6 — headstones "
+                              "that grew a mouth and got up. They come "
+                              "after you and they never stop. They are only "
+                              "slow"),
+         ("kv", "Skeletons", "60 health, hits for 8 — up out of the ground "
+                             "by the coffin, and that is where they stay"),
+         ("kv", "Floaters", "40 health, hits for 9 — strung on a wire, end "
+                            "to end for ever, and they do not care where "
+                            "you are"),
+         ("kv", "The wolf", "100 health, hits for 14, speed 8, and goes "
+                            "completely invisible every four seconds. Beat "
+                            "it and the map is yours"),
          ("kv", "Portals, springs", "the way up and the way across"),
          ("kv", "A coffin", "put both skeletons down and it opens. 25 coins"),
          ("h", "What it pays"),

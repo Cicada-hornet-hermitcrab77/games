@@ -7732,7 +7732,7 @@ def run_story_level(level, player_name, stats):
     _ch = next((c for c in CHARACTERS if c["name"] == player_name), CHARACTERS[0])
     plats = [Platform(_mx(px), _my(py), _mx(pw)) for px, py, pw in level["platforms"]]
     walls = [(_mx(a), _my(b), _mx(c), _my(d)) for a, b, c, d in level.get("walls", ())]
-    biters   = [_story.Biter(_mx(bx), _my(by)) for bx, by in level.get("biters", ())]
+    wombrocks = [_story.Wombrock(_mx(bx), _my(by)) for bx, by in level.get("wombrocks", ())]
     guards   = [_story.Guarder(_mx(gx), _my(gy)) for gx, gy in level.get("guards", ())]
     floaters = [_story.Floater(_mx(a), _my(b), _mx(c), _my(d))
                 for a, b, c, d in level.get("floaters", ())]
@@ -7759,6 +7759,7 @@ def run_story_level(level, player_name, stats):
 
     coffin_open = False
     door_open   = False
+    _retry      = False
     _STARS = [((i * 137) % WIDTH, (i * 61) % (GROUND_Y - 120), i * 0.7)
               for i in range(46)]
     _won        = 0
@@ -7776,6 +7777,8 @@ def run_story_level(level, player_name, stats):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return False
+                if event.key == pygame.K_r and p.hp <= 0:
+                    _retry = True
                 if event.key == pygame.K_e:
                     _at_door = (abs(p.x - door[0]) < 40
                                 and abs(p.y - door[1]) < 90)
@@ -7791,8 +7794,19 @@ def run_story_level(level, player_name, stats):
         if _touch:
             keys = _touch.inject(keys)
 
+        if p.hp <= 0:
+            # Down. The yard holds still until you say what happens next.
+            if _retry:
+                return run_story_level(level, player_name, stats)
+            _ls = font_medium.render("DOWN IN THE YARD", True, (230, 80, 80))
+            screen.blit(_ls, (WIDTH // 2 - _ls.get_width() // 2, HEIGHT // 2 - 20))
+            _ls2 = font_small.render("R to try again   ·   ESC to leave", True, WHITE)
+            screen.blit(_ls2, (WIDTH // 2 - _ls2.get_width() // 2, HEIGHT // 2 + 20))
+            pygame.display.flip()
+            continue
+
         # The player is just a fighter, facing whatever is nearest.
-        _alive = [e for e in biters + guards + floaters + boss if e.hp > 0]
+        _alive = [e for e in wombrocks + guards + floaters + boss if e.hp > 0]
         if _alive:
             _near = min(_alive, key=lambda e: abs(e.x - p.x))
             _dummy.x, _dummy.y = float(_near.x), float(_near.y)
@@ -7894,10 +7908,33 @@ def run_story_level(level, player_name, stats):
                 pygame.draw.circle(screen, (60, 90, 240), _pt, _pr, 4)
                 pygame.draw.circle(screen, (130, 160, 255), _pt, max(2, _pr - 7), 2)
         for sx, sy, sdx, sdy in springs:
-            pygame.draw.rect(screen, (236, 110, 200), (sx - 15, sy - 6, 30, 8),
-                             border_radius=3)
-            pygame.draw.line(screen, (236, 110, 200), (sx, sy),
-                             (sx + sdx * 2, sy + sdy * 2), 3)
+            # A coil on a footplate, standing up the way it throws you.
+            _sl = math.hypot(sdx, sdy) or 1.0
+            _ux, _uy = sdx / _sl, sdy / _sl          # the way it points
+            _px2, _py2 = -_uy, _ux                   # across it
+            _bx, _by = sx - _ux * 20, sy - _uy * 20  # the foot it stands on
+            pygame.draw.line(screen, (86, 82, 92),
+                             (_bx - _px2 * 15, _by - _py2 * 15),
+                             (_bx + _px2 * 15, _by + _py2 * 15), 6)
+            _pts = []
+            for _k2 in range(9):
+                _f3 = _k2 / 8.0
+                _off = (7 if _k2 % 2 else -7) * (0 if _k2 in (0, 8) else 1)
+                _pts.append((_bx + _ux * 20 * _f3 + _px2 * _off,
+                             _by + _uy * 20 * _f3 + _py2 * _off))
+            pygame.draw.lines(screen, (196, 192, 204), False, _pts, 3)
+            pygame.draw.lines(screen, (120, 116, 128), False, _pts, 1)
+            pygame.draw.line(screen, (236, 110, 200),
+                             (sx - _px2 * 16, sy - _py2 * 16),
+                             (sx + _px2 * 16, sy + _py2 * 16), 9)
+            pygame.draw.line(screen, (164, 58, 136),
+                             (sx - _px2 * 16, sy - _py2 * 16),
+                             (sx + _px2 * 16, sy + _py2 * 16), 2)
+            for _ar in (-1, 1):          # a little chevron showing the throw
+                pygame.draw.line(screen, (248, 170, 226),
+                                 (sx + _ux * 13, sy + _uy * 13),
+                                 (sx + _ux * 6 + _px2 * 6 * _ar,
+                                  sy + _uy * 6 + _py2 * 6 * _ar), 2)
         if coffin:
             _cx3, _cy3, _cw3, _ch3 = coffin
             pygame.draw.rect(screen, (60, 190, 210) if not coffin_open else (120, 110, 60),
@@ -7926,13 +7963,19 @@ def run_story_level(level, player_name, stats):
 
         for e in _alive:
             e.draw(screen)
+            if hasattr(e, "hp_bar") and e not in boss:
+                e.hp_bar(screen, e.rect().top - 10)
         hit = p.draw(screen)
 
         # his swings land on them, and walking into them costs him
         if p.attacking and not p.attack_hit and hit:
+            _dmg = (p.char["punch_dmg"] + p.punch_boost if p.action == 'punch'
+                    else p.char["kick_dmg"] + p.kick_boost)
+            if p.char.get("jawke_punch") and p.action == 'punch':
+                _dmg = max(_dmg, 30)      # his reach is the point of him
             for e in _alive:
                 if e.rect().collidepoint(hit):
-                    e.hp -= 1
+                    e.hp -= _dmg
                     e.hurt = 8
                     p.attack_hit = True
                     break
@@ -7969,7 +8012,7 @@ def run_story_level(level, player_name, stats):
                     (26, _hy + 3))
         screen.blit(font_small.render(level["name"], True, (206, 200, 192)),
                     (252, _hy - 2))
-        _left = len([e for e in biters + guards + floaters + boss if e.hp > 0])
+        _left = len([e for e in wombrocks + guards + floaters + boss if e.hp > 0])
         _goal = ("beat the wolf" if any(b.hp > 0 for b in boss)
                  else "find the door  ·  E opens it")
         screen.blit(font_tiny.render(f"{_left} still up  ·  {_goal}",
@@ -7980,15 +8023,6 @@ def run_story_level(level, player_name, stats):
             screen.blit(_ms, (WIDTH // 2 - _ms.get_width() // 2, HEIGHT - 60))
         if _touch:
             _touch.draw(screen)
-        if p.hp <= 0:
-            _ls = font_medium.render("DOWN IN THE YARD", True, (230, 80, 80))
-            screen.blit(_ls, (WIDTH // 2 - _ls.get_width() // 2, HEIGHT // 2 - 20))
-            _ls2 = font_small.render("R to try again   ·   ESC to leave", True, WHITE)
-            screen.blit(_ls2, (WIDTH // 2 - _ls2.get_width() // 2, HEIGHT // 2 + 20))
-            pygame.display.flip()
-            if keys[pygame.K_r]:
-                return run_story_level(level, player_name, stats)
-            continue
         pygame.display.flip()
 
 

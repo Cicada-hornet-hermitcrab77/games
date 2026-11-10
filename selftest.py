@@ -640,7 +640,7 @@ for _m9 in ST.MAPS:
     for _px, _py, _pw in _m9["platforms"]:
         assert 0 <= ST.mx(_px) < _C.WIDTH and 0 < ST.my(_py) < _C.GROUND_Y, (_px, _py)
         assert ST.mx(_pw) > 0
-    for _bx, _by in _m9.get("biters", ()) + _m9.get("guards", ()):
+    for _bx, _by in _m9.get("wombrocks", ()) + _m9.get("guards", ()):
         assert 0 < ST.mx(_bx) < _C.WIDTH and 0 < ST.my(_by) <= _C.GROUND_Y
     for _f9 in _m9.get("floaters", ()):
         assert len(_f9) == 4
@@ -653,7 +653,7 @@ for _m9 in ST.MAPS:
     assert _m9.get("house"), "the right of this one is a house"
 assert ST.mx(ST.MAP_W) == _C.WIDTH and ST.my(ST.MAP_GROUND) == _C.GROUND_Y
 # the creatures take hits, give damage, and have somewhere to be hit
-for _e9 in (ST.Biter(100, 400), ST.Guarder(100, 400),
+for _e9 in (ST.Wombrock(100, 400), ST.Guarder(100, 400),
             ST.Floater(80, 100, 300, 100), ST.Wolf(100, 400)):
     assert _e9.hp > 0 and _e9.DMG > 0
     _e9.update(200.0, 400.0)
@@ -664,12 +664,43 @@ _wf9 = ST.Wolf(400, 100, [Platform(380, 300, 120)])
 for _ in range(240):
     _wf9.update(420.0, 300.0)
 assert _wf9.y <= _C.GROUND_Y + 1, _wf9.y
-assert _wf9.hp == _wf9.HP and _wf9.HP > ST.Biter.HP, "the boss is the hard one"
-# a floater turns round at both ends rather than running off
+assert _wf9.hp == _wf9.HP and _wf9.HP > ST.Wombrock.HP, "the boss is the hard one"
+# Wombrocks and the wolf come after you; the skeletons and the wire do not
+for _cls9 in (ST.Wombrock,):
+    _c9 = _cls9(400, 400)
+    for _ in range(30):
+        _c9.update(700.0, 400.0)
+    assert _c9.x > 400, _cls9.__name__
+    _c9 = _cls9(400, 400)
+    for _ in range(30):
+        _c9.update(100.0, 400.0)
+    assert _c9.x < 400, _cls9.__name__
+_gd9 = ST.Guarder(400, 400)
+for _tx9 in (900.0, 10.0):
+    for _ in range(120):
+        _gd9.update(_tx9, 400.0)
+    assert _gd9.x == 400.0, "a guarder guards; it does not chase"
+# the wire runs end to end regardless of where you are
 _fl9 = ST.Floater(80, 100, 300, 100)
-for _ in range(600):
-    _fl9.update(0, 0)
+_seen9 = set()
+for _ in range(400):
+    _fl9.update(5000.0, 5000.0)
     assert 79 <= _fl9.x <= 301, _fl9.x
+    _seen9.add(round(_fl9.p, 1))
+assert 0.0 in _seen9 and 1.0 in _seen9, "it has to reach both ends"
+# the wolf goes completely invisible on a cycle, and keeps moving while gone
+_wv9 = ST.Wolf(400, 400)
+_gone9 = 0
+_moved9 = False
+_lx9 = _wv9.x
+for _ in range(ST.Wolf.GONE_EVERY * 2):
+    _wv9.update(800.0, 400.0)
+    if _wv9.unseen:
+        _gone9 += 1
+        _moved9 = _moved9 or _wv9.x != _lx9
+    _lx9 = _wv9.x
+assert _gone9 == ST.Wolf.GONE_FOR * 2, _gone9
+assert _moved9, "invisible is not the same as stopped"
 # the cast is real, and it is the black and white lunatic
 assert ST._CAST == ["Legacy Jawke"], ST._CAST
 for _n9 in ST._CAST:

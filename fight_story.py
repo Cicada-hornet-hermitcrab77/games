@@ -62,7 +62,7 @@ MAPS = [
         ],
         "coffin": (370, 40, 310, 90),
         "guards": [(305, 125), (715, 125)],
-        "biters": [(1850, 330), (1315, MAP_GROUND)],
+        "wombrocks": [(1850, 330), (1315, MAP_GROUND)],
         "boss": (1150, 130),
         "floaters": [             # (x1, y1, x2, y2) — the line it runs
             (60, 320, 850, 320),
@@ -83,10 +83,11 @@ MAPS = [
 ]
 
 
-class Biter:
-    """A red one: a headstone that grew a mouth. Walks the ledge it was put
-    on and bites whatever gets close enough."""
-    R, HP, DMG = 18, 3, 7
+class Wombrock:
+    """A Wombrock: a headstone that grew a mouth and got up. It comes after
+    you from wherever it is standing, and it never stops — it is only slow.
+    This is the thing that has been coming over the ridge into Tombstone."""
+    R, HP, DMG, SPEED = 18, 80, 10, 6.0
 
     def __init__(self, x, y):
         self.x, self.y = float(x), float(y)
@@ -96,12 +97,9 @@ class Biter:
         self.hurt = 0
 
     def update(self, px, py):
-        if abs(px - self.x) < 190 and abs(py - self.y) < 70:
+        if abs(px - self.x) > 3:
             self.face = 1 if px > self.x else -1
-            self.x += self.face * 1.6
-        elif abs(self.x - self.home) > 2:
-            self.face = 1 if self.home > self.x else -1
-            self.x += self.face * 0.9
+            self.x += self.face * self.SPEED
         self.x = max(20.0, min(float(WIDTH - 20), self.x))
         if self.hurt:
             self.hurt -= 1
@@ -109,6 +107,16 @@ class Biter:
     def rect(self):
         return pygame.Rect(int(self.x) - self.R, int(self.y) - self.R * 2,
                            self.R * 2, self.R * 2)
+
+    def hp_bar(self, surface, top):
+        if self.hp >= self.HP:
+            return
+        _w = 34
+        _x = int(self.x) - _w // 2
+        pygame.draw.rect(surface, (36, 32, 34), (_x, top, _w, 5))
+        pygame.draw.rect(surface, (214, 70, 54),
+                         (_x, top, int(_w * max(0, self.hp) / self.HP), 5))
+        pygame.draw.rect(surface, (120, 112, 108), (_x, top, _w, 5), 1)
 
     def draw(self, surface):
         _c = (255, 230, 230) if self.hurt else (168, 150, 152)
@@ -161,9 +169,10 @@ class Biter:
 
 
 class Guarder:
-    """A skeleton. It was in the ground by the coffin and it stayed by the
-    coffin. Does not chase, does not leave, does not stop."""
-    R, HP, DMG = 15, 4, 6
+    """A skeleton. It came up out of the ground by the coffin and that is
+    where it stays — it guards, it does not hunt. Walk into it at your own
+    cost."""
+    R, HP, DMG, SPEED = 15, 60, 8, 8.0
     BONE, DARK = (238, 234, 218), (168, 160, 138)
 
     def __init__(self, x, y):
@@ -173,14 +182,25 @@ class Guarder:
         self.t = 0.0
 
     def update(self, px, py):
-        self.t += 0.05
-        self.face = 1 if px > self.x else -1
+        self.t += 0.06
+        self.face = 1 if px > self.x else -1   # it watches you; it does not follow
         if self.hurt:
             self.hurt -= 1
 
     def rect(self):
         return pygame.Rect(int(self.x) - self.R, int(self.y) - 52,
                            self.R * 2, 52)
+
+    def hp_bar(self, surface, top):
+        """Only once it has been hit — an untouched yard is not a HUD."""
+        if self.hp >= self.HP:
+            return
+        _w = 34
+        _x = int(self.x) - _w // 2
+        pygame.draw.rect(surface, (36, 32, 34), (_x, top, _w, 5))
+        pygame.draw.rect(surface, (214, 70, 54),
+                         (_x, top, int(_w * max(0, self.hp) / self.HP), 5))
+        pygame.draw.rect(surface, (120, 112, 108), (_x, top, _w, 5), 1)
 
     def draw(self, surface):
         _b = (255, 120, 120) if self.hurt else self.BONE
@@ -232,7 +252,8 @@ class Guarder:
 class Wolf:
     """The one on top. Wolf-shaped, red, and the only thing in the yard that
     comes looking for you. The door does not open while it is up."""
-    W, H, HP, DMG = 34, 26, 14, 12
+    W, H, HP, DMG, SPEED = 34, 26, 100, 14, 8.0
+    GONE_EVERY, GONE_FOR = 240, 90     # vanishes every 4s, for a second and a half
 
     def __init__(self, x, y, plats=()):
         self.x, self.y = float(x), float(y)
@@ -243,7 +264,13 @@ class Wolf:
         self.lunge = 0
         self.cool = 90
         self.t = 0.0
+        self.age = 0
         self.plats = list(plats)
+
+    @property
+    def unseen(self):
+        """Completely gone — not faded, not a shimmer. Still biting."""
+        return (self.age % self.GONE_EVERY) >= (self.GONE_EVERY - self.GONE_FOR)
 
     def _floor_under(self):
         """The nearest thing it can stand on at or below where it is."""
@@ -255,17 +282,18 @@ class Wolf:
 
     def update(self, px, py):
         self.t += 0.1
+        self.age += 1
         self.face = 1 if px > self.x else -1
         if self.cool:
             self.cool -= 1
         if self.lunge:
             self.lunge -= 1
-            self.x += self.face * 7.0
+            self.x += self.face * (self.SPEED * 1.8)
         elif not self.cool and abs(px - self.x) < 260:
             self.lunge, self.cool = 22, 130
             self.vy = -8.5
         else:
-            self.x += self.face * 1.9
+            self.x += self.face * (self.SPEED * 0.42)
         self.vy += 0.5
         self.y += self.vy
         _fl = self._floor_under()
@@ -280,6 +308,8 @@ class Wolf:
                            self.W * 2, self.H + 12)
 
     def draw(self, surface):
+        if self.unseen:
+            return                      # you will know where it is soon enough
         _c = (255, 226, 226) if self.hurt else (198, 56, 40)
         _dk = (255, 240, 240) if self.hurt else (116, 24, 22)
         _lt = (255, 246, 246) if self.hurt else (238, 128, 72)
@@ -334,8 +364,9 @@ class Wolf:
 
 
 class Floater:
-    """A yellow one. Runs its line, there and back, and never lands."""
-    R, HP, DMG = 16, 2, 8
+    """A yellow one. Strung on a wire, running it end to end for ever. It
+    does not care where you are — it is your job to not be on the wire."""
+    R, HP, DMG, SPEED = 16, 40, 9, 9.0
 
     def __init__(self, x1, y1, x2, y2):
         self.a, self.b = (float(x1), float(y1)), (float(x2), float(y2))
@@ -344,9 +375,12 @@ class Floater:
         self.hp = self.HP
         self.hurt = 0
 
+    def __repr__(self):
+        return f"<Floater {self.a}->{self.b}>"
+
     def update(self, px, py):
         _len = max(1.0, math.hypot(self.b[0] - self.a[0], self.b[1] - self.a[1]))
-        self.p += self.dir * (1.5 / _len)
+        self.p += self.dir * (self.SPEED / _len)
         if self.p >= 1.0:
             self.p, self.dir = 1.0, -1
         if self.p <= 0.0:
@@ -365,6 +399,16 @@ class Floater:
     def rect(self):
         return pygame.Rect(int(self.x) - self.R, int(self.y) - self.R,
                            self.R * 2, self.R * 2)
+
+    def hp_bar(self, surface, top):
+        if self.hp >= self.HP:
+            return
+        _w = 34
+        _x = int(self.x) - _w // 2
+        pygame.draw.rect(surface, (36, 32, 34), (_x, top, _w, 5))
+        pygame.draw.rect(surface, (214, 70, 54),
+                         (_x, top, int(_w * max(0, self.hp) / self.HP), 5))
+        pygame.draw.rect(surface, (120, 112, 108), (_x, top, _w, 5), 1)
 
     def draw(self, surface):
         _c = (255, 255, 230) if self.hurt else (246, 206, 48)
@@ -548,7 +592,7 @@ def draw_map_thumb(surface, m, rect):
                           max(3, _tx(_cf[2]) - rx), max(2, _ty(_cf[3]) - ry)), 1)
     for _a, _b in m.get("guards", ()):
         pygame.draw.circle(surface, (46, 196, 62), (_tx(_a), _ty(_b) - 3), 2)
-    for _a, _b in m.get("biters", ()):
+    for _a, _b in m.get("wombrocks", ()):
         pygame.draw.circle(surface, (214, 54, 40), (_tx(_a), _ty(_b) - 3), 2)
     for _a, _b, _c, _d in m.get("floaters", ()):
         pygame.draw.line(surface, (160, 146, 40),
@@ -659,7 +703,7 @@ def chapter_select(stats):
                 screen.blit(font_small.render(_ln, True, _FADED),
                             (PX + 14, 170 + _k * 22))
         else:
-            _counts = [("enemies", len(ch.get("biters", ()))),
+            _counts = [("enemies", len(ch.get("wombrocks", ()))),
                        ("coffin guarders", len(ch.get("guards", ()))),
                        ("moving", len(ch.get("floaters", ()))),
                        ("portals", len(ch.get("portals", ()))),
