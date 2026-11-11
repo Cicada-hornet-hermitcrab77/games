@@ -555,8 +555,10 @@ class Wolf:
 
 
 class BigWac:
-    """The sign off the top of the store. It is a burger, it is four feet
-    across, and it comes down off its block when you put one in it."""
+    """The sign off the top of the store — except the burger is not the
+    thing that is alive. There is a ghost sitting in it, between the bun
+    and the patty, working it from the inside. Hit the burger and you are
+    hitting the ghost; it is holding on from in there."""
     W, H, HP, DMG, SPEED = 42, 46, 160, 13, 5.0
     RANGE, REACH = 400, 220
 
@@ -628,30 +630,46 @@ class BigWac:
         for _sx2, _sy2 in ((-18, 10), (4, 6), (20, 16), (-6, 20)):
             pygame.draw.circle(surface, (252, 242, 212),
                                (_x + _sx2, _top + _sy2), 3)
-        if not self.asleep:
-            for _sg in (-1, 1):   # it opened a face in the bun
-                pygame.draw.circle(surface, (252, 250, 244),
-                                   (_x + _sg * 13, _top + 20), 7)
-                pygame.draw.circle(surface, (40, 26, 20),
-                                   (_x + _sg * 13 + self.face * 3, _top + 20), 4)
-            _gape = 6 + int(abs(math.sin(self.t * 1.2)) * 10)
-            pygame.draw.rect(surface, (70, 28, 22),
-                             (_x - 22, _y - 20, 44, _gape), border_radius=3)
-            for _k in range(5):
-                pygame.draw.polygon(surface, (250, 248, 240), [
-                    (_x - 20 + _k * 9, _y - 20),
-                    (_x - 14 + _k * 9, _y - 20),
-                    (_x - 17 + _k * 9, _y - 20 + _gape - 2)])
-        else:
-            pygame.draw.arc(surface, (120, 80, 40),
-                            (_x - 14, _top + 14, 28, 14), 3.4, 6.0, 2)
-            for _k in range(3):   # asleep on its block
+        # ── the one actually doing it ─────────────────────────────────
+        # A ghost, wedged in between the bun and the patty, with its arms
+        # out through the sides of the burger.
+        _gy5 = _y - 26
+        _wob = int(math.sin(self.t * (0.6 if self.asleep else 2.1)) * 3)
+        _gsurf = pygame.Surface((110, 70), pygame.SRCALPHA)
+        _alpha = 120 if self.asleep else 215
+        _gc = (226, 238, 250, _alpha)
+        pygame.draw.ellipse(_gsurf, _gc, (34 + _wob, 6, 42, 40))
+        pygame.draw.polygon(_gsurf, _gc, [            # the ragged hem
+            (34 + _wob, 34), (76 + _wob, 34), (76 + _wob, 56),
+            (67 + _wob, 46), (58 + _wob, 58), (48 + _wob, 46),
+            (40 + _wob, 58), (34 + _wob, 46)])
+        for _sg in (-1, 1):                           # arms out of the sides
+            pygame.draw.line(_gsurf, _gc, (55 + _wob, 26),
+                             (55 + _sg * 46 + _wob, 34 + _sg * 4), 7)
+        surface.blit(_gsurf, (_x - 55, _gy5 - 14))
+        if self.asleep:
+            pygame.draw.arc(surface, (40, 54, 74),
+                            (_x - 16 + _wob, _gy5 - 2, 14, 10), 3.4, 6.0, 2)
+            pygame.draw.arc(surface, (40, 54, 74),
+                            (_x + 4 + _wob, _gy5 - 2, 14, 10), 3.4, 6.0, 2)
+            for _k in range(3):
                 _zp = (self.t * 0.3 + _k * 0.33) % 1.0
                 pygame.draw.lines(surface, (236, 230, 240), False, [
-                    (_x + 30 + int(_zp * 14), _top - int(_zp * 22)),
-                    (_x + 35 + int(_zp * 14), _top - int(_zp * 22)),
-                    (_x + 30 + int(_zp * 14), _top + 5 - int(_zp * 22)),
-                    (_x + 35 + int(_zp * 14), _top + 5 - int(_zp * 22))], 2)
+                    (_x + 34 + int(_zp * 14), _top - int(_zp * 22)),
+                    (_x + 39 + int(_zp * 14), _top - int(_zp * 22)),
+                    (_x + 34 + int(_zp * 14), _top + 5 - int(_zp * 22)),
+                    (_x + 39 + int(_zp * 14), _top + 5 - int(_zp * 22))], 2)
+        else:
+            for _sg in (-1, 1):                       # wide, and not blinking
+                pygame.draw.ellipse(surface, (18, 24, 38),
+                                    (_x - 14 + _wob + (0 if _sg < 0 else 18),
+                                     _gy5 - 4, 11, 14))
+                pygame.draw.circle(surface, (142, 222, 255),
+                                   (_x - 9 + _wob + (0 if _sg < 0 else 18)
+                                    + self.face * 2, _gy5 + 2), 3)
+            _gape = 5 + int(abs(math.sin(self.t * 1.2)) * 9)
+            pygame.draw.ellipse(surface, (18, 24, 38),
+                                (_x - 7 + _wob, _gy5 + 14, 15, _gape))
         _bw = 80
         pygame.draw.rect(surface, (40, 36, 36), (_x - _bw // 2, _top - 14, _bw, 7))
         pygame.draw.rect(surface, (226, 86, 54),
@@ -751,11 +769,15 @@ MAPS[1].update({
         "Wacdonalds. Nobody has ever established who it is for.",
         "The front door has DON'T ENTER across it in somebody's handwriting, "
         "which is the clearest sign yet that you are going the right way.",
-        "The sign on the roof is a burger four feet across. It is asleep. "
-        "It will not be for long.",
+        "The sign on the roof is a burger four feet across, and there is "
+        "something sitting inside it between the bun and the patty, with "
+        "its arms out through the sides. It is asleep. It will not be for "
+        "long.",
     ],
     "after": [
-        "The Big Wac comes off its block and stays off it.",
+        "The burger comes apart and the thing that was working it goes out "
+        "of the back of the store without looking at you. Nobody ever said "
+        "it was the burger.",
         "There is a saddled Cylhost going east along a wire over the store, "
         "and a Cylhost going east is the fastest thing on this road.",
     ],

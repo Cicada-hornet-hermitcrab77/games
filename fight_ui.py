@@ -634,11 +634,19 @@ CHEAT_CODES = {
 # Stage select screen
 # ---------------------------------------------------------------------------
 
-def stage_select():
+def stage_select(stats=None):
+    """Pick a stage. Locked ones stay on the carousel but cannot be chosen —
+    seeing what is coming is half the reason to go and earn it."""
+    from fight_game import stage_unlocked, stage_hint
+    stats = stats or {}
     _normal_indices = [i for i, s in enumerate(STAGES) if not s.get("special_mode_only")]
+    _open = {i: stage_unlocked(STAGES[i]["name"], stats) for i in _normal_indices}
+    if not any(_open.values()):
+        _open[_normal_indices[0]] = True
     _pos = 0   # position in _normal_indices
     _map_man_flag[0] = False
     _start_ticks = pygame.time.get_ticks()
+    _locked_t = [0]   # frames left shaking the "not yet" line
 
     # Touch nav button rects
     _r_left    = pygame.Rect(0,   0, 120, HEIGHT)
@@ -659,10 +667,16 @@ def stage_select():
             if event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_LEFT,  pygame.K_a): _pos = (_pos - 1) % len(_normal_indices)
                 if event.key in (pygame.K_RIGHT, pygame.K_d): _pos = (_pos + 1) % len(_normal_indices)
-                if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_ESCAPE): return idx
+                if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_ESCAPE):
+                    if _open.get(idx, True):
+                        return idx
+                    _locked_t[0] = 60
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
                 pos = _touch_pos(event) if event.type == pygame.FINGERDOWN else event.pos
-                if _r_confirm.collidepoint(pos): return idx
+                if _r_confirm.collidepoint(pos):
+                    if _open.get(idx, True):
+                        return idx
+                    _locked_t[0] = 60
                 if _r_left.collidepoint(pos):    _pos = (_pos - 1) % len(_normal_indices)
                 if _r_right.collidepoint(pos):   _pos = (_pos + 1) % len(_normal_indices)
         if not _map_man_flag[0] and pygame.time.get_ticks() - _start_ticks >= 30000:
@@ -677,8 +691,21 @@ def stage_select():
         title = font_large.render("SELECT STAGE", True, YELLOW)
         screen.blit(title, (WIDTH//2 - title.get_width()//2, 30))
 
-        nm = font_medium.render(STAGES[idx]["name"], True, WHITE)
+        _is_open = _open.get(idx, True)
+        if not _is_open:
+            _lk = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            _lk.fill((0, 0, 0, 120))
+            screen.blit(_lk, (0, 0))
+        nm = font_medium.render(STAGES[idx]["name"], True,
+                                WHITE if _is_open else (150, 146, 150))
         screen.blit(nm, (WIDTH//2 - nm.get_width()//2, HEIGHT//2 - 30))
+        if not _is_open:
+            _sh = font_small.render("LOCKED  ·  " + stage_hint(STAGES[idx]["name"]),
+                                    True, (255, 200, 90) if _locked_t[0] // 6 % 2 == 0
+                                    else (200, 160, 70))
+            screen.blit(_sh, (WIDTH//2 - _sh.get_width()//2, HEIGHT//2 + 42))
+            if _locked_t[0]:
+                _locked_t[0] -= 1
 
         match = STAGE_MATCHUPS.get(STAGES[idx]["name"], {})
         if match:
@@ -688,16 +715,19 @@ def stage_select():
             screen.blit(dis_s, (WIDTH//2 + 12, HEIGHT//2 + 12))
 
         for _di, _ni in enumerate(_normal_indices):
-            col = WHITE if _ni == idx else GRAY
+            col = ((WHITE if _ni == idx else GRAY) if _open.get(_ni, True)
+                   else ((200, 160, 70) if _ni == idx else (90, 80, 60)))
             pygame.draw.circle(screen, col, (WIDTH//2 + (_di - len(_normal_indices)//2)*30, HEIGHT//2 + 40), 6)
 
         # Touch nav arrows
         for _arr, _txt, _rx in (('◄', '◄', 20), ('►', '►', WIDTH - 50)):
             _as = font_large.render(_txt, True, (200, 200, 200))
             screen.blit(_as, (_rx, HEIGHT // 2 - _as.get_height() // 2))
-        pygame.draw.rect(screen, (60, 120, 60), _r_confirm, border_radius=10)
-        pygame.draw.rect(screen, (120, 220, 120), _r_confirm, 2, border_radius=10)
-        _gs = font_medium.render("GO", True, WHITE)
+        pygame.draw.rect(screen, (60, 120, 60) if _is_open else (70, 62, 50),
+                         _r_confirm, border_radius=10)
+        pygame.draw.rect(screen, (120, 220, 120) if _is_open else (130, 116, 80),
+                         _r_confirm, 2, border_radius=10)
+        _gs = font_medium.render("GO" if _is_open else "—", True, WHITE)
         screen.blit(_gs, (_r_confirm.centerx - _gs.get_width() // 2,
                           _r_confirm.centery - _gs.get_height() // 2))
 

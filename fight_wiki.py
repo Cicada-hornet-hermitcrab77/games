@@ -512,7 +512,7 @@ def _character_pages(unlocked):
     return out
 
 
-def _map_pages(unlocked):
+def _map_pages(unlocked, stats=None):
     _, _, online = _unlock_tables()
     out = []
     for i, st in enumerate(STAGES):
@@ -541,6 +541,25 @@ def _map_pages(unlocked):
         body.append(("kv", "Portals", _n(st.get("portals", []))))
         body.append(("kv", "Hazards", _n(st.get("hazards", []))))
         body.append(("kv", "Online rotation", "yes" if i in online else "no"))
+        body.append(("h", "How to get it"))
+        try:
+            from fight_game import (STAGE_UNLOCKS, _DEFAULT_STAGES,
+                                    stage_unlocked)
+        except Exception:
+            STAGE_UNLOCKS, _DEFAULT_STAGES = {}, set()
+            stage_unlocked = lambda _n, _s: True
+        if st.get("special_mode_only"):
+            body.append("Belongs to a special mode. It only comes round when "
+                        "its event does.")
+        elif st["name"] in _DEFAULT_STAGES:
+            body.append("Open from the first match — one of the five you "
+                        "start with.")
+        elif st["name"] in STAGE_UNLOCKS:
+            body.append(("kv", "Locked until", STAGE_UNLOCKS[st["name"]][3]))
+            if stage_unlocked(st["name"], stats or {}):
+                body.append(("b", "Open"))
+        else:
+            body.append("Open.")
         m = STAGE_MATCHUPS.get(st["name"])
         if m:
             body.append(("h", "Who it suits"))
@@ -1266,7 +1285,11 @@ PAGES = [
          ("kv", "A saddled Cylhost", "ride it along its wire. Jump to get "
                                      "off. It cannot bite what is sitting "
                                      "on it"),
-         ("kv", "The Big Wac", "the sign off the Wacdonalds roof. 160 "
+         ("kv", "The Big Wac", "the sign off the Wacdonalds roof — and the "
+                               "burger is not the thing that is alive. "
+                               "There is a ghost sitting in it between the "
+                               "bun and the patty, arms out through the "
+                               "sides, working it from in there. 160 "
                                "health, hits for 13, and it bounces"),
          ("h", "Range"),
          "Nothing in the yard notices you until you are close enough, and "
@@ -1581,7 +1604,7 @@ def build(unlocked=(), stats=None):
     unlocked = set(unlocked or ())
     pages = []
     pages += _character_pages(unlocked)
-    pages += _map_pages(unlocked)
+    pages += _map_pages(unlocked, stats)
     pages += _world_pages(unlocked)
     pages += _event_pages(unlocked)
     pages += _costume_pages(unlocked)

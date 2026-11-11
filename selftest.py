@@ -873,4 +873,36 @@ assert not ({"major", "minor"} & set(_gcats)), _gcats
 print(f"you start with {len(G._DEFAULT_UNLOCK)}: "
       f"{', '.join(sorted(G._DEFAULT_UNLOCK))}")
 
+# 21. Stages are earned too
+_NORMAL = [_s["name"] for _s in D.STAGES if not _s.get("special_mode_only")]
+assert len(G._DEFAULT_STAGES) == 5, G._DEFAULT_STAGES
+assert G._DEFAULT_STAGES <= set(_NORMAL)
+# every normal stage is either free or has a condition — none fall through
+for _sn in _NORMAL:
+    assert _sn in G._DEFAULT_STAGES or _sn in G.STAGE_UNLOCKS, _sn
+# and nothing in the table is a special-mode stage or a typo
+_SPECIAL = {_s["name"] for _s in D.STAGES if _s.get("special_mode_only")}
+for _sn, _sc in G.STAGE_UNLOCKS.items():
+    assert _sn in _NORMAL, _sn
+    assert _sn not in _SPECIAL and _sn not in G._DEFAULT_STAGES, _sn
+    assert len(_sc) == 4 and _sc[3], _sn
+    # a condition a save has never written must read as "not yet", not crash
+    assert G.stage_unlocked(_sn, {}) is False, _sn
+# a fresh save opens exactly the five, and a full one opens the lot
+_fresh = {"wins_total": 0, "matches_played": 0, "losses": 0}
+_open0 = [_sn for _sn in _NORMAL if G.stage_unlocked(_sn, _fresh)]
+assert set(_open0) == G._DEFAULT_STAGES, _open0
+assert G.stage_unlocked("Volcano", {"wins_total": 3})
+assert not G.stage_unlocked("Volcano", {"wins_total": 2})
+assert G.stage_unlocked("Took the L", {}), "special-mode stages are not gated here"
+# the hint is what the wiki prints
+assert G.stage_hint("Ice Cave") == "Win 10 matches", G.stage_hint("Ice Cave")
+assert G.stage_hint("Grasslands") == ""
+_mp = {_p["title"]: _p for _p in W.build(unlocked=(), stats=_fresh)["maps"]}
+assert "five you start with" in str(_mp["Grasslands"]["body"])
+assert ("kv", "Locked until", "Win 10 matches") in _mp["Ice Cave"]["body"]
+assert "special mode" in str(_mp["Took the L"]["body"])
+print(f"stages: {len(G._DEFAULT_STAGES)} free, {len(G.STAGE_UNLOCKS)} earned, "
+      f"{len(_SPECIAL)} that belong to an event")
+
 print("ALL OK")

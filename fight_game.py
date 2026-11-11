@@ -46,6 +46,57 @@ _UNLOCK_FILE    = os.path.join(os.path.dirname(__file__), "unlocks.json")
 # The five you start with. Gunner is in because the first four are all
 # melee, and anything that keeps its distance is a wall without him.
 _DEFAULT_UNLOCK = {"Brawler", "Boxer", "Ninja", "Phantom", "Gunner"}
+
+# ── Stages ──────────────────────────────────────────────────────────────────
+# Five are open from the first match. The rest are earned the same way
+# fighters are, out of the same stats, and read with the same _meets_condition.
+# Special-mode stages are not in here — those belong to their event.
+_DEFAULT_STAGES = {"Grasslands", "Dojo", "Arena", "Desert", "City Rooftop"}
+
+STAGE_UNLOCKS = {
+    "Volcano":          ("wins_total",        None,  3,  "Win 3 matches"),
+    "Jungle":           ("wins_total",        None,  6,  "Win 6 matches"),
+    "Ice Cave":         ("wins_total",        None, 10,  "Win 10 matches"),
+    "Pirate Ship":      ("wins_total",        None, 15,  "Win 15 matches"),
+    "Medieval Castle":  ("wins_total",        None, 22,  "Win 22 matches"),
+    "Arctic Tundra":    ("matches_played",    None, 20,  "Play 20 matches"),
+    "Circus":           ("matches_played",    None, 35,  "Play 35 matches"),
+    "Haunted House":    ("losses",            None,  5,  "Lose 5 matches"),
+    "Dream Land":       ("played_at_midnight", None, 1,  "Play a match at midnight"),
+    "Space":            ("win_hard_ai",       None,  3,  "Win 3 matches vs Hard AI"),
+    "Sky Island":       ("win_super_hard",    None,  2,  "Win 2 vs Super Hard"),
+    "The Nether":       ("win_super_super_hard", None, 2, "Win 2 vs Super Super Hard"),
+    "Volcano Core":     ("win_mega_hard",     None,  1,  "Win one vs Mega Hard"),
+    "Underworld":       ("perfect_wins",      None,  3,  "Win 3 without taking a hit"),
+    "The Void":         ("void_deaths",       None,  3,  "Fall into the void 3 times"),
+    "Underwater":       ("win_on_stage",      "Pirate Ship", 1, "Win on the Pirate Ship"),
+    "Computer":         ("unique_wins",       None, 12,  "Win with 12 different fighters"),
+    "Graveyard":        ("beat_char",         "Phantom", 1, "Beat Phantom"),
+    "Portal World":     ("paradox_portals_done", None, 1, "Take every portal in one match"),
+    "Conveyor World":   ("survival_best",     None, 10,  "Last 10 kills in Survival"),
+    "Spring World":     ("play_survival",     None,  1,  "Play Survival once"),
+    "Wombrock Town":    ("wins_total",        None, 30,  "Win 30 matches"),
+}
+
+
+def stage_unlocked(name, stats):
+    """True when a stage can be picked. Default stages always can."""
+    if name in _DEFAULT_STAGES:
+        return True
+    cond = STAGE_UNLOCKS.get(name)
+    if cond is None:
+        return True            # anything unlisted is simply open
+    try:
+        return bool(_meets_condition(cond, stats or {}))
+    except Exception:
+        return False
+
+
+def stage_hint(name):
+    cond = STAGE_UNLOCKS.get(name)
+    return cond[3] if cond else ""
+
+
 _konami_flag      = [False]   # set True when Konami code entered on Computer stage
 _iddqd_flag       = [False]   # set True when IDDQD typed and match won
 _ragequit_flag    = [False]   # set True when @#!#*%$ typed on lose screen
@@ -8345,7 +8396,7 @@ def main():
                                               unlock_progress=_unlock_progress(stats))
             if p1_idx is None:
                 continue
-            s_idx = stage_select()
+            s_idx = stage_select(stats)
             while True:
                 result = run_survival(p1_idx, p2_idx if two_player else None,
                                       two_player=two_player, stage_idx=s_idx)
@@ -9133,7 +9184,7 @@ def main():
         if p1_idx is None:
             continue
 
-        s_idx = stage_select()
+        s_idx = stage_select(stats)
         _fresh_match = True      # False once this is a rematch of the same fight
         while True:
             result = run_fight(p1_idx, p2_idx, vs_ai=vs_ai, ai_difficulty=difficulty, stage_idx=s_idx)
