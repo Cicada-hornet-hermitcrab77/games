@@ -640,7 +640,8 @@ for _m9 in ST.MAPS:
     for _px, _py, _pw in _m9["platforms"]:
         assert 0 <= ST.mx(_px) < _C.WIDTH and 0 < ST.my(_py) < _C.GROUND_Y, (_px, _py)
         assert ST.mx(_pw) > 0
-    for _bx, _by in _m9.get("wombrocks", ()) + _m9.get("skellamorguards", ()):
+    for _bx, _by in (list(_m9.get("wombrocks", ()))
+                     + list(_m9.get("skellamorguards", ()))):
         assert 0 < ST.mx(_bx) < _C.WIDTH and 0 < ST.my(_by) <= _C.GROUND_Y
     for _f9 in _m9.get("cylhosts", ()):
         assert len(_f9) == 4
@@ -650,7 +651,44 @@ for _m9 in ST.MAPS:
         assert len(_s9) == 4 and (_s9[2] or _s9[3]), "a spring has to shove"
     assert 0 < ST.mx(_m9["door"][0]) < _C.WIDTH
     assert _m9.get("boss"), "a map is won by beating its boss"
-    assert _m9.get("house"), "the right of this one is a house"
+    assert hasattr(ST, _m9["boss_class"]), _m9["boss_class"]
+    assert _m9.get("boss_name"), _m9["name"]
+    for _mv9 in _m9.get("movers", ()):
+        assert len(_mv9) == 5 and _mv9[4] > 0, _mv9
+    for _sp9 in _m9.get("powerspots", ()):
+        assert 0 < ST.mx(_sp9[0]) < _C.WIDTH
+    for _sd9 in _m9.get("saddled", ()):
+        assert len(_sd9) == 4
+assert len(ST.MAPS) == 2, len(ST.MAPS)
+assert ST.MAPS[0].get("house") and ST.MAPS[1].get("store")
+# the orange slab carries, the gold spot keeps giving
+_mv = ST.MovingPlatform(100, 200, 300, 200, 80)
+for _ in range(400):
+    _mv.update()
+    assert 99 <= _mv.x <= 301, _mv.x
+assert _mv.carries(_mv.x + 10, _mv.y + 2) and not _mv.carries(_mv.x - 80, _mv.y)
+_sp = ST.PowerSpot(400, 400)
+_got = []
+for _ in range(ST.PowerSpot.EVERY * 3):
+    _sp.update(400.0, 400.0, _got.append)
+assert len(_got) >= 2, len(_got)
+assert all(_g.get("name") for _g in _got), _got
+# a saddled cylhost stops being a hazard once you are on it
+_cs = ST.Cylhost(80, 100, 300, 100, saddle=True)
+_cs.update(85.0, 100.0)
+assert _cs.awake
+_cs.ridden = True
+_cs.update(85.0, 100.0)
+assert not _cs.awake, "you cannot be bitten by what you are sitting on"
+# the Big Wac sleeps on its block like the wolf does
+_bw = ST.BigWac(400, 300)
+assert _bw.asleep and _bw.HP > 0
+for _ in range(120):
+    _bw.update(410.0, 300.0)
+assert _bw.asleep and not _bw.awake
+_bw.wake()
+_bw.update(410.0, 300.0)
+assert _bw.awake
 assert ST.mx(ST.MAP_W) == _C.WIDTH and ST.my(ST.MAP_GROUND) == _C.GROUND_Y
 # the creatures take hits, give damage, and have somewhere to be hit
 for _e9 in (ST.Wombrock(100, 400), ST.Skellamorguard(100, 400),
@@ -734,7 +772,8 @@ for _ in range(ST.Wolf.GONE_EVERY * 2):
 assert _gone9 == ST.Wolf.GONE_FOR * 2, _gone9
 assert _moved9, "invisible is not the same as stopped"
 # the cast is real, and it is the black and white lunatic
-assert ST._CAST == ["Brawler"], ST._CAST
+assert ST._CAST and set(ST._CAST) == {"Gunner"}, ST._CAST
+assert len(ST._CAST) == len(ST.MAPS), "one fighter cast per map"
 # and he is squashed to the same scale the map is
 assert 0.3 < ST.FIGHTER_SCALE < 0.7, ST.FIGHTER_SCALE
 assert abs(ST.FIGHTER_SCALE - ST.mx(ST.MAP_W) / float(ST.MAP_W)) < 0.01
@@ -783,6 +822,38 @@ assert "Sundays" in _sp9["subtitle"], _sp9["subtitle"]
 assert "lanalle" not in open(os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "fight_wiki.py")).read(), \
     "he is a lunatic"
+# Gunner actually fires in a yard — the level used to ignore pending_ball
+import fight_ui as _UIg
+_was_touch = _UIg.touch_p1_enabled[0]
+_UIg.touch_p1_enabled[0] = False
+_shots9 = [0]
+_origP = G.Projectile
+class _CountP(_origP):
+    def __init__(self, *a, **k):
+        _shots9[0] += 1
+        super().__init__(*a, **k)
+G.Projectile = _CountP
+_fr9 = [0]
+_oflip, _oev, _okeys = pygame.display.flip, pygame.event.get, pygame.key.get_pressed
+def _f9():
+    _fr9[0] += 1
+pygame.display.flip = _f9
+pygame.event.get = lambda *a, **k: (
+    [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE)] if _fr9[0] > 300 else [])
+class _Kg:
+    def __getitem__(self, k):
+        return k == pygame.K_g and (_fr9[0] // 10) % 2 == 0
+pygame.key.get_pressed = lambda: _Kg()
+try:
+    G.run_story_level(ST.MAPS[0], "Gunner", {})
+except SystemExit:
+    pass
+finally:
+    pygame.display.flip, pygame.event.get = _oflip, _oev
+    pygame.key.get_pressed = _okeys
+    G.Projectile = _origP
+    _UIg.touch_p1_enabled[0] = _was_touch
+assert _shots9[0] >= 2, f"Gunner fired {_shots9[0]} balls in a yard"
 print(f"story mode: Sundays only, {len(ST.MAPS)} map(s) with "
       f"{sum(len(_m['platforms']) for _m in ST.MAPS)} platforms, "
       f"walked as {ST._CAST[0]}")

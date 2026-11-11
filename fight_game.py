@@ -7737,8 +7737,23 @@ def run_story_level(level, player_name, stats):
     skellamorguards = [_story.Skellamorguard(_mx(gx), _my(gy)) for gx, gy in level.get("skellamorguards", ())]
     cylhosts = [_story.Cylhost(_mx(a), _my(b), _mx(c), _my(d))
                 for a, b, c, d in level.get("cylhosts", ())]
-    boss = ([_story.Wolf(_mx(level["boss"][0]), _my(level["boss"][1]), plats)]
+    cylhosts += [_story.Cylhost(_mx(a), _my(b), _mx(c), _my(d), saddle=True)
+                 for a, b, c, d in level.get("saddled", ())]
+    movers = [_story.MovingPlatform(_mx(a), _my(b), _mx(c), _my(d), _mx(w))
+              for a, b, c, d, w in level.get("movers", ())]
+    spots = [_story.PowerSpot(_mx(a), _my(b))
+             for a, b in level.get("powerspots", ())]
+    _boss_cls = getattr(_story, level.get("boss_class", "Wolf"))
+    boss = ([_boss_cls(_mx(level["boss"][0]), _my(level["boss"][1]), plats)]
             if level.get("boss") else [])
+    store = level.get("store")
+    if store:
+        store = (_mx(store[0]), _my(store[1]), _mx(store[2]), _my(store[3]))
+    sign = level.get("sign")
+    if sign:
+        sign = (_mx(sign[0]), _my(sign[1]), _mx(sign[2]), _my(sign[3]))
+    riding = [None]          # the cylhost he is sitting on, if any
+    shots  = []              # whatever he throws — Gunner's balls, orbs, bounces
     portals  = [((_mx(a), _my(b)), (_mx(c), _my(d)))
                 for (a, b), (c, d) in level.get("portals", ())]
     springs  = [(_mx(sx), _my(sy), sdx, sdy)
@@ -7769,6 +7784,7 @@ def run_story_level(level, player_name, stats):
     _won        = 0
     _port_cd = 0
     _msg, _msg_t = "", 0
+    _msg_box = ["", 0]
     _touch = TouchControls(P1_CTRL, player=1, two_player=False) if touch_p1_enabled[0] else None
 
     while True:
@@ -7786,7 +7802,9 @@ def run_story_level(level, player_name, stats):
                 if event.key == pygame.K_e:
                     _at_door = (abs(p.x - door[0]) < 40
                                 and abs(p.y - door[1]) < 90)
-                    if _at_door and not door_open:
+                    if _at_door and level.get("door_barred"):
+                        _msg, _msg_t = "it says DON'T ENTER", 90
+                    elif _at_door and not door_open:
                         door_open = True
                         _msg, _msg_t = ("it is a house, and the inside of it "
                                         "is for later"), 120
@@ -7835,8 +7853,77 @@ def run_story_level(level, player_name, stats):
                         break
         p.x = max(20.0, min(float(WIDTH - 20), p.x))
 
+        # Anything he fires. The yard is not a duel, so only the simple
+        # ones are here — a ball, an orb, a bouncing ball.
+        if p.pending_ball:
+            p.pending_ball = False
+            shots.append(Projectile(p.x + p.facing * 30, p.y - 60, p.facing, p))
+        if p.pending_orb and p.bazooka_cooldown == 0:
+            p.pending_orb = False
+            shots.append(Orb(p.x + p.facing * 30, p.y - 60, p.facing, p))
+        if p.pending_bounce:
+            p.pending_bounce = False
+            shots.append(BouncingBall(p.x + p.facing * 30, p.y - 60, p.facing, p))
+        for _sh in shots:
+            _sh.update()
+            if not getattr(_sh, "alive", True):
+                continue
+            for e in _alive:
+                if e.rect().collidepoint(int(_sh.x), int(_sh.y)):
+                    e.hp -= getattr(_sh, "DMG", getattr(_sh, "dmg", 10))
+                    e.hurt = 8
+                    if hasattr(e, "wake"):
+                        e.wake()
+                    _sh.alive = False
+                    break
+        shots[:] = [_s for _s in shots if getattr(_s, "alive", True)]
+
         for e in _alive:
             e.update(p.x, p.y)
+        for mv in movers:
+            mv.update()
+        _ride = riding[0]
+        if _ride is not None:
+            # Sitting on a saddled Cylhost: it carries you along its wire.
+            p.x, p.y = float(_ride.x), float(_ride.y) + 2
+            p.vy = 0.0
+            p.on_ground = True
+            if keys[P1_CTRL['jump']]:
+                _ride.ridden = False
+                riding[0] = None
+                p.vy = -11.0
+                p.on_ground = False
+        else:
+            for mv in movers:            # a slab carries what stands on it
+                if mv.carries(p.x, p.y):
+                    p.x += mv.dx
+                    p.y = mv.y
+                    p.vy = 0.0
+                    p.on_ground = True
+            for cy in cylhosts:
+                if (cy.saddle and not cy.ridden
+                        and abs(p.x - cy.x) < 26 and abs(p.y - 20 - cy.y) < 44):
+                    cy.ridden = True
+                    riding[0] = cy
+                    _msg, _msg_t = "riding  ·  jump to get off", 110
+        def _take(spec):
+            _nm5 = spec.get("name", "?")
+            if spec.get("type") == "heal":
+                p.hp = max(1, min(p.max_hp, p.hp + spec.get("amount", 0)))
+            elif spec.get("type") == "punch_dmg":
+                p.punch_boost += spec.get("amount", 0)
+            elif spec.get("type") == "kick_dmg":
+                p.kick_boost += spec.get("amount", 0)
+            elif spec.get("type") == "speed":
+                p.speed_boost += 2.0
+            elif spec.get("type") == "shield":
+                p.shield = True
+            elif spec.get("type") == "bubble_shield":
+                p.bubble_shield = True
+            _msg_box[0] = f"{_nm5}!"
+            _msg_box[1] = 110
+        for sp in spots:
+            sp.update(p.x, p.y, _take)
 
         # ── the yard, after dark ──────────────────────────────────────────
         _nt = pygame.time.get_ticks() / 1000.0
@@ -7872,6 +7959,24 @@ def run_story_level(level, player_name, stats):
             pygame.draw.line(screen, _sd2, (_sx2 - 11, _sy2 - 56), (_sx2 + 11, _sy2 - 56), 3)
             pygame.draw.ellipse(screen, (56, 92, 50),
                                 (_sx2 - 28, _sy2 - 12, 56, 16))
+        if store:
+            _sx4, _sy4, _sw4, _sh4 = store
+            pygame.draw.rect(screen, (214, 32, 40), (_sx4, _sy4 - 16, _sw4, 18))
+            pygame.draw.rect(screen, (62, 56, 62), (_sx4, _sy4, _sw4, _sh4))
+            pygame.draw.rect(screen, (240, 240, 246), (_sx4, _sy4, _sw4, _sh4), 4)
+            # the arches, drawn as the W they are
+            _ax4 = _sx4 + _sw4 // 2
+            _ay4 = _sy4 + _sh4 // 3 - 12
+            pygame.draw.lines(screen, (248, 206, 40), False, [
+                (_ax4 - 56, _ay4 - 34), (_ax4 - 40, _ay4 + 34),
+                (_ax4 - 20, _ay4 - 18), (_ax4, _ay4 + 34),
+                (_ax4 + 20, _ay4 - 18), (_ax4 + 40, _ay4 + 34),
+                (_ax4 + 56, _ay4 - 34)], 9)
+        if sign:
+            _gx4, _gy4, _gw4, _gh4 = sign
+            pygame.draw.rect(screen, (46, 42, 48),
+                             (_gx4 + _gw4 // 2 - 7, _gy4 + _gh4, 14,
+                              _my(300) - (_gy4 + _gh4)))
         if house:
             _hx4, _hy4, _hw4, _hh4 = house
             pygame.draw.rect(screen, (68, 62, 58), (_hx4, _hy4, _hw4, _hh4))
@@ -7899,6 +8004,10 @@ def run_story_level(level, player_name, stats):
                 pygame.draw.line(screen, (44, 40, 46), (_wx, _by2),
                                  (_wx + _ww, _by2), 1)
             pygame.draw.rect(screen, (96, 88, 96), (_wx, _wy, _ww, _wh), 2)
+        for mv in movers:
+            mv.draw(screen)
+        for sp in spots:
+            sp.draw(screen)
         for pl in plats:
             pygame.draw.rect(screen, (132, 118, 96),
                              (pl.x, pl.y, pl.w, Platform.H), border_radius=3)
@@ -7961,10 +8070,19 @@ def run_story_level(level, player_name, stats):
             pygame.draw.rect(screen, (92, 62, 28),
                              (door[0] - 13, door[1] - 78, 26, 78), 2, border_radius=4)
             pygame.draw.circle(screen, (226, 196, 90), (door[0] + 7, door[1] - 38), 3)
-        if abs(p.x - door[0]) < 40 and not door_open:
+        if level.get("door_barred"):
+            for _sg4 in (-1, 1):       # crossed out, in somebody's hand
+                pygame.draw.line(screen, (244, 244, 250),
+                                 (door[0] - 15 * _sg4, door[1] - 78),
+                                 (door[0] + 15 * _sg4, door[1]), 4)
+            _bl = font_tiny.render(level["door_barred"], True, (244, 244, 250))
+            screen.blit(_bl, (door[0] - _bl.get_width() // 2, door[1] + 6))
+        elif abs(p.x - door[0]) < 40 and not door_open:
             _dh = font_tiny.render("E", True, (255, 220, 120))
             screen.blit(_dh, (door[0] - _dh.get_width() // 2, door[1] - 96))
 
+        for _sh in shots:
+            _sh.draw(screen)
         for e in _alive:
             e.draw(screen)
             if hasattr(e, "hp_bar") and e not in boss:
@@ -8000,7 +8118,9 @@ def run_story_level(level, player_name, stats):
                     break
         if boss and not any(b.hp > 0 for b in boss):
             _won += 1
-            _ws = font_medium.render("THE WOLF IS DOWN", True, (255, 210, 110))
+            _ws = font_medium.render(
+                f"THE {level.get('boss_name', 'BOSS').upper()} IS DOWN",
+                True, (255, 210, 110))
             screen.blit(_ws, (WIDTH // 2 - _ws.get_width() // 2, 120))
             if _won > FPS * 2:
                 return True
@@ -8023,10 +8143,14 @@ def run_story_level(level, player_name, stats):
         screen.blit(font_small.render(level["name"], True, (206, 200, 192)),
                     (252, _hy - 2))
         _left = len([e for e in wombrocks + skellamorguards + cylhosts + boss if e.hp > 0])
-        _goal = ("beat the wolf" if any(b.hp > 0 for b in boss)
-                 else "find the door  ·  E opens it")
+        _goal = (f"beat the {level.get('boss_name', 'boss')}"
+                 if any(b.hp > 0 for b in boss)
+                 else "nothing left standing")
         screen.blit(font_tiny.render(f"{_left} still up  ·  {_goal}",
                                      True, (150, 146, 140)), (252, _hy + 20))
+        if _msg_box[1]:
+            _msg_box[1] -= 1
+            _msg, _msg_t = _msg_box[0], 2
         if _msg_t:
             _msg_t -= 1
             _ms = font_small.render(_msg, True, (255, 220, 120))

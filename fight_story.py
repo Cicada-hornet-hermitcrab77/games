@@ -16,7 +16,7 @@ import pygame
 
 from constants import *
 from constants import dev_today
-from fight_data import CHARACTERS, STAGES
+from fight_data import CHARACTERS, STAGES, POWERUPS
 from fight_drawing import draw_stickman
 
 # ── Maps ────────────────────────────────────────────────────────────────────
@@ -83,7 +83,133 @@ MAPS = [
         "stones": [(360, 935), (710, 580), (1135, 940), (1725, 935)],
         "slabs": [(1580, 355, 160, 135)],
     },
+
+    # ── Second map: the Wacdonalds store, out on the road east ─────────────
+    {
+        "name": "The Wacdonalds store",
+        "start": (110, 940),
+        "platforms": [
+            (560, 560, 190),      # the ledge on the way over
+            (770, 470,  80),      # the top of the spire
+            (960, 700, 160),
+            (980, 300, 240),      # the block the sign stands on
+            (1100, 555, 440),     # the store roof
+            (1480, 700, 150),
+        ],
+        "walls": [
+            (795, 470, 36, MAP_GROUND - 470),      # the spire itself
+            (1050, 560, 18, MAP_GROUND - 560),     # the store, left wall
+            (1600, 560, 18, MAP_GROUND - 560),     # and right
+        ],
+        "store": (1050, 560, 570, MAP_GROUND - 560),
+        "sign": (1000, 95, 210, 205),
+        "movers": [               # (x1, y1, x2, y2, width)
+            (1240, 330, 1240, 480, 90),
+            (1400, 520, 1700, 520, 110),
+            (1760, 560, 1760, 710, 90),
+        ],
+        "powerspots": [(880, 700), (1375, 940), (1555, 700)],
+        "wombrocks": [(800, 470), (1340, 555), (1150, 940)],
+        "cylhosts": [
+            (520, 120, 790, 340),
+            (1260, 175, 1890, 175),
+        ],
+        "saddled": [(1150, 400, 1880, 400)],
+        "boss": (1105, 300),      # the sign comes down off its block
+        "door": (1355, MAP_GROUND),
+        "door_barred": "DON'T ENTER",
+        "stones": [(730, 940)],
+        "slabs": [],
+    },
 ]
+
+
+class MovingPlatform:
+    """Orange on the map: a slab that runs between two points, there and
+    back, and carries whatever is standing on it."""
+    H = 14
+
+    def __init__(self, x1, y1, x2, y2, w, speed=1.6):
+        self.a, self.b = (float(x1), float(y1)), (float(x2), float(y2))
+        self.w = w
+        self.speed = speed
+        self.p = 0.0
+        self.dir = 1
+        self.x, self.y = self.a
+        self.dx = self.dy = 0.0
+
+    def update(self):
+        _len = max(1.0, math.hypot(self.b[0] - self.a[0], self.b[1] - self.a[1]))
+        self.p += self.dir * (self.speed / _len)
+        if self.p >= 1.0:
+            self.p, self.dir = 1.0, -1
+        if self.p <= 0.0:
+            self.p, self.dir = 0.0, 1
+        _nx = self.a[0] + (self.b[0] - self.a[0]) * self.p
+        _ny = self.a[1] + (self.b[1] - self.a[1]) * self.p
+        self.dx, self.dy = _nx - self.x, _ny - self.y
+        self.x, self.y = _nx, _ny
+
+    def carries(self, px, py):
+        """True when somebody is standing on the top of it."""
+        return (self.x - 6 <= px <= self.x + self.w + 6
+                and -4 <= py - self.y <= 14)
+
+    def draw(self, surface):
+        _x, _y = int(self.x), int(self.y)
+        pygame.draw.line(surface, (120, 78, 36), (int(self.a[0]) + self.w // 2,
+                                                  int(self.a[1]) + 6),
+                         (int(self.b[0]) + self.w // 2, int(self.b[1]) + 6), 1)
+        pygame.draw.rect(surface, (226, 128, 44), (_x, _y, self.w, self.H),
+                         border_radius=3)
+        pygame.draw.rect(surface, (250, 178, 96), (_x, _y, self.w, 4),
+                         border_radius=2)
+        pygame.draw.rect(surface, (138, 70, 20), (_x, _y, self.w, self.H), 2,
+                         border_radius=3)
+
+
+class PowerSpot:
+    """Gold on the map: a patch of ground that keeps putting a power-up out.
+    Take it and another turns up after a while."""
+    EVERY = 420
+
+    def __init__(self, x, y):
+        self.x, self.y = float(x), float(y)
+        self.timer = 90
+        self.spec = None
+
+    def update(self, px, py, taker):
+        if self.spec is None:
+            self.timer -= 1
+            if self.timer <= 0:
+                self.spec = POWERUPS[(int(self.x) + self.timer) % len(POWERUPS)]
+                self.timer = self.EVERY
+            return
+        if abs(px - self.x) < 26 and abs(py - 24 - self.y) < 40:
+            taker(self.spec)
+            self.spec = None
+            self.timer = self.EVERY
+
+    def draw(self, surface):
+        _x, _y = int(self.x), int(self.y)
+        _t = pygame.time.get_ticks() / 1000.0
+        pygame.draw.rect(surface, (214, 176, 54), (_x - 20, _y - 5, 40, 6),
+                         border_radius=2)
+        pygame.draw.rect(surface, (150, 118, 28), (_x - 20, _y - 5, 40, 6), 1,
+                         border_radius=2)
+        for _k in range(4):          # the sparks it throws while it charges
+            _sp = ((_t * 0.8 + _k * 0.25) % 1.0)
+            pygame.draw.circle(surface, (242, 212, 120),
+                               (_x - 15 + _k * 10, _y - 8 - int(_sp * 18)),
+                               max(1, 3 - int(_sp * 3)))
+        if self.spec is None:
+            return
+        _bob = int(math.sin(_t * 3.0) * 4)
+        pygame.draw.circle(surface, self.spec.get("color", (240, 200, 90)),
+                           (_x, _y - 26 + _bob), 11)
+        pygame.draw.circle(surface, (250, 250, 250), (_x, _y - 26 + _bob), 11, 2)
+        _lbl = font_tiny.render(self.spec["name"][:9], True, (236, 230, 220))
+        surface.blit(_lbl, (_x - _lbl.get_width() // 2, _y - 54 + _bob))
 
 
 class Wombrock:
@@ -428,6 +554,112 @@ class Wolf:
                 (_zx, _zy + _zs), (_zx + _zs, _zy + _zs)], 2)
 
 
+class BigWac:
+    """The sign off the top of the store. It is a burger, it is four feet
+    across, and it comes down off its block when you put one in it."""
+    W, H, HP, DMG, SPEED = 42, 46, 160, 13, 5.0
+    RANGE, REACH = 400, 220
+
+    def __init__(self, x, y, plats=()):
+        self.x, self.y = float(x), float(y)
+        self.hp = self.HP
+        self.face = -1
+        self.hurt = 0
+        self.vy = 0.0
+        self.t = 0.0
+        self.hop = 0
+        self.awake = False
+        self.asleep = True
+        self.plats = list(plats)
+
+    def wake(self):
+        self.asleep = False
+
+    def _floor_under(self):
+        best = float(GROUND_Y)
+        for pl in self.plats:
+            if pl.x - 10 <= self.x <= pl.x + pl.w + 10 and pl.y >= self.y - 6:
+                best = min(best, float(pl.y))
+        return best
+
+    def update(self, px, py):
+        self.t += 0.1
+        if self.asleep:
+            self.awake = False
+            return
+        self.awake = (abs(px - self.x) < self.RANGE
+                      and abs(py - self.y) < self.REACH)
+        self.face = 1 if px > self.x else -1
+        if self.awake:
+            if self.hop:
+                self.hop -= 1
+            elif self.vy == 0.0:
+                self.vy, self.hop = -9.5, 40      # it does not run, it bounces
+            self.x += self.face * self.SPEED * (0.9 if self.vy else 0.3)
+        self.vy += 0.5
+        self.y += self.vy
+        _fl = self._floor_under()
+        if self.y >= _fl and self.vy >= 0:
+            self.y, self.vy = _fl, 0.0
+        self.x = max(30.0, min(float(WIDTH - 30), self.x))
+        if self.hurt:
+            self.hurt -= 1
+
+    def rect(self):
+        return pygame.Rect(int(self.x) - self.W, int(self.y) - self.H,
+                           self.W * 2, self.H)
+
+    def draw(self, surface):
+        _x, _y = int(self.x), int(self.y)
+        _f = 1.0 if not self.hurt else 1.6
+        _bun = (236, 176, 86) if not self.hurt else (255, 235, 220)
+        _top = _y - self.H
+        pygame.draw.rect(surface, (196, 140, 60), (_x - 40, _y - 12, 80, 12),
+                         border_radius=4)          # the bottom bun
+        pygame.draw.rect(surface, (142, 74, 44), (_x - 42, _y - 22, 84, 12),
+                         border_radius=3)          # the patty
+        pygame.draw.polygon(surface, (96, 168, 72), [   # the lettuce
+            (_x - 44, _y - 22), (_x - 30, _y - 30), (_x - 12, _y - 22),
+            (_x + 8, _y - 30), (_x + 26, _y - 22), (_x + 44, _y - 28),
+            (_x + 42, _y - 20), (_x - 42, _y - 20)])
+        pygame.draw.ellipse(surface, (238, 196, 72), (_x - 36, _y - 34, 72, 14))
+        pygame.draw.ellipse(surface, _bun, (_x - 40, _top, 80, 44))   # top bun
+        pygame.draw.ellipse(surface, (176, 120, 46), (_x - 40, _top, 80, 44), 2)
+        for _sx2, _sy2 in ((-18, 10), (4, 6), (20, 16), (-6, 20)):
+            pygame.draw.circle(surface, (252, 242, 212),
+                               (_x + _sx2, _top + _sy2), 3)
+        if not self.asleep:
+            for _sg in (-1, 1):   # it opened a face in the bun
+                pygame.draw.circle(surface, (252, 250, 244),
+                                   (_x + _sg * 13, _top + 20), 7)
+                pygame.draw.circle(surface, (40, 26, 20),
+                                   (_x + _sg * 13 + self.face * 3, _top + 20), 4)
+            _gape = 6 + int(abs(math.sin(self.t * 1.2)) * 10)
+            pygame.draw.rect(surface, (70, 28, 22),
+                             (_x - 22, _y - 20, 44, _gape), border_radius=3)
+            for _k in range(5):
+                pygame.draw.polygon(surface, (250, 248, 240), [
+                    (_x - 20 + _k * 9, _y - 20),
+                    (_x - 14 + _k * 9, _y - 20),
+                    (_x - 17 + _k * 9, _y - 20 + _gape - 2)])
+        else:
+            pygame.draw.arc(surface, (120, 80, 40),
+                            (_x - 14, _top + 14, 28, 14), 3.4, 6.0, 2)
+            for _k in range(3):   # asleep on its block
+                _zp = (self.t * 0.3 + _k * 0.33) % 1.0
+                pygame.draw.lines(surface, (236, 230, 240), False, [
+                    (_x + 30 + int(_zp * 14), _top - int(_zp * 22)),
+                    (_x + 35 + int(_zp * 14), _top - int(_zp * 22)),
+                    (_x + 30 + int(_zp * 14), _top + 5 - int(_zp * 22)),
+                    (_x + 35 + int(_zp * 14), _top + 5 - int(_zp * 22))], 2)
+        _bw = 80
+        pygame.draw.rect(surface, (40, 36, 36), (_x - _bw // 2, _top - 14, _bw, 7))
+        pygame.draw.rect(surface, (226, 86, 54),
+                         (_x - _bw // 2, _top - 14,
+                          int(_bw * max(0, self.hp) / self.HP), 7))
+        pygame.draw.rect(surface, (120, 112, 108), (_x - _bw // 2, _top - 14, _bw, 7), 1)
+
+
 class Cylhost:
     """Strung on a wire, running it end to end for ever. It does not care
     where you are — it is your job to not be on the wire. You cannot kill
@@ -436,13 +668,15 @@ class Cylhost:
     HP = float("inf")
     RANGE, REACH = 70, 60        # it runs its wire; you have to be on it
 
-    def __init__(self, x1, y1, x2, y2):
+    def __init__(self, x1, y1, x2, y2, saddle=False):
         self.a, self.b = (float(x1), float(y1)), (float(x2), float(y2))
         self.p = 0.0
         self.dir = 1
         self.hp = self.HP
         self.hurt = 0
         self.awake = False
+        self.saddle = saddle      # a saddled one is a ride, not a hazard
+        self.ridden = False
 
     def __repr__(self):
         return f"<Cylhost {self.a}->{self.b}>"
@@ -450,7 +684,8 @@ class Cylhost:
     def update(self, px, py):
         _len = max(1.0, math.hypot(self.b[0] - self.a[0], self.b[1] - self.a[1]))
         self.awake = (abs(px - self.x) < self.RANGE
-                      and abs(py - self.y) < self.REACH)
+                      and abs(py - self.y) < self.REACH
+                      and not (self.saddle and self.ridden))
         self.p += self.dir * (self.SPEED / _len)
         if self.p >= 1.0:
             self.p, self.dir = 1.0, -1
@@ -492,19 +727,50 @@ class Cylhost:
         pygame.draw.ellipse(surface, (248, 250, 252), (_x - 8, _y - 6, 16, 11))
         pygame.draw.circle(surface, (40, 110, 180), (_x + 1, _y - 1), 4)
         pygame.draw.circle(surface, (12, 14, 20), (_x + 1, _y - 1), 2)
+        if self.saddle:           # the thing that makes it a ride
+            pygame.draw.rect(surface, (142, 138, 150),
+                             (_x - 13, _y - self.R - 6, 26, 8),
+                             border_radius=2)
+            for _k in range(3):
+                pygame.draw.rect(surface, (206, 204, 214),
+                                 (_x - 10 + _k * 8, _y - self.R - 11, 5, 6))
+            pygame.draw.rect(surface, (96, 92, 104),
+                             (_x - 13, _y - self.R - 6, 26, 8), 1,
+                             border_radius=2)
 
 
 # ── The story ───────────────────────────────────────────────────────────────
 # One entry per map, in order. Each carries what is said before you go in
 # and what is said once the door is open.
+MAPS[1].update({
+    "act": "The road east",
+    "boss_class": "BigWac",
+    "boss_name": "Big Wac",
+    "before": [
+        "The road east has one building on it and the building is a "
+        "Wacdonalds. Nobody has ever established who it is for.",
+        "The front door has DON'T ENTER across it in somebody's handwriting, "
+        "which is the clearest sign yet that you are going the right way.",
+        "The sign on the roof is a burger four feet across. It is asleep. "
+        "It will not be for long.",
+    ],
+    "after": [
+        "The Big Wac comes off its block and stays off it.",
+        "There is a saddled Cylhost going east along a wire over the store, "
+        "and a Cylhost going east is the fastest thing on this road.",
+    ],
+})
+
 MAPS[0].update({
     "act": "The ask",
+    "boss_class": "Wolf",
+    "boss_name": "wolf",
     "before": [
         "Wombrocks have been coming over the ridge into Tombstone for the "
         "best part of a year, and nobody in Tombstone fights.",
         "So Tombstone sent two people to ask you about it: a tombstone "
         "called Tombstone, and a black and white lunatic. You are the one "
-        "they asked.",
+        "they asked, and you brought the gun.",
         "They were not asking you to defend anything. They want you to go "
         "east and hit the Wombrocks at home.",
         "First you have to get out of the yard, and the yard is already "
@@ -520,8 +786,9 @@ MAPS[0].update({
 
 # Who the story puts you in on each map. Tombstone sent two people to ask
 # YOU — a tombstone called Tombstone, and a black and white lunatic, who is
-# Legacy Jawke. You are the one they asked, and you are the Brawler.
-_CAST = ["Brawler"]
+# Legacy Jawke. You are the one they asked, and you walk the first yard as
+# the Gunner, because the Wombrocks do not let you close.
+_CAST = ["Gunner", "Gunner"]
 
 
 def player_for(idx):

@@ -1222,6 +1222,11 @@ PAGES = [
          "and the mode opens. Yank the padlock on any other day and you get "
          "him instead, which is its own kind of answer.",
          ("h", "Where it happens"),
+         ("h", "The maps"),
+         ("kv", "The yard at Tombstone", "get out past the wolf"),
+         ("kv", "The Wacdonalds store", "the road east has one building on "
+                                        "it, the door says DON'T ENTER, and "
+                                        "the sign is awake"),
          ("kv", "Wombrock Town", "east side of the world map, and now a stage"),
          "Rooftops to fight across — the low roof by the gate, the hall with "
          "half of it gone, the watch post, and the bell tower walkway over "
@@ -1229,9 +1234,10 @@ PAGES = [
          "street is mostly rubble.",
          ("h", "How it plays"),
          "A map is a yard with things in it, not a duel. You do not pick "
-         "your fighter — you are the one Tombstone sent for, which means "
-         "you are the Brawler, and the yard is drawn around you at the "
-         "size the map was drawn at.",
+         "your fighter — you are the one Tombstone sent for, and the first "
+         "yard puts the gun in your hands, because a Wombrock does not let "
+         "you get close. The yard is drawn around you at the size the map "
+         "was drawn at.",
          ("b", "Beat the boss and the map is yours. The door is not the "
                "win — it is a house, and a house has an inside"),
          ("b", "R on the loss screen puts you straight back in"),
@@ -1253,6 +1259,15 @@ PAGES = [
                             "completely invisible every four seconds. Beat "
                             "it and the map is yours"),
          ("kv", "Portals, springs", "the way up and the way across"),
+         ("kv", "Moving platforms", "orange on the map — they run between "
+                                    "two points and carry you with them"),
+         ("kv", "Power-up spawns", "gold on the map — a patch that keeps "
+                                   "putting a power-up out"),
+         ("kv", "A saddled Cylhost", "ride it along its wire. Jump to get "
+                                     "off. It cannot bite what is sitting "
+                                     "on it"),
+         ("kv", "The Big Wac", "the sign off the Wacdonalds roof. 160 "
+                               "health, hits for 13, and it bounces"),
          ("h", "Range"),
          "Nothing in the yard notices you until you are close enough, and "
          "nothing that has not noticed you can hit you. A Wombrock wakes at "
