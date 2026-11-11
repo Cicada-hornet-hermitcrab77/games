@@ -7753,6 +7753,7 @@ def run_story_level(level, player_name, stats):
     if sign:
         sign = (_mx(sign[0]), _my(sign[1]), _mx(sign[2]), _my(sign[3]))
     riding = [None]          # the cylhost he is sitting on, if any
+    _remount_cd = [0]        # frames before a saddle will take him back
     shots  = []              # whatever he throws — Gunner's balls, orbs, bounces
     portals  = [((_mx(a), _my(b)), (_mx(c), _my(d)))
                 for (a, b), (c, d) in level.get("portals", ())]
@@ -7855,15 +7856,17 @@ def run_story_level(level, player_name, stats):
 
         # Anything he fires. The yard is not a duel, so only the simple
         # ones are here — a ball, an orb, a bouncing ball.
+        _muz = p.y - int(60 * _story.FIGHTER_SCALE)   # where his hands are
+        _mux = p.x + p.facing * int(30 * _story.FIGHTER_SCALE)
         if p.pending_ball:
             p.pending_ball = False
-            shots.append(Projectile(p.x + p.facing * 30, p.y - 60, p.facing, p))
+            shots.append(Projectile(_mux, _muz, p.facing, p))
         if p.pending_orb and p.bazooka_cooldown == 0:
             p.pending_orb = False
-            shots.append(Orb(p.x + p.facing * 30, p.y - 60, p.facing, p))
+            shots.append(Orb(_mux, _muz, p.facing, p))
         if p.pending_bounce:
             p.pending_bounce = False
-            shots.append(BouncingBall(p.x + p.facing * 30, p.y - 60, p.facing, p))
+            shots.append(BouncingBall(_mux, _muz, p.facing, p))
         for _sh in shots:
             _sh.update()
             if not getattr(_sh, "alive", True):
@@ -7891,9 +7894,13 @@ def run_story_level(level, player_name, stats):
             if keys[P1_CTRL['jump']]:
                 _ride.ridden = False
                 riding[0] = None
-                p.vy = -11.0
+                _remount_cd[0] = 45     # or you land straight back on it
+                p.vy = -13.5
+                p.y -= 18
                 p.on_ground = False
         else:
+            if _remount_cd[0]:
+                _remount_cd[0] -= 1
             for mv in movers:            # a slab carries what stands on it
                 if mv.carries(p.x, p.y):
                     p.x += mv.dx
@@ -7901,7 +7908,7 @@ def run_story_level(level, player_name, stats):
                     p.vy = 0.0
                     p.on_ground = True
             for cy in cylhosts:
-                if (cy.saddle and not cy.ridden
+                if (cy.saddle and not cy.ridden and not _remount_cd[0]
                         and abs(p.x - cy.x) < 26 and abs(p.y - 20 - cy.y) < 44):
                     cy.ridden = True
                     riding[0] = cy
