@@ -552,7 +552,7 @@ def _map_pages(unlocked, stats=None):
             body.append("Belongs to a special mode. It only comes round when "
                         "its event does.")
         elif st["name"] in _DEFAULT_STAGES:
-            body.append("Open from the first match — one of the five you "
+            body.append("Open from the first match — one of the four you "
                         "start with.")
         elif st["name"] in STAGE_UNLOCKS:
             body.append(("kv", "Locked until", STAGE_UNLOCKS[st["name"]][3]))
@@ -1285,7 +1285,7 @@ PAGES = [
          ("kv", "A saddled Cylhost", "ride it along its wire. Jump to get "
                                      "off. It cannot bite what is sitting "
                                      "on it"),
-         ("kv", "The Big Wac", "the sign off the Wacdonalds roof — and the "
+         ("kv", "Wacdubbletomatsplusletusgost", "the sign off the Wacdonalds roof — and the "
                                "burger is not the thing that is alive. "
                                "There is a ghost sitting in it between the "
                                "bun and the patty, arms out through the "

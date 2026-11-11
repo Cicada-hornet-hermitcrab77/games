@@ -48,13 +48,15 @@ _UNLOCK_FILE    = os.path.join(os.path.dirname(__file__), "unlocks.json")
 _DEFAULT_UNLOCK = {"Brawler", "Boxer", "Ninja", "Phantom", "Gunner"}
 
 # ── Stages ──────────────────────────────────────────────────────────────────
-# Five are open from the first match. The rest are earned the same way
-# fighters are, out of the same stats, and read with the same _meets_condition.
-# Special-mode stages are not in here — those belong to their event.
-_DEFAULT_STAGES = {"Grasslands", "Dojo", "Arena", "Desert", "City Rooftop"}
+# The first four on the list are open from the first match. The rest are
+# earned the same way fighters are, out of the same stats, and read with the
+# same _meets_condition. Special-mode stages are not in here — those belong
+# to their event.
+_DEFAULT_STAGES = {"Grasslands", "Volcano", "Dojo", "Desert"}
 
 STAGE_UNLOCKS = {
-    "Volcano":          ("wins_total",        None,  3,  "Win 3 matches"),
+    "Arena":            ("wins_total",        None,  2,  "Win 2 matches"),
+    "City Rooftop":     ("wins_total",        None,  4,  "Win 4 matches"),
     "Jungle":           ("wins_total",        None,  6,  "Win 6 matches"),
     "Ice Cave":         ("wins_total",        None, 10,  "Win 10 matches"),
     "Pirate Ship":      ("wins_total",        None, 15,  "Win 15 matches"),

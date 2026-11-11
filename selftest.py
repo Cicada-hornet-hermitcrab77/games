@@ -680,8 +680,8 @@ assert _cs.awake
 _cs.ridden = True
 _cs.update(85.0, 100.0)
 assert not _cs.awake, "you cannot be bitten by what you are sitting on"
-# the Big Wac sleeps on its block like the wolf does
-_bw = ST.BigWac(400, 300)
+# the Wacdubbletomatsplusletusgost sleeps on its block like the wolf does
+_bw = ST.Wacdubbletomatsplusletusgost(400, 300)
 assert _bw.asleep and _bw.HP > 0
 for _ in range(120):
     _bw.update(410.0, 300.0)
@@ -875,7 +875,9 @@ print(f"you start with {len(G._DEFAULT_UNLOCK)}: "
 
 # 21. Stages are earned too
 _NORMAL = [_s["name"] for _s in D.STAGES if not _s.get("special_mode_only")]
-assert len(G._DEFAULT_STAGES) == 5, G._DEFAULT_STAGES
+assert len(G._DEFAULT_STAGES) == 4, G._DEFAULT_STAGES
+# and they are literally the first four on the list
+assert G._DEFAULT_STAGES == set(_NORMAL[:4]), (G._DEFAULT_STAGES, _NORMAL[:4])
 assert G._DEFAULT_STAGES <= set(_NORMAL)
 # every normal stage is either free or has a condition — none fall through
 for _sn in _NORMAL:
@@ -892,17 +894,18 @@ for _sn, _sc in G.STAGE_UNLOCKS.items():
 _fresh = {"wins_total": 0, "matches_played": 0, "losses": 0}
 _open0 = [_sn for _sn in _NORMAL if G.stage_unlocked(_sn, _fresh)]
 assert set(_open0) == G._DEFAULT_STAGES, _open0
-assert G.stage_unlocked("Volcano", {"wins_total": 3})
-assert not G.stage_unlocked("Volcano", {"wins_total": 2})
+assert G.stage_unlocked("Volcano", {"wins_total": 0}), "the Volcano is free"
+assert G.stage_unlocked("Arena", {"wins_total": 2})
+assert not G.stage_unlocked("Arena", {"wins_total": 1})
 assert G.stage_unlocked("Took the L", {}), "special-mode stages are not gated here"
 # the hint is what the wiki prints
 assert G.stage_hint("Ice Cave") == "Win 10 matches", G.stage_hint("Ice Cave")
 assert G.stage_hint("Grasslands") == ""
 _mp = {_p["title"]: _p for _p in W.build(unlocked=(), stats=_fresh)["maps"]}
-assert "five you start with" in str(_mp["Grasslands"]["body"])
+assert "four you start with" in str(_mp["Grasslands"]["body"])
 assert ("kv", "Locked until", "Win 10 matches") in _mp["Ice Cave"]["body"]
 assert "special mode" in str(_mp["Took the L"]["body"])
-print(f"stages: {len(G._DEFAULT_STAGES)} free, {len(G.STAGE_UNLOCKS)} earned, "
+print(f"stages: the first {len(G._DEFAULT_STAGES)} free, {len(G.STAGE_UNLOCKS)} earned, "
       f"{len(_SPECIAL)} that belong to an event")
 
 print("ALL OK")

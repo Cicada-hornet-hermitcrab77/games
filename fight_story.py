@@ -554,12 +554,13 @@ class Wolf:
                 (_zx, _zy + _zs), (_zx + _zs, _zy + _zs)], 2)
 
 
-class BigWac:
-    """The sign off the top of the store — except the burger is not the
-    thing that is alive. There is a ghost sitting in it, between the bun
-    and the patty, working it from the inside. Hit the burger and you are
-    hitting the ghost; it is holding on from in there."""
-    W, H, HP, DMG, SPEED = 42, 46, 160, 13, 5.0
+class Wacdubbletomatsplusletusgost:
+    """The sign off the top of the store, and the full name is on the menu
+    board: Wac, dubble, tomats, plus letus, gost. Everything on it is in
+    there, including the gost, which is the part that is alive. Hit the
+    burger and you are hitting it; it is holding on from in between the
+    patties."""
+    W, H, HP, DMG, SPEED = 42, 58, 160, 13, 5.0
     RANGE, REACH = 400, 220
 
     def __init__(self, x, y, plats=()):
@@ -616,15 +617,22 @@ class BigWac:
         _f = 1.0 if not self.hurt else 1.6
         _bun = (236, 176, 86) if not self.hurt else (255, 235, 220)
         _top = _y - self.H
-        pygame.draw.rect(surface, (196, 140, 60), (_x - 40, _y - 12, 80, 12),
+        pygame.draw.rect(surface, (196, 140, 60), (_x - 40, _y - 10, 80, 10),
                          border_radius=4)          # the bottom bun
-        pygame.draw.rect(surface, (142, 74, 44), (_x - 42, _y - 22, 84, 12),
-                         border_radius=3)          # the patty
-        pygame.draw.polygon(surface, (96, 168, 72), [   # the lettuce
-            (_x - 44, _y - 22), (_x - 30, _y - 30), (_x - 12, _y - 22),
-            (_x + 8, _y - 30), (_x + 26, _y - 22), (_x + 44, _y - 28),
-            (_x + 42, _y - 20), (_x - 42, _y - 20)])
-        pygame.draw.ellipse(surface, (238, 196, 72), (_x - 36, _y - 34, 72, 14))
+        pygame.draw.rect(surface, (142, 74, 44), (_x - 42, _y - 18, 84, 9),
+                         border_radius=3)          # dubble — patty one
+        for _tm in (-22, 0, 22):                   # tomats
+            pygame.draw.ellipse(surface, (206, 48, 44),
+                                (_x + _tm - 15, _y - 25, 30, 9))
+            pygame.draw.ellipse(surface, (236, 110, 96),
+                                (_x + _tm - 9, _y - 23, 18, 5))
+        pygame.draw.rect(surface, (142, 74, 44), (_x - 42, _y - 33, 84, 9),
+                         border_radius=3)          # patty two
+        pygame.draw.polygon(surface, (96, 168, 72), [   # plus letus
+            (_x - 44, _y - 33), (_x - 30, _y - 41), (_x - 12, _y - 33),
+            (_x + 8, _y - 41), (_x + 26, _y - 33), (_x + 44, _y - 39),
+            (_x + 42, _y - 31), (_x - 42, _y - 31)])
+        pygame.draw.ellipse(surface, (238, 196, 72), (_x - 36, _y - 45, 72, 14))
         pygame.draw.ellipse(surface, _bun, (_x - 40, _top, 80, 44))   # top bun
         pygame.draw.ellipse(surface, (176, 120, 46), (_x - 40, _top, 80, 44), 2)
         for _sx2, _sy2 in ((-18, 10), (4, 6), (20, 16), (-6, 20)):
@@ -633,25 +641,25 @@ class BigWac:
         # ── the one actually doing it ─────────────────────────────────
         # A ghost, wedged in between the bun and the patty, with its arms
         # out through the sides of the burger.
-        _gy5 = _y - 26
+        _gy5 = _y - 34
         _wob = int(math.sin(self.t * (0.6 if self.asleep else 2.1)) * 3)
         _gsurf = pygame.Surface((110, 70), pygame.SRCALPHA)
         _alpha = 120 if self.asleep else 215
         _gc = (226, 238, 250, _alpha)
-        pygame.draw.ellipse(_gsurf, _gc, (34 + _wob, 6, 42, 40))
+        pygame.draw.ellipse(_gsurf, _gc, (40 + _wob, 4, 30, 32))
         pygame.draw.polygon(_gsurf, _gc, [            # the ragged hem
-            (34 + _wob, 34), (76 + _wob, 34), (76 + _wob, 56),
-            (67 + _wob, 46), (58 + _wob, 58), (48 + _wob, 46),
-            (40 + _wob, 58), (34 + _wob, 46)])
+            (40 + _wob, 26), (70 + _wob, 26), (70 + _wob, 48),
+            (63 + _wob, 39), (55 + _wob, 50), (47 + _wob, 39),
+            (40 + _wob, 48)])
         for _sg in (-1, 1):                           # arms out of the sides
-            pygame.draw.line(_gsurf, _gc, (55 + _wob, 26),
-                             (55 + _sg * 46 + _wob, 34 + _sg * 4), 7)
+            pygame.draw.line(_gsurf, _gc, (55 + _wob, 22),
+                             (55 + _sg * 48 + _wob, 30 + _sg * 4), 6)
         surface.blit(_gsurf, (_x - 55, _gy5 - 14))
         if self.asleep:
             pygame.draw.arc(surface, (40, 54, 74),
-                            (_x - 16 + _wob, _gy5 - 2, 14, 10), 3.4, 6.0, 2)
+                            (_x - 12 + _wob, _gy5 - 2, 11, 8), 3.4, 6.0, 2)
             pygame.draw.arc(surface, (40, 54, 74),
-                            (_x + 4 + _wob, _gy5 - 2, 14, 10), 3.4, 6.0, 2)
+                            (_x + 2 + _wob, _gy5 - 2, 11, 8), 3.4, 6.0, 2)
             for _k in range(3):
                 _zp = (self.t * 0.3 + _k * 0.33) % 1.0
                 pygame.draw.lines(surface, (236, 230, 240), False, [
@@ -662,14 +670,17 @@ class BigWac:
         else:
             for _sg in (-1, 1):                       # wide, and not blinking
                 pygame.draw.ellipse(surface, (18, 24, 38),
-                                    (_x - 14 + _wob + (0 if _sg < 0 else 18),
-                                     _gy5 - 4, 11, 14))
+                                    (_x - 11 + _wob + (0 if _sg < 0 else 13),
+                                     _gy5 - 3, 9, 12))
                 pygame.draw.circle(surface, (142, 222, 255),
-                                   (_x - 9 + _wob + (0 if _sg < 0 else 18)
+                                   (_x - 7 + _wob + (0 if _sg < 0 else 13)
                                     + self.face * 2, _gy5 + 2), 3)
             _gape = 5 + int(abs(math.sin(self.t * 1.2)) * 9)
             pygame.draw.ellipse(surface, (18, 24, 38),
-                                (_x - 7 + _wob, _gy5 + 14, 15, _gape))
+                                (_x - 6 + _wob, _gy5 + 13, 12, _gape))
+        _nm5 = font_tiny.render("WACDUBBLETOMATSPLUSLETUSGOST", True,
+                                (206, 198, 190))
+        surface.blit(_nm5, (_x - _nm5.get_width() // 2, _top - 28))
         _bw = 80
         pygame.draw.rect(surface, (40, 36, 36), (_x - _bw // 2, _top - 14, _bw, 7))
         pygame.draw.rect(surface, (226, 86, 54),
@@ -762,22 +773,25 @@ class Cylhost:
 # and what is said once the door is open.
 MAPS[1].update({
     "act": "The road east",
-    "boss_class": "BigWac",
-    "boss_name": "Big Wac",
+    "boss_class": "Wacdubbletomatsplusletusgost",
+    "boss_name": "Wacdubbletomatsplusletusgost",
     "before": [
         "The road east has one building on it and the building is a "
         "Wacdonalds. Nobody has ever established who it is for.",
         "The front door has DON'T ENTER across it in somebody's handwriting, "
         "which is the clearest sign yet that you are going the right way.",
-        "The sign on the roof is a burger four feet across, and there is "
-        "something sitting inside it between the bun and the patty, with "
-        "its arms out through the sides. It is asleep. It will not be for "
-        "long.",
+        "The sign on the roof is a burger four feet across and the menu "
+        "board gives its whole name: the Wacdubbletomatsplusletusgost. Wac, "
+        "dubble, tomats, plus letus, gost. Every word of that is in there.",
+        "The gost is the part that is alive, and it is asleep between the "
+        "patties with its arms out through the sides. It will not be asleep "
+        "for long.",
     ],
     "after": [
-        "The burger comes apart and the thing that was working it goes out "
-        "of the back of the store without looking at you. Nobody ever said "
-        "it was the burger.",
+        "The burger comes apart — two patties, three tomats and the letus "
+        "— and the gost goes out of the back of the store without looking "
+        "at you. It was the last word on the menu board and it was the only "
+        "one that mattered.",
         "There is a saddled Cylhost going east along a wire over the store, "
         "and a Cylhost going east is the fastest thing on this road.",
     ],
