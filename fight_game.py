@@ -7796,6 +7796,11 @@ def run_story_level(level, player_name, stats):
               for a, b, c, d, w in level.get("movers", ())]
     spots = [_story.PowerSpot(_mx(a), _my(b))
              for a, b in level.get("powerspots", ())]
+    ladders = [_story.Ladder(_mx(a), _my(b), _my(c))
+               for a, b, c in level.get("ladders", ())]
+    tanks = [_story.Tank(_mx(a), _my(b)) for a, b in level.get("tanks", ())]
+    bombs = [_story.BombGost(_mx(a), _my(b))
+             for a, b in level.get("bombgosts", ())]
     _boss_cls = getattr(_story, level.get("boss_class", "Wolf"))
     boss = ([_boss_cls(_mx(level["boss"][0]), _my(level["boss"][1]), plats)]
             if level.get("boss") else [])
@@ -7882,13 +7887,31 @@ def run_story_level(level, player_name, stats):
             continue
 
         # The player is just a fighter, facing whatever is nearest.
-        _alive = [e for e in wombrocks + skellamorguards + cylhosts + boss if e.hp > 0]
+        _alive = [e for e in wombrocks + skellamorguards + cylhosts
+                  + tanks + bombs + boss if e.hp > 0]
         if _alive:
             _near = min(_alive, key=lambda e: abs(e.x - p.x))
             _dummy.x, _dummy.y = float(_near.x), float(_near.y)
         else:
             _dummy.x = p.x + p.facing * 200
-        p.update(keys, _dummy, plats)
+        # A ladder: hold Q to be on it, up and down to move.
+        _on_ladder = None
+        if keys[pygame.K_q]:
+            for _ld in ladders:
+                if _ld.holds(p.x, p.y):
+                    _on_ladder = _ld
+                    break
+        if _on_ladder is not None:
+            p.x += (_on_ladder.x - p.x) * 0.35
+            if keys[P1_CTRL['jump']]:
+                p.y = max(_on_ladder.top, p.y - 3.4)
+            elif keys[P1_CTRL['duck']]:
+                p.y = min(_on_ladder.bottom, p.y + 3.4)
+            p.vy = 0.0
+            p.on_ground = True
+            p.action = 'idle'
+        else:
+            p.update(keys, _dummy, plats)
 
         # Springs throw him, portals move him, and the floor is the floor.
         for sx, sy, sdx, sdy in springs:
@@ -7936,6 +7959,45 @@ def run_story_level(level, player_name, stats):
 
         for e in _alive:
             e.update(p.x, p.y)
+        # A bomb gost going off catches whatever is next to it.
+        for _bg in bombs:
+            _br = _bg.blast_rect()
+            if _br is None:
+                continue
+            _pwb = int(40 * _story.FIGHTER_SCALE)
+            _phb = int(76 * _story.FIGHTER_SCALE)
+            if _br.colliderect(pygame.Rect(int(p.x) - _pwb // 2,
+                                           int(p.y) - _phb, _pwb, _phb)):
+                p.hp = max(0, p.hp - _bg.DMG)
+                p.hurt_timer = 30
+                p.action = 'hurt'
+                p.knockback = (1 if p.x > _bg.x else -1) * 13
+                p.flash_timer = 16
+            for _other in _alive:       # and it is not fussy about who
+                if _other is not _bg and _br.colliderect(_other.rect()):
+                    _other.hp -= _bg.DMG
+                    _other.hurt = 8
+                    if hasattr(_other, "wake"):
+                        _other.wake()
+
+        # Shells. Anything that fires them can land one on you.
+        if p.hurt_timer == 0:
+            _pw2 = int(40 * _story.FIGHTER_SCALE)
+            _ph2 = int(76 * _story.FIGHTER_SCALE)
+            _pr2 = pygame.Rect(int(p.x) - _pw2 // 2, int(p.y) - _ph2,
+                               _pw2, _ph2)
+            for e in _alive:
+                if not hasattr(e, "shell_rects"):
+                    continue
+                for _si, _sr in enumerate(e.shell_rects()):
+                    if _sr.colliderect(_pr2):
+                        p.hp = max(0, p.hp - e.DMG)
+                        p.hurt_timer = 26
+                        p.action = 'hurt'
+                        p.knockback = (1 if p.x > e.x else -1) * 9
+                        p.flash_timer = 12
+                        del e.shells[_si]
+                        break
         for mv in movers:
             mv.update()
         _ride = riding[0]
@@ -8064,6 +8126,8 @@ def run_story_level(level, player_name, stats):
                 pygame.draw.line(screen, (44, 40, 46), (_wx, _by2),
                                  (_wx + _ww, _by2), 1)
             pygame.draw.rect(screen, (96, 88, 96), (_wx, _wy, _ww, _wh), 2)
+        for _ld in ladders:
+            _ld.draw(screen)
         for mv in movers:
             mv.draw(screen)
         for sp in spots:
@@ -8161,6 +8225,9 @@ def run_story_level(level, player_name, stats):
                     e.hurt = 8
                     if hasattr(e, "wake"):
                         e.wake()          # the wolf gets up for the first one
+                    if hasattr(e, "detonate") and e.hp <= 0:
+                        e.hp = 1          # it is not dead, it is about to go
+                        e.detonate()
                     p.attack_hit = True
                     break
         if p.hurt_timer == 0:
@@ -8202,11 +8269,13 @@ def run_story_level(level, player_name, stats):
                     (26, _hy + 3))
         screen.blit(font_small.render(level["name"], True, (206, 200, 192)),
                     (252, _hy - 2))
-        _left = len([e for e in wombrocks + skellamorguards + cylhosts + boss if e.hp > 0])
+        _left = len([e for e in wombrocks + skellamorguards + cylhosts
+                     + tanks + bombs + boss if e.hp > 0])
         _goal = (f"beat the {level.get('boss_name', 'boss')}"
                  if any(b.hp > 0 for b in boss)
                  else "nothing left standing")
-        screen.blit(font_tiny.render(f"{_left} still up  ·  {_goal}",
+        _tip = "  ·  Q on a ladder" if ladders else ""
+        screen.blit(font_tiny.render(f"{_left} still up  ·  {_goal}{_tip}",
                                      True, (150, 146, 140)), (252, _hy + 20))
         if _msg_box[1]:
             _msg_box[1] -= 1

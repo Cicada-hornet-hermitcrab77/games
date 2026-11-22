@@ -121,7 +121,382 @@ MAPS = [
         "stones": [(730, 940)],
         "slabs": [],
     },
+
+    # ── Third map: the hill the tanks came down ────────────────────────────
+    {
+        "name": "The tank hill",
+        "start": (90, 940),
+        "platforms": [
+            (690, 320, 520),      # the long shelf the tanks sit on
+            (1210, 320, 420),     # the top of the hill, boss country
+            (620, 620, 400),      # the middle landing
+            (1180, 620, 300),
+        ],
+        "walls": [
+            (690, 320, 20, 300),
+            (1690, 320, 20, MAP_GROUND - 320),
+        ],
+        "ladders": [              # (x, top, bottom)
+            (980, 320, 940),
+            (1620, 320, 620),
+        ],
+        "tanks": [(830, 320), (1300, 620)],
+        "bombgosts": [(500, 940), (860, 940), (1140, 940), (1560, 940)],
+        "wombrocks": [(620, 940), (980, 940), (1250, 940)],
+        "cylhosts": [(240, 180, 860, 180)],
+        "saddled": [(220, 560, 1480, 560)],
+        "movers": [(1480, 700, 1480, 880, 100)],
+        "powerspots": [(420, 940), (1520, 620)],
+        "boss": (1460, 320),
+        "door": (1400, MAP_GROUND),
+        "stones": [],
+        "slabs": [],
+        "act": "Up the hill",
+        "boss_class": "BigTank",
+        "boss_name": "tank",
+        "before": [
+            "Past the Wacdonalds the road stops being a road and starts "
+            "being a hill, and the hill is where the Wombrocks have been "
+            "coming down from.",
+            "They are not walking. Somebody has been putting them in tanks.",
+            "There is a ladder up the middle of it — hold Q to get on, up "
+            "and down to climb — and a big one asleep on tracks at the top "
+            "with a driver in a cap looking over the lip of it.",
+        ],
+        "after": [
+            "The big one stops where it is and the driver does not get out.",
+            "Over the top of the hill, down the far side, is the town.",
+        ],
+    },
 ]
+
+
+class BombGost:
+    """A tiny one, down on the ground. It drifts at you, it swells while it
+    gets close, and then it is not there any more and neither is some of
+    your health. Kill it early and it goes off where it stands."""
+    R, HP, DMG, SPEED = 11, 14, 22, 2.1
+    RANGE, REACH = 220, 90
+    FUSE, BLAST = 70, 46           # frames once lit, and how far it reaches
+
+    def __init__(self, x, y):
+        self.x, self.y = float(x), float(y)
+        self.hp = self.HP
+        self.face = -1
+        self.hurt = 0
+        self.awake = False
+        self.lit = 0
+        self.boom = 0              # frames left of the flash, after it goes
+        self.t = 0.0
+
+    @property
+    def gone(self):
+        return self.boom > 0
+
+    def update(self, px, py):
+        self.t += 0.1
+        if self.gone:
+            self.boom -= 1
+            if self.boom <= 0:
+                self.hp = 0
+            return
+        self.awake = (abs(px - self.x) < self.RANGE
+                      and abs(py - self.y) < self.REACH)
+        if self.awake:
+            self.face = 1 if px > self.x else -1
+            self.x += self.face * self.SPEED
+            self.lit += 1
+            if abs(px - self.x) < 34 and abs(py - self.y) < 56:
+                self.detonate()
+        self.x = max(14.0, min(float(WIDTH - 14), self.x))
+        if self.hurt:
+            self.hurt -= 1
+
+    def detonate(self):
+        if not self.gone:
+            self.boom = 14
+
+    def blast_rect(self):
+        """Only a real rectangle on the frame it goes off."""
+        if self.boom != 14:
+            return None
+        return pygame.Rect(int(self.x) - self.BLAST, int(self.y) - self.BLAST,
+                           self.BLAST * 2, self.BLAST * 2)
+
+    def rect(self):
+        return pygame.Rect(int(self.x) - self.R, int(self.y) - self.R * 2,
+                           self.R * 2, self.R * 2)
+
+    def hp_bar(self, surface, top):
+        return          # it is too small to carry one
+
+    def draw(self, surface):
+        _x, _y = int(self.x), int(self.y)
+        if self.gone:
+            _f = self.boom / 14.0
+            _r = int(self.BLAST * (1.3 - _f))
+            _bs = pygame.Surface((_r * 2, _r * 2), pygame.SRCALPHA)
+            pygame.draw.circle(_bs, (255, 214, 120, int(220 * _f)), (_r, _r), _r)
+            pygame.draw.circle(_bs, (255, 120, 50, int(200 * _f)),
+                               (_r, _r), max(1, int(_r * 0.6)))
+            surface.blit(_bs, (_x - _r, _y - self.R - _r))
+            return
+        # swelling as the fuse burns down
+        _sw = 0 if not self.awake else int(abs(math.sin(self.lit * 0.25)) * 3)
+        _r = self.R + _sw
+        _bob = int(math.sin(self.t * 2.4) * 2)
+        _c = (255, 240, 240) if self.hurt else (214, 226, 242)
+        _gs = pygame.Surface((_r * 4, _r * 4), pygame.SRCALPHA)
+        _a = 235 if self.awake else 170
+        pygame.draw.circle(_gs, (*_c, _a), (_r * 2, _r * 2), _r)
+        pygame.draw.polygon(_gs, (*_c, _a), [
+            (_r, _r * 2), (_r * 3, _r * 2), (_r * 3, _r * 3),
+            (_r * 2 + _r // 2, _r * 5 // 2), (_r * 2, _r * 3),
+            (_r + _r // 2, _r * 5 // 2)])
+        surface.blit(_gs, (_x - _r * 2, _y - self.R - _r * 2 + _bob))
+        for _sg in (-1, 1):
+            pygame.draw.circle(surface, (22, 26, 40),
+                               (_x + _sg * 4 + self.face, _y - self.R - 2 + _bob),
+                               2)
+        if self.awake:               # the fuse on its head, lit
+            pygame.draw.line(surface, (120, 108, 96),
+                             (_x, _y - self.R - _r + _bob),
+                             (_x + 3, _y - self.R - _r - 7 + _bob), 2)
+            _fl = 2 + int(abs(math.sin(self.lit * 0.5)) * 2)
+            pygame.draw.circle(surface, (255, 196, 70),
+                               (_x + 3, _y - self.R - _r - 8 + _bob), _fl)
+
+
+class Ladder:
+    """Hold Q on one and you are on it. Up and down move you; let go of Q
+    and you drop off wherever you are."""
+    W = 34
+
+    def __init__(self, x, top, bottom):
+        self.x = float(x)
+        self.top = float(top)
+        self.bottom = float(bottom)
+
+    def holds(self, px, py):
+        return (abs(px - self.x) < self.W
+                and self.top - 30 <= py <= self.bottom + 12)
+
+    def draw(self, surface):
+        _x = int(self.x)
+        _t, _b = int(self.top), int(self.bottom)
+        for _sg in (-1, 1):          # the two rails
+            pygame.draw.line(surface, (158, 134, 96),
+                             (_x + _sg * 13, _t), (_x + _sg * 13, _b), 5)
+            pygame.draw.line(surface, (96, 78, 52),
+                             (_x + _sg * 13, _t), (_x + _sg * 13, _b), 1)
+        _y = _t + 10
+        while _y < _b:               # the rungs
+            pygame.draw.line(surface, (182, 158, 116),
+                             (_x - 13, _y), (_x + 13, _y), 4)
+            pygame.draw.line(surface, (96, 78, 52),
+                             (_x - 13, _y + 2), (_x + 13, _y + 2), 1)
+            _y += 26
+
+
+class Tank:
+    """A little one. It sits where it was put, swivels its gun at you, and
+    fires. It does not move and it does not need to."""
+    W, H, HP, DMG, SPEED = 26, 22, 50, 11, 0.0
+    RANGE, REACH = 420, 150
+    EVERY = 110                     # frames between shells
+
+    def __init__(self, x, y):
+        self.x, self.y = float(x), float(y)
+        self.hp = self.HP
+        self.face = -1
+        self.hurt = 0
+        self.awake = False
+        self.cool = 60
+        self.t = 0.0
+        self.shells = []
+
+    def update(self, px, py):
+        self.t += 0.1
+        self.awake = (abs(px - self.x) < self.RANGE
+                      and abs(py - self.y) < self.REACH)
+        self.face = 1 if px > self.x else -1
+        if self.cool:
+            self.cool -= 1
+        elif self.awake:
+            self.cool = self.EVERY
+            self.shells.append([self.x + self.face * 30, self.y - 20,
+                                self.face * 5.4])
+        for _sh in self.shells:
+            _sh[0] += _sh[2]
+        self.shells = [_sh for _sh in self.shells if 0 < _sh[0] < WIDTH]
+        if self.hurt:
+            self.hurt -= 1
+
+    def shell_rects(self):
+        return [pygame.Rect(int(_s[0]) - 5, int(_s[1]) - 5, 10, 10)
+                for _s in self.shells]
+
+    def rect(self):
+        return pygame.Rect(int(self.x) - self.W, int(self.y) - self.H - 10,
+                           self.W * 2, self.H + 10)
+
+    def hp_bar(self, surface, top):
+        if self.hp >= self.HP:
+            return
+        _w = 34
+        _x = int(self.x) - _w // 2
+        pygame.draw.rect(surface, (36, 32, 34), (_x, top, _w, 5))
+        pygame.draw.rect(surface, (214, 70, 54),
+                         (_x, top, int(_w * max(0, self.hp) / self.HP), 5))
+        pygame.draw.rect(surface, (120, 112, 108), (_x, top, _w, 5), 1)
+
+    def draw(self, surface):
+        _c = (255, 226, 226) if self.hurt else (178, 42, 52)
+        _dk = (255, 240, 240) if self.hurt else (108, 22, 30)
+        _x, _y = int(self.x), int(self.y)
+        _f = self.face
+        pygame.draw.polygon(surface, _c, [          # the hull
+            (_x - 24, _y - 12), (_x - 16, _y - 26), (_x + 16, _y - 26),
+            (_x + 24, _y - 12), (_x + 16, _y), (_x - 16, _y)])
+        pygame.draw.polygon(surface, _dk, [
+            (_x - 24, _y - 12), (_x - 16, _y - 26), (_x + 16, _y - 26),
+            (_x + 24, _y - 12), (_x + 16, _y), (_x - 16, _y)], 2)
+        pygame.draw.rect(surface, _dk, (_x - 9, _y - 22, 18, 14), 2,
+                         border_radius=2)           # the hatch window
+        pygame.draw.rect(surface, _c, (_x + _f * 24, _y - 22, _f * 18, 11))
+        pygame.draw.rect(surface, _dk, (_x + _f * 24, _y - 22, _f * 18, 11), 2)
+        pygame.draw.circle(surface, _c, (_x + 3, _y - 33), 9)   # the driver
+        pygame.draw.circle(surface, _dk, (_x + 3, _y - 33), 9, 2)
+        for _sg in (-1, 1):
+            pygame.draw.circle(surface, _dk, (_x + 3 + _sg * 3 + _f, _y - 35), 2)
+        pygame.draw.rect(surface, _dk, (_x + 10, _y - 42, 5, 14))   # aerial
+        for _sh in self.shells:
+            pygame.draw.circle(surface, (252, 196, 84),
+                               (int(_sh[0]), int(_sh[1])), 5)
+            pygame.draw.circle(surface, (160, 70, 20),
+                               (int(_sh[0]), int(_sh[1])), 5, 1)
+
+
+class BigTank:
+    """The one at the top of the hill, on tracks, with somebody in a cap
+    looking over the lip of it. It drives at you and it does not stop."""
+    W, H, HP, DMG, SPEED = 62, 52, 240, 18, 2.4
+    RANGE, REACH = 520, 260
+    EVERY = 150
+
+    def __init__(self, x, y, plats=()):
+        self.x, self.y = float(x), float(y)
+        self.hp = self.HP
+        self.face = -1
+        self.hurt = 0
+        self.awake = False
+        self.asleep = True
+        self.cool = 80
+        self.t = 0.0
+        self.roll = 0.0
+        self.shells = []
+        self.plats = list(plats)
+
+    def wake(self):
+        self.asleep = False
+
+    def _floor_under(self):
+        best = float(GROUND_Y)
+        for pl in self.plats:
+            if pl.x - 12 <= self.x <= pl.x + pl.w + 12 and pl.y >= self.y - 6:
+                best = min(best, float(pl.y))
+        return best
+
+    def update(self, px, py):
+        self.t += 0.1
+        if self.asleep:
+            self.awake = False
+            return
+        self.awake = (abs(px - self.x) < self.RANGE
+                      and abs(py - self.y) < self.REACH)
+        self.face = 1 if px > self.x else -1
+        if self.awake:
+            self.x += self.face * self.SPEED
+            self.roll += self.SPEED
+        self.y = self._floor_under()
+        self.x = max(40.0, min(float(WIDTH - 40), self.x))
+        if self.cool:
+            self.cool -= 1
+        elif self.awake:
+            self.cool = self.EVERY
+            for _dy in (0, -14):     # two barrels, one after the other
+                self.shells.append([self.x + self.face * 64,
+                                    self.y - 34 + _dy, self.face * 6.6])
+        for _sh in self.shells:
+            _sh[0] += _sh[2]
+        self.shells = [_sh for _sh in self.shells if 0 < _sh[0] < WIDTH]
+        if self.hurt:
+            self.hurt -= 1
+
+    def shell_rects(self):
+        return [pygame.Rect(int(_s[0]) - 6, int(_s[1]) - 6, 12, 12)
+                for _s in self.shells]
+
+    def rect(self):
+        return pygame.Rect(int(self.x) - self.W, int(self.y) - self.H - 16,
+                           self.W * 2, self.H + 16)
+
+    def draw(self, surface):
+        _c = (255, 226, 226) if self.hurt else (186, 40, 52)
+        _dk = (255, 240, 240) if self.hurt else (112, 20, 28)
+        _x, _y = int(self.x), int(self.y)
+        _f = self.face
+        pygame.draw.rect(surface, _dk, (_x - 56, _y - 20, 112, 20),
+                         border_radius=9)            # the track band
+        for _k in range(6):                          # the road wheels
+            _wx = _x - 44 + _k * 18
+            pygame.draw.circle(surface, _c, (_wx, _y - 10), 9)
+            _a = self.roll * 0.12 + _k
+            pygame.draw.line(surface, _dk, (_wx, _y - 10),
+                             (_wx + int(math.cos(_a) * 7),
+                              _y - 10 + int(math.sin(_a) * 7)), 2)
+        pygame.draw.polygon(surface, _c, [           # the hull
+            (_x - 50, _y - 22), (_x - 34, _y - 52), (_x + 34, _y - 52),
+            (_x + 52, _y - 34), (_x + 50, _y - 22)])
+        pygame.draw.polygon(surface, _dk, [
+            (_x - 50, _y - 22), (_x - 34, _y - 52), (_x + 34, _y - 52),
+            (_x + 52, _y - 34), (_x + 50, _y - 22)], 3)
+        pygame.draw.rect(surface, _dk, (_x - 2, _y - 44, 30, 20), 3,
+                         border_radius=2)
+        for _dy in (0, -14):                         # two barrels
+            pygame.draw.rect(surface, _c,
+                             (_x + _f * 50, _y - 40 + _dy, _f * 34, 13))
+            pygame.draw.rect(surface, _dk,
+                             (_x + _f * 50, _y - 40 + _dy, _f * 34, 13), 3)
+        if not self.asleep:                          # the driver, and the cap
+            pygame.draw.circle(surface, _c, (_x - 12, _y - 62), 11)
+            pygame.draw.circle(surface, _dk, (_x - 12, _y - 62), 11, 2)
+            pygame.draw.polygon(surface, _dk, [
+                (_x - 24, _y - 70), (_x + 2, _y - 76),
+                (_x + 6, _y - 68), (_x - 22, _y - 64)])
+            for _sg in (-1, 1):
+                pygame.draw.circle(surface, _dk,
+                                   (_x - 12 + _sg * 4 + _f * 2, _y - 64), 2)
+        else:
+            for _k in range(3):
+                _zp = (self.t * 0.3 + _k * 0.33) % 1.0
+                pygame.draw.lines(surface, (236, 230, 240), False, [
+                    (_x + 24 + int(_zp * 14), _y - 64 - int(_zp * 22)),
+                    (_x + 29 + int(_zp * 14), _y - 64 - int(_zp * 22)),
+                    (_x + 24 + int(_zp * 14), _y - 59 - int(_zp * 22)),
+                    (_x + 29 + int(_zp * 14), _y - 59 - int(_zp * 22))], 2)
+        for _sh in self.shells:
+            pygame.draw.circle(surface, (252, 196, 84),
+                               (int(_sh[0]), int(_sh[1])), 6)
+            pygame.draw.circle(surface, (160, 70, 20),
+                               (int(_sh[0]), int(_sh[1])), 6, 1)
+        _bw = 110
+        pygame.draw.rect(surface, (40, 36, 36), (_x - _bw // 2, _y - 88, _bw, 8))
+        pygame.draw.rect(surface, (226, 86, 54),
+                         (_x - _bw // 2, _y - 88,
+                          int(_bw * max(0, self.hp) / self.HP), 8))
+        pygame.draw.rect(surface, (120, 112, 108),
+                         (_x - _bw // 2, _y - 88, _bw, 8), 1)
 
 
 class MovingPlatform:
@@ -824,7 +1199,7 @@ MAPS[0].update({
 # YOU — a tombstone called Tombstone, and a black and white lunatic, who is
 # Legacy Jawke. You are the one they asked, and you walk the first yard as
 # the Gunner, because the Wombrocks do not let you close.
-_CAST = ["Gunner", "Gunner"]
+_CAST = ["Gunner", "Gunner", "Gunner"]
 
 
 def player_for(idx):

@@ -659,7 +659,11 @@ for _m9 in ST.MAPS:
         assert 0 < ST.mx(_sp9[0]) < _C.WIDTH
     for _sd9 in _m9.get("saddled", ()):
         assert len(_sd9) == 4
-assert len(ST.MAPS) == 2, len(ST.MAPS)
+    for _ld9 in _m9.get("ladders", ()):
+        assert len(_ld9) == 3 and ST.my(_ld9[1]) < ST.my(_ld9[2]), _ld9
+    for _tk9 in list(_m9.get("tanks", ())) + list(_m9.get("bombgosts", ())):
+        assert 0 < ST.mx(_tk9[0]) < _C.WIDTH
+assert len(ST.MAPS) == 3, len(ST.MAPS)
 assert ST.MAPS[0].get("house") and ST.MAPS[1].get("store")
 # the orange slab carries, the gold spot keeps giving
 _mv = ST.MovingPlatform(100, 200, 300, 200, 80)
@@ -680,6 +684,47 @@ assert _cs.awake
 _cs.ridden = True
 _cs.update(85.0, 100.0)
 assert not _cs.awake, "you cannot be bitten by what you are sitting on"
+# a bomb gost drifts at you, swells, and goes off once — then it is gone
+_bg9 = ST.BombGost(400, 400)
+for _ in range(40):
+    _bg9.update(900.0, 400.0)       # out of range: it stays put
+assert _bg9.x == 400.0 and not _bg9.awake and not _bg9.gone
+for _ in range(40):
+    _bg9.update(520.0, 400.0)
+assert _bg9.awake and _bg9.x > 400.0
+_bg9.update(_bg9.x + 10, 400.0)     # close enough to go off
+assert _bg9.gone and _bg9.blast_rect() is not None
+assert _bg9.blast_rect().width == ST.BombGost.BLAST * 2
+for _ in range(20):
+    _bg9.update(500.0, 400.0)
+assert _bg9.hp <= 0 and _bg9.blast_rect() is None, "it only goes off once"
+# a tank shoots at range and the shells travel
+_tk = ST.Tank(400, 400)
+for _ in range(ST.Tank.EVERY + 10):
+    _tk.update(700.0, 400.0)
+assert _tk.shells and _tk.shells[0][0] > 400.0, _tk.shells
+assert _tk.shell_rects()[0].width > 0
+_tk2 = ST.Tank(400, 400)
+for _ in range(ST.Tank.EVERY + 10):
+    _tk2.update(880.0, 90.0)        # out of reach vertically
+assert not _tk2.shells, "it cannot shoot what it cannot see"
+# a ladder holds you along its length and nowhere else
+_ld = ST.Ladder(300, 100, 400)
+assert _ld.holds(300.0, 200.0) and _ld.holds(312.0, 395.0)
+assert not _ld.holds(400.0, 200.0) and not _ld.holds(300.0, 600.0)
+# the big tank sleeps, then drives
+_bt = ST.BigTank(400, 400)
+assert _bt.asleep and _bt.HP > ST.Tank.HP
+for _ in range(60):
+    _bt.update(500.0, 400.0)
+assert _bt.asleep and _bt.x == 400.0
+_bt.wake()
+_bt.x = 400.0
+_bt.cool = 1
+_bt.update(560.0, 400.0)
+_bt.update(560.0, 400.0)
+assert len(_bt.shells) >= 2, ("two barrels, two shells", _bt.shells)
+assert _bt.x > 400.0, "and it drives at you while it fires"
 # the Wacdubbletomatsplusletusgost sleeps on its block like the wolf does
 _bw = ST.Wacdubbletomatsplusletusgost(400, 300)
 assert _bw.asleep and _bw.HP > 0
