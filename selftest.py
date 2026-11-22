@@ -661,6 +661,18 @@ for _m9 in ST.MAPS:
         assert len(_sd9) == 4
     for _ld9 in _m9.get("ladders", ()):
         assert len(_ld9) == 3 and ST.my(_ld9[1]) < ST.my(_ld9[2]), _ld9
+        assert ST.my(_ld9[2]) <= _C.HEIGHT, _ld9
+    if _m9.get("underground"):
+        _ug9 = _m9["underground"]
+        assert _ug9[1] > ST.MAP_GROUND, "an underground room is under the ground"
+        assert ST.my(_ug9[1]) > _C.GROUND_Y, _ug9
+        assert ST.my(_ug9[1] + _ug9[3]) <= _C.HEIGHT, "and it fits on screen"
+        assert _m9.get("holes"), "a room you cannot fall into is a cellar"
+        for _h9 in _m9["holes"]:
+            assert ST.mx(_h9[0]) < ST.mx(_h9[1]), _h9
+        # a ladder has to reach it, or you are stuck down there
+        assert any(ST.my(_l9[2]) >= ST.my(_ug9[1])
+                   for _l9 in _m9.get("ladders", ())), "no way back up"
     for _tk9 in list(_m9.get("tanks", ())) + list(_m9.get("bombgosts", ())):
         assert 0 < ST.mx(_tk9[0]) < _C.WIDTH
 assert len(ST.MAPS) == 3, len(ST.MAPS)
@@ -708,6 +720,10 @@ _tk2 = ST.Tank(400, 400)
 for _ in range(ST.Tank.EVERY + 10):
     _tk2.update(880.0, 90.0)        # out of reach vertically
 assert not _tk2.shells, "it cannot shoot what it cannot see"
+# below the ground line, map y stretches into the floor strip
+assert ST.my(ST.MAP_GROUND) == _C.GROUND_Y
+assert ST.my(ST.MAP_H) <= _C.HEIGHT, ST.my(ST.MAP_H)
+assert ST.my(ST.MAP_GROUND + 50) > _C.GROUND_Y
 # a ladder holds you along its length and nowhere else
 _ld = ST.Ladder(300, 100, 400)
 assert _ld.holds(300.0, 200.0) and _ld.holds(312.0, 395.0)

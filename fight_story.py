@@ -34,7 +34,14 @@ def mx(v):
 
 
 def my(v):
-    return int(v * GROUND_Y / float(MAP_GROUND))
+    """Map y onto screen y. Above the ground line the two scale together;
+    below it the thin band of paper under the ground is stretched over the
+    whole floor strip, which is where an underground room lives."""
+    if v <= MAP_GROUND:
+        return int(v * GROUND_Y / float(MAP_GROUND))
+    _depth = max(1, MAP_H - MAP_GROUND)
+    _room = HEIGHT - GROUND_Y - 6
+    return int(GROUND_Y + (v - MAP_GROUND) * _room / float(_depth))
 
 
 # The legend the maps are drawn in:
@@ -137,7 +144,7 @@ MAPS = [
             (1690, 320, 20, MAP_GROUND - 320),
         ],
         "ladders": [              # (x, top, bottom)
-            (980, 320, 940),
+            (980, 320, 1065),     # all the way down into the room below
             (1620, 320, 620),
         ],
         "tanks": [(830, 320), (1300, 620)],
@@ -151,6 +158,13 @@ MAPS = [
         "door": (1400, MAP_GROUND),
         "stones": [],
         "slabs": [],
+        # Under the hill: a room with a coffin in it and two of them stood
+        # over it, and a wire running the length of it.
+        "underground": (300, 985, 1340, 95),
+        "holes": [(1020, 1120)],
+        "under_coffin": (880, 1012, 190, 46),
+        "under_guards": [(810, 1062), (1140, 1062)],
+        "under_cylhosts": [(380, 1035, 1560, 1035)],
         "act": "Up the hill",
         "boss_class": "BigTank",
         "boss_name": "tank",
@@ -162,9 +176,13 @@ MAPS = [
             "There is a ladder up the middle of it — hold Q to get on, up "
             "and down to climb — and a big one asleep on tracks at the top "
             "with a driver in a cap looking over the lip of it.",
+            "The same ladder goes the other way as well. There is a hole in "
+            "the ground beside it.",
         ],
         "after": [
             "The big one stops where it is and the driver does not get out.",
+            "There is a room under the hill with a coffin in it and two of "
+            "them stood over it, and nobody has said what is in the coffin.",
             "Over the top of the hill, down the far side, is the town.",
         ],
     },

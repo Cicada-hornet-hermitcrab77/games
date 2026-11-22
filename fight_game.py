@@ -7804,6 +7804,20 @@ def run_story_level(level, player_name, stats):
     _boss_cls = getattr(_story, level.get("boss_class", "Wolf"))
     boss = ([_boss_cls(_mx(level["boss"][0]), _my(level["boss"][1]), plats)]
             if level.get("boss") else [])
+    # The room under the floor, if this map has one.
+    under = level.get("underground")
+    if under:
+        under = (_mx(under[0]), _my(under[1]), _mx(under[2]), _my(under[3]))
+        plats.append(Platform(under[0], under[1] + under[3], under[2]))
+    _holes = [(_mx(a), _mx(b)) for a, b in level.get("holes", ())]
+    under_coffin = level.get("under_coffin")
+    if under_coffin:
+        under_coffin = (_mx(under_coffin[0]), _my(under_coffin[1]),
+                        _mx(under_coffin[2]), _my(under_coffin[3]))
+    skellamorguards += [_story.Skellamorguard(_mx(a), _my(b))
+                        for a, b in level.get("under_guards", ())]
+    cylhosts += [_story.Cylhost(_mx(a), _my(b), _mx(c), _my(d))
+                 for a, b, c, d in level.get("under_cylhosts", ())]
     store = level.get("store")
     if store:
         store = (_mx(store[0]), _my(store[1]), _mx(store[2]), _my(store[3]))
@@ -7827,6 +7841,8 @@ def run_story_level(level, player_name, stats):
     stones = [(_mx(a), _my(b)) for a, b in level.get("stones", ())]
     slabs  = [(_mx(a), _my(b), _mx(c), _my(d)) for a, b, c, d in level.get("slabs", ())]
 
+    _prev_holes = list(getattr(constants, "GROUND_HOLES", []))
+    constants.GROUND_HOLES = list(_holes)
     p = Fighter(_mx(level["start"][0]), _ch, 1, P1_CTRL)
     # The map is a 1920x1080 drawing squashed onto a 900x550 screen, so the
     # fighter gets squashed with it or he stands taller than the houses.
@@ -7855,6 +7871,7 @@ def run_story_level(level, player_name, stats):
                 _touch.handle_event(event)
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
+                    constants.GROUND_HOLES = _prev_holes
                     return False
                 if event.key == pygame.K_r and p.hp <= 0:
                     _retry = True
@@ -7878,6 +7895,7 @@ def run_story_level(level, player_name, stats):
         if p.hp <= 0:
             # Down. The yard holds still until you say what happens next.
             if _retry:
+                constants.GROUND_HOLES = _prev_holes
                 return run_story_level(level, player_name, stats)
             _ls = font_medium.render("DOWN IN THE YARD", True, (230, 80, 80))
             screen.blit(_ls, (WIDTH // 2 - _ls.get_width() // 2, HEIGHT // 2 - 20))
@@ -8120,6 +8138,36 @@ def run_story_level(level, player_name, stats):
         for _gx2 in range(0, WIDTH, 11):   # grass along the lip
             pygame.draw.line(screen, (74, 118, 62), (_gx2, GROUND_Y),
                              (_gx2 + ((_gx2 // 11) % 3) - 1, GROUND_Y - 6), 2)
+        if under:
+            _ux, _uy, _uw, _uh = under
+            pygame.draw.rect(screen, (30, 24, 22), (_ux, _uy, _uw, _uh))
+            pygame.draw.rect(screen, (86, 70, 54), (_ux, _uy, _uw, _uh), 3)
+            for _bx5 in range(_ux + 8, _ux + _uw - 8, 34):   # the brick courses
+                pygame.draw.line(screen, (54, 44, 36),
+                                 (_bx5, _uy + 4), (_bx5, _uy + _uh - 4), 1)
+            pygame.draw.line(screen, (54, 44, 36),
+                             (_ux, _uy + _uh // 2), (_ux + _uw, _uy + _uh // 2), 1)
+            for _hx5, _hx6 in _holes:   # the floor is open where the hole is
+                pygame.draw.rect(screen, (22, 18, 18),
+                                 (_hx5, GROUND_Y - 2, _hx6 - _hx5, _uy - GROUND_Y + 4))
+                for _ex5 in (_hx5, _hx6):
+                    pygame.draw.line(screen, (74, 108, 62),
+                                     (_ex5, GROUND_Y), (_ex5, _uy), 2)
+        if under_coffin:
+            _cx5, _cy5, _cw5, _ch5 = under_coffin
+            pygame.draw.polygon(screen, (74, 132, 186), [
+                (_cx5, _cy5 + _ch5 // 2), (_cx5 + _cw5 // 5, _cy5),
+                (_cx5 + _cw5 * 4 // 5, _cy5), (_cx5 + _cw5, _cy5 + _ch5 // 2),
+                (_cx5 + _cw5 * 4 // 5, _cy5 + _ch5),
+                (_cx5 + _cw5 // 5, _cy5 + _ch5)])
+            pygame.draw.polygon(screen, (34, 70, 110), [
+                (_cx5, _cy5 + _ch5 // 2), (_cx5 + _cw5 // 5, _cy5),
+                (_cx5 + _cw5 * 4 // 5, _cy5), (_cx5 + _cw5, _cy5 + _ch5 // 2),
+                (_cx5 + _cw5 * 4 // 5, _cy5 + _ch5),
+                (_cx5 + _cw5 // 5, _cy5 + _ch5)], 2)
+            pygame.draw.line(screen, (34, 70, 110),
+                             (_cx5 + _cw5 // 2, _cy5 + 4),
+                             (_cx5 + _cw5 // 2, _cy5 + _ch5 - 4), 2)
         for _wx, _wy, _ww, _wh in walls:
             pygame.draw.rect(screen, (58, 52, 58), (_wx, _wy, _ww, _wh))
             for _by2 in range(_wy, _wy + _wh, 18):   # courses of stone
@@ -8250,6 +8298,7 @@ def run_story_level(level, player_name, stats):
                 True, (255, 210, 110))
             screen.blit(_ws, (WIDTH // 2 - _ws.get_width() // 2, 120))
             if _won > FPS * 2:
+                constants.GROUND_HOLES = _prev_holes
                 return True
         if coffin and not coffin_open and not [g for g in skellamorguards if g.hp > 0]:
             _cx3, _cy3, _cw3, _ch3 = coffin
@@ -8259,7 +8308,7 @@ def run_story_level(level, player_name, stats):
                 _msg, _msg_t = "the coffin was not empty  ·  +25 coins", 140
 
         # The HUD lives on the floor strip, out of the way of the yard.
-        _hb, _hy = 220, GROUND_Y + 16
+        _hb, _hy = 220, (20 if under else GROUND_Y + 16)
         pygame.draw.rect(screen, (60, 60, 60), (20, _hy, _hb, 18), border_radius=4)
         pygame.draw.rect(screen, _ch["color"],
                          (20, _hy, int(_hb * max(0, p.hp) / p.max_hp), 18),
