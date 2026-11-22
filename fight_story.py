@@ -144,16 +144,18 @@ MAPS = [
             (1690, 320, 20, MAP_GROUND - 320),
         ],
         "ladders": [              # (x, top, bottom)
-            (980, 320, 1065),     # all the way down into the room below
+            (980, 320, 940),
             (1620, 320, 620),
         ],
         "tanks": [(830, 320), (1300, 620)],
         "bombgosts": [(500, 940), (860, 940), (1140, 940), (1560, 940)],
-        "wombrocks": [(620, 940), (980, 940), (1250, 940)],
+        "wombrocks": [(1560, 940)],
         "cylhosts": [(240, 180, 860, 180)],
         "saddled": [(220, 560, 1480, 560)],
         "movers": [(1480, 700, 1480, 880, 100)],
         "powerspots": [(420, 940), (1520, 620)],
+        # The way down. There is no hole — you go through.
+        "portals": [((1620, 880), (1540, 1030))],
         "boss": (1460, 320),
         "door": (1400, MAP_GROUND),
         "stones": [],
@@ -161,23 +163,23 @@ MAPS = [
         # Under the hill: a room with a coffin in it and two of them stood
         # over it, and a wire running the length of it.
         "underground": (300, 985, 1340, 95),
-        "holes": [(1020, 1120)],
         "under_coffin": (880, 1012, 190, 46),
         "under_guards": [(810, 1062), (1140, 1062)],
         "under_cylhosts": [(380, 1035, 1560, 1035)],
         "act": "Up the hill",
-        "boss_class": "BigTank",
-        "boss_name": "tank",
+        "boss_class": "BigTankagast",
+        "boss_name": "big Tankagast",
         "before": [
             "Past the Wacdonalds the road stops being a road and starts "
             "being a hill, and the hill is where the Wombrocks have been "
             "coming down from.",
-            "They are not walking. Somebody has been putting them in tanks.",
+            "They are not walking. Somebody has been putting them in "
+            "Tankagasts.",
             "There is a ladder up the middle of it — hold Q to get on, up "
             "and down to climb — and a big one asleep on tracks at the top "
             "with a driver in a cap looking over the lip of it.",
-            "The same ladder goes the other way as well. There is a hole in "
-            "the ground beside it.",
+            "There is a portal standing at the far end of the hill, and a "
+            "room under the ground for it to put you in.",
         ],
         "after": [
             "The big one stops where it is and the driver does not get out.",
@@ -316,7 +318,7 @@ class Ladder:
             _y += 26
 
 
-class Tank:
+class Tankagast:
     """A little one. It sits where it was put, swivels its gun at you, and
     fires. It does not move and it does not need to."""
     W, H, HP, DMG, SPEED = 26, 22, 50, 11, 0.0
@@ -395,7 +397,7 @@ class Tank:
                                (int(_sh[0]), int(_sh[1])), 5, 1)
 
 
-class BigTank:
+class BigTankagast:
     """The one at the top of the hill, on tracks, with somebody in a cap
     looking over the lip of it. It drives at you and it does not stop."""
     W, H, HP, DMG, SPEED = 62, 52, 240, 18, 2.4

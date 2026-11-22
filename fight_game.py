@@ -7798,7 +7798,7 @@ def run_story_level(level, player_name, stats):
              for a, b in level.get("powerspots", ())]
     ladders = [_story.Ladder(_mx(a), _my(b), _my(c))
                for a, b, c in level.get("ladders", ())]
-    tanks = [_story.Tank(_mx(a), _my(b)) for a, b in level.get("tanks", ())]
+    tanks = [_story.Tankagast(_mx(a), _my(b)) for a, b in level.get("tanks", ())]
     bombs = [_story.BombGost(_mx(a), _my(b))
              for a, b in level.get("bombgosts", ())]
     _boss_cls = getattr(_story, level.get("boss_class", "Wolf"))

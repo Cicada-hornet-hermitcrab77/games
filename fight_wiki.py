@@ -1248,7 +1248,9 @@ PAGES = [
                                         "the sign is awake"),
          ("kv", "The tank hill", "where the Wombrocks have been coming down "
                                  "from, and they are not walking — somebody "
-                                 "has been putting them in tanks"),
+                                 "has been putting them in Tankagasts. There "
+                                 "is a portal at the far end and a room "
+                                 "under the ground for it to put you in"),
          ("kv", "Wombrock Town", "east side of the world map, and now a stage"),
          "Rooftops to fight across — the low roof by the gate, the hall with "
          "half of it gone, the watch post, and the bell tower walkway over "
@@ -1290,15 +1292,17 @@ PAGES = [
                                      "on it"),
          ("kv", "Ladders", "hold Q to get on one, up and down to climb, "
                            "let go of Q to drop off"),
-         ("kv", "Tanks", "50 health, shells for 11 — they sit where they are "
-                         "put and shoot across the whole screen"),
+         ("kv", "Tankagasts", "50 health, shells for 11 — they sit where "
+                              "they were put and shoot across the whole "
+                              "screen. The big one at the top of the hill "
+                              "is a Big Tankagast"),
          ("kv", "Bomb gosts", "14 health, 22 in the blast — tiny, down on "
                               "the ground. They drift at you, swell, and go "
                               "off. Kill one early and it goes off where it "
                               "stands, which is not always a bad thing"),
-         ("kv", "The big tank", "240 health, shells for 18, two barrels, on "
-                                "tracks with a driver in a cap. Asleep until "
-                                "you start it"),
+         ("kv", "The big Tankagast", "240 health, shells for 18 out of two "
+                                     "barrels, on tracks with a driver in a "
+                                     "cap. Asleep until you start it"),
          ("kv", "Wacdubbletomatsplusletusgost", "the sign off the Wacdonalds roof — and the "
                                "burger is not the thing that is alive. "
                                "There is a ghost sitting in it between the "

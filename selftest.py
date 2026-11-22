@@ -667,12 +667,13 @@ for _m9 in ST.MAPS:
         assert _ug9[1] > ST.MAP_GROUND, "an underground room is under the ground"
         assert ST.my(_ug9[1]) > _C.GROUND_Y, _ug9
         assert ST.my(_ug9[1] + _ug9[3]) <= _C.HEIGHT, "and it fits on screen"
-        assert _m9.get("holes"), "a room you cannot fall into is a cellar"
-        for _h9 in _m9["holes"]:
-            assert ST.mx(_h9[0]) < ST.mx(_h9[1]), _h9
-        # a ladder has to reach it, or you are stuck down there
-        assert any(ST.my(_l9[2]) >= ST.my(_ug9[1])
-                   for _l9 in _m9.get("ladders", ())), "no way back up"
+        # there has to be a way in, and the same way back out
+        _in9 = [ST.my(_e9[1]) >= ST.my(_ug9[1])
+                for _pp9 in _m9.get("portals", ()) for _e9 in _pp9]
+        _in9 += [ST.my(_l9[2]) >= ST.my(_ug9[1])
+                 for _l9 in _m9.get("ladders", ())]
+        _in9 += [True for _h9 in _m9.get("holes", ())]
+        assert any(_in9), "a room with no way into it is a cellar"
     for _tk9 in list(_m9.get("tanks", ())) + list(_m9.get("bombgosts", ())):
         assert 0 < ST.mx(_tk9[0]) < _C.WIDTH
 assert len(ST.MAPS) == 3, len(ST.MAPS)
@@ -711,13 +712,13 @@ for _ in range(20):
     _bg9.update(500.0, 400.0)
 assert _bg9.hp <= 0 and _bg9.blast_rect() is None, "it only goes off once"
 # a tank shoots at range and the shells travel
-_tk = ST.Tank(400, 400)
-for _ in range(ST.Tank.EVERY + 10):
+_tk = ST.Tankagast(400, 400)
+for _ in range(ST.Tankagast.EVERY + 10):
     _tk.update(700.0, 400.0)
 assert _tk.shells and _tk.shells[0][0] > 400.0, _tk.shells
 assert _tk.shell_rects()[0].width > 0
-_tk2 = ST.Tank(400, 400)
-for _ in range(ST.Tank.EVERY + 10):
+_tk2 = ST.Tankagast(400, 400)
+for _ in range(ST.Tankagast.EVERY + 10):
     _tk2.update(880.0, 90.0)        # out of reach vertically
 assert not _tk2.shells, "it cannot shoot what it cannot see"
 # below the ground line, map y stretches into the floor strip
@@ -729,8 +730,8 @@ _ld = ST.Ladder(300, 100, 400)
 assert _ld.holds(300.0, 200.0) and _ld.holds(312.0, 395.0)
 assert not _ld.holds(400.0, 200.0) and not _ld.holds(300.0, 600.0)
 # the big tank sleeps, then drives
-_bt = ST.BigTank(400, 400)
-assert _bt.asleep and _bt.HP > ST.Tank.HP
+_bt = ST.BigTankagast(400, 400)
+assert _bt.asleep and _bt.HP > ST.Tankagast.HP
 for _ in range(60):
     _bt.update(500.0, 400.0)
 assert _bt.asleep and _bt.x == 400.0
