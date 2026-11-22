@@ -864,6 +864,16 @@ def mode_select(unlocked=None, stats=None):
     _wiki_wait = [0]       # B is the wiki key, so during the event it waits a
                            # third of a second to see if "oo" follows
 
+    # ── Feasterween easter eggs, all only during Feasterween ──────────────
+    _gob_buf   = ""        # type "gobble" and the whole menu gobbles
+    _gobble    = [0]       # frames of it left
+    _turkeys   = []        # [x, y, dir, t] — a flock crossing, when it does
+    _turk      = [None]    # one wandering along the bottom, to be caught
+    _turk_cd   = [FPS * 6]
+    _turks_got = [0]       # how many you have caught
+    _pie       = [0, None] # slices eaten, and where the pie is on screen
+    _pie_crumb = []        # [x, y, vx, vy, life] off each bite
+
     _type42_buf = ""
     _secret_seq = "all_the_secrets_of_the_world"
     _secret_buf = ""
@@ -910,6 +920,8 @@ def mode_select(unlocked=None, stats=None):
         _ev_mode_ev = get_active_event()
         _hallow     = bool(_ev_mode_ev and
                            _ev_mode_ev.get("name") == "Echoes of the Undying")
+        _feast_ev   = bool(_ev_mode_ev and
+                           _ev_mode_ev.get("name") == "Feasterween")
         _ev_mode    = _ev_mode_ev.get("special_mode") if _ev_mode_ev else None
         _ev_label   = _ev_mode_ev.get("special_mode_label", "Event Mode") if _ev_mode_ev and _ev_mode else None
         _ev_cost    = _ev_mode_ev.get("special_mode_cost") if _ev_mode_ev and _ev_mode else None
@@ -1065,6 +1077,24 @@ def mode_select(unlocked=None, stats=None):
                     _bat[0] = None
                     _bat_cd[0] = FPS * 4
                     continue
+                # A turkey wandering the bottom of the screen — catch it
+                if _turk[0] and math.hypot(_turk[0][0] - _mp[0],
+                                           _turk[0][1] - _mp[1]) < 30:
+                    _turks_got[0] += 1
+                    _turk[0] = None
+                    _turk_cd[0] = FPS * 3
+                    continue
+                # The pie, which goes one slice at a time
+                if _pie[1] and _pie[1].collidepoint(_mp):
+                    if _pie[0] < 6:
+                        _pie[0] += 1
+                        for _ci in range(7):
+                            _pie_crumb.append([
+                                float(_pie[1].centerx),
+                                float(_pie[1].centery),
+                                random.uniform(-2.4, 2.4),
+                                random.uniform(-3.4, -0.6), 34])
+                    continue
                 # The pumpkin sitting in the corner
                 if _pumpkin[1] and _pumpkin[1].collidepoint(_mp):
                     _pumpkin[0] += 1
@@ -1086,8 +1116,30 @@ def mode_select(unlocked=None, stats=None):
                     touch_p2_enabled[0] = touch_p1_enabled[0]
             if event.type == pygame.KEYDOWN:
                 # Track "42" typed anywhere on main menu
-                if _hallow and hasattr(event, 'unicode') and event.unicode:
-                    _boo_buf = (_boo_buf + event.unicode.lower())[-4:]
+                # Mid-word in one of the event words? B is the wiki key and
+                # E is the event key, and "gobble" has both in it.
+                _typing_word = False
+                if (_hallow or _feast_ev) and hasattr(event, 'unicode') \
+                        and event.unicode:
+                    _gob_buf = (_gob_buf + event.unicode.lower())[-7:]
+                    _typing_word = _feast_ev and any(
+                        "gobble".startswith(_gob_buf[-_k:])
+                        for _k in range(2, len(_gob_buf) + 1))
+                    if _wiki_wait[0] and _typing_word:
+                        _wiki_wait[0] = 60      # still going; keep holding off
+                    if _feast_ev and _gob_buf.endswith("gobble"):
+                        _gobble[0] = FPS * 4
+                        _gob_buf = ""
+                        _wiki_wait[0] = 0       # it was a gobble, not the wiki
+                        for _gi in range(7):      # a flock, crossing
+                            _gd = random.choice((1, -1))
+                            _turkeys.append([
+                                float(-60 - _gi * 70 if _gd > 0
+                                      else WIDTH + 60 + _gi * 70),
+                                float(random.randint(150, HEIGHT - 150)),
+                                _gd, _gi * 0.7])
+                    _boo_buf = ((_boo_buf + event.unicode.lower())[-4:]
+                                if _hallow else "")
                     if _boo_buf.endswith("boo"):
                         _boo[0] = FPS * 2
                         _boo_buf = ""
@@ -1174,8 +1226,12 @@ def mode_select(unlocked=None, stats=None):
                 if event.key == pygame.K_v:
                     achievements_screen(stats, _net.load_userdata())
                 if event.key == pygame.K_b:
+                    # B is the wiki key, and two of the event words have a b
+                    # in them. During an event it waits to see what follows.
                     if _hallow:
                         _wiki_wait[0] = 20      # might be the start of "boo"
+                    elif _typing_word:
+                        _wiki_wait[0] = 60      # might be the middle of "gobble"
                     else:
                         wiki_screen(unlocked, stats)
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE) and not _feast[0]:
@@ -1183,7 +1239,8 @@ def mode_select(unlocked=None, stats=None):
                             and not (selected == 7 and not _story_open):
                         if _home_lobby: _home_lobby.close()
                         return _mode_confirm()
-                if event.key == pygame.K_e and _ev_mode and not _feast[0]:
+                if event.key == pygame.K_e and _ev_mode and not _feast[0] \
+                        and not _typing_word:
                     if _home_lobby: _home_lobby.close()
                     return _ev_mode
 
@@ -1670,6 +1727,7 @@ def mode_select(unlocked=None, stats=None):
                         pygame.draw.circle(screen, (240, 140, 50),
                                            (_bcx + _sg * 3, _bcy - 2), 2)
 
+
             # A pumpkin sitting in the corner, which lights up as you press it
             _pk = pygame.Rect(WIDTH - 72, HEIGHT - 56, 56, 48)
             _pumpkin[1] = _pk
@@ -1734,6 +1792,126 @@ def mode_select(unlocked=None, stats=None):
                 pygame.draw.ellipse(_gh3, (24, 22, 32, 230),
                                     (_gr7 - 9, int(_gr7 * 1.12), 18, 14))
                 screen.blit(_gh3, (_gx7 - _gr7, _gy7 - _gr7))
+
+        # ── Feasterween: a turkey, a pie, and the word "gobble" ───────────
+        if _feast_ev:
+            def _draw_turkey(_tx, _ty, _dir, _ph, _sc=1.0):
+                _b = lambda v: int(v * _sc)
+                _step = math.sin(_ph * 3.4) * 3
+                for _sg in (-1, 1):       # the tail fan, behind
+                    pass
+                for _fi in range(7):
+                    _fa = -2.5 + _fi * 0.42
+                    _fl = _b(22 + 4 * math.sin(_fi * 1.1))
+                    _fc = ((128, 74, 42), (164, 100, 50), (192, 138, 68),
+                           (146, 56, 44), (192, 138, 68), (164, 100, 50),
+                           (128, 74, 42))[_fi]
+                    pygame.draw.line(screen, _fc, (_tx - _dir * _b(10), _ty),
+                                     (_tx - _dir * _b(10) - _dir * int(math.cos(_fa) * _fl),
+                                      _ty + int(math.sin(_fa) * _fl)), _b(4))
+                pygame.draw.ellipse(screen, (120, 74, 40),
+                                    (_tx - _b(14), _ty - _b(11), _b(28), _b(22)))
+                pygame.draw.ellipse(screen, (88, 52, 28),
+                                    (_tx - _b(14), _ty - _b(11), _b(28), _b(22)), 2)
+                for _sg in (-1, 1):       # legs, walking
+                    pygame.draw.line(screen, (226, 176, 60),
+                                     (_tx + _sg * _b(5), _ty + _b(9)),
+                                     (_tx + _sg * _b(5) + int(_step * _sg), _ty + _b(18)),
+                                     _b(3))
+                pygame.draw.line(screen, (120, 74, 40),
+                                 (_tx + _dir * _b(9), _ty - _b(6)),
+                                 (_tx + _dir * _b(15), _ty - _b(19)), _b(5))
+                pygame.draw.circle(screen, (142, 90, 48),
+                                   (_tx + _dir * _b(16), _ty - _b(22)), _b(8))
+                pygame.draw.polygon(screen, (238, 180, 60), [
+                    (_tx + _dir * _b(22), _ty - _b(24)),
+                    (_tx + _dir * _b(32), _ty - _b(21)),
+                    (_tx + _dir * _b(22), _ty - _b(18))])
+                pygame.draw.line(screen, (206, 54, 58),
+                                 (_tx + _dir * _b(23), _ty - _b(20)),
+                                 (_tx + _dir * _b(21), _ty - _b(11)), _b(3))
+                pygame.draw.circle(screen, (16, 14, 18),
+                                   (_tx + _dir * _b(18), _ty - _b(25)), _b(2))
+
+            # the flock, once somebody has typed the word
+            for _tk in list(_turkeys):
+                _tk[0] += _tk[2] * 5.0
+                _tk[3] += 0.12
+                _tk[1] += math.sin(_tk[3]) * 1.6
+                if -140 < _tk[0] < WIDTH + 140:
+                    _draw_turkey(int(_tk[0]), int(_tk[1]), _tk[2], _tk[3], 0.8)
+                else:
+                    _turkeys.remove(_tk)
+            if _gobble[0] > 0:
+                _gobble[0] -= 1
+                _gw = font_medium.render("GOBBLE", True,
+                                         (246, 196, 90) if _gobble[0] // 5 % 2
+                                         else (206, 108, 54))
+                screen.blit(_gw, (WIDTH // 2 - _gw.get_width() // 2 
+                                  + int(math.sin(_gobble[0] * 0.4) * 6), 108))
+
+            # one wandering the bottom, which you can catch
+            if _turk[0] is None:
+                _turk_cd[0] -= 1
+                if _turk_cd[0] <= 0:
+                    _td = random.choice((1, -1))
+                    _turk[0] = [float(-40 if _td > 0 else WIDTH + 40),
+                                float(HEIGHT - 86), _td, 0.0]
+                    _turk_cd[0] = random.randint(FPS * 5, FPS * 10)
+            else:
+                _tx3, _ty3, _td3, _tt3 = _turk[0]
+                _tt3 += 0.1
+                if random.random() < 0.012:     # it changes its mind
+                    _td3 = -_td3
+                _tx3 += _td3 * 2.2
+                _turk[0] = [_tx3, _ty3, _td3, _tt3]
+                if _tx3 < -70 or _tx3 > WIDTH + 70:
+                    _turk[0] = None
+                else:
+                    _draw_turkey(int(_tx3), int(_ty3), _td3, _tt3)
+
+            # a pie on the shelf, eaten one slice at a time
+            _pr2 = pygame.Rect(WIDTH - 76, HEIGHT - 58, 62, 44)
+            _pie[1] = _pr2
+            _pcx, _pcy = _pr2.centerx, _pr2.centery + 4
+            pygame.draw.ellipse(screen, (196, 150, 86),
+                                (_pr2.x, _pr2.y + 8, _pr2.width, _pr2.height - 8))
+            pygame.draw.ellipse(screen, (146, 102, 52),
+                                (_pr2.x, _pr2.y + 8, _pr2.width, _pr2.height - 8), 2)
+            for _sl in range(6):            # the slices still there
+                if _sl < _pie[0]:
+                    continue
+                _a0 = -math.pi + _sl * (math.pi / 6.0)
+                _a1 = _a0 + (math.pi / 6.0) - 0.04
+                pygame.draw.polygon(screen, (168, 104, 48), [
+                    (_pcx, _pcy),
+                    (_pcx + int(math.cos(_a0) * 29), _pcy + int(math.sin(_a0) * 15)),
+                    (_pcx + int(math.cos((_a0 + _a1) / 2) * 30),
+                     _pcy + int(math.sin((_a0 + _a1) / 2) * 16)),
+                    (_pcx + int(math.cos(_a1) * 29), _pcy + int(math.sin(_a1) * 15))])
+                pygame.draw.polygon(screen, (122, 68, 30), [
+                    (_pcx, _pcy),
+                    (_pcx + int(math.cos(_a0) * 29), _pcy + int(math.sin(_a0) * 15)),
+                    (_pcx + int(math.cos(_a1) * 29), _pcy + int(math.sin(_a1) * 15))], 1)
+            for _cb in list(_pie_crumb):
+                _cb[0] += _cb[2]; _cb[1] += _cb[3]; _cb[3] += 0.22; _cb[4] -= 1
+                if _cb[4] <= 0:
+                    _pie_crumb.remove(_cb)
+                else:
+                    pygame.draw.circle(screen, (178, 118, 58),
+                                       (int(_cb[0]), int(_cb[1])), 2)
+            if _pie[0]:
+                _pt2 = font_tiny.render(
+                    "that was the whole pie" if _pie[0] >= 6 else
+                    ("mm.", "another?", "steady on.", "you will regret this.",
+                     "one left.")[min(4, _pie[0] - 1)],
+                    True, (246, 196, 90) if _pie[0] >= 6 else (198, 152, 92))
+                screen.blit(_pt2, (min(_pr2.x, WIDTH - _pt2.get_width() - 8),
+                                   _pr2.y - 14))
+            if _turks_got[0]:
+                _tg2 = font_tiny.render(f"turkeys caught: {_turks_got[0]}",
+                                        True, (198, 152, 92))
+                screen.blit(_tg2, (WIDTH - _tg2.get_width() - 8, HEIGHT - 76))
 
         # Achievements button
         _ac_have = len(_ach.earned(stats))

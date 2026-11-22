@@ -391,11 +391,13 @@ for _needle, _what in (
     assert _needle in _ui2, f"MISSING: {_what}"
 # every one of them sits inside the `if _hallow:` block or its key handler
 _h_at = _ui2.index("        if _hallow:")
-_h_end = _ui2.index("        # Achievements button", _h_at)
+_h_end = _ui2.index("        # ── Feasterween: a turkey, a pie", _h_at)
 _block = _ui2[_h_at:_h_end]
 for _needle in ("_bat[0] = [float(", "_pk = pygame.Rect(", "_boo[0] -= 1"):
     assert _needle in _block, _needle
-assert "if _hallow and hasattr(event, 'unicode')" in _ui2, "boo is event-gated too"
+# the boo buffer only fills in October, whatever else shares the handler
+assert '_boo_buf = ((_boo_buf + event.unicode.lower())[-4:]' in _ui2
+assert 'if _hallow else "")' in _ui2, "boo is event-gated too"
 # B is the wiki key, so during the event it waits to see whether "oo" follows
 assert "_wiki_wait[0] = 20" in _ui2, "b must not open the wiki instantly in October"
 assert "_wiki_wait[0] = 0       # it was a boo, not the wiki" in _ui2
@@ -674,7 +676,7 @@ for _m9 in ST.MAPS:
                  for _l9 in _m9.get("ladders", ())]
         _in9 += [True for _h9 in _m9.get("holes", ())]
         assert any(_in9), "a room with no way into it is a cellar"
-    for _tk9 in list(_m9.get("tanks", ())) + list(_m9.get("bombgosts", ())):
+    for _tk9 in list(_m9.get("tanks", ())) + list(_m9.get("mineegobloms", ())):
         assert 0 < ST.mx(_tk9[0]) < _C.WIDTH
 assert len(ST.MAPS) == 3, len(ST.MAPS)
 assert ST.MAPS[0].get("house") and ST.MAPS[1].get("store")
@@ -697,17 +699,19 @@ assert _cs.awake
 _cs.ridden = True
 _cs.update(85.0, 100.0)
 assert not _cs.awake, "you cannot be bitten by what you are sitting on"
-# a bomb gost drifts at you, swells, and goes off once — then it is gone
-_bg9 = ST.BombGost(400, 400)
+# a mineegoblom sits where it was put: it lights up, it never moves
+_bg9 = ST.Mineegoblom(400, 400)
+assert ST.Mineegoblom.SPEED == 0.0, "a mine does not chase"
 for _ in range(40):
-    _bg9.update(900.0, 400.0)       # out of range: it stays put
+    _bg9.update(900.0, 400.0)       # out of range: nothing at all
 assert _bg9.x == 400.0 and not _bg9.awake and not _bg9.gone
 for _ in range(40):
-    _bg9.update(520.0, 400.0)
-assert _bg9.awake and _bg9.x > 400.0
-_bg9.update(_bg9.x + 10, 400.0)     # close enough to go off
+    _bg9.update(480.0, 400.0)       # near enough to light the fuse
+assert _bg9.awake and _bg9.x == 400.0, (_bg9.awake, _bg9.x)
+assert _bg9.lit > 0, "the fuse should be burning"
+_bg9.update(410.0, 400.0)           # walked into it
 assert _bg9.gone and _bg9.blast_rect() is not None
-assert _bg9.blast_rect().width == ST.BombGost.BLAST * 2
+assert _bg9.blast_rect().width == ST.Mineegoblom.BLAST * 2
 for _ in range(20):
     _bg9.update(500.0, 400.0)
 assert _bg9.hp <= 0 and _bg9.blast_rect() is None, "it only goes off once"
@@ -969,5 +973,63 @@ assert ("kv", "Locked until", "Win 10 matches") in _mp["Ice Cave"]["body"]
 assert "special mode" in str(_mp["Took the L"]["body"])
 print(f"stages: the first {len(G._DEFAULT_STAGES)} free, {len(G.STAGE_UNLOCKS)} earned, "
       f"{len(_SPECIAL)} that belong to an event")
+
+# 22. Feasterween easter eggs
+import fight_ui as _UIf
+_FEAST_DAY = _dt9.date(2026, 11, 28)
+_HALLOW_DAY = _dt9.date(2026, 10, 31)
+
+def _run_menu(_day, _keys="", _clicks=(), _frames=200):
+    """Drive the home screen on a given day. Returns (result, wiki opens)."""
+    _was = _C.DEV_TIME_OFFSET
+    _ow, _of, _oe = _UIf.wiki_screen, pygame.display.flip, pygame.event.get
+    _wikis = [0]
+    _C.DEV_TIME_OFFSET = (_dt9.datetime.combine(_day, _dt9.datetime.now().time())
+                          - _dt9.datetime.now())
+    _UIf.wiki_screen = lambda *a, **k: _wikis.__setitem__(0, _wikis[0] + 1)
+    _fr = [0]
+    pygame.display.flip = lambda: _fr.__setitem__(0, _fr[0] + 1)
+    _seq = {}
+    for _i, _c in enumerate(_keys):
+        _seq[20 + _i * 4] = [pygame.event.Event(pygame.KEYDOWN, key=ord(_c),
+                                                unicode=_c)]
+    for _i, _pos in enumerate(_clicks):
+        _seq[120 + _i * 10] = [pygame.event.Event(pygame.MOUSEBUTTONDOWN,
+                                                  pos=_pos, button=1)]
+    # ENTER rather than ESCAPE: escaping the home screen calls pygame.quit()
+    # and every later test would be drawing into a dead display.
+    pygame.event.get = lambda *a, **k: (
+        _seq.pop(_fr[0], []) if _fr[0] < _frames
+        else [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN, unicode="")])
+    _res = None
+    try:
+        _res = _UIf.mode_select(unlocked={"Ninja"}, stats={})
+    except SystemExit:
+        _res = "exit"
+    finally:
+        _C.DEV_TIME_OFFSET = _was
+        _UIf.wiki_screen, pygame.display.flip, pygame.event.get = _ow, _of, _oe
+    return _res, _wikis[0], _fr[0]
+
+# typing "gobble" must not open the wiki (b) or launch the event (e)
+_r, _w, _f = _run_menu(_FEAST_DAY, "gobble")
+assert _w == 0, f"the b in gobble opened the wiki {_w} times"
+assert _r == ("1p", "medium"), f"the e in gobble launched {_r!r}"
+assert _f >= 200, _f
+# and B on its own still opens the wiki when no event is on
+_r2, _w2, _ = _run_menu(_dt9.date(2026, 9, 15), "b", _frames=60)
+assert _w2 >= 1, "B is still the wiki key outside an event"
+# the pumpkin belongs to Halloween and the pie to Feasterween — each block
+# has to stand on its own rather than nest inside the other
+_uisrc = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "fight_ui.py")).read()
+_hal_i = _uisrc.index("# ── Halloween easter eggs ─")
+_fea_i = _uisrc.index("# ── Feasterween: a turkey, a pie")
+assert _fea_i > _hal_i, "the Feasterween block must come after Halloween"
+assert "A pumpkin sitting in the corner" in _uisrc[_hal_i:_fea_i], \
+    "the pumpkin fell inside the Feasterween block"
+assert "turkeys caught" in _uisrc[_fea_i:], _fea_i
+print("Feasterween eggs: a flock for \"gobble\", a turkey to catch and a pie "
+      "to eat — and neither the wiki nor Took the L fires mid-word")
 
 print("ALL OK")

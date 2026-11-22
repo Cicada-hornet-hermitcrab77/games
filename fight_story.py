@@ -148,7 +148,7 @@ MAPS = [
             (1620, 320, 620),
         ],
         "tanks": [(830, 320), (1300, 620)],
-        "bombgosts": [(500, 940), (860, 940), (1140, 940), (1560, 940)],
+        "mineegobloms": [(500, 940), (860, 940), (1140, 940), (1560, 940)],
         "wombrocks": [(1560, 940)],
         "cylhosts": [(240, 180, 860, 180)],
         "saddled": [(220, 560, 1480, 560)],
@@ -191,12 +191,14 @@ MAPS = [
 ]
 
 
-class BombGost:
-    """A tiny one, down on the ground. It drifts at you, it swells while it
-    gets close, and then it is not there any more and neither is some of
-    your health. Kill it early and it goes off where it stands."""
-    R, HP, DMG, SPEED = 11, 14, 22, 2.1
-    RANGE, REACH = 220, 90
+class Mineegoblom:
+    """A tiny one, sat on the ground where somebody put it. It does not
+    chase and it does not move — it lights its fuse when you come near and
+    goes off where it is. Shoot it from a distance, or walk into it and
+    find out. Kill one early and it still goes off, which is a way of
+    clearing whatever is stood next to it."""
+    R, HP, DMG, SPEED = 11, 14, 22, 0.0
+    RANGE, REACH = 150, 80
     FUSE, BLAST = 70, 46           # frames once lit, and how far it reaches
 
     def __init__(self, x, y):
@@ -224,11 +226,9 @@ class BombGost:
                       and abs(py - self.y) < self.REACH)
         if self.awake:
             self.face = 1 if px > self.x else -1
-            self.x += self.face * self.SPEED
-            self.lit += 1
-            if abs(px - self.x) < 34 and abs(py - self.y) < 56:
+            self.lit += 1          # the fuse burns, but the mine stays put
+            if abs(px - self.x) < 30 and abs(py - self.y) < 52:
                 self.detonate()
-        self.x = max(14.0, min(float(WIDTH - 14), self.x))
         if self.hurt:
             self.hurt -= 1
 

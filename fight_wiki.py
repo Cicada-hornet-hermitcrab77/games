@@ -1225,6 +1225,27 @@ PAGES = [
          "to think about a roster this size, and how to guess what a fighter "
          "you have never seen is going to do to you.",
      ]},
+    {"section": "events", "title": "Feasterween: what else is in it",
+     "subtitle": "three things on the home screen",
+     "color": (206, 132, 60),
+     "body": [
+         "While Feasterween is on, the home screen has more in it than the "
+         "shop.",
+         ("h", "The note"),
+         "Somebody has stuck a note over the word STICK in the title. Press "
+         "it enough times and the man whose name is on it turns up.",
+         ("h", "Say the word"),
+         "Type gobble on the home screen. A flock goes over, and the word "
+         "says itself.",
+         ("h", "The one on the floor"),
+         "A turkey wanders along the bottom of the screen now and then. It "
+         "changes its mind about which way it is going, which makes it "
+         "harder to catch than it looks. Click it and it is caught, and the "
+         "count stays up.",
+         ("h", "The pie"),
+         "There is a pie in the corner. It goes one slice at a time, and it "
+         "has opinions about how many you have had.",
+     ]},
     {"section": "modes", "title": "Story Mode",
      "subtitle": "the attack on Wombrock Town — Sundays only",
      "color": (196, 110, 96),
@@ -1296,10 +1317,14 @@ PAGES = [
                               "they were put and shoot across the whole "
                               "screen. The big one at the top of the hill "
                               "is a Big Tankagast"),
-         ("kv", "Bomb gosts", "14 health, 22 in the blast — tiny, down on "
-                              "the ground. They drift at you, swell, and go "
-                              "off. Kill one early and it goes off where it "
-                              "stands, which is not always a bad thing"),
+         ("kv", "Mineegobloms", "14 health, 22 in the blast — tiny, sat on "
+                                "the ground where somebody put them. They do "
+                                "not chase. Come near one and it lights its "
+                                "fuse; shoot it from a distance or walk into "
+                                "it and find out. The blast is not fussy "
+                                "about who it catches, so one with a "
+                                "Wombrock stood next to it is your problem "
+                                "solved"),
          ("kv", "The big Tankagast", "240 health, shells for 18 out of two "
                                      "barrels, on tracks with a driver in a "
                                      "cap. Asleep until you start it"),
